@@ -3,7 +3,7 @@ import { PaymentRecord } from '../types';
 import { APIError } from '../utils/error';
 //import { toast } from 'react-hot-toast';
 
-const API_BASE_URL = process.env.API_BASE_URL;
+const API_BASE_URL = import.meta.env.API_BASE_URL;
 
 export const fetchPayments = async (fechaInicio: string, fechaFin: string) => {
   try {
@@ -24,7 +24,7 @@ export const fetchPayments = async (fechaInicio: string, fechaFin: string) => {
 export const DNIPayments = async (dni: string) => {
   try {
     const response = await axios.get<{ total: number; comprobantes: PaymentRecord[] }>(
-      `${API_BASE_URL}/comprobantes/${dni}}`,
+      `${API_BASE_URL}/api/comprobantes/${dni}}`,
     );
     return response.data;
   } catch (error) {

@@ -4,9 +4,10 @@ import { PaymentCard } from './components/PaymentCard';
 import { DateRangePicker } from './components/DateRangePicker';
 import { getCurrentDate } from './utils/date';
 import io from 'socket.io-client';
-import { PaymentRecord } from './types'; // Importa el tipo PaymentRecord
+import { PaymentRecord } from './types'; 
 import axios from 'axios';
-const API_BASE_URL = process.env.API_BASE_URL;
+//const API_BASE_URL = import.meta.env.API_BASE_URL || 'http://localhost:3030/api';
+const API_BASE_URL = 'http://localhost:3030';
 const socket = io(API_BASE_URL);
 
 function App() {
