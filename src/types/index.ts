@@ -23,11 +23,3 @@ export interface PaymentRecord {
   hora: string;
 }
 
-export interface PaymentStatus {
-  _id: string;
-  dni: string;
-  fecha: string;
-  hora: string;
-  estado: string;
-  updatedAt: string;
-}

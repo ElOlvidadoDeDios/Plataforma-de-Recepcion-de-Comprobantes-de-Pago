@@ -1,28 +1,59 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { PaymentCard } from './components/PaymentCard';
 import { DateRangePicker } from './components/DateRangePicker';
-import { usePayments } from './hooks/usePayments';
 import { getCurrentDate } from './utils/date';
-
-const REFRESH_INTERVAL = 1 * 60 * 1000; // 1 minuto (20 minutos sería 20 * 60 * 1000)
+import io from 'socket.io-client';
+import { PaymentRecord } from './types'; // Importa el tipo PaymentRecord
+import axios from 'axios';
+const API_BASE_URL = process.env.API_BASE_URL;
+const socket = io(API_BASE_URL);
 
 function App() {
   const [startDate, setStartDate] = useState(getCurrentDate());
   const [endDate, setEndDate] = useState(getCurrentDate());
-
-  const {
-    payments,
-    loading,
-    fetchData,
-    handleUpdateStatus
-  } = usePayments(startDate, endDate);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, REFRESH_INTERVAL);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    socket.emit('fetchPayments', { fechaInicio: startDate, fechaFin: endDate });
+
+    socket.on('payments', (data: PaymentRecord[]) => {
+      setPayments(data);
+      setLoading(false);
+    });
+
+    socket.on('error', (error: { message: string }) => {
+      console.error('Error al obtener pagos:', error);
+      setLoading(false);
+    });
+
+    return () => {
+      socket.off('payments');
+      socket.off('error');
+    };
+  }, [startDate, endDate]);
+
+  const handleUpdateStatus = async (payment: PaymentRecord, estado: 'pendiente' | 'aceptado' | 'rechazado') => {
+    try {
+      await axios.put(`${API_BASE_URL}/api/comprobantes/${payment.dni}`, {
+        fecha: payment.fecha,
+        hora: payment.hora,
+        estado: estado,
+      });
+
+      // Actualizar el estado local
+      setPayments(prevPayments =>
+        prevPayments.map(p =>
+          p.dni === payment.dni && p.fecha === payment.fecha && p.hora === payment.hora
+            ? { ...p, estado }
+            : p
+        )
+      );
+    } catch (error) {
+      console.error('Error al actualizar el estado del pago:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -50,7 +81,7 @@ function App() {
               <PaymentCard
                 key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                 payment={payment}
-                onUpdateStatus={(status) => handleUpdateStatus(payment, status)}
+                onUpdateStatus={handleUpdateStatus}
               />
             ))}
           </div>

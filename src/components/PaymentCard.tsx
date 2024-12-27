@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 
 interface PaymentCardProps {
   payment: PaymentRecord;
-  onUpdateStatus: (estado: 'pendiente' | 'aceptado' | 'rechazado') => void;
+  onUpdateStatus: (payment: PaymentRecord, estado: 'pendiente' | 'aceptado' | 'rechazado') => Promise<void>;
 }
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onUpdateStatus }) => {
@@ -20,6 +20,11 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onUpdateStatu
     if (event.key === 'Enter') {
       setShowImage(false);
     }
+  };
+
+  const updateStatus = async (estado: 'pendiente' | 'aceptado' | 'rechazado') => {
+    await onUpdateStatus(payment, estado);
+    setShowImage(false);
   };
 
   return (
@@ -72,19 +77,13 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({ payment, onUpdateStatu
           {payment.estado === 'pendiente' && (
             <div className="mt-4">
               <button
-                onClick={() => {
-                  onUpdateStatus('aceptado');
-                  setShowImage(false);
-                }}
+                onClick={() => updateStatus('aceptado')}
                 className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors mr-2"
               >
                 Marcar como pagado
               </button>
               <button
-                onClick={() => {
-                  onUpdateStatus('rechazado');
-                  setShowImage(false);
-                }}
+                onClick={() => updateStatus('rechazado')}
                 className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
               >
                 Rechazar
