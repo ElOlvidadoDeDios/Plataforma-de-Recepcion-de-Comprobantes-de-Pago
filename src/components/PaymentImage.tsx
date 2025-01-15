@@ -11,7 +11,7 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ base64Image, alt }) 
       <img
         src={`data:image/jpeg;base64,${base64Image}`}
         alt={alt}
-        className="w-full h-auto max-h-81 object-contain"
+        className="w-full h-auto max-h-50 object-contain"
       />
     </div>
   );

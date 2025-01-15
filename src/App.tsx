@@ -1,178 +1,248 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { PaymentCard } from './components/PaymentCard';
 import { motion } from 'framer-motion';
-import { getCurrentDate } from './utils/date';
 import io from 'socket.io-client';
+import toast from 'react-hot-toast';
+import { fetchPaymentsByDNI, fetchPaymentsByStatus, updatePaymentStatus } from './api';
+import Login from './components/Login';
+import Register from './components/Register';
+import VerifyEmail from './components/VerifyEmail';
+import ProtectedRoute from './components/ProtectedRoute';
+import { LogoutButton } from './components/LogoutButton';
+import CompleteRegister from './components/CompleteRegister';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
+import { EmailProvider } from './components/EmailContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import UserInfo from './components/UserInfo';
+import { PaymentCard } from './components/PaymentCard';
 import { PaymentRecord } from './types';
-import { fetchPaymentsByDNI, fetchPaymentsByStatus, fetchPaymentsByStatusAndDate, updatePaymentStatus } from './api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const socket = io(API_BASE_URL);
 
-function App() {
-  const [startDate, setStartDate] = useState(getCurrentDate());
-  const [endDate, setEndDate] = useState(getCurrentDate());
+const initializeSocket = () => {
+  return io(API_BASE_URL, {
+    transports: ['polling', 'websocket'],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+    auth: {
+      token: localStorage.getItem('token'),
+    }
+  });
+};
+
+function AppContent() {
+  const { user } = useAuth();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [dniFilter, setDniFilter] = useState('');
-  const [showStatusDateModal, setShowStatusDateModal] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedDate, setSelectedDate] = useState(getCurrentDate());
+  const [selectedStatus, setSelectedStatus] = useState('pendiente');
+  const [socket, setSocket] = useState<any>(null);
 
   useEffect(() => {
-    socket.emit('fetchPayments', { fechaInicio: startDate, fechaFin: endDate });
+    if (user && !socket) {
+      const newSocket = initializeSocket();
+      setSocket(newSocket);
 
-    socket.on('payments', (data: PaymentRecord[]) => {
-      setPayments(data);
-      setLoading(false);
-    });
+      newSocket.on('connect_error', (error) => {
+        console.error('Error de conexión WebSocket:', error);
+      });
 
-    socket.on('error', (error: { message: string }) => {
-      console.error('Error al obtener pagos:', error);
-      setLoading(false);
-    });
+      newSocket.on('connect_failed', (error) => {
+        console.error('Conexión WebSocket fallida:', error);
+      });
 
-    socket.on('paymentUpdated', (updatedPayment: PaymentRecord) => {
-      setPayments(prevPayments =>
-        prevPayments.map(p =>
-          p.dni === updatedPayment.dni && p.fecha === updatedPayment.fecha && p.hora === updatedPayment.hora
-            ? updatedPayment
-            : p
-        )
-      );
-    });
-
-    return () => {
-      socket.off('payments');
-      socket.off('error');
-      socket.off('paymentUpdated');
-    };
-  }, [startDate, endDate]);
-
-  useEffect(() => {
-    const fetchPaymentsByDefaultStatus = async () => {
-      if (!selectedStatus) return;
-      setLoading(true);
-      try {
-        const data = await fetchPaymentsByStatus(selectedStatus);
-        if (data) {
-          setPayments(data.comprobantes);
+      return () => {
+        if (newSocket) {
+          newSocket.close();
         }
-      } catch (error) {
-        console.error('Error al obtener pagos por estado:', error);
-      } finally {
-        setLoading(false);
+      };
+    }
+  }, [user, socket]);
+
+  useEffect(() => {
+    fetchInitialPayments();
+  }, []);
+
+  const fetchInitialPayments = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchPaymentsByStatus('pendiente');
+      if (response?.comprobantes) {
+        setPayments(response.comprobantes);
+      } else {
+        setPayments([]);
       }
-    };
+    } catch (error) {
+      console.error('Error al cargar pagos iniciales:', error);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchPaymentsByDefaultStatus();
-  }, [selectedStatus]);
+  const handleDNISearch = async () => {
+    if (!dniFilter.trim()) {
+      toast.error('Por favor ingrese un DNI válido');
+      return;
+    }
 
-  const handleUpdateStatus = async (payment: PaymentRecord, estado: 'pendiente' | 'aceptado' | 'rechazado') => {
+    setLoading(true);
+    try {
+      const response = await fetchPaymentsByDNI(dniFilter);
+      if (response?.comprobantes) {
+        const filteredPayments = response.comprobantes.filter(
+          payment => selectedStatus === 'todos' || payment.estado === selectedStatus
+        );
+        setPayments(filteredPayments);
+
+        if (filteredPayments.length > 0) {
+          toast.success(`Se encontraron ${filteredPayments.length} pagos para el DNI: ${dniFilter}`);
+        }
+      } else {
+        setPayments([]);
+      }
+    } catch (error) {
+      console.error('Error al buscar por DNI:', error);
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = event.target.value;
+    setSelectedStatus(newStatus);
+
+    setLoading(true);
+    try {
+      let response;
+      if (dniFilter.trim()) {
+        response = await fetchPaymentsByDNI(dniFilter);
+        if (response?.comprobantes) {
+          const filteredPayments = response.comprobantes.filter(
+            payment => newStatus === 'todos' || payment.estado === newStatus
+          );
+          setPayments(filteredPayments);
+        } else {
+          setPayments([]); // Si no hay resultados, vaciar el estado de pagos
+        }
+      } else {
+        if (newStatus === 'todos') {
+          const allPayments = await Promise.all([
+            fetchPaymentsByStatus('pendiente'),
+            fetchPaymentsByStatus('aceptado'),
+            fetchPaymentsByStatus('rechazado')
+          ]);
+          const combinedPayments = allPayments.flatMap(payments => payments.comprobantes || []);
+          setPayments(combinedPayments.length > 0 ? combinedPayments : []); // Vaciar si no hay resultados
+        } else {
+          response = await fetchPaymentsByStatus(newStatus);
+          if (response?.comprobantes) {
+            setPayments(response.comprobantes);
+          } else {
+            setPayments([]); // Vaciar si no hay resultados
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error al filtrar por estado:', error);
+      setPayments([]); // Vaciar en caso de error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearFilters = async () => {
+    setDniFilter('');
+    setSelectedStatus('pendiente');
+    await fetchInitialPayments();
+  };
+
+  const handleUpdatePaymentStatus = async (payment: PaymentRecord, estado: string) => {
     try {
       await updatePaymentStatus(payment.dni, payment.fecha, payment.hora, estado);
       setPayments(prevPayments =>
-        prevPayments.map(p =>
+        prevPayments.filter(p =>
+          !(p.dni === payment.dni && p.fecha === payment.fecha && p.hora === payment.hora && selectedStatus === 'pendiente')
+        ).map(p =>
           p.dni === payment.dni && p.fecha === payment.fecha && p.hora === payment.hora
             ? { ...p, estado }
             : p
         )
       );
+      toast.success('Estado actualizado correctamente.');
     } catch (error) {
-      console.error('Error al actualizar el estado del pago:', error);
+      console.error('Error al actualizar el estado:', error);
+      toast.error('No se pudo actualizar el estado del pago.');
     }
   };
 
-  const handleDNIFilter = async () => {
-    if (!dniFilter) return;
-    setLoading(true);
-    try {
-      const data = await fetchPaymentsByDNI(dniFilter);
-      if (data) {
-        const sortedPayments = data.comprobantes.sort((a, b) => 
-          new Date(`${b.fecha} ${b.hora}`).getTime() - new Date(`${a.fecha} ${a.hora}`).getTime()
+  useEffect(() => {
+    if (socket) {
+      socket.on('paymentUpdated', (updatedPayment: PaymentRecord) => {
+        setPayments(prevPayments =>
+          prevPayments.filter(p =>
+            !(p.dni === updatedPayment.dni && p.fecha === updatedPayment.fecha && p.hora === updatedPayment.hora && selectedStatus === 'pendiente')
+          ).map(payment =>
+            payment.dni === updatedPayment.dni &&
+            payment.fecha === updatedPayment.fecha &&
+            payment.hora === updatedPayment.hora
+              ? updatedPayment
+              : payment
+          )
         );
-        setPayments(sortedPayments);
-      }
-    } catch (error) {
-      console.error('Error al obtener pagos por DNI:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      });
 
-  const handleStatusFilter = async (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const status = event.target.value;
-    setSelectedStatus(status);
-  };
-
-  const handleStatusDateFilter = async () => {
-    if (!selectedStatus) return;
-    setLoading(true);
-    try {
-      const data = await fetchPaymentsByStatusAndDate(selectedStatus, selectedDate);
-      if (data) {
-        setPayments(data.comprobantes);
-      }
-      setShowStatusDateModal(false);
-    } catch (error) {
-      console.error('Error al obtener pagos por estado y fecha:', error);
-    } finally {
-      setLoading(false);
+      return () => {
+        socket.off('paymentUpdated');
+      };
     }
-  };
+  }, [socket, selectedStatus]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-customLightBlue to-white">
-      <div className="max-w-5xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="flex items-center justify-center bg-gradient-to-r from-cyan-500 to-blue-500 p-8 rounded-lg shadow-lg">
-          <div className="flex items-center w-full max-w-5xl p-8">
-            <motion.div
-              className="relative w-48 h-48 overflow-hidden"
-              style={{
-                contain: 'layout',
-                willChange: 'transform'
-              }}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              whileHover={{ scale: 1.2, transition: { duration: 0.2 }}}
-            >
-              <motion.img
-                src="logo_dile.webp"
-                alt="Logo DILE"
-                className="absolute inset-0 w-full h-full object-contain"
-                style={{
-                  transform: 'translateZ(0)',
-                  willChange: 'transform'
-                }}
-                initial={{ y: -20 }}
-                animate={{ y: 0 }}
+      <div className="w-full px-6 pb-8">
+      <div className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-t-lg shadow-lg">
+          <div className="w-full flex items-center px-6 py-4">
+            <div className="flex items-center space-x-6">
+              <motion.div
+                className="relative w-16 h-16"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                whileHover={{ scale: 1.1 }}
+              >
+                <img
+                  src="logo_dile.webp"
+                  alt="Logo DILE"
+                  className="w-full h-full object-contain"
+                />
+              </motion.div>
+              <motion.h1
+                className="text-white font-bold text-2xl md:text-3xl"
+                initial={{ x: 20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-              />
-            </motion.div>
-
-            <motion.h1
-              className="text-white font-bold text-6xl text-center flex-1 ml-8"
-              initial={{ x: 100, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              whileHover={{ scale: 1.05, transition: { duration: 0.2 }}}
-            >
-              Plataforma de Pagos
-            </motion.h1>
+              >
+                Plataforma de Pagos
+              </motion.h1>
+            </div>
+            <div className="flex items-center ml-auto">
+              <UserInfo />
+            </div>
           </div>
         </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* DNI Filter */}
+        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 to-blue-500 flex justify-end px-6 py-2 rounded-b-lg shadow-lg">
+          <LogoutButton />
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6 mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label htmlFor="dni-input" className="block text-sm font-medium text-gray-700">
-                Filtrar por DNI
+                Buscar por DNI
               </label>
               <div className="flex space-x-2">
                 <input
@@ -180,21 +250,18 @@ function App() {
                   type="text"
                   value={dniFilter}
                   onChange={(e) => setDniFilter(e.target.value)}
-                  className="flex-1 rounded-md border border-gray-300 px-3 py-2"
+                  className="flex-1 rounded-md border border-gray-300 px-3 py-2 focus:ring-cyan-500 focus:border-cyan-500"
                   placeholder="Ingrese DNI"
-                  aria-label="Ingrese DNI para filtrar"
                 />
                 <button
-                  onClick={handleDNIFilter}
-                  className="bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-700"
-                  aria-label="Buscar por DNI"
+                  onClick={handleDNISearch}
+                  className="bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-700 transition-colors"
                 >
                   Buscar
                 </button>
               </div>
             </div>
 
-            {/* Status Filter */}
             <div className="space-y-2">
               <label htmlFor="status-select" className="block text-sm font-medium text-gray-700">
                 Filtrar por Estado
@@ -202,67 +269,26 @@ function App() {
               <select
                 id="status-select"
                 value={selectedStatus}
-                onChange={handleStatusFilter}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
-                aria-label="Seleccione el estado del pago"
+                onChange={handleStatusChange}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-cyan-500 focus:border-cyan-500"
               >
-                <option value="">Seleccione un estado</option>
                 <option value="pendiente">Pendiente</option>
                 <option value="aceptado">Aceptado</option>
                 <option value="rechazado">Rechazado</option>
+                <option value="todos">Todos</option>
               </select>
             </div>
-
-            {/* Status and Date Filter */}
-            <div className="space-y-2">
-              <label htmlFor="status-date-button" className="block text-sm font-medium text-gray-700">
-                Filtrar por Estado y Fecha
-              </label>
-              <button
-                id="status-date-button"
-                onClick={() => setShowStatusDateModal(true)}
-                className="w-full bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-700"
-                aria-label="Abrir filtro por estado y fecha"
-              >
-                Seleccionar Filtros
-              </button>
-            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={clearFilters}
+              className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
+            >
+              Limpiar Filtros
+            </button>
           </div>
         </div>
 
-        {/* Date Range */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label htmlFor="start-date" className="block text-sm font-medium text-gray-700">
-                Fecha Inicio
-              </label>
-              <input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
-                aria-label="Seleccionar fecha de inicio"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="end-date" className="block text-sm font-medium text-gray-700">
-                Fecha Fin
-              </label>
-              <input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
-                aria-label="Seleccionar fecha final"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Payments List */}
         {loading ? (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center">
             <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4" />
@@ -270,92 +296,54 @@ function App() {
           </div>
         ) : payments.length === 0 ? (
           <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <p className="text-gray-600 font-medium">No hay pagos para mostrar en el rango de fechas seleccionado</p>
+            <p className="text-gray-600 font-medium">
+              {dniFilter
+                ? `No se encontraron comprobantes para el DNI ${dniFilter}${selectedStatus !== 'todos' ? ` con estado ${selectedStatus}` : ''}`
+                : `No se encontraron comprobantes${selectedStatus !== 'todos' ? ` con estado ${selectedStatus}` : ''}`}
+            </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {payments.map((payment) => (
               <PaymentCard
                 key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                 payment={payment}
-                onUpdateStatus={handleUpdateStatus}
+                onUpdateStatus={(payment, estado) => handleUpdatePaymentStatus(payment, estado)}
+                socket={socket} // Pasa el socket aquí
               />
             ))}
           </div>
         )}
-
-        {/* Modal */}
-        {showStatusDateModal && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-title"
-          >
-            <div className="bg-white rounded-xl p-6 max-w-md w-full">
-              <h3 id="modal-title" className="text-lg font-medium mb-4">
-                Filtrar por Estado y Fecha
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="modal-status-select" className="block text-sm font-medium text-gray-700 mb-1">
-                    Estado del Pago
-                  </label>
-                  <select
-                    id="modal-status-select"
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                    aria-label="Seleccione el estado del pago en el modal"
-                  >
-                    <option value="">Seleccione un estado</option>
-                    <option value="pendiente">Pendiente</option>
-                    <option value="aceptado">Aceptado</option>
-                    <option value="rechazado">Rechazado</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="modal-date" className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha
-                  </label>
-                  <input
-                    id="modal-date"
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                    aria-label="Seleccionar fecha para el filtro"
-                  />
-                </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                  <button
-                    onClick={() => setShowStatusDateModal(false)}
-                    className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-                    aria-label="Cancelar filtro"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleStatusDateFilter}
-                    className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700"
-                    aria-label="Aplicar filtros seleccionados"
-                  >
-                    Aplicar Filtros
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="mt-8 text-center py-4 border-t border-gray-200">
-          <p className="text-gray-600 text-sm">Versión 1.0.0</p>
-        </div>
-
-        <Toaster position="top-right" />
       </div>
+      <Toaster position="top-right" />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <EmailProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify/:verificationCode" element={<VerifyEmail />} />
+            <Route path="/complete-register" element={<CompleteRegister />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <AppContent />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Router>
+      </EmailProvider>
+    </AuthProvider>
   );
 }
 
