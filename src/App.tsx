@@ -23,10 +23,9 @@ import logo from './logo_dile.webp'
 // Asegúrate de que esta URL sea correcta y esté usando wss
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-
 const initializeSocket = () => {
   return io(API_BASE_URL, {
-    transports: ['polling', 'websocket'],
+    transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
