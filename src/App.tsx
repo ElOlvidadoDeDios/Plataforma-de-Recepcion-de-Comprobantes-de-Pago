@@ -18,6 +18,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import UserInfo from './components/UserInfo';
 import { PaymentCard } from './components/PaymentCard';
 import { PaymentRecord } from './types';
+import logo from './logo_dile.webp'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -209,14 +210,14 @@ function AppContent() {
           <div className="w-full flex items-center px-6 py-4">
             <div className="flex items-center space-x-6">
               <motion.div
-                className="relative w-16 h-16"
+                className="relative w-48 h-48"
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.5 }}
                 whileHover={{ scale: 1.1 }}
               >
                 <img
-                  src="logo_dile.webp"
+                  src={logo}
                   alt="Logo DILE"
                   className="w-full h-full object-contain"
                 />
