@@ -34,12 +34,12 @@ const Login = () => {
         const data = await response.json();
         // Limpiar cualquier estado anterior
         localStorage.clear();
+        localStorage.debug = '*';
         // Establecer nuevos valores
         localStorage.setItem('token', data.token);
         localStorage.setItem('email', email);
         localStorage.setItem('dniFilter', '');
         // Al iniciar sesión correctamente
-        localStorage.setItem('loginTime', Date.now().toString());
         localStorage.setItem('selectedStatus', 'pendiente');
         localStorage.setItem('user', JSON.stringify({ email }));
         setIsAuthenticated(true);

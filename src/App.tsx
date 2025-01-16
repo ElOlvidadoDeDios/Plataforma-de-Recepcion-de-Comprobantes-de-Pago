@@ -20,7 +20,9 @@ import { PaymentCard } from './components/PaymentCard';
 import { PaymentRecord } from './types';
 import logo from './logo_dile.webp'
 
+// Asegúrate de que esta URL sea correcta y esté usando wss
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 const initializeSocket = () => {
   return io(API_BASE_URL, {
@@ -47,21 +49,16 @@ function AppContent() {
       const newSocket = initializeSocket();
       setSocket(newSocket);
 
-      newSocket.on('connect_error', (error) => {
-        console.error('Error de conexión WebSocket:', error);
-      });
-
-      newSocket.on('connect_failed', (error) => {
-        console.error('Conexión WebSocket fallida:', error);
-      });
-
+      // Cleanup
       return () => {
         if (newSocket) {
-          newSocket.close();
+          console.log('Desconectando socket');
+          newSocket.disconnect();
+          newSocket.removeAllListeners();
         }
       };
     }
-  }, [user, socket]);
+  }, [user]);
 
   useEffect(() => {
     fetchInitialPayments();
