@@ -25,7 +25,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 const initializeSocket = () => {
   return io(API_BASE_URL, {
-    transports: ['websocket', 'polling'],
+   transports: ['websocket'],
     reconnection: true,
     reconnectionAttempts: 5,
     reconnectionDelay: 1000,
