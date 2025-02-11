@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { User } from '../types';
 import Layout from './Layout';
 import { useNavigate } from 'react-router-dom';
@@ -12,39 +12,39 @@ import {
   deleteUser,
 } from '../api';
 import { UserRole } from '../types/roles';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const UserManagementPage: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { canManageUsers, canAssignRoles, canBlockEmails } = usePermissions();
-  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
 
-  useEffect(() => {
-    if (!canManageUsers()) {
-      navigate('/');
-      return;
-    }
-    loadUsers();
-  }, []);
+  const {
+    data: users = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ['users'],
+    queryFn: fetchAllUsers,
+    enabled: canManageUsers(),
+    staleTime: 30000, // Considerar datos frescos por 30 segundos
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  const loadUsers = async () => {
-    try {
-      const usersData = await fetchAllUsers();
-      setUsers(usersData);
-    } catch (error) {
-      toast.error('Error al cargar los usuarios');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!canManageUsers()) {
+    navigate('/');
+    return null;
+  }
 
   const handleRoleChange = async (userId: string, role: string) => {
     try {
       await updateUserRole(userId, role as UserRole);
       toast.success('Rol actualizado correctamente');
-      loadUsers();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error('Error al actualizar el rol');
     }
@@ -54,7 +54,7 @@ const UserManagementPage: React.FC = () => {
     try {
       await toggleUserStatus(userId);
       toast.success('Estado actualizado correctamente');
-      loadUsers();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error('Error al actualizar el estado');
     }
@@ -64,14 +64,14 @@ const UserManagementPage: React.FC = () => {
     try {
       await toggleEmailBlock(userId);
       toast.success('Estado del correo actualizado correctamente');
-      loadUsers();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error('Error al actualizar el estado del correo');
     }
   };
 
   const handleDeleteUser = async (userId: string, permanent: boolean = false) => {
-    const message = permanent 
+    const message = permanent
       ? '¿Estás seguro de que deseas eliminar permanentemente este usuario? Esta acción no se puede deshacer.'
       : '¿Estás seguro de que deseas eliminar este usuario?';
 
@@ -82,7 +82,7 @@ const UserManagementPage: React.FC = () => {
     try {
       await deleteUser(userId, permanent);
       toast.success(permanent ? 'Usuario eliminado permanentemente' : 'Usuario eliminado correctamente');
-      loadUsers();
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     } catch (error) {
       toast.error('Error al eliminar el usuario');
     }
@@ -91,11 +91,30 @@ const UserManagementPage: React.FC = () => {
   return (
     <Layout title="Gestión de Usuarios">
       <div className="px-6 py-8">
-        {loading ? (
+        {isError && (
+          <div className="mb-6 bg-red-50 p-4 rounded-md border-l-4 border-red-500">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700">
+                  {error instanceof Error ? error.message : 'Error al cargar los usuarios'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isLoading && (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full" />
           </div>
-        ) : (
+        )}
+
+        {!isLoading && !isError && (
           <div className="overflow-x-auto -mx-6">
             <table className="w-full border-collapse">
               <thead>
@@ -106,10 +125,10 @@ const UserManagementPage: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
-                {users.map((user) => (
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {users.map((user: User) => (
                   <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap border-b border-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div>
                           <div className={`text-sm font-medium ${user.isEmailBlocked ? 'text-red-600' : 'text-gray-900'}`}>
@@ -124,7 +143,7 @@ const UserManagementPage: React.FC = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-b border-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {canAssignRoles() && (
                         <select
                           value={user.role}
@@ -143,7 +162,7 @@ const UserManagementPage: React.FC = () => {
                         <span className="text-sm text-gray-900">{user.role}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-b border-gray-100">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleStatusChange(user._id)}
                         disabled={!canManageUsers()}
@@ -156,7 +175,7 @@ const UserManagementPage: React.FC = () => {
                         {user.isActive ? 'Activo' : 'Inactivo'}
                       </button>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap border-b border-gray-100 text-right text-sm font-medium space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       {canBlockEmails() && (
                         <button
                           onClick={() => handleToggleEmailBlock(user._id)}
