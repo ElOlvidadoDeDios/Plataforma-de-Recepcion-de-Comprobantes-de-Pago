@@ -35,8 +35,10 @@ userApiInstance.interceptors.request.use(
 
 export const fetchAllUsers = async () => {
   try {
-    const response = await userApiInstance.get<User[]>('/users');
-    return response.data;
+    const response = await userApiInstance.get('/users');
+    // Verifica si la data es un array o está dentro de un objeto
+    const users = Array.isArray(response.data) ? response.data : response.data.users || [];
+    return users;
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
