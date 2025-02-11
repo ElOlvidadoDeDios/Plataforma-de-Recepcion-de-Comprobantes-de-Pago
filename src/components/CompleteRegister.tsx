@@ -1,73 +1,135 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import { useAuth } from '../hooks/useAuth';
+import { UserRole } from '../types/roles';
+
 const API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
 
 const CompleteRegister = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { initializeUser } = useAuth();
+  
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [dni, setLastdni] = useState('');
+  const [dni, setDni] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { token } = location.state || {};
 
   useEffect(() => {
-    if (!token) {
-      setMessage('Token no válido.');
+    const token = location.state?.token;
+    const email = location.state?.email;
+    
+    if (!token || !email) {
+      toast.error('Información de registro incompleta. Por favor, inicia el proceso nuevamente.');
+      navigate('/register', { replace: true });
     }
-  }, [token]);
+  }, [location.state, navigate]);
 
   const handleCompleteRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
 
-    if (!token) {
-      setMessage('Token no válido.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (password.length < 8) {
-      setMessage('La contraseña debe tener al menos 8 caracteres.');
-      setIsLoading(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setMessage('Las contraseñas no coinciden.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
+      const token = location.state?.token;
+      const email = location.state?.email;
+
+      if (!token || !email) {
+        toast.error('Información de registro incompleta. Por favor, inicia el proceso nuevamente.');
+        navigate('/register', { replace: true });
+        return;
+      }
+
+      if (!name || !lastName || !dni || !password || !confirmPassword) {
+        setMessage('Todos los campos son obligatorios');
+        return;
+      }
+
+      if (dni.length !== 8) {
+        setMessage('El DNI debe tener 8 dígitos');
+        return;
+      }
+
+      if (password.length < 8) {
+        setMessage('La contraseña debe tener al menos 8 caracteres');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setMessage('Las contraseñas no coinciden');
+        return;
+      }
+
+      console.log('Iniciando registro con los datos:', {
+        token: token.substring(0, 20) + '...',
+        email,
+        name,
+        lastName,
+        dni,
+        passwordLength: password.length
+      });
+
       const response = await fetch(`${API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token, name, lastName,dni, password }),
+        body: JSON.stringify({
+          token,
+          email,
+          name: name.trim(),
+          lastName: lastName.trim(),
+          dni: dni.trim(),
+          password
+        })
       });
 
       const data = await response.json();
+      console.log('Respuesta del servidor:', data);
 
       if (response.ok) {
-        toast.success('Registro exitoso');
-        navigate('/login');
+        initializeUser({
+          id: data.id || '',
+          email: email,
+          name: `${name} ${lastName}`,
+          dni: dni,
+          role: UserRole.BASIC_USER,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+        
+        toast.success('Registro completado con éxito');
+        navigate('/login', { replace: true });
       } else {
-        setMessage(data.errors ? data.errors.map((err: { msg: string }) => err.msg).join(', ') : 'Error al completar el registro');
+        if (data.message === 'El usuario ya está verificado.') {
+          toast.error('Este usuario ya completó su registro. Por favor, inicia sesión.');
+          navigate('/login', { replace: true });
+          return;
+        }
+
+        const errorMessage = data.errors 
+          ? data.errors.map((err: { msg: string }) => err.msg).join(', ')
+          : data.message || 'Error al completar el registro';
+        setMessage(errorMessage);
+        console.error('Error en el registro:', data);
       }
     } catch (error) {
-      setMessage('Error de conexión');
+      console.error('Error en el registro:', error);
+      setMessage('Error de conexión. Por favor, intenta nuevamente.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!location.state?.token || !location.state?.email) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-cyan-400 via-sky-400 to-blue-500">
@@ -85,6 +147,9 @@ const CompleteRegister = () => {
           <h2 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-cyan-500 to-blue-600 bg-clip-text text-transparent">
             Completar Registro
           </h2>
+          <p className="text-center text-gray-600 mb-6">
+            {location.state?.email}
+          </p>
         </motion.div>
 
         <form onSubmit={handleCompleteRegister} className="space-y-6">
@@ -119,6 +184,7 @@ const CompleteRegister = () => {
               placeholder="Tu apellido"
             />
           </motion.div>
+          
           <motion.div
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -129,9 +195,14 @@ const CompleteRegister = () => {
               type="text"
               className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={dni}
-              onChange={(e) => setLastdni(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, '');
+                if (value.length <= 8) setDni(value);
+              }}
               required
-              placeholder="tu dni"
+              placeholder="Tu DNI (8 dígitos)"
+              maxLength={8}
+              pattern="\d{8}"
             />
           </motion.div>
 
@@ -149,6 +220,7 @@ const CompleteRegister = () => {
               required
               placeholder="Mínimo 8 caracteres"
               autoComplete="new-password"
+              minLength={8}
             />
           </motion.div>
 
@@ -166,6 +238,7 @@ const CompleteRegister = () => {
               required
               placeholder="Confirma tu contraseña"
               autoComplete="new-password"
+              minLength={8}
             />
           </motion.div>
 

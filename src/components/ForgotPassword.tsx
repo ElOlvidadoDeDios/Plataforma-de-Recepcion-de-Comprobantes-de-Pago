@@ -16,6 +16,13 @@ const ForgotPassword: React.FC = () => {
     setIsLoading(true);
     setMessage('');
 
+    // Validación de campos vacíos
+    if (!email) {
+      setMessage('El campo de correo electrónico es obligatorio');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/forgot-password`, {
         method: 'POST',

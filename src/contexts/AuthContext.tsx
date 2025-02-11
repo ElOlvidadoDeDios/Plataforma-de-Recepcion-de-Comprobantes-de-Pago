@@ -1,38 +1,87 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState } from 'react';
+import { UserRole, UserWithRole, rolePermissions } from '../types/roles';
 
-interface User {
-  email: string;
-  // Añade otras propiedades del usuario si es necesario
-}
-
-interface AuthContextType {
+// Interfaz que define la estructura del contexto de autenticación
+export interface AuthContextType {
   isAuthenticated: boolean;
   setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
-  user: User | null;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
+  user: UserWithRole | null;
+  setUser: React.Dispatch<React.SetStateAction<UserWithRole | null>>;
+  hasPermission: (permission: keyof typeof rolePermissions[UserRole]) => boolean;
+  initializeUser: (userData: Partial<UserWithRole>) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({
+// Creación del contexto con valores iniciales
+export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   setIsAuthenticated: () => {},
   user: null,
   setUser: () => {},
+  hasPermission: () => false,
+  initializeUser: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return !!localStorage.getItem('token');
   });
-  const [user, setUser] = useState<User | null>(() => {
+  
+  const [user, setUser] = useState<UserWithRole | null>(() => {
     const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        if (!parsedUser.role || !Object.values(UserRole).includes(parsedUser.role)) {
+          parsedUser.role = UserRole.BASIC_USER;
+        }
+        return parsedUser;
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        return null;
+      }
+    }
+    return null;
   });
 
-  return (
-    <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, user, setUser }}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const initializeUser = (userData: Partial<UserWithRole>) => {
+    const newUser: UserWithRole = {
+      id: userData.id || '',
+      email: userData.email || '',
+      role: userData.role || UserRole.BASIC_USER,
+      name: userData.name || '',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
+  };
 
-export const useAuth = () => useContext(AuthContext);
+  const hasPermission = (permission: keyof typeof rolePermissions[UserRole]): boolean => {
+    if (!user || !user.role) return false;
+    
+    if (!rolePermissions[user.role]) {
+      console.error(`Role ${user.role} not found in permissions configuration`);
+      return false;
+    }
+
+    if (!(permission in rolePermissions[user.role])) {
+      console.error(`Permission ${permission} not found for role ${user.role}`);
+      return false;
+    }
+
+    return rolePermissions[user.role][permission];
+  };
+
+  const contextValue: AuthContextType = {
+    isAuthenticated,
+    setIsAuthenticated,
+    user,
+    setUser,
+    hasPermission,
+    initializeUser
+  };
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+};

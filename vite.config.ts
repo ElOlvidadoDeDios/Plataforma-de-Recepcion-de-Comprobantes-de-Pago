@@ -7,6 +7,9 @@ import dotenv from 'dotenv';
 // Cargar variables desde .env
 dotenv.config();
 
+const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:3030';
+const LOGIN_API_BASE_URL = process.env.VITE_LOGIN_API_BASE_URL || 'http://localhost:3050';
+
 export default defineConfig({
   base: '/',
   plugins: [react()],
@@ -22,22 +25,37 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5177,
+    cors: true,
     proxy: {
-      // Redirigir rutas relacionadas a la API principal
-      '/src': {
-        target: process.env.VITE_API_BASE_URL,
+      '/socket.io': {
+        target: API_BASE_URL,
+        ws: true,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Opcional, si necesitas ajustar el path
+        rewrite: (path) => path,
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
       },
-      // Redirigir rutas relacionadas al API de login o secundaria
-      '/componentes': {
-        target: process.env.VITE_LOGIN_API_BASE_URL,
+      '/api': {
+        target: API_BASE_URL,
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/auth/, ''), // Opcional, si necesitas ajustar el path
+        rewrite: (path) => path,
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
+      },
+      '/auth': {
+        target: LOGIN_API_BASE_URL,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path,
+        headers: {
+          'Access-Control-Allow-Origin': '*'
+        }
       }
-
     },
   },
 });

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
+
 const API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,6 +18,13 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
+
+    // Validación de campos vacíos
+    if (!email || !password) {
+      setMessage('Todos los campos son obligatorios');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch(`${API_BASE_URL}/login`, {
@@ -35,15 +44,29 @@ const Login = () => {
         // Limpiar cualquier estado anterior
         localStorage.clear();
         localStorage.debug = '*';
-        // Establecer nuevos valores
+        
+        // Guardar token y datos del usuario
         localStorage.setItem('token', data.token);
-        localStorage.setItem('email', email);
         localStorage.setItem('dniFilter', '');
-        // Al iniciar sesión correctamente
         localStorage.setItem('selectedStatus', 'pendiente');
-        localStorage.setItem('user', JSON.stringify({ email }));
+        
+        // Guardar toda la información del usuario incluyendo rol y permisos
+        const userData = {
+          id: data.user._id || data.user.id || String(new Date().getTime()),
+          email: data.user.email,
+          name: data.user.name,
+          lastName: data.user.lastName,
+          role: data.user.role,
+          dni: data.user.dni,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
         setIsAuthenticated(true);
-        setUser({ email });
+        setUser(userData);
+        
         toast.success('Inicio de sesión exitoso');
         navigate('/', { replace: true });
       } else {

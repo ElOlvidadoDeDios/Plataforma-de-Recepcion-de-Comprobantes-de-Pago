@@ -23,3 +23,15 @@ export interface PaymentRecord {
   hora: string;
 }
 
+export interface User {
+  _id: string;
+  email: string;
+  name: string;
+  lastName: string;
+  dni: string;
+  role: string;
+  isActive: boolean;
+  isVerified: boolean;
+  lastLogin: string;
+  isEmailBlocked?: boolean;
+}

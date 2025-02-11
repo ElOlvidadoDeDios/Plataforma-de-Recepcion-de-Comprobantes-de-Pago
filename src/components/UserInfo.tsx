@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
+import { useAuth } from '../hooks/useAuth';
 
 const UserInfo = () => {
-    const email = localStorage.getItem('email') || '';
+    const { user } = useAuth();
+    const email = user?.email || '';
     
     // 3D rotation animation
     const flipAnimation = {
@@ -39,4 +41,5 @@ const UserInfo = () => {
       </div>
     );
   };
+
 export default UserInfo;

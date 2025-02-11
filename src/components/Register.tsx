@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 const API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
+
 const Register = () => {
   const [view, setView] = useState('register');
   const [email, setEmail] = useState('');
@@ -16,7 +17,15 @@ const Register = () => {
     setIsLoading(true);
     setMessage('');
 
+    if (!email) {
+      setMessage('El campo de correo electrónico es obligatorio');
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      console.log('Enviando solicitud de registro:', { email });
+      
       const response = await fetch(`${API_BASE_URL}/register-email`, {
         method: 'POST',
         headers: {
@@ -26,14 +35,23 @@ const Register = () => {
       });
 
       const data = await response.json();
+      console.log('Respuesta del servidor:', data);
 
       if (response.ok) {
         setView('verify');
         setMessage('Código enviado al correo.');
+        toast.success('Código de verificación enviado a tu correo');
       } else {
         setMessage(data.message || 'Error al enviar el código de verificación');
+        if (data.message === 'El usuario ya está verificado.') {
+          toast.error('Este correo ya está registrado. Por favor, inicia sesión.');
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+        }
       }
     } catch (error) {
+      console.error('Error en el registro:', error);
       setMessage('Error de conexión');
     } finally {
       setIsLoading(false);
@@ -45,7 +63,15 @@ const Register = () => {
     setIsLoading(true);
     setMessage('');
 
+    if (!email || !verificationCode) {
+      setMessage('Todos los campos son obligatorios');
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      console.log('Enviando verificación:', { email, code: verificationCode });
+      
       const response = await fetch(`${API_BASE_URL}/verify`, {
         method: 'POST',
         headers: {
@@ -55,14 +81,22 @@ const Register = () => {
       });
 
       const data = await response.json();
+      console.log('Respuesta del servidor:', data);
 
       if (response.ok) {
         toast.success('Email verificado. Complete su registro.');
-        navigate('/complete-register', { state: { token: data.token } });
+        navigate('/complete-register', { 
+          state: { 
+            token: data.token,
+            email: email 
+          },
+          replace: true
+        });
       } else {
         setMessage(data.message || 'Error al verificar el correo');
       }
     } catch (error) {
+      console.error('Error en la verificación:', error);
       setMessage('Error de conexión');
     } finally {
       setIsLoading(false);
