@@ -85,7 +85,7 @@ const Login = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white/95 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-96 border border-white/20"
+        className="bg-white/95 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl w-[90%] max-w-md border border-white/20 mx-4"
       >
         <motion.div
           initial={{ scale: 0.9 }}
@@ -106,7 +106,7 @@ const Login = () => {
             <label className="block text-gray-700 font-medium mb-2">Correo Electrónico</label>
             <input
               type="email"
-              className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
+              className="w-full px-4 py-3.5 sm:py-3 text-base sm:text-sm rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -122,7 +122,7 @@ const Login = () => {
             <label className="block text-gray-700 font-medium mb-2">Contraseña</label>
             <input
               type="password"
-              className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
+              className="w-full px-4 py-3.5 sm:py-3 text-base sm:text-sm rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -144,7 +144,7 @@ const Login = () => {
           <motion.button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-70"
+            className="w-full py-3.5 sm:py-3 text-base sm:text-sm rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold hover:from-cyan-600 hover:to-blue-600 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-70"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -163,7 +163,7 @@ const Login = () => {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
-          className="mt-6 text-center space-y-2"
+          className="mt-8 sm:mt-6 text-center space-y-4 sm:space-y-2"
         >
           <p className="text-gray-600">
             ¿No tienes una cuenta?{' '}
