@@ -3,8 +3,10 @@ import { User } from '../types';
 import { UserRole } from '../types/roles';
 import { APIError } from '../utils/error';
 
-const isDevelopment = import.meta.env.DEV;
-const LOGIN_API_BASE_URL = isDevelopment ? import.meta.env.VITE_LOGIN_API_BASE_URL : import.meta.env.VITE_LOGIN_API_BASE_URL;
+const LOGIN_API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
+
+// Log para depuración en producción
+console.log('API Base URL:', LOGIN_API_BASE_URL);
 
 // Función para obtener el token del localStorage
 const getToken = () => {
@@ -35,11 +37,19 @@ userApiInstance.interceptors.request.use(
 
 export const fetchAllUsers = async () => {
   try {
+    console.log('Iniciando fetchAllUsers');
     const response = await userApiInstance.get('/users');
+    console.log('Respuesta de la API:', response);
+    console.log('Tipo de response.data:', typeof response.data);
+    console.log('Es un array?', Array.isArray(response.data));
+    console.log('Contenido de response.data:', response.data);
+    
     // Verifica si la data es un array o está dentro de un objeto
     const users = Array.isArray(response.data) ? response.data : response.data.users || [];
+    console.log('Users procesados:', users);
     return users;
   } catch (error) {
+    console.error('Error en fetchAllUsers:', error);
     if (error instanceof AxiosError) {
       throw new APIError(
         error.response?.data?.message || 'Error al obtener la lista de usuarios',
