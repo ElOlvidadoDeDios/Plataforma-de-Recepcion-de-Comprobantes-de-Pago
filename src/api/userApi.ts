@@ -5,9 +5,6 @@ import { APIError } from '../utils/error';
 
 const LOGIN_API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
 
-// Log para depuración en producción
-console.log('API Base URL:', LOGIN_API_BASE_URL);
-
 // Función para obtener el token del localStorage
 const getToken = () => {
   return localStorage.getItem('token');
@@ -35,24 +32,14 @@ userApiInstance.interceptors.request.use(
   }
 );
 
-export const fetchAllUsers = async () => {
+export const fetchAllUsers = async (): Promise<User[]> => {
   try {
-    console.log('Iniciando fetchAllUsers');
     const response = await userApiInstance.get('/users');
-    console.log('Respuesta de la API:', response);
-    console.log('Tipo de response.data:', typeof response.data);
-    console.log('Es un array?', Array.isArray(response.data));
-    console.log('Contenido de response.data:', response.data);
-    
-    // Verifica si la data es un array o está dentro de un objeto
-    const users = Array.isArray(response.data) ? response.data : response.data.users || [];
-    console.log('Users procesados:', users);
-    return users;
+    return Array.isArray(response.data) ? response.data : response.data.users || [];
   } catch (error) {
-    console.error('Error en fetchAllUsers:', error);
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al obtener la lista de usuarios',
+        'Error al obtener la lista de usuarios',
         error.response?.status
       );
     }
@@ -60,9 +47,8 @@ export const fetchAllUsers = async () => {
   }
 };
 
-export const updateUserRole = async (userId: string, role: UserRole) => {
+export const updateUserRole = async (userId: string, role: UserRole): Promise<User> => {
   try {
-    console.log('Enviando actualización de rol:', { userId, role });
     const response = await userApiInstance.patch<User>(
       `change-role/${userId}`,
       { role }
@@ -70,9 +56,8 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error('Error en la respuesta:', error.response?.data);
       throw new APIError(
-        error.response?.data?.message || 'Error al actualizar el rol del usuario',
+        'Error al actualizar el rol del usuario',
         error.response?.status
       );
     }
@@ -80,14 +65,14 @@ export const updateUserRole = async (userId: string, role: UserRole) => {
   }
 };
 
-export const toggleUserStatus = async (userId: string) => {
+export const toggleUserStatus = async (userId: string): Promise<User> => {
   try {
     const response = await userApiInstance.patch<User>(`toggle-status/${userId}`, {});
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al actualizar el estado del usuario',
+        'Error al actualizar el estado del usuario',
         error.response?.status
       );
     }
@@ -95,14 +80,14 @@ export const toggleUserStatus = async (userId: string) => {
   }
 };
 
-export const toggleEmailBlock = async (userId: string) => {
+export const toggleEmailBlock = async (userId: string): Promise<User> => {
   try {
     const response = await userApiInstance.patch<User>(`toggle-email-block/${userId}`);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al cambiar el estado del correo del usuario',
+        'Error al cambiar el estado del correo del usuario',
         error.response?.status
       );
     }
@@ -110,15 +95,14 @@ export const toggleEmailBlock = async (userId: string) => {
   }
 };
 
-export const deleteUser = async (userId: string, permanent: boolean = false) => {
+export const deleteUser = async (userId: string, permanent: boolean = false): Promise<void> => {
   try {
     const endpoint = permanent ? `users/${userId}/permanent` : `users/${userId}`;
-    const response = await userApiInstance.delete(endpoint);
-    return response.data;
+    await userApiInstance.delete(endpoint);
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al eliminar el usuario',
+        'Error al eliminar el usuario',
         error.response?.status
       );
     }

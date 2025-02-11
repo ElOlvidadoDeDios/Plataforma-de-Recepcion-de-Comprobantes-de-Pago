@@ -2,8 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { PaymentRecord } from '../types';
 import { APIError } from '../utils/error';
 
-const isDevelopment = import.meta.env.DEV;
-const API_BASE_URL = isDevelopment ? 'http://localhost:3030' : import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Función para obtener el token del localStorage
 const getToken = () => {
@@ -32,20 +31,10 @@ axiosInstance.interceptors.request.use(
   }
 );
 
-// Interceptor para manejar errores de CORS y otros errores comunes
+// Interceptor para manejar errores
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      // El servidor respondió con un código de error
-      console.error('Error de respuesta:', error.response.status);
-    } else if (error.request) {
-      // La petición fue hecha pero no se recibió respuesta
-      console.error('Error de solicitud:', error.request);
-    } else {
-      // Algo sucedió en la configuración de la petición
-      console.error('Error:', error.message);
-    }
     return Promise.reject(error);
   }
 );
@@ -59,7 +48,7 @@ export const fetchPaymentsByDNI = async (dni: string) => {
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al obtener los pagos por DNI',
+        'Error al obtener los pagos por DNI',
         error.response?.status
       );
     }
@@ -76,7 +65,7 @@ export const fetchPaymentsByStatus = async (status: string) => {
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al obtener los pagos por estado',
+        'Error al obtener los pagos por estado',
         error.response?.status
       );
     }
@@ -94,7 +83,7 @@ export const updatePaymentStatus = async (dni: string, fecha: string, hora: stri
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al actualizar el estado del pago',
+        'Error al actualizar el estado del pago',
         error.response?.status
       );
     }
@@ -111,7 +100,7 @@ export const fetchPayments = async (fechaInicio: string, fechaFin: string) => {
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al obtener los pagos',
+        'Error al obtener los pagos',
         error.response?.status
       );
     }
@@ -147,10 +136,10 @@ export const fetchPaymentByDNIAndTime = async (dni: string, fecha: string, hora:
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al obtener el comprobante',
+        'Error al obtener el comprobante',
         error.response?.status
       );
     }
-    throw error;
+    throw new APIError('Error al obtener el comprobante');
   }
 };

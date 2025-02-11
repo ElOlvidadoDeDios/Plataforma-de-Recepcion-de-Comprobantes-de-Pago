@@ -2,8 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { CreditRequest } from '../types/creditRequest';
 import { APIError } from '../utils/error';
 
-const isDevelopment = import.meta.env.DEV;
-const API_BASE_URL = isDevelopment ? 'http://localhost:3030' : import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Función para obtener el token del localStorage
 const getToken = () => {
@@ -32,17 +31,10 @@ axiosInstance.interceptors.request.use(
     }
 );
 
-// Interceptor para manejar errores de CORS y otros errores comunes
+// Interceptor para manejar errores
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response) {
-            console.error('Error de respuesta:', error.response.status);
-        } else if (error.request) {
-            console.error('Error de solicitud:', error.request);
-        } else {
-            console.error('Error:', error.message);
-        }
         return Promise.reject(error);
     }
 );
@@ -56,7 +48,7 @@ export const creditRequestApi = {
         } catch (error) {
             if (error instanceof AxiosError) {
                 throw new APIError(
-                    error.response?.data?.message || 'Error al obtener las solicitudes',
+                    'Error al obtener las solicitudes',
                     error.response?.status
                 );
             }
@@ -72,7 +64,7 @@ export const creditRequestApi = {
         } catch (error) {
             if (error instanceof AxiosError) {
                 throw new APIError(
-                    error.response?.data?.message || 'Error al obtener las solicitudes por DNI',
+                    'Error al obtener las solicitudes por DNI',
                     error.response?.status
                 );
             }
@@ -88,7 +80,7 @@ export const creditRequestApi = {
         } catch (error) {
             if (error instanceof AxiosError) {
                 throw new APIError(
-                    error.response?.data?.message || 'Error al obtener las solicitudes por estado',
+                    'Error al obtener las solicitudes por estado',
                     error.response?.status
                 );
             }
@@ -104,7 +96,7 @@ export const creditRequestApi = {
         } catch (error) {
             if (error instanceof AxiosError) {
                 throw new APIError(
-                    error.response?.data?.message || 'Error al actualizar el estado de atención',
+                    'Error al actualizar el estado de atención',
                     error.response?.status
                 );
             }

@@ -1,8 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { APIError } from '../utils/error';
 
-const isDevelopment = import.meta.env.DEV;
-const API_BASE_URL = isDevelopment ? 'http://localhost:3030' : import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Función para obtener el token del localStorage
 const getToken = () => {
@@ -50,7 +49,7 @@ export const getBotInteractions = async () => {
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al obtener las interacciones del bot',
+        'Error al obtener las interacciones del bot',
         error.response?.status
       );
     }
@@ -67,7 +66,7 @@ export const getBotInteractionsByDni = async (dni: string) => {
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
-        error.response?.data?.message || 'Error al obtener las interacciones del bot por DNI',
+        'Error al obtener las interacciones del bot por DNI',
         error.response?.status
       );
     }
