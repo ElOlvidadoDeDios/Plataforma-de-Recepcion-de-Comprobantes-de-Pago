@@ -94,6 +94,26 @@ const Welcome: React.FC = () => {
           </motion.div>
         )}
 
+        {/* Botón de Consulta de Cuotas - Visible para usuarios no básicos */}
+        {!permissions.isBasicUser() && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
+            <button
+              onClick={() => navigate('/consultas-cuotas')}
+              className="w-full h-48 bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow p-6 flex flex-col items-center justify-center space-y-4"
+            >
+              <svg className="w-16 h-16 text-cyan-600" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <span className="text-xl font-semibold text-gray-800">Consulta de Cuotas</span>
+              <p className="text-gray-600 text-center">Ver historial de consultas de cuotas de socios</p>
+            </button>
+          </motion.div>
+        )}
+
         {/* Botón de Gestión de Usuarios - Solo visible si tiene permiso */}
         {permissions.canManageUsers() && (
           <motion.div

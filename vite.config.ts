@@ -10,9 +10,22 @@ dotenv.config();
 const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:3030';
 const LOGIN_API_BASE_URL = process.env.VITE_LOGIN_API_BASE_URL || 'http://localhost:3050';
 
-export default defineConfig({
+// Plugin para eliminar console.logs en producción
+const removeConsolePlugin = () => ({
+  name: 'remove-console',
+  transform(code: string, id: string) {
+    if (process.env.NODE_ENV === 'production' && id.endsWith('.ts') || id.endsWith('.tsx')) {
+      return {
+        code: code.replace(/console\.(log|info|debug|warn)\((.*?)\);?/g, ''),
+        map: null
+      }
+    }
+  }
+});
+
+export default defineConfig(({ mode }) => ({
   base: '/',
-  plugins: [react()],
+  plugins: [react(), removeConsolePlugin()],
   css: {
     postcss: {
       plugins: [
@@ -23,6 +36,16 @@ export default defineConfig({
         }),
       ],
     },
+  },
+  build: {
+    minify: mode === 'production',
+    rollupOptions: {
+      output: {
+        entryFileNames: mode === 'production' ? 'assets/[hash].js' : 'assets/[name].js',
+        chunkFileNames: mode === 'production' ? 'assets/[hash].js' : 'assets/[name].js',
+        assetFileNames: mode === 'production' ? 'assets/[hash].[ext]' : 'assets/[name].[ext]'
+      }
+    }
   },
   server: {
     port: 5177,
@@ -58,4 +81,4 @@ export default defineConfig({
       }
     },
   },
-});
+}));

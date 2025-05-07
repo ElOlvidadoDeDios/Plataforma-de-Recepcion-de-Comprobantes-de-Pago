@@ -6,8 +6,11 @@ export interface CreditRequest {
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
     estadoAtencion: 'ATENDIDO' | 'PENDIENTE';
     mensaje?: string;
+    puntaje?: number;
     fecha: string;
     hora: string;
+    mensajeRespuesta?: string;
+    respondidoEn?: string;
 }
 
 export type CreditRequestStatus = CreditRequest['status'];

@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
-import { UserRole, rolePermissions } from '../types/roles';
+import { UserRole } from '../types/roles';
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -21,11 +21,11 @@ export function usePermissions() {
   return {
     hasPermission,
     isBasicUser,
-    canManageUsers: () => hasPermission('canManageUsers' as keyof typeof rolePermissions[UserRole]),
-    canAccessPayments: () => hasPermission('canAccessPayments' as keyof typeof rolePermissions[UserRole]),
-    canAccessCredits: () => hasPermission('canAccessCredits' as keyof typeof rolePermissions[UserRole]),
-    canAssignRoles: () => hasPermission('canAssignRoles' as keyof typeof rolePermissions[UserRole]),
-    canDeleteAccounts: () => hasPermission('canDeleteAccounts' as keyof typeof rolePermissions[UserRole]),
-    canBlockEmails: () => hasPermission('canBlockEmails' as keyof typeof rolePermissions[UserRole]),
+    canManageUsers: () => hasPermission('canManageUsers'),
+    canAccessPayments: () => hasPermission('canAccessPayments'),
+    canAccessCredits: () => hasPermission('canAccessCredits'),
+    canAssignRoles: () => hasPermission('canAssignRoles'),
+    canDeleteAccounts: () => hasPermission('canDeleteAccounts'),
+    canBlockEmails: () => hasPermission('canBlockEmails'),
   };
 }

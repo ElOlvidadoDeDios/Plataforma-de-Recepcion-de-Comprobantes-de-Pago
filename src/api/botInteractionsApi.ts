@@ -64,6 +64,9 @@ export const getBotInteractionsByDni = async (dni: string) => {
     );
     return response.data;
   } catch (error) {
+    if (error instanceof AxiosError && error.response?.status === 404) {
+      return { success: true, data: [] };
+    }
     if (error instanceof AxiosError) {
       throw new APIError(
         'Error al obtener las interacciones del bot por DNI',

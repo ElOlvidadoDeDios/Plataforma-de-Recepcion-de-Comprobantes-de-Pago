@@ -12,7 +12,7 @@ const Login = () => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setIsAuthenticated, setUser } = useAuth();
+  const { setIsAuthenticated, initializeUser } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,44 +35,32 @@ const Login = () => {
         body: JSON.stringify({ email, password }),
       });
 
-      if (response.status === 404) {
-        setMessage('Usuario no encontrado');
-      } else if (response.status === 401) {
-        setMessage('Credenciales incorrectas');
-      } else if (response.ok) {
-        const data = await response.json();
-        // Limpiar cualquier estado anterior
-        localStorage.clear();
-        localStorage.debug = '*';
-        
-        // Guardar token y datos del usuario
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('dniFilter', '');
-        localStorage.setItem('selectedStatus', 'pendiente');
-        
-        // Guardar toda la información del usuario incluyendo rol y permisos
-        const userData = {
-          id: data.user._id || data.user.id || String(new Date().getTime()),
-          email: data.user.email,
-          name: data.user.name,
-          lastName: data.user.lastName,
-          role: data.user.role,
-          dni: data.user.dni,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        localStorage.setItem('user', JSON.stringify(userData));
-        setIsAuthenticated(true);
-        setUser(userData);
-        
-        toast.success('Inicio de sesión exitoso');
-        navigate('/', { replace: true });
-      } else {
-        setMessage('Datos incorrectos');
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.message || 'Error al iniciar sesión');
+        return;
       }
+      
+      // Limpiar cualquier estado anterior
+      localStorage.clear();
+      localStorage.debug = '*';
+      
+      // Guardar token
+      localStorage.setItem('token', data.token);
+      
+      // Usar los datos del usuario que vienen en la respuesta
+      const userData = data.user;
+      console.log('Datos del usuario recibidos:', userData);
+      
+      // Inicializar usuario usando la función del contexto
+      setIsAuthenticated(true);
+      initializeUser(userData);
+      
+      toast.success('Inicio de sesión exitoso');
+      navigate('/', { replace: true });
     } catch (error) {
+      console.error('Error durante el login:', error);
       setMessage('Error de conexión');
     } finally {
       setIsLoading(false);

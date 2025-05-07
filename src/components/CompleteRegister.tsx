@@ -99,7 +99,7 @@ const CompleteRegister = () => {
           name: `${name} ${lastName}`,
           dni: dni,
           role: UserRole.BASIC_USER,
-          isActive: true,
+          status: 0, // CREATED - Usuario nuevo sin permisos hasta que un admin lo active
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         });

@@ -20,14 +20,34 @@ export const usePayments = (startDate: string, endDate: string) => {
     }
   }, [startDate, endDate]);
 
-  const handleUpdateStatus = async (payment: PaymentRecord, nuevoEstado: string) => {
+  const handleUpdateStatus = async (
+    payment: PaymentRecord,
+    nuevoEstado: string,
+    motivoRechazo?: string,
+    agencia?: string,
+    monto?: string | null
+  ) => {
     try {
       const { dni, fecha, hora } = payment;
-      const updatedPayment = await updatePaymentStatus(dni, fecha, hora, nuevoEstado);
-      setPayments(prevPayments =>
-        prevPayments.map(p => (p.dni === updatedPayment.dni && p.fecha === updatedPayment.fecha && p.hora === updatedPayment.hora ? updatedPayment : p))
+      const updatedPayment = await updatePaymentStatus(
+        dni,
+        fecha,
+        hora,
+        nuevoEstado,
+        motivoRechazo,
+        agencia,
+        monto
       );
-      toast.success('Estado de pago actualizado');
+
+      setPayments(prevPayments =>
+        prevPayments.map(p =>
+          (p.dni === updatedPayment.dni &&
+           p.fecha === updatedPayment.fecha &&
+           p.hora === updatedPayment.hora) ? updatedPayment : p
+        )
+      );
+
+      toast.success(nuevoEstado === 'aceptado' ? 'Pago procesado correctamente' : 'Estado de pago actualizado');
     } catch (error) {
       toast.error(getErrorMessage(error));
     }

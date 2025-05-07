@@ -21,8 +21,12 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = getToken();
+    console.log('Token being sent:', token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Headers:', config.headers);
+    } else {
+      console.log('No token found in localStorage');
     }
     return config;
   },
@@ -73,17 +77,63 @@ export const fetchPaymentsByStatus = async (status: string) => {
   }
 };
 
-export const updatePaymentStatus = async (dni: string, fecha: string, hora: string, nuevoEstado: string) => {
+export const updatePaymentStatus = async (
+  dni: string,
+  fecha: string,
+  hora: string,
+  nuevoEstado: string,
+  motivo_Rechazo?: string,
+  agenciaData?: { agencia: string; cod_caja: string; user_caja: string } | null,
+  monto?: string | null
+) => {
   try {
+    const userJson = localStorage.getItem('user');
+    if (!userJson) {
+      throw new APIError('No se encontraron datos del usuario');
+    }
+    
+    const user = JSON.parse(userJson);
+    const requestBody = {
+      fecha,
+      hora,
+      estado: nuevoEstado,
+      motivo_rechazo: motivo_Rechazo || null,
+      monto: nuevoEstado === 'aceptado' ? monto : null,
+      userData: {
+        email: user.email,
+        dni: user.dni,
+        agencia: agenciaData?.agencia || null,
+        cod_caja: agenciaData?.cod_caja || null,
+        user_caja: agenciaData?.user_caja || null,
+        role: user.role
+      }
+    };
+    
+    console.log('Enviando request:', requestBody);
+    
     const response = await axiosInstance.put<PaymentRecord>(
       `/api/comprobantes/${dni}`,
-      { fecha, hora, estado: nuevoEstado }
+      requestBody
     );
-    return response.data;
+    const message = response.data.message || (
+      nuevoEstado === 'aceptado' ?
+        'Pago procesado exitosamente' :
+        'Comprobante actualizado'
+    );
+    return { ...response.data, message };
   } catch (error) {
     if (error instanceof AxiosError) {
+      console.log('Error detallado:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data
+        }
+      });
       throw new APIError(
-        'Error al actualizar el estado del pago',
+        `Error al actualizar el estado del pago: ${error.response?.data?.message || error.message}`,
         error.response?.status
       );
     }
