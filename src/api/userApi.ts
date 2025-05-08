@@ -196,7 +196,7 @@ export const getCurrentUser = async (): Promise<UserWithRole> => {
 
     return userWithRole;
   } catch (error) {
-    console.error('Error al obtener datos del usuario:', error);
+    //console.error('Error al obtener datos del usuario:', error);
     if (error instanceof AxiosError) {
       if (error.response?.status === 404) {
         throw new APIError('Usuario no encontrado');
@@ -209,17 +209,17 @@ export const getCurrentUser = async (): Promise<UserWithRole> => {
 
 export const fetchAllUsers = async (): Promise<UserResponse[]> => {
   try {
-    console.log('🔍 Obteniendo lista de usuarios...');
+    //console.log('🔍 Obteniendo lista de usuarios...');
     
     interface UsersResponse {
       users?: User[];
     }
 
     const response = await userApiInstance.get<User[] | UsersResponse>('/users');
-    console.log('✅ Respuesta recibida:', response.data);
+    //console.log('✅ Respuesta recibida:', response.data);
 
     const users = Array.isArray(response.data) ? response.data : (response.data.users || []);
-    console.log('📊 Usuarios encontrados:', users.length);
+    //console.log('📊 Usuarios encontrados:', users.length);
 
     return users.map((user: User) => ({
       ...user,
@@ -244,12 +244,12 @@ export const updateUserRole = async (userId: string, role: UserRole): Promise<Us
       { role }
     );
 
-    console.log('✅ Rol actualizado exitosamente:', {
+    /*console.log('✅ Rol actualizado exitosamente:', {
       userId,
       newRole: role,
       newStatus: response.data.status,
       statusText: response.data.statusText
-    });
+    });*/
 
     return response.data;
   } catch (error) {
@@ -263,13 +263,13 @@ export const updateUserRole = async (userId: string, role: UserRole): Promise<Us
       if (error.response?.status === 403 && errorMessage.includes('SUPER_ADMIN')) {
         throw new APIError('No se puede modificar el rol de un SUPER_ADMIN');
       }
-
+/*
       console.error('❌ Error al actualizar rol:', {
         userId,
         newRole: role,
         status: error.response?.status,
         message: errorMessage
-      });
+      });*/
 
       throw new APIError(errorMessage, error.response?.status);
     }
@@ -279,7 +279,7 @@ export const updateUserRole = async (userId: string, role: UserRole): Promise<Us
 
 export const updateUserStatus = async (userId: string, newStatus: number): Promise<UserResponse> => {
   try {
-    console.log('🔄 Actualizando estado de usuario:', { userId, newStatus });
+    //console.log('🔄 Actualizando estado de usuario:', { userId, newStatus });
     
     const response = await userApiInstance.patch<UserResponse>(
       `/users/${userId}/status`,

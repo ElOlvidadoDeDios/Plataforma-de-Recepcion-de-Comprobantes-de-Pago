@@ -202,7 +202,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
         monto
       );
       
-      if (result && !result.error) {
+      if (result && !(result as any).error) {
         setPayments(prevPayments =>
           prevPayments.map(p =>
             p.dni === payment.dni && p.fecha === payment.fecha && p.hora === payment.hora

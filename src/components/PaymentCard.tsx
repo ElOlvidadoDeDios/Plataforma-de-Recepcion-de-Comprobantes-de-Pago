@@ -204,7 +204,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                   {isLoading ? (
                     <div className="text-gray-600">Cargando imagen...</div>
                   ) : (
-                    <PaymentImage base64Image={currentPayment.comprobantebase_64} alt={`Comprobante de ${currentPayment.nombreSocio}`} />
+                    <PaymentImage imageSource={currentPayment.comprobantebase_64} alt={`Comprobante de ${currentPayment.nombreSocio}`} />
                   )}
                 </div>
               </div>

@@ -115,11 +115,9 @@ export const updatePaymentStatus = async (
       `/api/comprobantes/${dni}`,
       requestBody
     );
-    const message = response.data.message || (
-      nuevoEstado === 'aceptado' ?
-        'Pago procesado exitosamente' :
-        'Comprobante actualizado'
-    );
+    const message = nuevoEstado === 'aceptado' ?
+      'Pago procesado exitosamente' :
+      'Comprobante actualizado';
     return { ...response.data, message };
   } catch (error) {
     if (error instanceof AxiosError) {
