@@ -6,8 +6,8 @@ interface PaymentImageProps {
 }
 
 export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) => {
-  // Obtener la URL base del env
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  // Obtener la URL base del env y asegurarse que no termine en slash
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
 
   // Función para determinar si es una ruta de comprobante
   const isComprobantePath = (str: string): boolean => {
@@ -27,11 +27,7 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
       if (image.startsWith('http://') || image.startsWith('https://')) {
         return image;
       }
-      // Si es una ruta relativa, añadir la URL base
-      if (image.startsWith('/comprobantes/')) {
-        return `${API_BASE_URL}${image}`;
-      }
-      // Si es una ruta con public, extraer solo el nombre del archivo
+      // Si es una ruta relativa, extraer el nombre del archivo y construir la URL
       const fileName = image.split(/[/\\]/).pop();
       return `${API_BASE_URL}/comprobantes/${fileName}`;
     }
