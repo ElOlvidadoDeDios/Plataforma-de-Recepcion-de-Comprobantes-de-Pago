@@ -50,6 +50,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5177,
     cors: true,
+    historyApiFallback: {
+      disableDotRule: true,
+      rewrites: [
+        { from: /^\/.*/, to: '/index.html' }
+      ]
+    },
     proxy: {
       '/socket.io': {
         target: API_BASE_URL,

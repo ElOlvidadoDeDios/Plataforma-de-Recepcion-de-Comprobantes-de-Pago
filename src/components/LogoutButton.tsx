@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { clearCache } from '../utils/cache';
 
 export const LogoutButton = () => {
   const { setIsAuthenticated, setUser } = useAuth();
@@ -7,6 +8,7 @@ export const LogoutButton = () => {
 
   const handleLogout = () => {
     localStorage.clear(); // Limpia todo el almacenamiento local
+    clearCache(); // Limpia el caché de datos
     setIsAuthenticated(false);
     setUser(null);
     navigate('/login');

@@ -93,12 +93,15 @@ const Login = () => {
           >
             <label className="block text-gray-700 font-medium mb-2">Correo Electrónico</label>
             <input
+              id="email"
+              name="email"
               type="email"
               className="w-full px-4 py-3.5 sm:py-3 text-base sm:text-sm rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="ejemplo@correo.com"
+              autoComplete="email"
             />
           </motion.div>
 
@@ -109,13 +112,15 @@ const Login = () => {
           >
             <label className="block text-gray-700 font-medium mb-2">Contraseña</label>
             <input
+              id="password"
+              name="password"
               type="password"
               className="w-full px-4 py-3.5 sm:py-3 text-base sm:text-sm rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
-              autoComplete="password"
+              autoComplete="current-password"
             />
           </motion.div>
 

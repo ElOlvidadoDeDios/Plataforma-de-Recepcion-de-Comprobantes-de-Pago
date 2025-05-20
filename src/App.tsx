@@ -15,6 +15,7 @@ import UserManagementPage from './components/UserManagementPage';
 import CreditRequestsPage from './components/CreditRequestsPage';
 import BotInteractionsPage from './components/BotInteractionsPage';
 import ConsultaCuotasPage from './components/ConsultaCuotasPage';
+import CustomerConsultation from './components/customerConsultation/customerConsultation';
 import NonBasicUserRoute from './components/NonBasicUserRoute';
 import { EmailProvider } from './components/EmailContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -99,6 +100,16 @@ function App() {
                     <ProtectedRoute>
                       <NonBasicUserRoute>
                         <ConsultaCuotasPage />
+                      </NonBasicUserRoute>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/consulta-clientes"
+                  element={
+                    <ProtectedRoute>
+                      <NonBasicUserRoute>
+                        <CustomerConsultation />
                       </NonBasicUserRoute>
                     </ProtectedRoute>
                   }

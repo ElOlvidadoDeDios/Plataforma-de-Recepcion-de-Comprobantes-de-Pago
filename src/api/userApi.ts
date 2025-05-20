@@ -1,185 +1,90 @@
 import axios, { AxiosError } from 'axios';
+import logger from '../utils/logger';
 import { User, AgenciaCaja, UserResponse } from '../types';
 import { UserRole, UserWithRole, UserStatus, UserStatusText } from '../types/roles';
 import { APIError } from '../utils/error';
+import { withCache, clearCache } from '../utils/cache';
 
 const LOGIN_API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
 
-// Función para obtener el token del localStorage
 const getToken = () => {
   return localStorage.getItem('token');
 };
-
-// Configuración de Axios para incluir el token en cada solicitud
-console.log('API Base URL:', LOGIN_API_BASE_URL);
 
 const userApiInstance = axios.create({
   baseURL: LOGIN_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
   }
 });
 
-// Interceptor para agregar el token y manejar errores
 userApiInstance.interceptors.request.use(
   (config) => {
     const token = getToken();
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    console.log('🔍 Request:', {
-      url: config.url,
-      method: config.method,
-      hasToken: !!token
-    });
+    if (import.meta.env.DEV) {
+      logger.log('🔍 Request:', {
+        url: config.url,
+        method: config.method,
+        hasToken: !!token
+      });
+    }
     return config;
   },
   (error) => {
-    console.error('❌ Request error:', error);
+    if (import.meta.env.DEV) {
+      logger.error('❌ Request error:', error);
+    }
     return Promise.reject(error);
   }
 );
 
-// Interceptor para manejar respuestas
 userApiInstance.interceptors.response.use(
   (response) => {
-    console.log('✅ Response:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
-    return response;
-  },
-  (error) => {
-    console.error('❌ Response error:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.response?.data?.message,
-      data: error.response?.data
-    });
-    return Promise.reject(error);
-  }
-);
-
-// Log de configuración inicial
-console.log('Configuración inicial de Axios:', {
-  baseURL: userApiInstance.defaults.baseURL,
-  headers: userApiInstance.defaults.headers
-});
-
-// Interceptor para agregar el token en cada petición
-userApiInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+    if (import.meta.env.DEV) {
+      logger.log('✅ Response:', {
+        url: response.config.url,
+        status: response.status
+      });
     }
-    console.log('🔍 Detalles de la solicitud:', {
-      originalUrl: config.url,
-      baseURL: config.baseURL,
-      finalUrl: `${config.baseURL}/${config.url}`,
-      method: config.method,
-      hasToken: !!token
-    });
-    return config;
-  },
-  (error) => {
-    console.error('❌ Error en interceptor:', error);
-    return Promise.reject(error);
-  }
-);
-
-// Configurar interceptor de solicitudes con mejor manejo de errores y logging
-userApiInstance.interceptors.request.use(
-  (config) => {
-    const token = getToken();
-    const originalUrl = config.url;
-    
-    // Verificar y establecer el token
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      console.warn('⚠️ No se encontró token en localStorage');
-    }
-
-    // Log detallado de la solicitud saliente
-    console.log('🔍 Detalles de la solicitud:', {
-      originalUrl,
-      baseURL: config.baseURL,
-      finalUrl: `${config.baseURL}/${originalUrl}`,
-      method: config.method,
-      hasToken: !!token,
-      data: config.data
-    });
-
-    return config;
-  },
-  (error) => {
-    console.error('❌ Error en el interceptor de solicitud:', {
-      message: error.message,
-      config: error.config
-    });
-    return Promise.reject(error);
-  }
-);
-
-// Interceptor para manejar errores de token expirado
-// Mejorar el interceptor de respuestas con más información de depuración
-userApiInstance.interceptors.response.use(
-  (response) => {
-    console.log('✅ Respuesta exitosa:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
     return response;
   },
   async (error) => {
-    console.error('❌ Error en la respuesta:', {
-      url: error.config?.url,
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    });
+    if (import.meta.env.DEV) {
+      logger.error('❌ Response error:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        message: error.message
+      });
+    }
 
     if (error.response?.status === 403) {
-      console.log('🔒 Token expirado o inválido');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      clearCache(); // Limpiar caché cuando el token expire
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
 
-// Función para obtener datos del usuario actual
 export const getCurrentUser = async (): Promise<UserWithRole> => {
-  try {
-    console.log('Iniciando obtención de datos del usuario...');
-    const response = await userApiInstance.get<UserResponse>('/user/me');
+  return withCache('currentUser', async () => {
+    try {
+      const response = await userApiInstance.get<UserResponse>('user/me');
     
     if (!response.data) {
       throw new Error('No se recibieron datos del usuario');
     }
 
     const userData = response.data;
-    console.log('Datos recibidos:', {
-      email: userData.email,
-      role: userData.role,
-      status: userData.status,
-      statusText: userData.statusText,
-      hasAgencias: !!userData.agencias,
-      agenciasCount: userData.agencias?.length || 0
-    });
 
-    // Validar rol
     if (!Object.values(UserRole).includes(userData.role as UserRole)) {
-      console.error('Rol no válido recibido:', userData.role);
       throw new Error(`Rol inválido: ${userData.role}`);
     }
 
-    // Convertir la respuesta a UserWithRole
     const userWithRole: UserWithRole = {
       id: userData._id || String(new Date().getTime()),
       email: userData.email || '',
@@ -196,7 +101,6 @@ export const getCurrentUser = async (): Promise<UserWithRole> => {
 
     return userWithRole;
   } catch (error) {
-    //console.error('Error al obtener datos del usuario:', error);
     if (error instanceof AxiosError) {
       if (error.response?.status === 404) {
         throw new APIError('Usuario no encontrado');
@@ -205,21 +109,18 @@ export const getCurrentUser = async (): Promise<UserWithRole> => {
     }
     throw new APIError('Error al obtener datos del usuario');
   }
+  }, 5); // Cache por 5 minutos
 };
 
 export const fetchAllUsers = async (): Promise<UserResponse[]> => {
-  try {
-    //console.log('🔍 Obteniendo lista de usuarios...');
-    
-    interface UsersResponse {
-      users?: User[];
-    }
+  return withCache('allUsers', async () => {
+    try {
+      interface UsersResponse {
+        users?: User[];
+      }
 
-    const response = await userApiInstance.get<User[] | UsersResponse>('/users');
-    //console.log('✅ Respuesta recibida:', response.data);
-
+      const response = await userApiInstance.get<User[] | UsersResponse>('users');
     const users = Array.isArray(response.data) ? response.data : (response.data.users || []);
-    //console.log('📊 Usuarios encontrados:', users.length);
 
     return users.map((user: User) => ({
       ...user,
@@ -234,22 +135,15 @@ export const fetchAllUsers = async (): Promise<UserResponse[]> => {
     }
     throw new APIError('Error al obtener la lista de usuarios');
   }
+  }, 2); // Cache por 2 minutos
 };
 
 export const updateUserRole = async (userId: string, role: UserRole): Promise<UserResponse> => {
   try {
-    console.log('🔄 Actualizando rol de usuario:', { userId, newRole: role });
     const response = await userApiInstance.patch<UserResponse>(
-      `/change-role/${userId}`,
+      `change-role/${userId}`,
       { role }
     );
-
-    /*console.log('✅ Rol actualizado exitosamente:', {
-      userId,
-      newRole: role,
-      newStatus: response.data.status,
-      statusText: response.data.statusText
-    });*/
 
     return response.data;
   } catch (error) {
@@ -263,13 +157,6 @@ export const updateUserRole = async (userId: string, role: UserRole): Promise<Us
       if (error.response?.status === 403 && errorMessage.includes('SUPER_ADMIN')) {
         throw new APIError('No se puede modificar el rol de un SUPER_ADMIN');
       }
-/*
-      console.error('❌ Error al actualizar rol:', {
-        userId,
-        newRole: role,
-        status: error.response?.status,
-        message: errorMessage
-      });*/
 
       throw new APIError(errorMessage, error.response?.status);
     }
@@ -279,24 +166,14 @@ export const updateUserRole = async (userId: string, role: UserRole): Promise<Us
 
 export const updateUserStatus = async (userId: string, newStatus: number): Promise<UserResponse> => {
   try {
-    //console.log('🔄 Actualizando estado de usuario:', { userId, newStatus });
-    
     const response = await userApiInstance.patch<UserResponse>(
-      `/users/${userId}/status`,
+      `users/${userId}/status`,
       { status: newStatus }
     );
 
-    console.log('✅ Estado actualizado:', response.data);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error('Error detallado:', {
-        status: error.response?.status,
-        message: error.response?.data?.message,
-        data: error.response?.data,
-        url: error.config?.url
-      });
-
       if (error.response?.status === 500) {
         throw new APIError(`Error interno del servidor: ${error.response?.data?.message || 'Desconocido'}`);
       }
@@ -313,54 +190,38 @@ export const updateUserStatus = async (userId: string, newStatus: number): Promi
     throw new APIError('Error al actualizar el estado del usuario');
   }
 };
-// funcion para  actudlizar las agencias  de un usuario
+
 export const updateUserAgencias = async (userId: string, agencias: AgenciaCaja[]): Promise<UserResponse> => {
   try {
-    // Validar y formatear datos
     const agenciasFormateadas = agencias.map(ag => ({
       agencia: String(ag.agencia || '').trim(),
       cod_caja: String(ag.cod_caja || '').trim(),
       user_caja: String(ag.user_caja || '').trim()
     }));
 
-    // Verificar campos requeridos
     const camposIncompletos = agenciasFormateadas.some(ag => !ag.agencia || !ag.cod_caja || !ag.user_caja);
     if (camposIncompletos) {
       throw new APIError('Todos los campos son requeridos', 400);
     }
 
-    // Verificar formato válido
     const formatoInvalido = agenciasFormateadas.some(ag => ag.cod_caja.length < 3 || ag.user_caja.length < 3);
     if (formatoInvalido) {
       throw new APIError('Los códigos deben tener al menos 3 caracteres', 400);
     }
 
-    // Verificar códigos únicos
     const codigos = agenciasFormateadas.map(ag => ag.cod_caja);
     if (new Set(codigos).size !== codigos.length) {
       throw new APIError('Los códigos de caja deben ser únicos', 400);
     }
 
-    console.log('Enviando datos de agencias:', {
-      userId,
-      agencias: agenciasFormateadas
-    });
-
     const response = await userApiInstance.patch<User>(
-      `/users/${userId}/agencias`,
+      `users/${userId}/agencias`,
       { agencias: agenciasFormateadas }
     );
 
     if (!response.data) {
       throw new APIError('Respuesta inválida del servidor', 500);
     }
-
-    console.log('✅ Actualización exitosa:', {
-      userId,
-      agenciasActualizadas: response.data.agencias?.length || 0,
-      agencias: response.data.agencias,
-      status: response.status
-    });
 
     return response.data;
   } catch (error) {

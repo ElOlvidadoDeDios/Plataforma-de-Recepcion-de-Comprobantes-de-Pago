@@ -35,3 +35,4 @@ export const fetchConsultasByDni = async (dni: string): Promise<ConsultaCuota[]>
     const data = await response.json();
     return data.data;
 };
+

@@ -4,6 +4,9 @@ export default {
     './src/**/*.{html,js,jsx,ts,tsx}',
   ],
   theme: {
+    fontFamily: {
+      sans: ['Poppins', 'sans-serif'],
+    },
     extend: {
       colors: {
         customLightBlue: '#08B4D6',
@@ -19,8 +22,11 @@ export default {
       }
     },
   },
+  variants: {
+    extend: {},
+  },
   corePlugins: {
-    textSizeAdjust: false, 
+    textSizeAdjust: false,
   },
   plugins: [],
 }

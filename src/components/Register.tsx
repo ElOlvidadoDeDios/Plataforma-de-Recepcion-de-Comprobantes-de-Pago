@@ -130,12 +130,15 @@ const Register = () => {
             >
               <label className="block text-gray-700 font-medium mb-2">Correo Electrónico</label>
               <input
+                id="register-email"
+                name="email"
                 type="email"
                 className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="ejemplo@correo.com"
+                autoComplete="email"
               />
             </motion.div>
 
@@ -175,12 +178,15 @@ const Register = () => {
             >
               <label className="block text-gray-700 font-medium mb-2">Código de verificación</label>
               <input
+                id="verification-code"
+                name="verification-code"
                 type="text"
                 className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
                 required
                 placeholder="Ingrese el código"
+                autoComplete="off"
               />
             </motion.div>
 

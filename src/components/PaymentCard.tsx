@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import logger from '../utils/logger';
 import { CheckCircle, Clock, X } from 'lucide-react';
 import { PaymentRecord, AGENCIAS, AgenciaCaja } from '../types';
 import { PaymentImage } from './PaymentImage';
@@ -71,7 +72,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
       if (updatedPayment) setCurrentPayment(updatedPayment);
     } catch (error) {
       toast.error('No se pudo actualizar el comprobante.');
-      console.error(error);
+      if (import.meta.env.DEV) {
+        logger.error(error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +110,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
       setCustomReason("");
       // No mostrar mensaje de éxito aquí, el mensaje vendrá del backend
     } catch (error) {
-      console.error('Error al actualizar estado:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error al actualizar estado:', error);
+      }
       toast.error(`Error al actualizar el estado a ${estado}`);
     } finally {
       setIsLoading(false);
@@ -133,7 +138,9 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
     try {
       return format(new Date(`${fecha} ${hora}`), 'PPpp');
     } catch (error) {
-      console.error('Error formatting date:', error);
+      if (import.meta.env.DEV) {
+        logger.error('Error formatting date:', error);
+      }
       return `${fecha} ${hora}`;
     }
   };
@@ -171,10 +178,12 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
         {showImage && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={handleCloseModal}>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-lg max-h-[90vh] w-full max-w-3xl relative flex flex-col"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ transform: 'none' }}
+              className="bg-white rounded-lg max-h-[90vh] w-full max-w-3xl relative flex flex-col transform transition-transform duration-200 hover:scale-[1.02]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6 border-b border-gray-200">
@@ -261,10 +270,12 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
         {showRejectModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowRejectModal(false)}>
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-lg w-full max-w-md p-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ transform: 'none' }}
+              className="bg-white rounded-lg w-full max-w-md p-6 transform transition-transform duration-200 hover:scale-[1.02]"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold mb-4">Motivo de Rechazo</h3>

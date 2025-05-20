@@ -160,12 +160,15 @@ const CompleteRegister = () => {
           >
             <label className="block text-gray-700 font-medium mb-2">Nombre</label>
             <input
+              id="register-name"
+              name="name"
               type="text"
               className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="Tu nombre"
+              autoComplete="given-name"
             />
           </motion.div>
 
@@ -176,12 +179,15 @@ const CompleteRegister = () => {
           >
             <label className="block text-gray-700 font-medium mb-2">Apellido</label>
             <input
+              id="register-lastname"
+              name="lastname"
               type="text"
               className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
               placeholder="Tu apellido"
+              autoComplete="family-name"
             />
           </motion.div>
           
@@ -192,6 +198,8 @@ const CompleteRegister = () => {
           >
             <label className="block text-gray-700 font-medium mb-2">DNI</label>
             <input
+              id="register-dni"
+              name="dni"
               type="text"
               className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={dni}
@@ -213,6 +221,8 @@ const CompleteRegister = () => {
           >
             <label className="block text-gray-700 font-medium mb-2">Contraseña</label>
             <input
+              id="register-password"
+              name="password"
               type="password"
               className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={password}
@@ -231,6 +241,8 @@ const CompleteRegister = () => {
           >
             <label className="block text-gray-700 font-medium mb-2">Confirmar Contraseña</label>
             <input
+              id="register-confirm-password"
+              name="confirm-password"
               type="password"
               className="w-full px-4 py-3 rounded-lg border border-cyan-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 transition-all duration-200 bg-white/50"
               value={confirmPassword}
