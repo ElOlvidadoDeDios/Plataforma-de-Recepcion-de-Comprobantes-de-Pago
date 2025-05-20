@@ -36,15 +36,26 @@ export default defineConfig(({ mode }) => ({
         }),
       ],
     },
+    modules: {
+      generateScopedName: '[hash:base64:8]'
+    }
   },
   build: {
     minify: mode === 'production',
     chunkSizeWarningLimit: 1000,
+    cssCodeSplit: true,
+    sourcemap: mode !== 'production',
     rollupOptions: {
       output: {
         entryFileNames: mode === 'production' ? 'assets/[hash].js' : 'assets/[name].js',
         chunkFileNames: mode === 'production' ? 'assets/[hash].js' : 'assets/[name].js',
-        assetFileNames: mode === 'production' ? 'assets/[hash].[ext]' : 'assets/[name].[ext]',
+        assetFileNames: (assetInfo) => {
+          const name = assetInfo.name || '';
+          if (name.endsWith('.css')) {
+            return 'assets/[name].[hash].css';
+          }
+          return 'assets/[name].[hash][extname]';
+        },
         manualChunks: {
           'react-core': ['react', 'react-dom', 'react-router-dom'],
           'ui-components': ['@radix-ui/react-dialog', '@radix-ui/react-label', '@radix-ui/react-select', '@radix-ui/react-slot', 'lucide-react'],
