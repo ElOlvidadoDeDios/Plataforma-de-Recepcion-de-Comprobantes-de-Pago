@@ -12,7 +12,7 @@
     Content-Security-Policy = "default-src 'self'; connect-src 'self' http://localhost:3030 http://localhost:3050 https://*.devtunnels.ms https://*.ngrok-free.app https://*.netlify.app https://*.netlify.com ws://localhost:3030 ws://localhost:3050; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; manifest-src 'self';"
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type,0616 Accept, Authorization"
     Cache-Control = "public, max-age=31536000"
 
 [[headers]]
@@ -58,4 +58,4 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
+  force = false # Allow existing files to be served
