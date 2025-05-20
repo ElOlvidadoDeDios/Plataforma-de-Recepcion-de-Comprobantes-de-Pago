@@ -39,11 +39,19 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     minify: mode === 'production',
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         entryFileNames: mode === 'production' ? 'assets/[hash].js' : 'assets/[name].js',
         chunkFileNames: mode === 'production' ? 'assets/[hash].js' : 'assets/[name].js',
-        assetFileNames: mode === 'production' ? 'assets/[hash].[ext]' : 'assets/[name].[ext]'
+        assetFileNames: mode === 'production' ? 'assets/[hash].[ext]' : 'assets/[name].[ext]',
+        manualChunks: {
+          'react-core': ['react', 'react-dom', 'react-router-dom'],
+          'ui-components': ['@radix-ui/react-dialog', '@radix-ui/react-label', '@radix-ui/react-select', '@radix-ui/react-slot', 'lucide-react'],
+          'data-utils': ['@tanstack/react-query', 'axios', 'date-fns'],
+          'styling': ['class-variance-authority', 'clsx', 'tailwind-merge'],
+          'features': ['framer-motion', 'react-hot-toast', 'socket.io-client']
+        }
       }
     }
   },
