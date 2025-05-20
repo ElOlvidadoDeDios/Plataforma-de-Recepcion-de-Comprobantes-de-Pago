@@ -13,12 +13,21 @@
     Cache-Control = "public, max-age=31536000"
 
 [[headers]]
-  for = "/*.js"
+  for = "**/*.js"
   [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
-  for = "/*.css"
+  for = "**/*.mjs"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "**/*.css"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
@@ -39,7 +48,32 @@
 
 # Forzar HTTPS
 [[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
   force = true
+  conditions = {Role = ["none"]}
+
+# Configuración para archivos estáticos
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.images]
+  compress = true
