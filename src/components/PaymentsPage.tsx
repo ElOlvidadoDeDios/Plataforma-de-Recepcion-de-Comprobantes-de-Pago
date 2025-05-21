@@ -253,8 +253,8 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
         </div>
       ) : (
         <div>
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-            <div className="mb-6 pb-4 border-b border-gray-200">
+          <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6">
+            <div className="mb-6 pb-4">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">{user?.name} {user?.lastName}</h2>
@@ -329,7 +329,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   </div>
 
   {/* Resultados y Limpiar Filtros */}
-  <div className="flex justify-between items-center">
+  <div className="flex justify-between items-center px-4">
     <div className="text-sm text-gray-500">
       {payments.length > 0 && (
         <span>Mostrando {payments.length} comprobante{payments.length !== 1 ? 's' : ''}</span>
@@ -346,12 +346,12 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
           </div>
 
           {loading ? (
-            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-8 text-center">
               <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-gray-600 font-medium">Cargando pagos...</p>
             </div>
           ) : payments.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="rounded-xl p-8 text-center">
               <p className="text-gray-600 font-medium">
                 {dniFilter ? `No se encontraron comprobantes para el DNI ${dniFilter}` : `No se encontraron comprobantes`}
               </p>

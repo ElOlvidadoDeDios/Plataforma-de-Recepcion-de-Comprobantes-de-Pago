@@ -74,7 +74,7 @@ const CompleteRegister = () => {
         passwordLength: password.length
       });
 
-      const response = await fetch(`${API_BASE_URL}/register`, {
+      const response = await fetch(`${API_BASE_URL}/complete-register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,14 +1,32 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from './Layout';
-import { fetchAllConsultas } from '../api';
+import { fetchAllConsultas, fetchConsultasByDniAndPagare, fetchConsultasByFecha } from '../api';
 import { ConsultaCuota } from '../types/consultaCuotas';
+import { DateRangePicker } from './DateRangePicker';
 
 const ConsultaCuotasPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const { data: consultas = [], isLoading, isError } = useQuery({
-    queryKey: ['consultas-cuotas'],
-    queryFn: fetchAllConsultas,
+  const [dni, setDni] = useState('');
+  const [pagare, setPagare] = useState('');
+  const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>({
+    startDate: '',
+    endDate: ''
+  });
+
+  const { data: consultas = [], isLoading, isError, refetch } = useQuery<ConsultaCuota[]>({
+    queryKey: ['consultas-cuotas', dni, pagare, dateRange.startDate, dateRange.endDate],
+    queryFn: async () => {
+      if (dni && pagare) {
+        return fetchConsultasByDniAndPagare(dni, pagare);
+      } else if (dateRange.startDate && dateRange.endDate) {
+        return fetchConsultasByFecha({
+          fechaInicio: dateRange.startDate,
+          fechaFin: dateRange.endDate
+        });
+      }
+      return fetchAllConsultas();
+    },
     staleTime: 30000,
     retry: 3
   });
@@ -118,6 +136,62 @@ const ConsultaCuotasPage: React.FC = () => {
   return (
     <Layout title="Consultas de Cuotas">
       <div className="px-4 sm:px-6 py-6">
+        {/* Filtros de búsqueda */}
+        <div className="mb-6 p-4 bg-white rounded-lg shadow">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">DNI</label>
+              <input
+                type="text"
+                value={dni}
+                onChange={(e) => setDni(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                placeholder="Ingrese DNI"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pagaré</label>
+              <input
+                type="text"
+                value={pagare}
+                onChange={(e) => setPagare(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                placeholder="Número de pagaré"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rango de fechas</label>
+              <DateRangePicker
+                startDate={dateRange.startDate}
+                endDate={dateRange.endDate}
+                onStartDateChange={(date: string) => setDateRange(prev => ({ ...prev, startDate: date }))}
+                onEndDateChange={(date: string) => setDateRange(prev => ({ ...prev, endDate: date }))}
+              />
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end space-x-3">
+            <button
+              onClick={() => {
+                refetch();
+              }}
+              className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 rounded-md hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
+            >
+              Buscar
+            </button>
+            <button
+              onClick={() => {
+                setDni('');
+                setPagare('');
+                setDateRange({ startDate: '', endDate: '' });
+                refetch();
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
             Listado de Consultas

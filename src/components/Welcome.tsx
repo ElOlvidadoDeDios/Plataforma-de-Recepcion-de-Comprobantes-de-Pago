@@ -38,10 +38,10 @@ const Welcome: React.FC = () => {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.5 }}
       whileHover={{ scale: 1.03 }}
-      className="bg-white border border-gray-200 p-6 text-center flex flex-col items-center justify-between cursor-pointer"
+      className="group bg-white rounded-lg shadow-lg p-8 text-center flex flex-col items-center justify-between cursor-pointer hover:shadow-xl transition-all"
       onClick={onClick}
     >
-      <div className="text-blue-500 text-4xl mb-4">
+      <div className="text-blue-500 text-5xl mb-6 transform transition-transform group-hover:scale-110">
         {icon}
       </div>
       <h3 className="text-lg font-bold text-gray-800 mb-2">{title}</h3>
@@ -56,7 +56,7 @@ const Welcome: React.FC = () => {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-white p-6 sm:p-8 text-center border border-gray-200"
+        className="p-6 sm:p-8 text-center"
       >
         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">
           Panel de Control
@@ -65,7 +65,7 @@ const Welcome: React.FC = () => {
           Selecciona una de las opciones disponibles para gestionar tu sistema.
         </p>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {permissions.canAccessPayments() && (
             <DashboardCard 
               title="Ver Pagos" 

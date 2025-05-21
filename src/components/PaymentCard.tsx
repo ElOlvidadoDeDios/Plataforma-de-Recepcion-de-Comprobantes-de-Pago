@@ -31,6 +31,10 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   const [showImage, setShowImage] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState(payment);
+  const [modalPosition, setModalPosition] = useState<{ isMobile: boolean; top?: number }>({
+    isMobile: false,
+    top: 0
+  });
   const [selectedRejectReason, setSelectedRejectReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +69,14 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   }, [socket, handlePaymentUpdated]);
 
   const handleOpenModal = async () => {
+    const viewportHeight = window.innerHeight;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    
+    setModalPosition({
+      isMobile: window.innerWidth < 640,
+      top: scrollTop + (viewportHeight / 2) - 200 // Centrado en el viewport actual
+    });
+    
     setIsLoading(true);
     setShowImage(true);
     try {
@@ -176,17 +188,23 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 
       <AnimatePresence>
         {showImage && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={handleCloseModal}>
+          <div
+            className="fixed inset-0 bg-black/50 z-[100]"
+            onClick={handleCloseModal}
+          >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ transform: 'none' }}
-              className="bg-white rounded-lg max-h-[90vh] w-full max-w-3xl relative flex flex-col transform transition-transform duration-200 hover:scale-[1.02]"
+              className={`bg-white w-full relative flex flex-col ${
+                modalPosition.isMobile
+                  ? 'fixed inset-0 rounded-none'
+                  : 'rounded-lg max-w-3xl mx-auto mt-20'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-gray-200">
+              <div className={`p-4 sm:p-6 border-b border-gray-200 ${modalPosition.isMobile ? 'sticky top-0 bg-white z-10' : ''}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-semibold mb-1">{currentPayment.nombreSocio}</h3>
@@ -208,7 +226,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                   </button>
                 </div>
               </div>
-              <div className="flex-1 overflow-auto p-6">
+              <div className={`flex-1 overflow-auto ${modalPosition.isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex justify-center items-center min-h-[200px]">
                   {isLoading ? (
                     <div className="text-gray-600">Cargando imagen...</div>
@@ -217,7 +235,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
                   )}
                 </div>
               </div>
-              <div className="p-6 border-t border-gray-200">
+              <div className={`${modalPosition.isMobile ? 'p-4 sticky bottom-0 bg-white z-10' : 'p-6'} border-t border-gray-200`}>
                 {currentPayment.estado === 'pendiente' ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
@@ -268,14 +286,20 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 
       <AnimatePresence>
         {showRejectModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowRejectModal(false)}>
+          <div
+            className="fixed inset-0 bg-black/50 z-[100]"
+            onClick={() => setShowRejectModal(false)}
+          >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ transform: 'none' }}
-              className="bg-white rounded-lg w-full max-w-md p-6 transform transition-transform duration-200 hover:scale-[1.02]"
+              className={`bg-white w-full relative p-6 ${
+                modalPosition.isMobile
+                  ? 'fixed inset-0 rounded-none'
+                  : 'rounded-lg max-w-md mx-auto mt-20'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold mb-4">Motivo de Rechazo</h3>
