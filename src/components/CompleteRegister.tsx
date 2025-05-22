@@ -81,7 +81,6 @@ const CompleteRegister = () => {
         },
         body: JSON.stringify({
           token,
-          email,
           name: name.trim(),
           lastName: lastName.trim(),
           dni: dni.trim(),

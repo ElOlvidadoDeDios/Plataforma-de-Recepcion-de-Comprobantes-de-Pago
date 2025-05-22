@@ -127,8 +127,8 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
   const isHome = location.pathname === '/';
 
   return (
-    <div className="min-h-screen w-screen bg-gradient-to-b from-cyan-500 to-blue-500 flex flex-col">
-      <div className="w-full flex-grow flex flex-col bg-gradient-to-r from-cyan-500 to-blue-500">
+    <div className="min-h-screen w-screen bg-gradient-to-b from-cyan-500 to-blue-500 flex flex-col overflow-hidden">
+      <div className="w-full h-full flex flex-col bg-gradient-to-r from-cyan-500 to-blue-500">
         <div className="w-full">
           <div className="w-full px-6 sm:px-8 py-4">
             {/* Header container */}
@@ -194,17 +194,17 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
         </div>
 
         {/* Contenedor principal con sidebar y contenido */}
-        <div className="flex flex-col lg:flex-row flex-1">
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
           {/* Sidebar - visible solo para usuarios no básicos y cuando no está en la página principal */}
           {!permissions.isBasicUser() && !isHome && (
-            <div className="flex-shrink-0 transition-all duration-300 ease-in-out">
+            <div className="flex-shrink-0 transition-all duration-300 ease-in-out h-full">
               <Sidebar />
             </div>
           )}
           
           {/* Contenido principal - ajusta el ancho según si el sidebar está visible */}
-          <div className="flex-1 min-h-full transition-all duration-300 ease-in-out">
-            <div className="bg-white/90 backdrop-blur-sm p-6 min-h-full">
+          <div className="flex-1 overflow-hidden transition-all duration-300 ease-in-out">
+            <div className="bg-white/90 backdrop-blur-sm p-6 h-full overflow-y-auto">
               {children}
             </div>
           </div>
@@ -212,7 +212,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
       </div>
 
       {/* Footer simple */}
-      <div className="bg-blue-600/20 backdrop-blur-sm p-4 text-center text-white text-sm border-t border-white/10 mt-auto w-full">
+      <div className="bg-blue-600/20 backdrop-blur-sm p-4 text-center text-white text-sm border-t border-white/10 w-full">
         <p>© 2025 DILE. Todos los derechos reservados.</p>
       </div>
     </div>
