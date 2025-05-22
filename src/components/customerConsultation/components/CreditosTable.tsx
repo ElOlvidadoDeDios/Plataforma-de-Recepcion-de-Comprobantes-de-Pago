@@ -1,10 +1,21 @@
-import { DetalleCredito } from '../../../api/customerConsultationAPI';
+import { useState } from 'react';
+import { DetalleCredito, ClienteResponse } from '../../../api/customerConsultationAPI';
+import CronogramaModal from '../../cronograma/CronogramaPage';
 
 interface CreditosTableProps {
   creditos: DetalleCredito[];
+  clientData: ClienteResponse;
 }
 
-const CreditosTable = ({ creditos }: CreditosTableProps) => {
+const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedPrestamo, setSelectedPrestamo] = useState<DetalleCredito | null>(null);
+
+  const handleVerCronograma = (credito: DetalleCredito) => {
+    setSelectedPrestamo(credito);
+    setIsModalOpen(true);
+  };
+
   if (!creditos || creditos.length === 0) {
     return (
       <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
@@ -49,7 +60,7 @@ const CreditosTable = ({ creditos }: CreditosTableProps) => {
                   {credito.ESTADO === 'VIGENTE' && (
                     <button
                       className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm"
-                      onClick={() => window.location.href = `/cronograma/${credito.ID_PRESTAMO}`}
+                      onClick={() => handleVerCronograma(credito)}
                     >
                       Ver Cronograma
                     </button>
@@ -82,7 +93,7 @@ const CreditosTable = ({ creditos }: CreditosTableProps) => {
             {credito.ESTADO === 'VIGENTE' && (
               <button
                 className="mt-4 w-full bg-cyan-500 text-white py-2 rounded-lg hover:bg-cyan-600 transition-colors"
-                onClick={() => window.location.href = `/cronograma/${credito.ID_PRESTAMO}`}
+                onClick={() => handleVerCronograma(credito)}
               >
                 Ver Cronograma
               </button>
@@ -90,6 +101,15 @@ const CreditosTable = ({ creditos }: CreditosTableProps) => {
           </div>
         ))}
       </div>
+
+      {isModalOpen && selectedPrestamo && (
+        <CronogramaModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          prestamo={selectedPrestamo}
+          clientData={clientData}
+        />
+      )}
     </div>
   );
 };

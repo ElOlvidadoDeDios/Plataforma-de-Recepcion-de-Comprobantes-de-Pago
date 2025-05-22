@@ -107,7 +107,10 @@ const ConsultaClientes = () => {
         ) : clientData ? (
           <>
             <ClienteDetails clientData={clientData} />
-            <CreditosTable creditos={clientData.CREDITO_VIGENTE || []} />
+            <CreditosTable
+              creditos={clientData.CREDITO_VIGENTE || []}
+              clientData={clientData}
+            />
           </>
         ) : (
           !resultadosBusqueda.length && (
