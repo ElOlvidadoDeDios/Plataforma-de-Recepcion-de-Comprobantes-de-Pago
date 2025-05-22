@@ -29,16 +29,9 @@ const CreditosTable = ({ creditos }: CreditosTableProps) => {
             <tr className="bg-gradient-to-r from-cyan-500 to-cyan-700 text-white sticky top-0 z-10">
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ID PRESTAMO</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ESTADO</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">REPROG.</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">MONTO</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">SALDO CAPITAL</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">TASA</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">FRECUENCIA</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">PLAZO</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">CUOTA</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">PRODUCTO</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">OTORGA</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ANALISTA</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ACCIONES</th>
             </tr>
           </thead>
@@ -49,25 +42,9 @@ const CreditosTable = ({ creditos }: CreditosTableProps) => {
                 <td className="px-4 py-2 text-sm border border-gray-200">
                   <span className="px-2 py-1 rounded-full text-xs font-medium">{credito.ESTADO}</span>
                 </td>
-                <td className="px-4 py-2 text-sm text-center border border-gray-200">
-                  <span className="px-2 py-1 rounded-full text-xs font-medium">{credito.REPROGRAMA || 'N/A'}</span>
-                </td>
                 <MoneyCell value={credito.MONTO} />
-                <MoneyCell value={credito.MONTO} />
-                <td className="px-4 py-2 text-sm border border-gray-200">
-                  <div className="flex items-center justify-end gap-1">
-                    <span className="font-medium">{credito.TASA}</span>
-                    <span className="text-gray-500">%</span>
-                  </div>
-                </td>
                 <td className="px-4 py-2 text-sm font-medium text-center border border-gray-200">{credito.FRECUENCIA}</td>
-                <td className="px-4 py-2 text-sm font-medium text-center border border-gray-200">{credito.PLAZO}</td>
-                <MoneyCell value={credito.CUOTA} />
-                <td className="px-4 py-2 text-sm border border-gray-200">
-                  <span className="font-medium text-gray-800">{credito.PRODUCTO}</span>
-                </td>
                 <td className="px-4 py-2 text-sm text-center border border-gray-200">{credito.OTORGA}</td>
-                <td className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-200">{credito.ANALISTA}</td>
                 <td className="px-4 py-2 text-sm border border-gray-200">
                   {credito.ESTADO === 'VIGENTE' && (
                     <button
@@ -96,12 +73,7 @@ const CreditosTable = ({ creditos }: CreditosTableProps) => {
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               <InfoField label="Monto" value={`S/ ${credito.MONTO}`} />
-              <InfoField label="Saldo Capital" value={`S/ ${credito.MONTO}`} />
-              <InfoField label="Tasa" value={`${credito.TASA}%`} />
               <InfoField label="Frecuencia" value={credito.FRECUENCIA} />
-              <InfoField label="Plazo" value={credito.PLAZO} />
-              <InfoField label="Cuota" value={`S/ ${credito.CUOTA}`} />
-              <InfoField label="Producto" value={credito.PRODUCTO} />
               <InfoField label="Otorga" value={credito.OTORGA} />
             </div>
             <div className="mt-2">
