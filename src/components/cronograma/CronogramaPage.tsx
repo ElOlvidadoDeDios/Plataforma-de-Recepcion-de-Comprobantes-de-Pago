@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { getCronograma, CuotaCronograma } from '../../api/cronogramaApi';
@@ -118,43 +118,75 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
     `
   });
 
-  const handleExportExcel = () => {
-    const dataToExport = {
-      "Información del Cliente": [
-        {
-          "Cliente": clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO,
-          "DNI": clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
-          "Dirección": clientData.INFO_SOCIO.SOCIODEMOGRAFICO.DIRECCION,
-          "Celular": clientData.INFO_SOCIO.CONTACTO.CELULAR,
-          "Email": clientData.INFO_SOCIO.CONTACTO.EMAIL,
-          "Estado": clientData.INFO_SOCIO.OTROS.ESTADO,
-        }
-      ],
-      "Detalles del Préstamo": [{
-        "ID Préstamo": prestamo.ID_PRESTAMO,
-        "Monto": prestamo.MONTO,
-        "Estado": prestamo.ESTADO,
-        "Frecuencia": prestamo.FRECUENCIA,
-        "Plazo": prestamo.PLAZO,
-        "Tasa": prestamo.TASA,
-        "Analista": prestamo.ANALISTA,
-        "Otorga": prestamo.OTORGA,
-      }],
-      "Cronograma": cronograma
-    };
+  const handleExportExcel = async () => {
+    const workbook = new ExcelJS.Workbook();
+    
+    // Hoja de Información del Cliente
+    const wsCliente = workbook.addWorksheet('Información Cliente');
+    wsCliente.addRow(['Cliente', clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO]);
+    wsCliente.addRow(['DNI', clientData.INFO_SOCIO.DATOS_PERSONALES.DNI]);
+    wsCliente.addRow(['Dirección', clientData.INFO_SOCIO.SOCIODEMOGRAFICO.DIRECCION]);
+    wsCliente.addRow(['Celular', clientData.INFO_SOCIO.CONTACTO.CELULAR]);
+    wsCliente.addRow(['Email', clientData.INFO_SOCIO.CONTACTO.EMAIL]);
+    wsCliente.addRow(['Estado', clientData.INFO_SOCIO.OTROS.ESTADO]);
 
-    const wb = XLSX.utils.book_new();
-    
-    const wsCliente = XLSX.utils.json_to_sheet(dataToExport["Información del Cliente"]);
-    XLSX.utils.book_append_sheet(wb, wsCliente, "Información Cliente");
-    
-    const wsPrestamo = XLSX.utils.json_to_sheet(dataToExport["Detalles del Préstamo"]);
-    XLSX.utils.book_append_sheet(wb, wsPrestamo, "Detalles Préstamo");
-    
-    const wsCronograma = XLSX.utils.json_to_sheet(dataToExport["Cronograma"]);
-    XLSX.utils.book_append_sheet(wb, wsCronograma, "Cronograma");
-    
-    XLSX.writeFile(wb, `Cronograma_${prestamo.ID_PRESTAMO}.xlsx`);
+    // Hoja de Detalles del Préstamo
+    const wsPrestamo = workbook.addWorksheet('Detalles Préstamo');
+    wsPrestamo.addRow(['ID Préstamo', prestamo.ID_PRESTAMO]);
+    wsPrestamo.addRow(['Monto', prestamo.MONTO]);
+    wsPrestamo.addRow(['Estado', prestamo.ESTADO]);
+    wsPrestamo.addRow(['Frecuencia', prestamo.FRECUENCIA]);
+    wsPrestamo.addRow(['Plazo', prestamo.PLAZO]);
+    wsPrestamo.addRow(['Tasa', prestamo.TASA]);
+    wsPrestamo.addRow(['Analista', prestamo.ANALISTA]);
+    wsPrestamo.addRow(['Otorga', prestamo.OTORGA]);
+
+    // Hoja de Cronograma
+    const wsCronograma = workbook.addWorksheet('Cronograma');
+    wsCronograma.addRow([
+      'N° Cuota',
+      'Fecha Vencimiento',
+      'Fecha Pago',
+      'Días Mora',
+      'Cuota Total',
+      'Pago Capital',
+      'Pago Interés',
+      'Desgravamen',
+      'Seguro',
+      'Saldo Proyectado',
+      'Estado'
+    ]);
+
+    cronograma.forEach(cuota => {
+      wsCronograma.addRow([
+        cuota.NUMERO_CUOTA,
+        cuota.FECHA_VENCIMIENTO,
+        cuota.FECHA_PAGO,
+        cuota.DIAS_MORA,
+        cuota.CUOTA_TOTAL,
+        cuota.PAGO_CAPITAL,
+        cuota.PAGO_INTERES,
+        cuota.DESGRAVAMEN,
+        cuota.SEGURO,
+        cuota.SALDO_PROYECTADO,
+        cuota.ESTADO
+      ]);
+    });
+
+    // Dar formato a las columnas
+    wsCronograma.columns.forEach(column => {
+      column.width = 15;
+    });
+
+    // Generar y descargar el archivo
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Cronograma_${prestamo.ID_PRESTAMO}.xlsx`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const generatePDF = async () => {

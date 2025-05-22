@@ -1,3 +1,6 @@
+import axios, { AxiosError } from 'axios';
+import { APIError } from '../utils/error';
+
 export interface CuotaCronograma {
   NUMERO_CUOTA: string;
   FECHA_VENCIMIENTO: string;
@@ -12,28 +15,38 @@ export interface CuotaCronograma {
   ESTADO: string;
 }
 
-// Función para obtener el cronograma de pagos
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+// Configuración de Axios
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+});
+
+// Interceptor para manejar errores
+axiosInstance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export const getCronograma = async (idPrestamo: string): Promise<CuotaCronograma[]> => {
   try {
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-    const response = await fetch(`${API_BASE_URL}/api/cronograma`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        pagare: idPrestamo
-      })
+    const response = await axiosInstance.post('/api/cronograma', {
+      pagare: idPrestamo
     });
-
-    if (!response.ok) {
-      throw new Error(`Error al obtener el cronograma: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
+    return response.data;
   } catch (error) {
-    console.error('Error en getCronograma:', error);
-    throw error;
+    if (error instanceof AxiosError) {
+      throw new APIError(
+        'Error al obtener el cronograma',
+        error.response?.status
+      );
+    }
+    throw new APIError('Error al obtener el cronograma');
   }
 };
