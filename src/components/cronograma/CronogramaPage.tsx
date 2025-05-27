@@ -357,6 +357,11 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
                       value={`S/ ${formatNumber(prestamo.MONTO)}`}
                       highlight={true}
                     />
+                    <DataRow
+                        label="Saldo Capital"
+                        value={`S/ ${formatNumber(prestamo.SALDO_CAPITAL || '0')}`}
+                        highlight={true}
+                      />
                   </div>
                     <div className="grid grid-cols-3 gap-4">
                       <DataRow
@@ -367,16 +372,24 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
                         label="Tasa"
                         value={`${prestamo.TASA}%`}
                       />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
                       <DataRow
                         label="Frecuencia"
                         value={prestamo.FRECUENCIA}
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <DataRow
+                        label="Producto"
+                        value={prestamo.PRODUCTO || 'No especificado'}
                       />
                       <DataRow
                         label="Estado Prestamo"
                         value={prestamo.ESTADO}
                         status={true}
+                      />
+                      <DataRow
+                        label="Analista"
+                        value={prestamo.ANALISTA || '-'}
                       />
                     </div>
                   </div>

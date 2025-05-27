@@ -28,6 +28,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   socket,
   agencias = [],
 }) => {
+  
   const [showImage, setShowImage] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState(payment);

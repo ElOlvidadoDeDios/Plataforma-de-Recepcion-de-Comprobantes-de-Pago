@@ -50,7 +50,7 @@ export const sendWhatsAppMessage = async ({ phoneNumber, message, pdfBlob, fileN
 
     return { success: true };
   } catch (error) {
-    console.error('Error al enviar mensaje de WhatsApp:', error);
+    //console.error('Error al enviar mensaje de WhatsApp:', error);
     return {
       success: false,
       error: 'Error al enviar mensaje de WhatsApp'

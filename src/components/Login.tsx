@@ -51,11 +51,16 @@ const Login = () => {
       
       // Usar los datos del usuario que vienen en la respuesta
       const userData = data.user;
-      console.log('Datos del usuario recibidos:', userData);
-      
+      console.log('Datos del usuario recibidos del backend:', userData);
+      console.log('JWT Token recibido:', data.token);
+
       // Inicializar usuario usando la función del contexto
       setIsAuthenticated(true);
       initializeUser(userData);
+
+      // Verificar el usuario después de inicializarlo
+      const storedUser = localStorage.getItem('user');
+      console.log('Usuario guardado en localStorage:', JSON.parse(storedUser || '{}'));
       
       toast.success('Inicio de sesión exitoso');
       navigate('/', { replace: true });

@@ -17,9 +17,55 @@ const ConsultaClientes = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>(TipoDocumento.DNI);
   const [resultadosBusqueda, setResultadosBusqueda] = useState<ClienteBasico[]>([]);
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteBasico | null>(null);
-  const [clientData, setClientData] = useState<ClienteResponse | null>(null);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteBasico | null>(() => {
+    const saved = localStorage.getItem('clienteSeleccionado');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [clientData, setClientData] = useState<ClienteResponse | null>(() => {
+    const saved = localStorage.getItem('clientData');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Guardar en localStorage cuando cambian los datos
+  useEffect(() => {
+    if (clienteSeleccionado) {
+      localStorage.setItem('clienteSeleccionado', JSON.stringify(clienteSeleccionado));
+    } else {
+      localStorage.removeItem('clienteSeleccionado');
+    }
+  }, [clienteSeleccionado]);
+
+  useEffect(() => {
+    if (clientData) {
+      localStorage.setItem('clientData', JSON.stringify(clientData));
+    } else {
+      localStorage.removeItem('clientData');
+    }
+  }, [clientData]);
+
+  // Recuperar datos automáticamente al cargar
+  useEffect(() => {
+    const loadSavedData = async () => {
+      const savedCliente = localStorage.getItem('clienteSeleccionado');
+      if (savedCliente) {
+        const cliente = JSON.parse(savedCliente);
+        try {
+          setIsLoading(true);
+          const detalleCliente = await searchClientesByDNI(cliente.NRO_DI);
+          if (detalleCliente && detalleCliente.INFO_SOCIO) {
+            setClientData(detalleCliente);
+          }
+        } catch (error) {
+          console.error('Error al cargar datos guardados:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadSavedData();
+  }, []);
 
   // Búsqueda inicial de clientes
   useEffect(() => {
@@ -62,6 +108,7 @@ const ConsultaClientes = () => {
       setIsLoading(true);
       setClienteSeleccionado(cliente);
       setClientData(null);
+      localStorage.removeItem('clientData'); // Limpiar datos anteriores
 
       const detalleCliente = await searchClientesByDNI(cliente.NRO_DI);
 
@@ -71,11 +118,13 @@ const ConsultaClientes = () => {
         setSearchQuery('');
       } else {
         setClienteSeleccionado(null);
+        localStorage.removeItem('clienteSeleccionado');
         alert('No se pudieron obtener los detalles del cliente. Por favor intente nuevamente.');
       }
     } catch (error) {
-      console.error('Error al obtener detalles:', error);
       setClienteSeleccionado(null);
+      localStorage.removeItem('clienteSeleccionado');
+      localStorage.removeItem('clientData');
       alert('Ocurrió un error al consultar los detalles del cliente. Por favor intente nuevamente.');
     } finally {
       setIsLoading(false);

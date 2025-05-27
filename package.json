@@ -11,6 +11,10 @@
     "build:css": "postcss src/index.css -o dist/output.css"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
+    "@heroicons/react": "^2.2.0",
+    "@iconify/react": "^6.0.0",
+    "@nextui-org/react": "^2.6.11",
     "@radix-ui/react-dialog": "^1.1.4",
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-select": "^2.1.4",

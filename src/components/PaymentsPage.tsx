@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { fetchPaymentsByDNI, fetchPaymentsByStatus, updatePaymentStatus } from '../api';
@@ -14,6 +15,7 @@ interface PaymentsPageProps {
 }
 
 const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
+  const navigate = useNavigate();
   const { canAccessPayments } = usePermissions();
   const { user } = useAuth();
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -174,10 +176,21 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
     estado: 'pendiente' | 'aceptado' | 'rechazado',
     motivo_Rechazo?: string,
     agenciaCode?: string,
-    monto?: string | null
+    monto?: string | null,
+    dni_usuario?: string
   ) => {
-    if (user?.role === UserRole.PAYMENTS_USER && !selectedAgencia) {
+    if (!user) {
+      toast.error('Debe iniciar sesión para procesar pagos');
+      return;
+    }
+
+    if (user.role === UserRole.PAYMENTS_USER && !selectedAgencia) {
       toast.error('Debe seleccionar una agencia antes de procesar pagos');
+      return;
+    }
+
+    if (!user.email || !user.dni) {
+      toast.error('Falta información del usuario. Por favor, inicie sesión nuevamente');
       return;
     }
 
@@ -199,7 +212,9 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
         estado,
         motivo_Rechazo,
         agenciaData || null,
-        monto
+        monto ? parseFloat(monto) : null,
+        dni_usuario || user?.dni || undefined,
+        user?.email
       );
       
       if (result && !(result as any).error) {
@@ -279,70 +294,81 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 )}
               </div>
             </div>
-<div className="space-y-4 border-b border-gray-200 pb-4">
-  {/* Contenedor de filtros */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-    {/* Búsqueda por DNI */}
-    <div className="flex flex-col px-4">
-      <label htmlFor="dni-input" className="text-sm font-medium text-gray-700 mb-2">Buscar por DNI</label>
-      <div className="w-full max-w-sm flex gap-2">
-        <div className="w-32">
-          <input
-            id="dni-input"
-            type="text"
-            value={dniFilter}
-            onChange={(e) => setDniFilter(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-cyan-500"
-            placeholder="DNI"
-            maxLength={8}
-          />
-        </div>
-        <div>
-          <button
-            onClick={handleDNISearch}
-            disabled={!esDniValido(dniFilter)}
-            className={`bg-cyan-600 text-white px-4 py-1.5 rounded-md whitespace-nowrap ${!esDniValido(dniFilter) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-cyan-700'}`}
-          >
-            Buscar
-          </button>
-        </div>
-      </div>
-    </div>
+              <div className="space-y-4 border-b border-gray-200 pb-4">
+                {/* Contenedor de filtros */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Búsqueda por DNI */}
+                  <div className="flex flex-col px-4">
+                    <label htmlFor="dni-input" className="text-sm font-medium text-gray-700 mb-2">Buscar por DNI</label>
+                    <div className="w-full max-w-sm flex gap-2">
+                      <div className="w-32">
+                        <input
+                          id="dni-input"
+                          type="text"
+                          value={dniFilter}
+                          onChange={(e) => setDniFilter(e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-cyan-500"
+                          placeholder="DNI"
+                          maxLength={8}
+                        />
+                      </div>
+                      <div>
+                        <button
+                          onClick={handleDNISearch}
+                          disabled={!esDniValido(dniFilter)}
+                          className={`bg-cyan-600 text-white px-4 py-1.5 rounded-md whitespace-nowrap ${!esDniValido(dniFilter) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-cyan-700'}`}
+                        >
+                          Buscar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
-    {/* Filtro por Estado */}
-    <div className="flex flex-col px-4">
-      <label htmlFor="status-select" className="text-sm font-medium text-gray-700 mb-2">Filtrar por Estado</label>
-      <div className="w-full max-w-sm">
-        <select
-          id="status-select"
-          value={selectedStatus}
-          onChange={handleStatusChange}
-          className="w-48 rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-cyan-500"
-        >
-          <option value="pendiente">Pendiente</option>
-          <option value="aceptado">Aceptado</option>
-          <option value="rechazado">Rechazado</option>
-          <option value="todos">Todos</option>
-        </select>
-      </div>
-    </div>
-  </div>
+                  {/* Filtro por Estado */}
+                  <div className="flex flex-col px-4">
+                    <label htmlFor="status-select" className="text-sm font-medium text-gray-700 mb-2">Filtrar por Estado</label>
+                    <div className="w-full max-w-sm">
+                      <select
+                        id="status-select"
+                        value={selectedStatus}
+                        onChange={handleStatusChange}
+                        className="w-48 rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-cyan-500"
+                      >
+                        <option value="pendiente">Pendiente</option>
+                        <option value="aceptado">Aceptado</option>
+                        <option value="rechazado">Rechazado</option>
+                        <option value="todos">Todos</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-  {/* Resultados y Limpiar Filtros */}
-  <div className="flex justify-between items-center px-4">
-    <div className="text-sm text-gray-500">
-      {payments.length > 0 && (
-        <span>Mostrando {payments.length} comprobante{payments.length !== 1 ? 's' : ''}</span>
-      )}
-    </div>
-    <button
-      onClick={clearFilters}
-      className="bg-gray-500 text-white px-4 py-1.5 rounded-md hover:bg-gray-600 transition-colors text-sm"
-    >
-      Limpiar Filtros
-    </button>
-  </div>
-</div>
+                {/* Resultados y Limpiar Filtros */}
+                <div className="flex justify-between items-center px-4">
+                  <div className="text-sm text-gray-500">
+                    {payments.length > 0 && (
+                      <span>Mostrando {payments.length} comprobante{payments.length !== 1 ? 's' : ''}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => navigate('/payments/history')}
+                      className="bg-cyan-500 text-white px-4 py-1.5 rounded-md hover:bg-cyan-600 transition-colors text-sm flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Ver Historial
+                    </button>
+                    <button
+                      onClick={clearFilters}
+                      className="bg-gray-500 text-white px-4 py-1.5 rounded-md hover:bg-gray-600 transition-colors text-sm"
+                    >
+                      Limpiar Filtros
+                    </button>
+                  </div>
+                </div>
+              </div>
           </div>
 
           {loading ? (

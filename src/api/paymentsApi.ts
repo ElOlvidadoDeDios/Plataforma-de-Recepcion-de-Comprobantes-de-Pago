@@ -2,6 +2,32 @@ import axios, { AxiosError } from 'axios';
 import { PaymentRecord } from '../types';
 import { APIError } from '../utils/error';
 
+export interface PaymentHistoryRecord {
+  fecha_pago: string;
+  dni_usuario: string;  
+  hora_pago: string;
+  monto: number;
+  agencia: string;
+  estado: 'aceptado' | 'rechazado';
+  motivo_rechazo?: string;
+  comprobante: {
+    dni: string;
+    nombreSocio: string;
+    creditoId: string;
+    cuotaSeleccionada: string;
+    comprobantebase_64: string,
+    fecha_comprobante: string;
+    hora_comprobante: string;
+    estado_anterior: string;
+  }
+}
+
+export interface PaymentHistoryResponse {
+  success: boolean;
+  message: string;
+  data: PaymentHistoryRecord[];
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Función para obtener el token del localStorage
@@ -21,12 +47,10 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = getToken();
-    console.log('Token being sent:', token);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('Headers:', config.headers);
+
     } else {
-      console.log('No token found in localStorage');
     }
     return config;
   },
@@ -84,15 +108,11 @@ export const updatePaymentStatus = async (
   nuevoEstado: string,
   motivo_Rechazo?: string,
   agenciaData?: { agencia: string; cod_caja: string; user_caja: string } | null,
-  monto?: string | null
+  monto?: number | null,
+  dni_usuario?: string,
+  email?: string
 ) => {
   try {
-    const userJson = localStorage.getItem('user');
-    if (!userJson) {
-      throw new APIError('No se encontraron datos del usuario');
-    }
-    
-    const user = JSON.parse(userJson);
     const requestBody = {
       fecha,
       hora,
@@ -100,16 +120,18 @@ export const updatePaymentStatus = async (
       motivo_rechazo: motivo_Rechazo || null,
       monto: nuevoEstado === 'aceptado' ? monto : null,
       userData: {
-        email: user.email,
-        dni: user.dni,
-        agencia: agenciaData?.agencia || null,
-        cod_caja: agenciaData?.cod_caja || null,
-        user_caja: agenciaData?.user_caja || null,
-        role: user.role
+        ...(agenciaData && {
+          agencia: agenciaData.agencia,
+          cod_caja: agenciaData.cod_caja,
+          user_caja: agenciaData.user_caja,
+        }),
+        dni_usuario,
+        email
       }
     };
+
+    console.log('Enviando al backend:', requestBody);
     
-    console.log('Enviando request:', requestBody);
     
     const response = await axiosInstance.put<PaymentRecord>(
       `/api/comprobantes/${dni}`,
@@ -121,20 +143,14 @@ export const updatePaymentStatus = async (
     return { ...response.data, message };
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.log('Error detallado:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          data: error.config?.data
-        }
-      });
+      const errorMessage = error.response?.data?.message || error.message;
+      console.error('Error detallado:', error.response?.data);
       throw new APIError(
-        `Error al actualizar el estado del pago: ${error.response?.data?.message || error.message}`,
+        `Error al actualizar el estado del pago: ${errorMessage}`,
         error.response?.status
       );
     }
+    console.error('Error no-Axios:', error);
     throw new APIError('Error al actualizar el estado del pago');
   }
 };
@@ -189,5 +205,33 @@ export const fetchPaymentByDNIAndTime = async (dni: string, fecha: string, hora:
       );
     }
     throw new APIError('Error al obtener el comprobante');
+  }
+};
+
+export const fetchPaymentHistory = async (params: {
+  fechaInicio?: string;
+  fechaFin?: string;
+  dni?: string;
+  estado?: 'aceptado' | 'rechazado';
+}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
+    if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
+    if (params.dni) queryParams.append('dni', params.dni);
+    if (params.estado) queryParams.append('estado', params.estado);
+
+    const response = await axiosInstance.get<PaymentHistoryResponse>(
+      `/api/comprobantes/historial-pagos?${queryParams.toString()}`
+    );
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new APIError(
+        'Error al obtener el historial de pagos',
+        error.response?.status
+      );
+    }
+    throw new APIError('Error al obtener el historial de pagos');
   }
 };

@@ -111,6 +111,15 @@ const Welcome: React.FC = () => {
             />
           )}
           
+          {!permissions.isBasicUser() && (
+            <DashboardCard
+              title="Panel de Pagos"
+              description="Gestiona los pagos y contribuciones"
+              onClick={() => navigate('/pagos/panel')}
+              icon="💳"
+            />
+          )}
+          
           {permissions.canManageUsers() && (
             <DashboardCard 
               title="Gestión de Usuarios" 

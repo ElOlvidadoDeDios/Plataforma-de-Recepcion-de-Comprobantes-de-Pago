@@ -32,7 +32,7 @@ export interface UserWithRole {
   role: UserRole;
   name?: string;
   lastName?: string;
-  dni?: string;
+  dni: string;  // Hacemos el DNI obligatorio
   status: UserStatus;
   statusText?: string;
   createdAt: string;

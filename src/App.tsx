@@ -11,10 +11,12 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Welcome from './components/Welcome';
 import PaymentsPage from './components/PaymentsPage';
+import PaymentHistoryPage from './components/PaymentHistoryPage';
 import UserManagementPage from './components/UserManagementPage';
 import CreditRequestsPage from './components/CreditRequestsPage';
 import BotInteractionsPage from './components/BotInteractionsPage';
 import ConsultaCuotasPage from './components/ConsultaCuotasPage';
+import { PaymentsPanel } from './components/pagos/panel-pagos';
 import CustomerConsultation from './components/customerConsultation/customerConsultation';
 import NonBasicUserRoute from './components/NonBasicUserRoute';
 import { EmailProvider } from './components/EmailContext';
@@ -65,6 +67,24 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <PaymentsPageWithSocket />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/payments/history"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentHistoryPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/pagos/panel"
+                  element={
+                    <ProtectedRoute>
+                      <NonBasicUserRoute>
+                        <PaymentsPanel />
+                      </NonBasicUserRoute>
                     </ProtectedRoute>
                   }
                 />

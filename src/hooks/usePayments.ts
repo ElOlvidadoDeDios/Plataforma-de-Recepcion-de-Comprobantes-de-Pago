@@ -24,8 +24,9 @@ export const usePayments = (startDate: string, endDate: string) => {
     payment: PaymentRecord,
     nuevoEstado: string,
     motivoRechazo?: string,
-    agencia?: string,
-    monto?: string | null
+    agencia?: { agencia: string; cod_caja: string; user_caja: string; } | null,
+    monto?: string | null,
+    dni_usuario?: string 
   ) => {
     try {
       const { dni, fecha, hora } = payment;
@@ -36,7 +37,8 @@ export const usePayments = (startDate: string, endDate: string) => {
         nuevoEstado,
         motivoRechazo,
         agencia,
-        monto
+        monto ? parseFloat(monto) : null,
+        dni_usuario 
       );
 
       setPayments(prevPayments =>
