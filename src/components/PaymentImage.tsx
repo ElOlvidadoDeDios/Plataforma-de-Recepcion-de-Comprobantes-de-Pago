@@ -37,11 +37,12 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
   };
 
   return (
-    <div className="rounded-lg overflow-hidden shadow-lg">
+    <div className="w-full h-full rounded-lg overflow-hidden shadow-lg">
       <img
         src={getImageSrc(imageSource)}
         alt={alt}
-        className="w-full h-auto max-h-50 object-contain"
+        className="w-full h-full object-contain"
+        style={{ maxHeight: '100%', minHeight: '300px' }}
       />
     </div>
   );

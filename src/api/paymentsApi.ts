@@ -49,8 +49,6 @@ axiosInstance.interceptors.request.use(
     const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-
-    } else {
     }
     return config;
   },
@@ -101,6 +99,23 @@ export const fetchPaymentsByStatus = async (status: string) => {
   }
 };
 
+export const fetchPendingPaymentsByPagare = async (creditoId: string) => {
+  try {
+    const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
+      `/api/comprobantes/pagare/${creditoId}/pendientes`
+    );
+    return response.data.comprobantes;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new APIError(
+        'Error al obtener los pagos pendientes del pagaré',
+        error.response?.status
+      );
+    }
+    throw new APIError('Error al obtener los pagos pendientes del pagaré');
+  }
+};
+
 export const updatePaymentStatus = async (
   dni: string,
   fecha: string,
@@ -131,7 +146,6 @@ export const updatePaymentStatus = async (
     };
 
     console.log('Enviando al backend:', requestBody);
-    
     
     const response = await axiosInstance.put<PaymentRecord>(
       `/api/comprobantes/${dni}`,
