@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { PaymentRecord, AGENCIAS } from '../../types';
 import { fetchPendingPaymentsByPagare } from '../../api/paymentsApi';
 import toast from 'react-hot-toast';
@@ -75,10 +77,20 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           
           setRelatedPayments(filteredPayments);
           
-          const total = filteredPayments.reduce(
-            (sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar),
-            Number(currentPayment.cuotasVencidasTotalAPagar)
-          );
+          // Inicializar los detalles con los montos de las cuotas vencidas
+          const details = new Map();
+          [currentPayment, ...filteredPayments].forEach((payment, index) => {
+            details.set(index, {
+              montoPago: payment.cuotasVencidasTotalAPagar,
+              nroOperacion: '',
+              tipoOperacion: ''
+            });
+          });
+          setPaymentDetails(details);
+
+          // Calcular el total inicial
+          const total = [currentPayment, ...filteredPayments]
+            .reduce((sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar), 0);
           setTotalAmount(total.toString());
           setMonto(total.toString());
         } catch (error) {
@@ -121,10 +133,18 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
       nroOperacion: '',
       tipoOperacion: ''
     };
-    setPaymentDetails(new Map(paymentDetails).set(currentIndex, {
+    const newPaymentDetails = new Map(paymentDetails).set(currentIndex, {
       ...details,
       [field]: value
-    }));
+    });
+    setPaymentDetails(newPaymentDetails);
+
+    // Actualizar monto total cuando cambia cualquier montoPago
+    if (field === 'montoPago') {
+      const total = Array.from(newPaymentDetails.values())
+        .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0);
+      setMonto(total.toString());
+    }
   };
 
   const handleUpdateStatus = () => {
@@ -147,7 +167,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
   if (!showImage) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div
         className="fixed inset-0 w-screen h-screen bg-black/50 z-[9999] backdrop-blur-sm"
@@ -157,8 +177,10 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          top: window.scrollY,
+          top: 0,
           left: 0,
+          right: 0,
+          bottom: 0,
           width: '100vw',
           height: '100vh'
         }}
@@ -174,8 +196,9 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               : 'relative w-[800px] rounded-lg'
           }`}
           style={{
-            maxHeight: modalPosition.isMobile ? '100%' : '90vh',
-            height: modalPosition.isMobile ? '100%' : 'auto'
+            maxHeight: modalPosition.isMobile ? '100%' : '650px',
+            minHeight: modalPosition.isMobile ? '100%' : '650px',
+            height: modalPosition.isMobile ? '100%' : '650px'
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -187,26 +210,40 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             onCloseModal={onCloseModal}
           />
 
-          <div className={`${modalPosition.isMobile ? 'flex-1' : ''} flex flex-col lg:flex-row gap-3 p-3`}>
-            <div className={`${modalPosition.isMobile ? 'flex-1' : 'w-7/12'}`}>
-              <PaymentImageViewer 
+          <div className={`${modalPosition.isMobile ? 'flex-1 flex flex-col' : 'h-[480px] flex flex-row'} gap-3 p-3 relative px-12 overflow-hidden`}>
+            {allPayments.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrev}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-50"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={handleNext}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-50"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+            <div className={`${modalPosition.isMobile ? 'h-1/2 min-h-[300px] overflow-auto' : 'w-7/12 h-full'}`}>
+              <PaymentImageViewer
                 imageSource={displayedPayment.comprobantebase_64}
                 altText={`Comprobante de ${displayedPayment.nombreSocio}`}
                 isLoading={isLoading || loadingRelated}
-                showNavigation={allPayments.length > 1}
+                showNavigation={false}
                 onPrevious={handlePrev}
                 onNext={handleNext}
               />
             </div>
 
-            <div className={modalPosition.isMobile ? 'w-full' : 'w-5/12'}>
-              <PaymentForm 
-                montoPago={paymentDetails.get(currentIndex)?.montoPago || ''}
+            <div className={`${modalPosition.isMobile ? 'h-1/2 overflow-auto' : 'w-5/12 h-full'} relative z-20`}>
+              <PaymentForm
+                montoPago={paymentDetails.get(currentIndex)?.montoPago || totalAmount}
                 nroOperacion={paymentDetails.get(currentIndex)?.nroOperacion || ''}
                 tipoOperacion={paymentDetails.get(currentIndex)?.tipoOperacion || ''}
                 onUpdateDetail={updatePaymentDetail}
-                totalMonto={monto}
-                onMontoTotalChange={setMonto}
                 agenciaName={agenciaSeleccionada}
                 isEditable={displayedPayment.estado === 'pendiente'}
               />
@@ -214,7 +251,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           </div>
 
           <div className="border-t border-gray-200 bg-gray-50">
-            <PaymentActions 
+            <PaymentActions
               isPending={displayedPayment.estado === 'pendiente'}
               isLoading={isLoading}
               isMobile={modalPosition.isMobile}
@@ -228,10 +265,13 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               onConfirmReject={onConfirmReject}
               setSelectedRejectReason={setSelectedRejectReason}
               setCustomReason={setCustomReason}
+              totalMonto={monto}
+              onMontoTotalChange={setMonto}
             />
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

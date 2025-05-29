@@ -5,8 +5,6 @@ interface PaymentFormProps {
   nroOperacion: string;
   tipoOperacion: string;
   onUpdateDetail: (field: 'montoPago' | 'nroOperacion' | 'tipoOperacion', value: string) => void;
-  totalMonto: string;
-  onMontoTotalChange: (value: string) => void;
   agenciaName: string;
   isEditable: boolean;
 }
@@ -16,39 +14,43 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   nroOperacion,
   tipoOperacion,
   onUpdateDetail,
-  totalMonto,
-  onMontoTotalChange,
   agenciaName,
   isEditable
 }) => {
   return (
-    <div className="w-full h-full bg-gray-50 rounded-lg flex flex-col">
-      <div className="p-4 flex flex-col gap-4">
-        <div>
+    <div className="w-full h-full bg-gray-50 rounded-lg flex flex-col p-2 lg:p-3">
+      <div className="flex flex-col gap-2 lg:gap-3">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">
+            Monto pago:
+          </label>
           <input
             type="number"
-            className="w-full rounded-md border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500"
-            placeholder="Monto pago"
+            className="w-full rounded-md border border-gray-300 px-2 py-1.5 lg:py-1.5 text-sm focus:ring-2 focus:ring-cyan-500"
             value={montoPago}
             onChange={(e) => onUpdateDetail('montoPago', e.target.value)}
             disabled={!isEditable}
           />
         </div>
-        <div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">
+            Número de operación:
+          </label>
           <input
             type="text"
-            className="w-full rounded-md border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500"
-            placeholder="Nro. operación"
+            className="w-full rounded-md border border-gray-300 px-2 py-1.5 lg:py-1.5 text-sm focus:ring-2 focus:ring-cyan-500"
             value={nroOperacion}
             onChange={(e) => onUpdateDetail('nroOperacion', e.target.value)}
             disabled={!isEditable}
           />
         </div>
-        <div>
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium text-gray-700">
+            Tipo de operación:
+          </label>
           <input
             type="text"
-            className="w-full rounded-md border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500"
-            placeholder="Tipo operación"
+            className="w-full rounded-md border border-gray-300 px-2 py-1.5 lg:py-1.5 text-sm focus:ring-2 focus:ring-cyan-500"
             value={tipoOperacion}
             onChange={(e) => onUpdateDetail('tipoOperacion', e.target.value)}
             disabled={!isEditable}
@@ -56,26 +58,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         </div>
       </div>
       
-      {isEditable && (
-        <div className="mt-auto p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 mb-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              Monto Total:
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={totalMonto}
-              onChange={(e) => onMontoTotalChange(e.target.value)}
-              className="flex-1 rounded-md border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500"
-              placeholder="Monto"
-            />
-          </div>
-          <div className="text-sm text-gray-600 font-medium">
-            Agencia: <span className="text-gray-900">{agenciaName}</span>
-          </div>
+      <div className="mt-auto pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-600">Agencia:</span>
+          <span className="text-sm font-medium text-gray-900">{agenciaName}</span>
         </div>
-      )}
+      </div>
     </div>
   );
 };

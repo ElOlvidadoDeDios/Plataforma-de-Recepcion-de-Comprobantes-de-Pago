@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface PaymentImageProps {
   imageSource: string; // Puede ser URL, ruta relativa o base64
@@ -6,6 +7,7 @@ interface PaymentImageProps {
 }
 
 export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) => {
+  const [showFullImage, setShowFullImage] = useState(false);
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
 
@@ -37,13 +39,42 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
   };
 
   return (
-    <div className="w-full h-full rounded-lg overflow-hidden shadow-lg">
-      <img
-        src={getImageSrc(imageSource)}
-        alt={alt}
-        className="w-full h-full object-contain"
-        style={{ maxHeight: '100%', minHeight: '300px' }}
-      />
-    </div>
+    <>
+      <div className="w-full h-full rounded-lg overflow-hidden shadow-lg cursor-pointer" onClick={() => setShowFullImage(true)}>
+        <div className="w-full h-full max-h-[450px] flex items-center justify-center overflow-hidden">
+          <img
+            src={getImageSrc(imageSource)}
+            alt={alt}
+            className="max-w-full max-h-full object-contain"
+            style={{
+              maxHeight: '450px'
+            }}
+          />
+        </div>
+      </div>
+
+      {showFullImage && createPortal(
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80"
+          onClick={() => setShowFullImage(false)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh] overflow-auto">
+            <img
+              src={getImageSrc(imageSource)}
+              alt={alt}
+              className="max-w-full max-h-full object-contain"
+            />
+            <button
+              onClick={() => setShowFullImage(false)}
+              className="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      , document.body)}
+    </>
   );
 };
