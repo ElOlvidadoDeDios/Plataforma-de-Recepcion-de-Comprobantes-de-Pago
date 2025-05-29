@@ -1,8 +1,8 @@
-import React from "react";
-import { Button, Input } from "@heroui/react";
+
+import { Button, Input } from "@headlessui/react";
 import { LoanDetailsSection } from "./loan-details-section";
-import { AccountsReceivableTable } from "./accounts-receivable-table";
-import { ContributionsSection } from "./contributions-section";
+import { AccountsReceivableTable } from "./cuentas-por-cobrar.tsx";
+import { ContributionsSection } from "./seccion-contribuciones";
 
 export const LoanManagementPanel = () => {
   return (
@@ -11,7 +11,7 @@ export const LoanManagementPanel = () => {
         <div className="bg-gray-700 text-white px-2 py-1 text-xs">
           0000000028224
         </div>
-        <Button variant="bordered" size="sm" className="border-gray-300">
+        <Button className="border-gray-300 px-3 py-1 text-sm">
           27/05/2025
         </Button>
       </div>
@@ -22,16 +22,13 @@ export const LoanManagementPanel = () => {
         <div className="font-medium mb-2 flex-grow">Glosa</div>
         <Button 
           color="primary" 
-          size="sm" 
-          className="mb-2"
+          className="mb-2 text-sm"
         >
           Ver Pagos Disponibles
         </Button>
       </div>
       <Input 
-        variant="bordered" 
-        className="w-full" 
-        size="sm" 
+        className="w-full border border-gray-300 rounded px-3 py-2" 
       />
       
       <AccountsReceivableTable />
@@ -46,10 +43,10 @@ export const LoanManagementPanel = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="bordered" size="sm">
+          <Button className="border border-gray-300 px-3 py-1 text-sm">
             Imprimir
           </Button>
-          <Button variant="bordered" size="sm">
+          <Button className="border border-gray-300 px-3 py-1 text-sm">
             Salir
           </Button>
         </div>

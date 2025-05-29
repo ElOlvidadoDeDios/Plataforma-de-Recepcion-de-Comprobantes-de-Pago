@@ -46,7 +46,7 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
 
   return (
     <div
-      className="bg-white rounded-lg shadow-md p-6 mb-4"
+      className="bg-white/90 rounded-lg shadow-md p-6 mb-4"
       data-payment-id={`${payment.dni}-${payment.fecha}-${payment.hora}`}
     >
       <div className="flex justify-between items-start mb-4">

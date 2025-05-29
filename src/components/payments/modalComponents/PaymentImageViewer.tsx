@@ -17,8 +17,8 @@ export const PaymentImageViewer: React.FC<PaymentImageViewerProps> = ({
   isLoading,
 }) => {
   return (
-    <div className="bg-gray-50 rounded-lg h-full relative overflow-hidden">
-      <div className="w-full h-full flex items-center justify-center overflow-hidden p-2">
+    <div className="bg-white/90 rounded-lg h-full relative overflow-hidden">
+      <div className="bg-white/90 w-full h-full flex items-center justify-center overflow-hidden p-2">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-600">Cargando imagen...</div>
