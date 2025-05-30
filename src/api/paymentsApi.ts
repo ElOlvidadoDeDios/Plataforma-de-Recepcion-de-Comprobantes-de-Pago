@@ -249,3 +249,21 @@ export const fetchPaymentHistory = async (params: {
     throw new APIError('Error al obtener el historial de pagos');
   }
 };
+
+export const procesarInfoPago = async (pagare: string, dni_socio: string) => {
+  try {
+    const response = await axiosInstance.post('/api/comprobantes/procesar-info-pago', {
+      pagare,
+      dni_socio
+    });
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new APIError(
+        'Error al procesar información del pagaré',
+        error.response?.status
+      );
+    }
+    throw new APIError('Error al procesar información del pagaré');
+  }
+};

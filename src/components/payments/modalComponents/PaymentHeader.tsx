@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
 import { PaymentRecord } from '../../../types';
+import { procesarInfoPago } from '../../../api/paymentsApi';
 
 interface PaymentDetails {
   PAGARE: string;
@@ -83,39 +84,16 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
       setIsLoading(true);
       
       try {
-        const response = await fetch('http://192.168.3.206/api_sicoop_dev/api/procesarInfoPago', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'iB8Uo7Yf9JFLHPPLb1Y7odrZqO0QpBOVjf2v9vtxjhaC9tRPvu7qgzifctHRRASe'
-          },
-          body: JSON.stringify({
-            pagare: displayedPayment.creditoId,
-            dni_socio: displayedPayment.dni
-          })
-        });
-
-        const responseText = await response.text();
-        try {
-          const data = JSON.parse(responseText);
-          if (Array.isArray(data) && data[0]?.status === false) {
-            toast.error(data[0].message);
-            return;
-          }
-          if (currentPaymentRef.current === displayedPayment.creditoId) {
-            setPaymentDetails(data);
-          }
-        } catch (error) {
-          if (!response.ok) {
-            toast.error('Error al obtener datos del pagaré');
-          } else if (responseText.startsWith('Error')) {
-            toast.error(responseText);
-          } else {
-            console.error('Error al procesar respuesta');
-          }
+        const data = await procesarInfoPago(displayedPayment.creditoId, displayedPayment.dni);
+        if (Array.isArray(data) && data[0]?.status === false) {
+          toast.error(data[0].message);
+          return;
         }
-      } catch (error) {
-        console.error('Error fetching payment details:', error);
+        if (currentPaymentRef.current === displayedPayment.creditoId) {
+          setPaymentDetails(data);
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Error al obtener datos del pagaré');
       } finally {
         if (currentPaymentRef.current === displayedPayment.creditoId) {
           setIsLoading(false);
