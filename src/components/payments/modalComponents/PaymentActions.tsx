@@ -54,8 +54,8 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
 
   return (
     <>
-      <div className="p-4 border-t border-gray-200 bg-white mt-auto">
-        <div className="flex items-center justify-between">
+      <div className="p-3 border-t border-gray-200 bg-white mt-auto">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
               Monto Total:
@@ -65,23 +65,23 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               step="0.01"
               value={totalMonto}
               onChange={(e) => onMontoTotalChange(e.target.value)}
-              className="w-32 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:ring-2 focus:ring-cyan-500"
+              className="w-full sm:w-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
               disabled={isLoading}
             />
           </div>
           <div className="flex gap-2">
           <button
             onClick={onUpdateStatus}
-            className={`bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 ${
+            className={`bg-green-500 text-white px-3 py-1.5 text-sm rounded hover:bg-green-600 transition-colors ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
             disabled={isLoading}
           >
-            {isLoading ? 'Procesando...' : `Aceptar ${totalPayments} comprobante${totalPayments > 1 ? 's' : ''}`}
+            {isLoading ? 'Procesando...' : totalPayments > 1 ? `Aceptar (${totalPayments})` : 'Aceptar'}
           </button>
           <button
             onClick={onReject}
-            className={`bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 ${
+            className={`bg-red-500 text-white px-3 py-1.5 text-sm rounded hover:bg-red-600 transition-colors ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
             disabled={isLoading}
@@ -103,7 +103,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2 }}
-              className="bg-white w-full max-w-md mx-auto relative p-6 rounded-lg shadow-lg"
+              className="bg-white w-[90%] max-w-md mx-auto relative p-6 rounded-lg shadow-lg"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-lg font-semibold mb-4">Motivo de Rechazo</h3>

@@ -40,15 +40,13 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
 
   return (
     <>
-      <div className="w-full h-full rounded-lg overflow-hidden shadow-lg cursor-pointer" onClick={() => setShowFullImage(true)}>
-        <div className="w-full h-full max-h-[450px] flex items-center justify-center overflow-hidden">
+      <div className="w-full h-full rounded-lg overflow-hidden shadow-lg cursor-pointer bg-gray-50" onClick={() => setShowFullImage(true)}>
+        <div className="relative w-full h-full flex items-center justify-center">
           <img
             src={getImageSrc(imageSource)}
             alt={alt}
-            className="max-w-full max-h-full object-contain"
-            style={{
-              maxHeight: '450px'
-            }}
+            className="w-full h-full object-contain"
+            loading="lazy"
           />
         </div>
       </div>
@@ -58,11 +56,11 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80"
           onClick={() => setShowFullImage(false)}
         >
-          <div className="relative max-w-[90vw] max-h-[90vh] overflow-auto">
+          <div className="relative w-[95vw] h-[95vh] flex items-center justify-center bg-white rounded-lg">
             <img
               src={getImageSrc(imageSource)}
               alt={alt}
-              className="max-w-full max-h-full object-contain"
+              className="max-w-[95%] max-h-[95%] object-contain"
             />
             <button
               onClick={() => setShowFullImage(false)}

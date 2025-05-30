@@ -55,6 +55,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   onConfirmReject,
   onUpdateStatus
 }) => {
+  const [activeTab, setActiveTab] = useState<'image' | 'form'>('image');
   const [relatedPayments, setRelatedPayments] = useState<PaymentRecord[]>([]);
   const [paymentDetails, setPaymentDetails] = useState<Map<number, {
     montoPago: string;
@@ -221,16 +222,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className={`bg-white/90 shadow-2xl border border-gray-200 z-[10000] flex flex-col ${
+          className={`bg-white shadow-2xl border border-gray-200 z-[10000] flex flex-col ${
             modalPosition.isMobile
-              ? 'fixed inset-0'
-              : 'relative w-[800px] rounded-lg'
+              ? 'fixed inset-0 overflow-hidden'
+              : 'relative w-[800px] rounded-lg h-[800px]'
           }`}
-          style={{
-            maxHeight: modalPosition.isMobile ? '100%' : '800px',
-            minHeight: modalPosition.isMobile ? '100%' : '800px',
-            height: modalPosition.isMobile ? '100%' : '800px'
-          }}
           onClick={(e) => e.stopPropagation()}
         >
           <PaymentHeader
@@ -242,49 +238,76 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             showImage={showImage}
           />
   
-          <div className={`${modalPosition.isMobile ? 'flex-1 flex flex-col overflow-y-auto' : 'h-[630px] flex flex-row'} gap-3 p-3 px-4 md:px-12 ${modalPosition.isMobile ? 'pb-32' : ''}`}>
-            {currentIndex > 0 && (
-              <button
-                onClick={() => removePayment(currentIndex)}
-                className="absolute right-4 top-4 z-30 text-gray-500 hover:text-red-500 transition-colors bg-white/90 rounded-full shadow-md p-1"
-                title="Quitar comprobante"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
+          <div className={`flex-1 flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} gap-3 p-4 text-sm overflow-hidden relative`}>
             {allPayments.length > 1 && (
-              <>
+              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 px-2 z-50 flex justify-between pointer-events-none">
                 <button
                   onClick={handlePrev}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 rounded-full shadow-md hover:bg-gray-50"
+                  className="p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50 pointer-events-auto"
                 >
-                  <ChevronLeft className="w-6 h-6" />
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleNext}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 rounded-full shadow-md hover:bg-gray-50"
+                  className="p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50 pointer-events-auto"
                 >
-                  <ChevronRight className="w-6 h-6" />
+                  <ChevronRight className="w-5 h-5" />
                 </button>
-              </>
+              </div>
             )}
-            <div className={`${modalPosition.isMobile ? 'flex-shrink-0 h-[350px]' : 'w-7/12 h-full overflow-auto'} mb-4`}>
-              <p className="mb-2 px-2 text-sm text-gray-500">
+            <div className="absolute top-2 right-2 z-30">
+              {currentIndex > 0 && (
+                <button
+                  onClick={() => removePayment(currentIndex)}
+                  className="text-gray-500 hover:text-red-500 transition-colors bg-white/90 rounded-full shadow-md p-1"
+                  title="Quitar comprobante"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {modalPosition.isMobile && (
+              <div className="flex border-b border-gray-200 mb-2">
+                <button
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeTab === 'image' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'
+                  }`}
+                  onClick={() => setActiveTab('image')}
+                >
+                  Imagen
+                </button>
+                <button
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeTab === 'form' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'
+                  }`}
+                  onClick={() => setActiveTab('form')}
+                >
+                  Formulario
+                </button>
+              </div>
+            )}
+            <div className={`${
+              modalPosition.isMobile
+                ? activeTab === 'image' ? 'flex-1' : 'hidden'
+                : 'w-7/12'
+            } flex-shrink-0 h-full overflow-hidden relative`}>
+              <p className="mb-1 px-2 text-xs text-gray-500">
                 {currentIndex === 0 ? 'Comprobante principal' : `Comprobante adicional ${currentIndex}`}
               </p>
               <PaymentImageViewer
                 imageSource={displayedPayment.comprobantebase_64}
                 altText={`Comprobante de ${displayedPayment.nombreSocio}`}
                 isLoading={isLoading || loadingRelated}
-                showNavigation={false}
-                onPrevious={handlePrev}
-                onNext={handleNext}
               />
             </div>
 
-            <div className={`${modalPosition.isMobile ? 'flex-1 min-h-[350px] mb-24' : 'w-5/12 h-full overflow-auto pr-2'} relative z-20`}>
+            <div className={`${
+              modalPosition.isMobile
+                ? activeTab === 'form' ? 'flex-1' : 'hidden'
+                : 'w-5/12'
+            } overflow-auto relative z-20`}>
               <PaymentForm
                 montoPago={paymentDetails.get(currentIndex)?.montoPago || totalAmount}
                 nroOperacion={paymentDetails.get(currentIndex)?.nroOperacion || ''}
@@ -296,7 +319,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             </div>
           </div>
 
-          <div className={`border-t border-gray-200 bg-white shadow-lg ${modalPosition.isMobile ? 'fixed bottom-0 left-0 right-0 z-50' : ''}`}>
+          <div className="border-t border-gray-200 bg-white shadow-lg">
             <PaymentActions
               isPending={displayedPayment.estado === 'pendiente'}
               isLoading={isLoading}

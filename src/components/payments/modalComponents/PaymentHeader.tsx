@@ -123,28 +123,28 @@ const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado
 };
 
   return (
-    <div className="p-4 border-b border-gray-200">
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{paymentDetails?.SOCIO || 'Cargando...'}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <p className="text-gray-600 text-sm">DNI: {paymentDetails?.DNI}</p>
-            <p className="text-gray-600 text-sm">Cuenta: {paymentDetails?.CUENTA}</p>
-            <p className="text-gray-600 text-sm">Pagaré: {paymentDetails?.PAGARE}</p>
-            <p className="text-gray-600 text-sm">Frecuencia: {paymentDetails?.FRECUENCIA}</p>
-            <p className="text-gray-600 text-sm">Fecha Otorgamiento: {paymentDetails?.OTORGA}</p>
-            <p className="text-gray-600 text-sm">Número de Cuotas: {paymentDetails?.NUM_CUOTAS}</p>
-            <p className="text-gray-600 text-sm font-medium mb-2">Monto Adeudado: S/ {paymentDetails?.DEBE?.toFixed(2)}</p>
+    <div className="p-3 lg:p-4 border-b border-gray-200">
+      <div className="flex justify-between items-start gap-2">
+        <div className="flex-1 min-w-0 max-w-[90%]">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 truncate">{paymentDetails?.SOCIO || 'Cargando...'}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs sm:text-sm">
+            <p className="text-gray-600 text-xs sm:text-sm">DNI: {paymentDetails?.DNI}</p>
+            <p className="text-gray-600 text-xs sm:text-sm">Cuenta: {paymentDetails?.CUENTA}</p>
+            <p className="text-gray-600 text-xs sm:text-sm">Pagaré: {paymentDetails?.PAGARE}</p>
+            <p className="text-gray-600 text-xs sm:text-sm">Frecuencia: {paymentDetails?.FRECUENCIA}</p>
+            <p className="text-gray-600 text-xs sm:text-sm">Fecha Otorgamiento: {paymentDetails?.OTORGA}</p>
+            <p className="text-gray-600 text-xs sm:text-sm">Número de Cuotas: {paymentDetails?.NUM_CUOTAS}</p>
+            <p className="text-gray-600 text-xs sm:text-sm font-medium mb-2">Monto Adeudado: S/ {paymentDetails?.DEBE?.toFixed(2)}</p>
             
             {/* Radio buttons para tipo de pago */}
-            <div className="col-span-2 border-t border-gray-200 pt-3 mt-2">
+            <div className="col-span-2 border-t border-gray-200 pt-4 mt-3">
               {paymentDetails?.DETALLE && (
-                <div className="mb-3 text-sm text-red-600 font-medium text-center">
+                <div className="mb-4 text-sm text-red-600 font-medium text-center bg-red-50 p-2 rounded-md">
                   {paymentDetails.DETALLE}
                 </div>
               )}
-              <div className="flex justify-around">
-                <label className="flex items-center hover:bg-gray-50 p-2 rounded-lg cursor-pointer transition-colors">
+              <div className="flex gap-2">
+                <label className="flex-1 flex items-center hover:bg-gray-50 p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
                   <input
                     type="radio"
                     name="paymentType"
@@ -155,15 +155,15 @@ const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado
                       onTypeChange?.('normal', paymentDetails?.MAXIMO_PAGO || 0);
                     }}
                   />
-                  <span className="ml-2 text-sm text-gray-700">
+                  <span className="ml-2 text-xs sm:text-sm text-gray-700">
                     Pago Normal
-                    <span className="text-xs text-gray-500 ml-1">
+                    <span className="text-[10px] sm:text-xs text-gray-500 ml-1">
                       (Máximo: S/ {paymentDetails?.MAXIMO_PAGO?.toFixed(2) || '0.00'})
                     </span>
                   </span>
                 </label>
 
-                <label className="flex items-center hover:bg-gray-50 p-2 rounded-lg cursor-pointer transition-colors">
+                <label className="flex-1 flex items-center hover:bg-gray-50 p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
                   <input
                     type="radio"
                     name="paymentType"
@@ -181,13 +181,13 @@ const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado
                 </label>
               </div>
             </div>
-            <div className="col-span-2 flex items-center justify-between border-t border-gray-200 pt-3 mt-3">
-              <div className="flex items-center">
-                <span className="font-medium text-gray-700 mr-2">Estado:</span>
+            <div className="col-span-2 flex items-center flex-wrap gap-2 border-t border-gray-200 pt-3 mt-3">
+              <div className="flex items-center flex-shrink-0">
+                <span className="text-xs sm:text-sm font-medium text-gray-700 mr-2">Estado:</span>
                 <StatusBadge estado={displayedPayment.estado as 'pendiente' | 'aceptado' | 'rechazado'} />
               </div>
               {totalAmount && (
-                <p className="text-gray-600 text-sm font-semibold">
+                <p className="text-gray-600 text-xs sm:text-sm font-semibold">
                   Total Acumulado: S/ {totalAmount}
                 </p>
               )}
@@ -202,7 +202,7 @@ const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado
         </button>
       </div>
       {totalPayments && totalPayments > 1 && (
-        <div className="text-sm font-medium text-gray-600 mt-3">
+        <div className="text-xs sm:text-sm font-medium text-gray-600 mt-3">
           Mostrando comprobante {currentIndex! + 1} de {totalPayments}
         </div>
       )}

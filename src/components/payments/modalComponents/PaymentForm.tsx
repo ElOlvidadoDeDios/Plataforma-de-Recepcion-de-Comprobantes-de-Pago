@@ -14,43 +14,44 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   nroOperacion,
   tipoOperacion,
   onUpdateDetail,
-  agenciaName,
   isEditable
 }) => {
   return (
-    <div className="bg-white/90 w-full h-full  rounded-lg flex flex-col p-2 lg:p-3">
-      <div className=" bg-white/90 flex flex-col gap-2 lg:gap-3">
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">
+    <div className="w-full h-full rounded-lg flex flex-col p-2">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-center font-medium text-gray-700">
             Monto pago:
           </label>
           <input
             type="number"
-            className="bg-white/90 w-full rounded-md border border-gray-300 px-2 py-1.5 lg:py-1.5 text-sm focus:ring-2 focus:ring-cyan-500"
+            className="w-48 mx-auto rounded-md border border-gray-300 px-3 py-2 text-sm text-center focus:ring-2 focus:ring-cyan-500 transition-colors"
             value={montoPago}
             onChange={(e) => onUpdateDetail('montoPago', e.target.value)}
             disabled={!isEditable}
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-center font-medium text-gray-700">
             Número de operación:
           </label>
           <input
             type="text"
-            className="w-full rounded-md border border-gray-300 px-2 py-1.5 lg:py-1.5 text-sm focus:ring-2 focus:ring-cyan-500"
+            className="w-48 mx-auto rounded-md border border-gray-300 px-3 py-2 text-sm text-center focus:ring-2 focus:ring-cyan-500 transition-colors"
+            maxLength={25}
             value={nroOperacion}
             onChange={(e) => onUpdateDetail('nroOperacion', e.target.value)}
             disabled={!isEditable}
           />
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-gray-700">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-center font-medium text-gray-700">
             Tipo de operación:
           </label>
           <input
             type="text"
-            className="w-full rounded-md border border-gray-300 px-2 py-1.5 lg:py-1.5 text-sm focus:ring-2 focus:ring-cyan-500"
+            className="w-48 mx-auto rounded-md border border-gray-300 px-3 py-2 text-sm text-center focus:ring-2 focus:ring-cyan-500 transition-colors"
+            maxLength={25}
             value={tipoOperacion}
             onChange={(e) => onUpdateDetail('tipoOperacion', e.target.value)}
             disabled={!isEditable}
@@ -58,12 +59,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
         </div>
       </div>
       
-      <div className="bg-white/90 mt-auto pt-4 border-t border-gray-200">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">Agencia:</span>
-          <span className="text-sm font-medium text-gray-900">{agenciaName}</span>
-        </div>
-      </div>
     </div>
   );
 };
