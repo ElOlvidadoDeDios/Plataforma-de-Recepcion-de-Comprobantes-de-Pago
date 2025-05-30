@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { DetalleCredito, ClienteResponse } from '../../../api/customerConsultationAPI';
-import CronogramaModal from '../../cronograma/CronogramaPage';
+
+const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 
 interface CreditosTableProps {
   creditos: DetalleCredito[];
@@ -118,12 +119,14 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
       </div>
 
       {isModalOpen && selectedPrestamo && (
-        <CronogramaModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          prestamo={selectedPrestamo}
-          clientData={clientData}
-        />
+        <Suspense fallback={<div>Cargando cronograma...</div>}>
+          <CronogramaModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            prestamo={selectedPrestamo}
+            clientData={clientData}
+          />
+        </Suspense>
       )}
     </div>
   );

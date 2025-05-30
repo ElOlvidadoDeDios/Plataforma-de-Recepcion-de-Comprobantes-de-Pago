@@ -45,9 +45,7 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
 }) => {
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
   const [paymentType, setPaymentType] = useState<'normal' | 'liquidacion'>('normal');
-  const [isLoading, setIsLoading] = useState(false);
-  const currentPaymentRef = useRef<string>('');
-
+  const currentPayment = useRef<string | null>(null);
 
   useEffect(() => {
     if (paymentDetails && totalAmount) {
@@ -62,50 +60,39 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
     }
   }, [totalAmount, paymentDetails, onTypeChange]);
 
-  // Limpiar datos cuando se cierra el modal o cambia el pago
+  // Solo hacer una llamada cuando el modal se abre
   useEffect(() => {
-    if (!showImage || currentPaymentRef.current !== displayedPayment.creditoId) {
+    const shouldFetchData =
+      showImage && // Modal visible
+      displayedPayment.creditoId && // Tenemos ID
+      displayedPayment.dni && // Tenemos DNI
+      currentPayment.current !== displayedPayment.creditoId; // No es el mismo pago
+
+    if (shouldFetchData) {
+      const fetchData = async () => {
+        try {
+          currentPayment.current = displayedPayment.creditoId;
+          const data = await procesarInfoPago(displayedPayment.creditoId, displayedPayment.dni);
+          if (Array.isArray(data) && data[0]?.status === false) {
+            toast.error(data[0].message);
+            return;
+          }
+          setPaymentDetails(data);
+        } catch (error: any) {
+          toast.error(error.message || 'Error al obtener datos del pagaré');
+        }
+      };
+
+      fetchData();
+    }
+
+    // Limpiar datos cuando se cierra el modal
+    if (!showImage) {
       setPaymentDetails(null);
       setPaymentType('normal');
-      setIsLoading(false);
-      if (showImage) {
-        currentPaymentRef.current = displayedPayment.creditoId;
-      } else {
-        currentPaymentRef.current = '';
-      }
+      currentPayment.current = null;
     }
-  }, [displayedPayment.creditoId, showImage]);
-
-  // Cargar datos solo cuando el modal está visible
-  useEffect(() => {
-    const fetchPaymentDetails = async () => {
-      if (!showImage || !displayedPayment.creditoId || !displayedPayment.dni || isLoading) return;
-      
-      setIsLoading(true);
-      
-      try {
-        const data = await procesarInfoPago(displayedPayment.creditoId, displayedPayment.dni);
-        if (Array.isArray(data) && data[0]?.status === false) {
-          toast.error(data[0].message);
-          return;
-        }
-        if (currentPaymentRef.current === displayedPayment.creditoId) {
-          setPaymentDetails(data);
-        }
-      } catch (error: any) {
-        toast.error(error.message || 'Error al obtener datos del pagaré');
-      } finally {
-        if (currentPaymentRef.current === displayedPayment.creditoId) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Solo llamar si no tenemos datos para este pago
-    if (paymentDetails === null) {
-      fetchPaymentDetails();
-    }
-  }, [displayedPayment.creditoId, displayedPayment.dni, paymentDetails]);
+  }, [displayedPayment.creditoId, displayedPayment.dni, showImage]);
 
 // const formatDate = (fecha: string, hora: string) => {
 //   try {
