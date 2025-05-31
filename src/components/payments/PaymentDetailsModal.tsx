@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -30,11 +31,22 @@ interface PaymentDetailsModalProps {
   onCloseModal: () => void;
   onReject: () => void;
   onConfirmReject: () => void;
-  onUpdateStatus: (estado: 'aceptado', detallesPago?: {
-    montoPago: string;
-    nroOperacion: string;
-    tipoOperacion: string;
-  }[]) => void;
+  onUpdateStatus: (estado: 'aceptado' | 'rechazado', detallesPago: {
+    montoTotal: string;
+    vouchers: {
+      identificacion: {
+        dni: string;
+        fecha: string;
+        hora: string;
+      };
+      detalles: {
+        montoPago: string;
+        nroOperacion: string;
+        tipoOperacion: string;
+      };
+    }[];
+    motivo_rechazo?: string;
+  }) => void;
 }
 
 export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
@@ -55,6 +67,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   onConfirmReject,
   onUpdateStatus
 }) => {
+  const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState<'image' | 'form'>('image');
   const [relatedPayments, setRelatedPayments] = useState<PaymentRecord[]>([]);
   const [paymentDetails, setPaymentDetails] = useState<Map<number, {
@@ -177,7 +190,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   };
 
   const handleUpdateStatus = () => {
-    // Solo validar los comprobantes que quedan en el modal
+    // Validar campos completos
     const allFieldsComplete = Array.from(paymentDetails.entries())
       .filter(([index]) => index < modalPayments.length)
       .every(([_, details]) => details.montoPago && details.nroOperacion && details.tipoOperacion);
@@ -187,12 +200,34 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
       return;
     }
 
-    const detalles = Array.from(paymentDetails.entries())
-      .filter(([index]) => index < modalPayments.length)
-      .sort((a, b) => a[0] - b[0])
-      .map(([_, details]) => details);
+    // Crear estructura de datos para enviar
+    const requestData = {
+      montoTotal: totalAmount,
+      userData: {
+        agencia: agenciaCode,
+        cod_caja: user?.agencias?.[0]?.cod_caja || '',
+        user_caja: user?.agencias?.[0]?.user_caja || '',
+        email: user?.email || '',
+        dni_usuario: user?.dni || ''
+      },
+      vouchers: modalPayments.map((payment, index) => {
+        const details = paymentDetails.get(index);
+        return {
+          identificacion: {
+            dni: payment.dni,
+            fecha: payment.fecha,
+            hora: payment.hora
+          },
+          detalles: {
+            montoPago: details?.montoPago || '',
+            nroOperacion: details?.nroOperacion || '',
+            tipoOperacion: details?.tipoOperacion || ''
+          }
+        };
+      })
+    };
     
-    onUpdateStatus('aceptado', detalles);
+    onUpdateStatus('aceptado', requestData);
   };
 
   const agenciaSeleccionada = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaCode)?.[0] || agenciaCode;
@@ -225,7 +260,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           className={`bg-white shadow-2xl border border-gray-200 z-[10000] flex flex-col ${
             modalPosition.isMobile
               ? 'fixed inset-0 overflow-hidden'
-              : 'relative w-[800px] rounded-lg h-[800px]'
+              : 'relative w-[800px] rounded-lg h-[90vh] max-h-[1000px]'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -240,16 +275,16 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   
           <div className={`flex-1 flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} gap-3 p-4 text-sm overflow-hidden relative`}>
             {allPayments.length > 1 && (
-              <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 px-2 z-50 flex justify-between pointer-events-none">
+              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-50 pointer-events-none">
                 <button
                   onClick={handlePrev}
-                  className="p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50 pointer-events-auto"
+                  className="p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleNext}
-                  className="p-1.5 bg-white rounded-full shadow-md hover:bg-gray-50 pointer-events-auto"
+                  className="p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -291,7 +326,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             <div className={`${
               modalPosition.isMobile
                 ? activeTab === 'image' ? 'flex-1' : 'hidden'
-                : 'w-7/12'
+                : 'w-7/12 min-h-[600px]'
             } flex-shrink-0 h-full overflow-hidden relative`}>
               <p className="mb-1 px-2 text-xs text-gray-500">
                 {currentIndex === 0 ? 'Comprobante principal' : `Comprobante adicional ${currentIndex}`}

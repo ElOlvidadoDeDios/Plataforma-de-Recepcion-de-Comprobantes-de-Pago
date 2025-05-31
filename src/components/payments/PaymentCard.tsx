@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useContext } from 'react';
+import { AuthContext } from '../../contexts/AuthContext';
 import logger from '../../utils/logger';
 import { PaymentRecord, AgenciaCaja } from '../../types';
 import { fetchPaymentByDNIAndTime, fetchPendingPaymentsByPagare } from '../../api/paymentsApi';
@@ -22,14 +23,14 @@ interface PaymentCardProps {
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({
   payment,
-  onUpdateStatus,
+  //onUpdateStatus,
   socket,
   agencias = [],
 }) => {
+  const { user } = useContext(AuthContext);
   const [showImage, setShowImage] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState(payment);
-  const [relatedPayments, setRelatedPayments] = useState<PaymentRecord[]>([]);
   const [modalPosition, setModalPosition] = useState<{
     isMobile: boolean;
     clickPosition?: { x: number; y: number };
@@ -51,15 +52,6 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
       setCurrentPayment(updatedPayment);
     }
 
-    setRelatedPayments(prev => 
-      prev.map(p => 
-        p.dni === updatedPayment.dni && 
-        p.fecha === updatedPayment.fecha && 
-        p.hora === updatedPayment.hora 
-          ? updatedPayment 
-          : p
-      )
-    );
   }, [currentPayment]);
 
   useEffect(() => {
@@ -145,16 +137,9 @@ const handleOpenModal = async (e: React.MouseEvent) => {
 
       if (updatedPayment.estado === 'pendiente' && updatedPayment.creditoId) {
         const payments = await fetchPendingPaymentsByPagare(updatedPayment.creditoId);
-        const filteredPayments = payments.filter(p => 
-          !(p.dni === updatedPayment.dni && 
-            p.fecha === updatedPayment.fecha && 
-            p.hora === updatedPayment.hora)
-        );
-        setRelatedPayments(filteredPayments);
-
-        const total = filteredPayments.reduce(
+        const total = payments.reduce(
           (sum, p) => sum + Number(p.cuotasVencidasTotalAPagar),
-          Number(updatedPayment.cuotasVencidasTotalAPagar)
+          0
         );
         setMonto(total.toString());
       }
@@ -185,40 +170,69 @@ const handleOpenModal = async (e: React.MouseEvent) => {
       toast.error("Debe especificar un motivo de rechazo");
       return;
     }
-    await updateStatus('rechazado', finalReason);
+
+    // Estructura para rechazo
+    const rejectData = {
+      montoTotal: '0',
+      vouchers: [{
+        identificacion: {
+          dni: currentPayment.dni,
+          fecha: currentPayment.fecha,
+          hora: currentPayment.hora
+        },
+        detalles: {
+          montoPago: '0',
+          nroOperacion: '',
+          tipoOperacion: ''
+        }
+      }],
+      motivo_rechazo: finalReason
+    };
+
+    await updateStatus('rechazado', rejectData);
   };
 
   const updateStatus = async (
-    estado: 'pendiente' | 'aceptado' | 'rechazado',
-    detallesPago?: { montoPago: string; nroOperacion: string; tipoOperacion: string; }[] | string
+    estado: 'aceptado' | 'rechazado',
+    detallesPago: {
+      montoTotal: string;
+      vouchers: {
+        identificacion: { dni: string; fecha: string; hora: string };
+        detalles: { montoPago: string; nroOperacion: string; tipoOperacion: string };
+      }[];
+      motivo_rechazo?: string;
+    }
   ) => {
-    const motivoRechazo = typeof detallesPago === 'string' ? detallesPago : undefined;
     setIsLoading(true);
     try {
-      if (estado === 'aceptado' && detallesPago && Array.isArray(detallesPago)) {
-        const [mainPayment, ...otherPayments] = detallesPago;
-        
-        await onUpdateStatus(currentPayment, estado, undefined, agenciaCode, mainPayment.montoPago);
+      const datosCompletos = {
+        estado,
+        montoTotal: detallesPago.montoTotal,
+        userData: {
+          agencia: agenciaCode,
+          cod_caja: user?.agencias?.[0]?.cod_caja || '',
+          user_caja: user?.agencias?.[0]?.user_caja || '',
+          email: user?.email || '',
+          dni_usuario: user?.dni || ''
+        },
+        motivo_rechazo: estado === 'rechazado' ? detallesPago.motivo_rechazo : undefined,
+        vouchers: detallesPago.vouchers
+      };
 
-        if (relatedPayments.length > 0) {
-          for (let i = 0; i < relatedPayments.length; i++) {
-            const payment = relatedPayments[i];
-            const details = otherPayments[i];
-            if (details) {
-              await onUpdateStatus(payment, estado, undefined, agenciaCode, details.montoPago);
-            }
-          }
-        }
-      } else if (estado === 'rechazado' && motivoRechazo) {
-        await onUpdateStatus(currentPayment, estado, motivoRechazo, agenciaCode, null);
-      } else {
-        await onUpdateStatus(currentPayment, estado, undefined, agenciaCode, null);
-      }
+      console.log('=== DATOS QUE SE ENVIARÍAN AL BACKEND ===');
+      console.log(JSON.stringify(datosCompletos, null, 2));
+      console.log('=====================================');
+      // await onUpdateStatus(
+      //   currentPayment,
+      //   estado,
+      //   detallesPago.motivo_rechazo,
+      //   agenciaCode,
+      //   detallesPago.montoTotal
+      // );
 
       handleCloseModal();
       setSelectedRejectReason("");
       setCustomReason("");
-      setRelatedPayments([]);
     } catch (error) {
       if (import.meta.env.DEV) {
         console.error('Error al actualizar estado:', error);

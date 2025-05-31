@@ -249,6 +249,7 @@ export const fetchPaymentHistory = async (params: {
     throw new APIError('Error al obtener el historial de pagos');
   }
 };
+// Función para procesar la información del pagaré
 
 export const procesarInfoPago = async (pagare: string, dni_socio: string) => {
   try {

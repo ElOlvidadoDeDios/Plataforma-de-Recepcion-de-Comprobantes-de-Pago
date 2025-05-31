@@ -11,7 +11,14 @@ interface PaymentActionsProps {
   showRejectModal: boolean;
   selectedRejectReason: string;
   customReason: string;
-  onUpdateStatus: () => void;
+  onUpdateStatus: (estado: 'aceptado' | 'rechazado', data: {
+    montoTotal: string;
+    vouchers: {
+      identificacion: { dni: string; fecha: string; hora: string };
+      detalles: { montoPago: string; nroOperacion: string; tipoOperacion: string };
+    }[];
+    motivo_rechazo?: string;
+  }) => void;
   onReject: () => void;
   onCloseModal: () => void;
   onConfirmReject: () => void;
@@ -71,7 +78,10 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
           </div>
           <div className="flex gap-2">
           <button
-            onClick={onUpdateStatus}
+            onClick={() => onUpdateStatus('aceptado', {
+              montoTotal: totalMonto,
+              vouchers: []  // Los vouchers se llenan en el PaymentDetailsModal
+            })}
             className={`bg-green-500 text-white px-3 py-1.5 text-sm rounded hover:bg-green-600 transition-colors ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
@@ -140,7 +150,21 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
                     Cancelar
                   </button>
                   <button
-                    onClick={onConfirmReject}
+                    onClick={() => {
+                      const finalReason = selectedRejectReason === "Otro (especificar)"
+                        ? customReason.trim()
+                        : selectedRejectReason.trim();
+
+                      if (!finalReason) {
+                        return;
+                      }
+
+                      onUpdateStatus('rechazado', {
+                        montoTotal: '0',
+                        vouchers: [],  // Los vouchers se manejan en el modal principal
+                        motivo_rechazo: finalReason
+                      });
+                    }}
                     className={`px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 ${
                       isLoading ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
