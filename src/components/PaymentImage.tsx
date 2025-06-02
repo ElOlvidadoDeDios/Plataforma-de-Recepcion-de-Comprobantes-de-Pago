@@ -2,14 +2,19 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface PaymentImageProps {
-  imageSource: string; // Puede ser URL, ruta relativa o base64
+  imageSource: string | string[]; // Puede ser URL, ruta relativa, base64 o array de estos
   alt: string;
 }
 
 export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) => {
   const [showFullImage, setShowFullImage] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+
+  // Convertir imageSource a array siempre para unificar el manejo
+  const images = Array.isArray(imageSource) ? imageSource : [imageSource];
 
   // Función para determinar si es una ruta de comprobante
   const isComprobantePath = (str: string): boolean => {
@@ -18,6 +23,8 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
 
   // Función para construir el src de la imagen
   const getImageSrc = (image: string): string => {
+    if (!image) return ''; // Protección contra undefined
+
     // Si ya comienza con data:image, es un base64 completo
     if (image.startsWith('data:image')) {
       return image;
@@ -38,16 +45,52 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
     return `data:image/jpeg;base64,${image}`;
   };
 
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+  };
+
+  // Componente de navegación reutilizable
+  const NavigationControls = () => (
+    <>
+      <button
+        onClick={handlePrevImage}
+        className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 z-10"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button
+        onClick={handleNextImage}
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 z-10"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded-md text-sm z-10">
+        {currentImageIndex + 1}/{images.length}
+      </div>
+    </>
+  );
+
   return (
     <>
       <div className="w-full h-full rounded-lg overflow-hidden shadow-lg cursor-pointer bg-gray-50" onClick={() => setShowFullImage(true)}>
         <div className="relative w-full h-full flex items-center justify-center">
           <img
-            src={getImageSrc(imageSource)}
-            alt={alt}
+            src={getImageSrc(images[currentImageIndex])}
+            alt={`${alt} ${currentImageIndex + 1}/${images.length}`}
             className="w-full h-full object-contain"
             loading="lazy"
           />
+          {images.length > 1 && <NavigationControls />}
         </div>
       </div>
 
@@ -58,8 +101,8 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
         >
           <div className="relative w-[95vw] h-[95vh] flex items-center justify-center bg-white rounded-lg">
             <img
-              src={getImageSrc(imageSource)}
-              alt={alt}
+              src={getImageSrc(images[currentImageIndex])}
+              alt={`${alt} ${currentImageIndex + 1}/${images.length}`}
               className="max-w-[95%] max-h-[95%] object-contain"
             />
             <button
@@ -70,6 +113,7 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+            {images.length > 1 && <NavigationControls />}
           </div>
         </div>
       , document.body)}

@@ -15,7 +15,7 @@ export interface PaymentHistoryRecord {
     nombreSocio: string;
     creditoId: string;
     cuotaSeleccionada: string;
-    comprobantebase_64: string,
+    comprobantebase_64: string[], // Actualizado a array de strings
     fecha_comprobante: string;
     hora_comprobante: string;
     estado_anterior: string;
@@ -65,11 +65,27 @@ axiosInstance.interceptors.response.use(
   }
 );
 
+// Función auxiliar para asegurar que comprobantebase_64 sea siempre un array
+const normalizePaymentRecord = (payment: PaymentRecord): PaymentRecord => {
+  if (!payment.comprobantebase_64) {
+    payment.comprobantebase_64 = [];
+  } else if (!Array.isArray(payment.comprobantebase_64)) {
+    payment.comprobantebase_64 = [payment.comprobantebase_64];
+  }
+  return payment;
+};
+
+// Función auxiliar para normalizar un array de PaymentRecord
+const normalizePaymentRecords = (payments: PaymentRecord[]): PaymentRecord[] => {
+  return payments.map(normalizePaymentRecord);
+};
+
 export const fetchPaymentsByDNI = async (dni: string) => {
   try {
     const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
       `/api/comprobantes/${dni}`
     );
+    response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -87,6 +103,7 @@ export const fetchPaymentsByStatus = async (status: string) => {
     const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
       `/api/comprobantes/estado/${status}`
     );
+    response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -104,7 +121,7 @@ export const fetchPendingPaymentsByPagare = async (creditoId: string) => {
     const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
       `/api/comprobantes/pagare/${creditoId}/pendientes`
     );
-    return response.data.comprobantes;
+    return normalizePaymentRecords(response.data.comprobantes);
   } catch (error) {
     if (error instanceof AxiosError) {
       throw new APIError(
@@ -154,7 +171,7 @@ export const updatePaymentStatus = async (
     const message = nuevoEstado === 'aceptado' ?
       'Pago procesado exitosamente' :
       'Comprobante actualizado';
-    return { ...response.data, message };
+    return { ...normalizePaymentRecord(response.data), message };
   } catch (error) {
     if (error instanceof AxiosError) {
       const errorMessage = error.response?.data?.message || error.message;
@@ -174,6 +191,7 @@ export const fetchPayments = async (fechaInicio: string, fechaFin: string) => {
     const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
       `/api/comprobantes?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
     );
+    response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -207,7 +225,7 @@ export const fetchPaymentByDNIAndTime = async (dni: string, fecha: string, hora:
         throw new APIError('Comprobante no encontrado');
       }
 
-      return matchedPayment;
+      return normalizePaymentRecord(matchedPayment);
     } else {
       throw new APIError('Comprobante no encontrado');
     }
@@ -249,7 +267,6 @@ export const fetchPaymentHistory = async (params: {
     throw new APIError('Error al obtener el historial de pagos');
   }
 };
-// Función para procesar la información del pagaré
 
 export const procesarInfoPago = async (pagare: string, dni_socio: string) => {
   try {

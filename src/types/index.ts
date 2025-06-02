@@ -20,7 +20,7 @@ export interface PaymentRecord {
     cdn_url: string;
     _id: string;
   }>;
-  comprobantebase_64: string;
+  comprobantebase_64: string[]; // Actualizado a array de strings
   estado: string;
   motivo_rechazo?: string;
   fecha: string;

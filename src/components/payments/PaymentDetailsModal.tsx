@@ -75,7 +75,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     nroOperacion: string;
     tipoOperacion: string;
   }>>(new Map());
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [paymentIndex, setPaymentIndex] = useState(0);
+  const [imageIndex, setImageIndex] = useState(0);
   const [loadingRelated, setLoadingRelated] = useState(false);
   const [totalAmount, setTotalAmount] = useState(monto);
   const [modalPayments, setModalPayments] = useState<PaymentRecord[]>([]);
@@ -83,6 +84,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   // Inicializar modalPayments con el comprobante actual
   useEffect(() => {
     setModalPayments([currentPayment]);
+    setPaymentIndex(0);
+    setImageIndex(0);
   }, [currentPayment]);
 
   useEffect(() => {
@@ -98,7 +101,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           setRelatedPayments(filteredPayments);
           setModalPayments([currentPayment, ...filteredPayments]);
           
-          // Inicializar los detalles con los montos de las cuotas vencidas
           const details = new Map();
           [currentPayment, ...filteredPayments].forEach((payment, index) => {
             details.set(index, {
@@ -109,7 +111,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           });
           setPaymentDetails(details);
 
-          // Calcular el total inicial
           const total = [currentPayment, ...filteredPayments]
             .reduce((sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar), 0);
           setTotalAmount(total.toString());
@@ -138,18 +139,16 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   }, [currentPayment, setMonto]);
 
   const removePayment = (index: number) => {
-    if (index === 0) return; // No permitir eliminar el comprobante principal
+    if (index === 0) return;
     
     const newPayments = [...modalPayments];
     newPayments.splice(index, 1);
     setModalPayments(newPayments);
     
-    // Si el índice actual es mayor que el último índice disponible, ajustarlo
-    if (currentIndex >= newPayments.length) {
-      setCurrentIndex(newPayments.length - 1);
+    if (paymentIndex >= newPayments.length) {
+      setPaymentIndex(newPayments.length - 1);
     }
 
-    // Recalcular monto total
     const total = newPayments.reduce(
       (sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar),
       0
@@ -159,29 +158,30 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   };
 
   const allPayments = modalPayments;
-  const displayedPayment = allPayments[currentIndex];
+  const displayedPayment = allPayments[paymentIndex];
 
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % allPayments.length);
+  const handleNextPayment = () => {
+    setPaymentIndex((prev) => (prev + 1) % allPayments.length);
+    setImageIndex(0); // Reset image index when changing payment
   };
 
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + allPayments.length) % allPayments.length);
+  const handlePrevPayment = () => {
+    setPaymentIndex((prev) => (prev - 1 + allPayments.length) % allPayments.length);
+    setImageIndex(0); // Reset image index when changing payment
   };
 
   const updatePaymentDetail = (field: 'montoPago' | 'nroOperacion' | 'tipoOperacion', value: string) => {
-    const details = paymentDetails.get(currentIndex) || {
+    const details = paymentDetails.get(paymentIndex) || {
       montoPago: '',
       nroOperacion: '',
       tipoOperacion: ''
     };
-    const newPaymentDetails = new Map(paymentDetails).set(currentIndex, {
+    const newPaymentDetails = new Map(paymentDetails).set(paymentIndex, {
       ...details,
       [field]: value
     });
     setPaymentDetails(newPaymentDetails);
 
-    // Actualizar monto total cuando cambia cualquier montoPago
     if (field === 'montoPago') {
       const total = Array.from(newPaymentDetails.values())
         .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0);
@@ -190,7 +190,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   };
 
   const handleUpdateStatus = () => {
-    // Validar campos completos
     const allFieldsComplete = Array.from(paymentDetails.entries())
       .filter(([index]) => index < modalPayments.length)
       .every(([_, details]) => details.montoPago && details.nroOperacion && details.tipoOperacion);
@@ -200,7 +199,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
       return;
     }
 
-    // Crear estructura de datos para enviar
     const requestData = {
       montoTotal: totalAmount,
       userData: {
@@ -267,7 +265,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           <PaymentHeader
             displayedPayment={displayedPayment}
             totalAmount={totalAmount}
-            currentIndex={currentIndex}
+            currentIndex={paymentIndex}
             totalPayments={allPayments.length}
             onCloseModal={onCloseModal}
             showImage={showImage}
@@ -277,13 +275,13 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             {allPayments.length > 1 && (
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-50 pointer-events-none">
                 <button
-                  onClick={handlePrev}
+                  onClick={handlePrevPayment}
                   className="p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
-                  onClick={handleNext}
+                  onClick={handleNextPayment}
                   className="p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all"
                 >
                   <ChevronRight className="w-5 h-5" />
@@ -291,9 +289,9 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               </div>
             )}
             <div className="absolute top-2 right-2 z-30">
-              {currentIndex > 0 && (
+              {paymentIndex > 0 && (
                 <button
-                  onClick={() => removePayment(currentIndex)}
+                  onClick={() => removePayment(paymentIndex)}
                   className="text-gray-500 hover:text-red-500 transition-colors bg-white/90 rounded-full shadow-md p-1"
                   title="Quitar comprobante"
                 >
@@ -329,7 +327,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 : 'w-7/12 min-h-[600px]'
             } flex-shrink-0 h-full overflow-hidden relative`}>
               <p className="mb-1 px-2 text-xs text-gray-500">
-                {currentIndex === 0 ? 'Comprobante principal' : `Comprobante adicional ${currentIndex}`}
+                {paymentIndex === 0 ? 'Comprobante principal' : `Comprobante adicional ${paymentIndex}`}
               </p>
               <PaymentImageViewer
                 imageSource={displayedPayment.comprobantebase_64}
@@ -344,9 +342,9 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 : 'w-5/12'
             } overflow-auto relative z-20`}>
               <PaymentForm
-                montoPago={paymentDetails.get(currentIndex)?.montoPago || totalAmount}
-                nroOperacion={paymentDetails.get(currentIndex)?.nroOperacion || ''}
-                tipoOperacion={paymentDetails.get(currentIndex)?.tipoOperacion || ''}
+                montoPago={paymentDetails.get(paymentIndex)?.montoPago || totalAmount}
+                nroOperacion={paymentDetails.get(paymentIndex)?.nroOperacion || ''}
+                tipoOperacion={paymentDetails.get(paymentIndex)?.tipoOperacion || ''}
                 onUpdateDetail={updatePaymentDetail}
                 agenciaName={agenciaSeleccionada}
                 isEditable={displayedPayment.estado === 'pendiente'}
