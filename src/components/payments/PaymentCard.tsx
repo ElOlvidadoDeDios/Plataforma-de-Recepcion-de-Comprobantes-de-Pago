@@ -9,27 +9,20 @@ import { PaymentDetailsModal } from './PaymentDetailsModal';
 
 interface PaymentCardProps {
   payment: PaymentRecord;
-  onUpdateStatus: (
-    payment: PaymentRecord,
-    estado: 'pendiente' | 'aceptado' | 'rechazado',
-    indice: number,
-    motivoRechazo?: string,
-    agenciaCode?: string,
-    monto?: string | null
-  ) => Promise<void>;
   socket: any;
   agencias?: string[];
   userAgencias?: AgenciaCaja[];
+  onUpdateStatus: (payment: PaymentRecord, estado: 'pendiente' | 'aceptado' | 'rechazado') => Promise<void>;
 }
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({
   payment,
-  //onUpdateStatus,
   socket,
   agencias = [],
 }) => {
   const { user } = useContext(AuthContext);
   const [showImage, setShowImage] = useState(false);
+  const [displayedImageIndex, setDisplayedImageIndex] = useState(0);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState(payment);
   const [modalPosition, setModalPosition] = useState<{
@@ -38,11 +31,12 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   }>({
     isMobile: false
   });
-  const [selectedRejectReason, setSelectedRejectReason] = useState("");
-  const [customReason, setCustomReason] = useState("");
+  const [selectedRejectReason, setSelectedRejectReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [monto, setMonto] = useState(payment.cuotasVencidasTotalAPagar);
   const [agenciaCode] = useState(agencias[0] || '');
+  const [rejectType, setRejectType] = useState<'partial' | 'total'>('total');
 
   const handlePaymentUpdated = useCallback((updatedPayment: PaymentRecord) => {
     if (
@@ -52,7 +46,6 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
     ) {
       setCurrentPayment(updatedPayment);
     }
-
   }, [currentPayment]);
 
   useEffect(() => {
@@ -64,96 +57,85 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
     }
   }, [socket, handlePaymentUpdated]);
 
-// En tu componente PaymentCard, reemplaza la función handleOpenModal:
+  const handleOpenModal = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-const handleOpenModal = async (e: React.MouseEvent) => {
-  e.preventDefault();
-  e.stopPropagation();
-
-  // Obtener información del elemento clickeado
-  const target = e.currentTarget as HTMLElement;
-  const rect = target.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const isMobile = viewportWidth < 768;
-  
-  let clickX: number;
-  let clickY: number;
-  
-  if (isMobile) {
-    // En móvil, usar posición más simple y centrar horizontalmente
-    clickX = viewportWidth / 2;
-    // Usar la posición del botón + un offset pequeño
-    clickY = rect.bottom + 5; // 5px debajo del botón
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const isMobile = viewportWidth < 768;
     
-    // Si el botón está muy abajo, mostrar arriba
-    if (rect.bottom > viewportHeight * 0.7) {
-      clickY = rect.top - 5; // 5px arriba del botón
-    }
-  } else {
-    // Lógica de desktop (la que ya teníamos)
-    const elementCenterX = rect.left + rect.width / 2;
-    const elementCenterY = rect.top + rect.height / 2;
+    let clickX: number;
+    let clickY: number;
     
-    clickX = elementCenterX;
-    clickY = elementCenterY;
-    
-    // Si el elemento está muy a la derecha, usar el borde izquierdo
-    if (rect.right > viewportWidth * 0.75) {
-      clickX = rect.left;
-    }
-    // Si está muy a la izquierda, usar el borde derecho
-    else if (rect.left < viewportWidth * 0.25) {
-      clickX = rect.right;
-    }
-    
-    // Para la posición Y, preferir mostrar debajo del elemento
-    if (rect.bottom < viewportHeight * 0.7) {
-      clickY = rect.bottom + 10; // 10px de separación
+    if (isMobile) {
+      clickX = viewportWidth / 2;
+      clickY = rect.bottom + 5;
+      if (rect.bottom > viewportHeight * 0.7) {
+        clickY = rect.top - 5;
+      }
     } else {
-      clickY = rect.top - 10; // Mostrar arriba si no hay espacio abajo
-    }
-  }
-
-  setModalPosition({
-    isMobile: isMobile,
-    clickPosition: {
-      x: clickX,
-      y: clickY + window.scrollY // Incluir el scroll
-    }
-  });
-  
-  setIsLoading(true);
-  setShowImage(true);
-
-  try {
-    const updatedPayment = await fetchPaymentByDNIAndTime(
-      currentPayment.dni, 
-      currentPayment.fecha, 
-      currentPayment.hora
-    );
-    
-    if (updatedPayment) {
-      setCurrentPayment(updatedPayment);
-
-      if (updatedPayment.estadoGeneral === 'pendiente' && updatedPayment.creditoId) {
-        const payments = await fetchPendingPaymentsByPagare(updatedPayment.creditoId);
-        const total = payments.reduce(
-          (sum, p) => sum + Number(p.cuotasVencidasTotalAPagar),
-          0
-        );
-        setMonto(total.toString());
+      const elementCenterX = rect.left + rect.width / 2;
+      const elementCenterY = rect.top + rect.height / 2;
+      
+      clickX = elementCenterX;
+      clickY = elementCenterY;
+      
+      if (rect.right > viewportWidth * 0.75) {
+        clickX = rect.left;
+      } else if (rect.left < viewportWidth * 0.25) {
+        clickX = rect.right;
+      }
+      
+      if (rect.bottom < viewportHeight * 0.7) {
+        clickY = rect.bottom + 10;
+      } else {
+        clickY = rect.top - 10;
       }
     }
-  } catch (error) {
-    toast.error('No se pudo actualizar el comprobante.');
-    if (import.meta.env.DEV) {
-      logger.error(error);
+
+    setModalPosition({
+      isMobile: isMobile,
+      clickPosition: {
+        x: clickX,
+        y: clickY + window.scrollY
+      }
+    });
+    
+    setIsLoading(true);
+    setShowImage(true);
+    setDisplayedImageIndex(0);
+
+    try {
+      const updatedPayment = await fetchPaymentByDNIAndTime(
+        currentPayment.dni, 
+        currentPayment.fecha, 
+        currentPayment.hora
+      );
+      
+      if (updatedPayment) {
+        setCurrentPayment(updatedPayment);
+
+        if (updatedPayment.estadoGeneral === 'pendiente' && updatedPayment.creditoId) {
+          const payments = await fetchPendingPaymentsByPagare(updatedPayment.creditoId);
+          const total = payments.reduce(
+            (sum, p) => sum + Number(p.cuotasVencidasTotalAPagar),
+            0
+          );
+          setMonto(total.toString());
+        }
+      }
+    } catch (error) {
+      toast.error('No se pudo actualizar el comprobante.');
+      if (import.meta.env.DEV) {
+        logger.error(error);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleCloseModal = () => {
     setShowImage(false);
@@ -162,90 +144,101 @@ const handleOpenModal = async (e: React.MouseEvent) => {
 
   const handleReject = () => {
     setShowRejectModal(true);
-    //setShowImage(false);
   };
 
-  const handleConfirmReject = async () => {
-    const finalReason = selectedRejectReason === "Otro (especificar)" ? customReason.trim() : selectedRejectReason.trim();
+  const handleConfirmReject = (type: 'partial' | 'total') => {
+    const finalReason = selectedRejectReason === 'Otro (especificar)' ? customReason.trim() : selectedRejectReason.trim();
     if (!finalReason) {
-      toast.error("Debe especificar un motivo de rechazo");
+      toast.error('Debe especificar un motivo de rechazo');
       return;
     }
-
-    // Estructura para rechazo
-    const rejectData = {
-      montoTotal: '0',
-      vouchers: currentPayment.comprobante.map((comp, idx) => ({
-        identificacion: {
-          dni: currentPayment.dni,
-          fecha: currentPayment.fecha,
-          hora: currentPayment.hora,
-          indice: idx
-        },
-        detalles: {
-          montoPago: '0',
-          nroOperacion: '',
-          tipoOperacion: ''
-        }
-      })),
-      motivo_rechazo: finalReason
-    };
-
-    // Rechazar cada comprobante individual
-    for (let i = 0; i < currentPayment.comprobante.length; i++) {
-      if (currentPayment.comprobante[i].estado === 'pendiente') {
-        await updateStatus('rechazado', rejectData, i);
-      }
-    }
+    setRejectType(type);
+    setShowRejectModal(false);
   };
 
   const updateStatus = async (
     estado: 'aceptado' | 'rechazado',
     detallesPago: {
       montoTotal: string;
+      userData?: {
+        agencia: string;
+        cod_caja: string;
+        user_caja: string;
+        email: string;
+        dni_usuario: string;
+      };
       vouchers: {
-        identificacion: { dni: string; fecha: string; hora: string; indice: number };
-        detalles: { montoPago: string; nroOperacion: string; tipoOperacion: string };
+        identificacion: {
+          creditoId?: string;
+          dni: string;
+          fecha: string;
+          hora: string;
+          estadoGeneral?: string;
+        };
+        detalles: {
+          indice: number;
+          montoPago: string;
+          nroOperacion: string;
+          tipoOperacion: string;
+          estado?: string;
+          _id?: string;
+          motivo_rechazo?: string;
+        }[];
       }[];
-      motivo_rechazo?: string;
     },
     indice: number
   ) => {
     setIsLoading(true);
     try {
-      const datosCompletos = {
-        estado,
-        montoTotal: detallesPago.montoTotal,
-        indice,
-        userData: {
+      // Ensure userData is included
+      if (!detallesPago.userData) {
+        detallesPago.userData = {
           agencia: agenciaCode,
           cod_caja: user?.agencias?.[0]?.cod_caja || '',
           user_caja: user?.agencias?.[0]?.user_caja || '',
           email: user?.email || '',
           dni_usuario: user?.dni || ''
-        },
-        motivo_rechazo: estado === 'rechazado' ? detallesPago.motivo_rechazo : undefined,
-        vouchers: detallesPago.vouchers.filter(v => v.identificacion.indice === indice)
-      };
+        };
+      }
 
-      console.log('=== DATOS QUE SE ENVIARÍAN AL BACKEND ===');
-      console.log(JSON.stringify(datosCompletos, null, 2));
-      console.log('=====================================');
-      // await onUpdateStatus(
-      //   currentPayment,
-      //   estado,
-      //   detallesPago.motivo_rechazo,
-      //   agenciaCode,
-      //   detallesPago.montoTotal
-      // );
+      // Log the data being sent
+      console.log('=== ENVIANDO DATOS AL BACKEND ===');
+      console.log('Tipo:', estado);
+      console.log('Índice:', indice);
+      console.log('Datos completos:', JSON.stringify(detallesPago, null, 2));
+      console.log('===============================');
+
+      // Call the backend API (uncomment and adjust as needed)
+      // await onUpdateStatus(currentPayment, estado);
+
+      // Update currentPayment state
+      const updatedVoucher = detallesPago.vouchers.find(
+        v => v.identificacion.dni === currentPayment.dni &&
+            v.identificacion.fecha === currentPayment.fecha &&
+            v.identificacion.hora === currentPayment.hora
+      );
+      if (updatedVoucher) {
+        const validEstados: ('pendiente' | 'parcial' | 'atendido')[] = ['pendiente', 'parcial', 'atendido'];
+        const newEstadoGeneral = validEstados.includes(updatedVoucher.identificacion.estadoGeneral as any) 
+          ? updatedVoucher.identificacion.estadoGeneral as 'pendiente' | 'parcial' | 'atendido'
+          : currentPayment.estadoGeneral;
+        
+        setCurrentPayment({
+          ...currentPayment,
+          estadoGeneral: newEstadoGeneral,
+          comprobantebase_64: updatedVoucher.detalles.map(d => ({
+            ...currentPayment.comprobantebase_64[d.indice],
+            estado: (d.estado || 'pendiente') as 'aceptado' | 'rechazado' | 'pendiente',
+            motivo_rechazo: d.motivo_rechazo
+          }))
+        });
+      }
 
       handleCloseModal();
-      setSelectedRejectReason("");
-      setCustomReason("");
+      setSelectedRejectReason('');
+      setCustomReason('');
     } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error al actualizar estado:', error);
-      }
+      console.error('Error al actualizar estado:', error);
       toast.error(`Error al actualizar el estado a ${estado}`);
     } finally {
       setIsLoading(false);

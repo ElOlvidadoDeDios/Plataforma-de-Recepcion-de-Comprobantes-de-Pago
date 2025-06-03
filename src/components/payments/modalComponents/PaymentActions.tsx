@@ -11,6 +11,7 @@ interface PaymentActionsProps {
   showRejectModal: boolean;
   selectedRejectReason: string;
   customReason: string;
+  rejectType: 'partial' | 'total';
   onUpdateStatus: (estado: 'aceptado' | 'rechazado', data: {
     montoTotal: string;
     vouchers: {
@@ -21,7 +22,7 @@ interface PaymentActionsProps {
   }, indice: number) => void;
   onReject: () => void;
   onCloseModal: () => void;
-  onConfirmReject: () => void;
+  onConfirmReject: (rejectType: 'partial' | 'total') => void;
   setSelectedRejectReason: (value: string) => void;
   setCustomReason: (value: string) => void;
 }
@@ -40,10 +41,11 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   showRejectModal,
   selectedRejectReason,
   customReason,
+  rejectType,
   onUpdateStatus,
   onReject,
   onCloseModal,
-  //onConfirmReject,
+  onConfirmReject,
   setSelectedRejectReason,
   setCustomReason,
   totalMonto,
@@ -79,10 +81,9 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
           <div className="flex gap-2">
           <button
             onClick={() => {
-              // Los vouchers se llenan en el PaymentDetailsModal
               onUpdateStatus('aceptado', {
                 montoTotal: totalMonto,
-                vouchers: []
+                vouchers: []  // Se manejan en el modal principal
               }, 0);
             }}
             className={`bg-green-500 text-white px-3 py-1.5 text-sm rounded hover:bg-green-600 transition-colors ${
@@ -93,7 +94,10 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
             {isLoading ? 'Procesando...' : totalPayments > 1 ? `Aceptar (${totalPayments})` : 'Aceptar'}
           </button>
           <button
-            onClick={onReject}
+            onClick={() => {
+              onConfirmReject('total'); // Establecer como rechazo total
+              onReject(); // Abrir modal de rechazo
+            }}
             className={`bg-red-500 text-white px-3 py-1.5 text-sm rounded hover:bg-red-600 transition-colors ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
@@ -119,7 +123,9 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               className="bg-white w-[90%] max-w-md mx-auto relative p-6 rounded-lg shadow-lg"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-semibold mb-4">Motivo de Rechazo (Rechazo parcial)</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                Motivo de Rechazo ({rejectType === 'partial' ? 'Rechazo Parcial' : 'Rechazo Total'})
+              </h3>
               <div className="space-y-4">
                 <select
                   value={selectedRejectReason}
@@ -173,7 +179,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
                     }`}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Procesando...' : 'Confirmar Rechazo Parcial'}
+                    {isLoading ? 'Procesando...' : `Confirmar ${rejectType === 'partial' ? 'Rechazo Parcial' : 'Rechazo Total'}`}
                   </button>
                 </div>
               </div>

@@ -60,7 +60,6 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
     }
   }, [totalAmount, paymentDetails, onTypeChange]);
 
-  // Solo hacer una llamada cuando el modal se abre
   useEffect(() => {
     const shouldFetchData =
       showImage && // Modal visible
@@ -94,33 +93,19 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
     }
   }, [displayedPayment.creditoId, displayedPayment.dni, showImage]);
 
-// const formatDate = (fecha: string, hora: string) => {
-//   try {
-//     return new Date(`${fecha} ${hora}`).toLocaleString('es-ES', {
-//       year: 'numeric',
-//       month: 'long',
-//       day: 'numeric',
-//       hour: '2-digit',
-//       minute: '2-digit'
-//     });
-//   } catch (error) {
-//     return `${fecha} ${hora}`;
-//   }
-// };
-
-const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado' }) => {
-  const badgeStyles = {
-    aceptado: "flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full",
-    rechazado: "flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full",
-    pendiente: "flex items-center text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full"
+  const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado' }) => {
+    const badgeStyles = {
+      aceptado: "flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full",
+      rechazado: "flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full",
+      pendiente: "flex items-center text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full"
+    };
+    
+    return (
+      <div className={badgeStyles[estado]}>
+        <span>{estado === 'aceptado' ? 'Pagado' : estado === 'rechazado' ? 'Rechazado' : 'Pendiente'}</span>
+      </div>
+    );
   };
-  
-  return (
-    <div className={badgeStyles[estado]}>
-      <span>{estado === 'aceptado' ? 'Pagado' : estado === 'rechazado' ? 'Rechazado' : 'Pendiente'}</span>
-    </div>
-  );
-};
 
   return (
     <div className="p-3 lg:p-4 border-b border-gray-200">
@@ -136,7 +121,6 @@ const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado
             <p className="text-gray-600 text-xs sm:text-sm">Número de Cuotas: {paymentDetails?.NUM_CUOTAS}</p>
             <p className="text-gray-600 text-xs sm:text-sm font-medium mb-2">Monto Adeudado: S/ {paymentDetails?.DEBE?.toFixed(2)}</p>
             
-            {/* Radio buttons para tipo de pago */}
             <div className="col-span-2 border-t border-gray-200 pt-4 mt-3">
               {paymentDetails?.DETALLE && (
                 <div className="mb-4 text-sm text-red-600 font-medium text-center bg-red-50 p-2 rounded-md">
@@ -184,7 +168,7 @@ const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado
             <div className="col-span-2 flex items-center flex-wrap gap-2 border-t border-gray-200 pt-3 mt-3">
               <div className="flex items-center flex-shrink-0">
                 <span className="text-xs sm:text-sm font-medium text-gray-700 mr-2">Estado:</span>
-                <StatusBadge estado={displayedPayment.estado as 'pendiente' | 'aceptado' | 'rechazado'} />
+                <StatusBadge estado={displayedPayment.estadoGeneral as 'pendiente' | 'aceptado' | 'rechazado'} />
               </div>
               {totalAmount && (
                 <p className="text-gray-600 text-xs sm:text-sm font-semibold">

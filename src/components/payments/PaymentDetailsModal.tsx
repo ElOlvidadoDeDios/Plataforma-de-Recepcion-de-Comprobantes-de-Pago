@@ -30,21 +30,33 @@ interface PaymentDetailsModalProps {
   setCustomReason: (value: string) => void;
   onCloseModal: () => void;
   onReject: () => void;
-  onConfirmReject: () => void;
+  onConfirmReject: (rejectType: 'partial' | 'total') => void;
   onUpdateStatus: (estado: 'aceptado' | 'rechazado', detallesPago: {
     montoTotal: string;
+    userData?: {
+      agencia: string;
+      cod_caja: string;
+      user_caja: string;
+      email: string;
+      dni_usuario: string;
+    };
     vouchers: {
       identificacion: {
+        creditoId?: string;
         dni: string;
         fecha: string;
         hora: string;
-        indice: number;
+        estadoGeneral?: string;
       };
       detalles: {
+        indice: number;
         montoPago: string;
         nroOperacion: string;
         tipoOperacion: string;
-      };
+        estado?: string;
+        _id?: string;
+        motivo_rechazo?: string;
+      }[];
     }[];
     motivo_rechazo?: string;
   }, indice: number) => void;
@@ -71,6 +83,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState<'image' | 'form'>('image');
   const [relatedPayments, setRelatedPayments] = useState<PaymentRecord[]>([]);
+  const [rejectType, setRejectType] = useState<'partial' | 'total'>('total');
   interface VoucherDetail {
     montoPago: string;
     nroOperacion: string;
@@ -78,6 +91,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     estado: 'pendiente' | 'aceptado' | 'rechazado';
     imageIndex: number;
     ruta: string;
+    motivo_rechazo?: string;
+    paymentIndex: number; // Índice del pago al que pertenece el voucher
   }
 
   const [paymentDetails, setPaymentDetails] = useState<VoucherDetail[]>([]);
@@ -107,22 +122,31 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           setRelatedPayments(filteredPayments);
           setModalPayments([currentPayment, ...filteredPayments]);
           
-          const details: VoucherDetail[] = [currentPayment, ...filteredPayments].flatMap((payment) =>
-            payment.comprobantebase_64.map((comp, imageIndex) => ({
-              montoPago: (Number(payment.cuotasVencidasTotalAPagar) / payment.comprobantebase_64.length).toString(), // Dividir el monto entre la cantidad de comprobantes
-              nroOperacion: '',
-              tipoOperacion: '',
-              estado: comp.estado,
-              imageIndex: imageIndex,
-              ruta: comp.ruta
-            }))
-          );
+          // Generar detalles para todos los pagos de manera individual
+          const details: VoucherDetail[] = [];
+          [currentPayment, ...filteredPayments].forEach((payment, paymentIndex) => {
+            if (payment.comprobantebase_64 && payment.comprobantebase_64.length > 0) {
+              payment.comprobantebase_64.forEach((comp, idx) => {
+                details.push({
+                  montoPago: (Number(payment.cuotasVencidasTotalAPagar) / payment.comprobantebase_64.length).toFixed(2),
+                  nroOperacion: '',
+                  tipoOperacion: '',
+                  estado: comp.estado,
+                  imageIndex: idx,
+                  ruta: comp.ruta,
+                  motivo_rechazo: comp.motivo_rechazo,
+                  paymentIndex: paymentIndex // Agregar índice del pago para referencia
+                });
+              });
+            }
+          });
           setPaymentDetails(details);
 
           const total = [currentPayment, ...filteredPayments]
-            .reduce((sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar), 0);
-          setTotalAmount(total.toString());
-          setMonto(total.toString());
+            .reduce((sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar), 0)
+            .toFixed(2);
+          setTotalAmount(total);
+          setMonto(total);
         } catch (error) {
           toast.error('Error al cargar comprobantes relacionados');
         } finally {
@@ -135,12 +159,14 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
     // Inicializar los detalles del pago actual
     const details: VoucherDetail[] = currentPayment.comprobantebase_64.map((comp, idx) => ({
-      montoPago: (Number(currentPayment.cuotasVencidasTotalAPagar) / currentPayment.comprobantebase_64.length).toString(),
+      montoPago: (Number(currentPayment.cuotasVencidasTotalAPagar) / currentPayment.comprobantebase_64.length).toFixed(2),
       nroOperacion: '',
       tipoOperacion: '',
       estado: comp.estado,
       imageIndex: idx,
-      ruta: comp.ruta
+      ruta: comp.ruta,
+      motivo_rechazo: comp.motivo_rechazo,
+      paymentIndex: 0 // Es el primer pago siempre
     }));
     setPaymentDetails(details);
   }, [currentPayment, setMonto]);
@@ -156,12 +182,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
       setPaymentIndex(newPayments.length - 1);
     }
 
-    const total = newPayments.reduce(
-      (sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar),
-      0
-    );
-    setTotalAmount(total.toString());
-    setMonto(total.toString());
+    const total = newPayments
+      .reduce((sum, payment) => sum + Number(payment.cuotasVencidasTotalAPagar), 0)
+      .toFixed(2);
+    setTotalAmount(total);
+    setMonto(total);
   };
 
   const allPayments = modalPayments;
@@ -170,35 +195,31 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   const changePayment = (newPaymentIndex: number) => {
     setPaymentIndex(newPaymentIndex);
     
-    // Obtener los detalles del nuevo pago
     const newPayment = allPayments[newPaymentIndex];
     if (!newPayment) return;
     
-    // Reiniciar el índice de imagen pero preservar los datos existentes
     setImageIndex(0);
     
-    // Verificar si ya existen detalles para este pago
+    // Verificar si existen detalles para este pago
     const existingDetails = paymentDetails.filter(detail =>
       newPayment.comprobantebase_64.some(comp => comp.ruta === detail.ruta)
     );
 
-    if (existingDetails.length > 0) {
-      // Si existen detalles, mantenerlos
-      return;
+    // Si no existen detalles para este pago, crear nuevos con valores por defecto
+    if (existingDetails.length === 0) {
+      const paymentVouchers = newPayment.comprobantebase_64.map((comp, idx) => ({
+        montoPago: (Number(newPayment.cuotasVencidasTotalAPagar) / newPayment.comprobantebase_64.length).toFixed(2),
+        nroOperacion: '',
+        tipoOperacion: '',
+        estado: comp.estado,
+        imageIndex: idx,
+        ruta: comp.ruta,
+        motivo_rechazo: comp.motivo_rechazo,
+        paymentIndex: newPaymentIndex
+      })) as VoucherDetail[];
+      
+      setPaymentDetails(prev => [...prev, ...paymentVouchers]);
     }
-    
-    // Si no existen detalles, crear nuevos
-    const paymentVouchers = newPayment.comprobantebase_64.map((comp, idx) => ({
-      montoPago: (Number(newPayment.cuotasVencidasTotalAPagar) / newPayment.comprobantebase_64.length).toString(),
-      nroOperacion: '',
-      tipoOperacion: '',
-      estado: comp.estado,
-      imageIndex: idx,
-      ruta: comp.ruta
-    }));
-    
-    // Agregar los nuevos detalles manteniendo los existentes
-    setPaymentDetails(prev => [...prev, ...paymentVouchers]);
   };
 
   const handleNextPayment = () => {
@@ -212,7 +233,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   };
 
   const updateVoucherDetail = (index: number, field: keyof VoucherDetail, value: string) => {
-    // Encontrar el detalle correcto usando imageIndex y ruta
     const currentVoucher = paymentDetails.find(detail =>
       detail.imageIndex === imageIndex &&
       displayedPayment.comprobantebase_64[imageIndex]?.ruta === detail.ruta
@@ -235,133 +255,286 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     if (field === 'montoPago') {
       const total = newDetails
         .filter(detail => detail.estado !== 'rechazado')
-        .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0);
-      setMonto(total.toString());
-      setTotalAmount(total.toString());
+        .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0)
+        .toFixed(2);
+      setMonto(total);
+      setTotalAmount(total);
     }
   };
 
-  const handleRejectVoucher = (index: number) => {
-    // Marcar el comprobante actual como rechazado
-    const currentVoucher = paymentDetails.find(detail =>
-      detail.imageIndex === imageIndex &&
-      displayedPayment.comprobantebase_64[imageIndex]?.ruta === detail.ruta
-    );
+  const handleRejectVoucher = () => {
+    setRejectType('partial');
+    onReject();
+  };
 
-    if (!currentVoucher) return;
-
-    const newDetails = paymentDetails.map(detail => {
-      if (detail === currentVoucher) {
-        return {
-          ...detail,
-          estado: 'rechazado' as const,
-          motivo_rechazo: 'Rechazo parcial del comprobante'
+  const handleUpdateStatus = async (
+    estado: 'aceptado' | 'rechazado',
+    detalles: {
+      montoTotal: string;
+      vouchers: {
+        identificacion: {
+          dni: string;
+          fecha: string;
+          hora: string;
+          indice: number;
         };
+        detalles: {
+          montoPago: string;
+          nroOperacion: string;
+          tipoOperacion: string;
+        };
+      }[];
+      motivo_rechazo?: string;
+    },
+    indice: number
+  ) => {
+    // 1. Validar estado general del comprobante
+    if (!['pendiente', 'parcial'].includes(displayedPayment.estadoGeneral)) {
+      toast.error('Este comprobante ya ha sido completamente procesado');
+      return;
+    }
+
+    // 2. Verificar y actualizar estados según la operación
+    if (estado === 'rechazado') {
+      if (rejectType === 'total') {
+        // Para rechazo total, afectar a todos los vouchers pendientes
+        const allPendingVouchers = paymentDetails.filter(detail => detail.estado === 'pendiente');
+        
+        // Verificar datos completos
+        const incompleteVouchers = allPendingVouchers.filter(
+          voucher => !voucher.montoPago || !voucher.nroOperacion || !voucher.tipoOperacion
+        );
+
+        if (incompleteVouchers.length > 0) {
+          toast.error('Debe completar los datos de todos los comprobantes pendientes');
+          return;
+        }
+
+        // Actualizar todos los vouchers pendientes
+        const updatedDetails = paymentDetails.map(detail => {
+          if (detail.estado === 'pendiente') {
+            return {
+              ...detail,
+              estado: 'rechazado' as const,
+              motivo_rechazo: selectedRejectReason || customReason
+            };
+          }
+          return detail;
+        }) as VoucherDetail[];
+        setPaymentDetails(updatedDetails);
+
+        // Actualizar estados en todos los pagos
+        modalPayments.forEach((payment, paymentIdx) => {
+          payment.comprobantebase_64.forEach((comp, idx) => {
+            const detail = updatedDetails.find(d =>
+              d.imageIndex === idx &&
+              d.paymentIndex === paymentIdx &&
+              d.estado === 'pendiente'
+            );
+            if (detail) {
+              comp.estado = 'rechazado';
+              comp.motivo_rechazo = detail.motivo_rechazo;
+            }
+          });
+          payment.estadoGeneral = 'atendido';
+        });
+      } else {
+        // Rechazo parcial (código existente para rechazo parcial)
+        const selectedVoucher = paymentDetails.find(v =>
+          v.imageIndex === imageIndex &&
+          displayedPayment.comprobantebase_64[imageIndex]?.ruta === v.ruta
+        );
+
+        if (!selectedVoucher) return;
+
+        if (selectedVoucher.estado !== 'pendiente') {
+          toast.error('Este comprobante ya ha sido procesado');
+          return;
+        }
+
+        if (!selectedVoucher.montoPago || !selectedVoucher.nroOperacion || !selectedVoucher.tipoOperacion) {
+          toast.error('Debe completar los datos del comprobante seleccionado');
+          return;
+        }
       }
-      return detail;
-    });
-    setPaymentDetails(newDetails);
-
-    // Actualizar el estado en el pago actual
-    const currentComprobante = displayedPayment.comprobantebase_64[imageIndex];
-    if (currentComprobante) {
-      currentComprobante.estado = 'rechazado';
     }
 
-    // Recalcular el monto total excluyendo todos los vouchers rechazados
-    const total = newDetails
-      .filter(detail => detail.estado !== 'rechazado')
-      .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0);
-    setMonto(total.toString());
-    setTotalAmount(total.toString());
+    const isPartialReject = estado === 'rechazado' && rejectType === 'partial';
+    const payment = displayedPayment;
+    const voucher = payment.comprobantebase_64[imageIndex];
 
-    // Cambiar a la siguiente imagen no rechazada si existe
-    const nextValidIndex = displayedPayment.comprobantebase_64.findIndex(
-      (comp, i) => i > imageIndex && comp.estado === 'pendiente'
-    );
-    if (nextValidIndex !== -1) {
-      setImageIndex(nextValidIndex);
+    console.log('=== Actualizando estado ===');
+    console.log('Tipo:', estado);
+    console.log('Rechazo parcial:', isPartialReject);
+    console.log('Imagen actual:', imageIndex);
+
+    if (estado === 'rechazado') {
+      let updatedDetails;
+      if (rejectType === 'total') {
+        // En rechazo total, actualizar todos los vouchers pendientes
+        updatedDetails = paymentDetails.map(detail => {
+          if (detail.estado === 'pendiente') {
+            return {
+              ...detail,
+              estado: 'rechazado' as const,
+              motivo_rechazo: detalles.motivo_rechazo
+            };
+          }
+          return detail;
+        });
+      } else if (isPartialReject && voucher) {
+        // En rechazo parcial, actualizar solo el voucher seleccionado
+        updatedDetails = paymentDetails.map(detail => {
+          if (detail.imageIndex === imageIndex && detail.ruta === voucher.ruta) {
+            return {
+              ...detail,
+              estado: 'rechazado' as const,
+              motivo_rechazo: detalles.motivo_rechazo
+            };
+          }
+          return detail;
+        });
+      }
+
+      if (updatedDetails) {
+        setPaymentDetails(updatedDetails);
+        
+        // Actualizar los estados en el payment
+        payment.comprobantebase_64.forEach((comp, idx) => {
+          const detail = updatedDetails.find((d: VoucherDetail) => d.imageIndex === idx && d.ruta === comp.ruta);
+          if (detail) {
+            comp.estado = detail.estado;
+            comp.motivo_rechazo = detail.motivo_rechazo;
+          }
+        });
+
+        payment.estadoGeneral = 'atendido';
+      }
+
+      console.log('Estado general actualizado a:',(payment.estadoGeneral));
     }
 
-    toast.success('Comprobante rechazado parcialmente');
+    const requestData = prepareRequestData(estado);
+
+    console.log('=== Datos a enviar ===');
+    console.log('Estado final:', estado);
+    console.log('Estado general:', payment.estadoGeneral);
+    console.log('Datos completos:', JSON.stringify(requestData, null, 2));
+    console.log('=====================');
+
+    onUpdateStatus(estado, requestData, indice);
   };
 
-  const handleUpdateStatus = (estado: 'aceptado' | 'rechazado', detalles: {
-    montoTotal: string;
-    vouchers: {
-      identificacion: {
-        dni: string;
-        fecha: string;
-        hora: string;
-        indice: number;
-      };
-      detalles: {
-        montoPago: string;
-        nroOperacion: string;
-        tipoOperacion: string;
-      };
-    }[];
-    motivo_rechazo?: string;
-  }, indice: number) => {
-    if (estado === 'aceptado') {
-      // Verificar que todos los vouchers no rechazados tengan sus campos completos
-      const allFieldsComplete = paymentDetails
-        .filter(detail => detail.estado !== 'rechazado')
-        .every(detail => detail.montoPago && detail.nroOperacion && detail.tipoOperacion);
-      
-      if (!allFieldsComplete) {
-        toast.error('Debe completar los datos de todos los comprobantes (monto, número y tipo de operación)');
-        return;
-      }
-    } else {
-      // Para rechazo total, marcar todos los comprobantes como rechazados
-      displayedPayment.comprobantebase_64.forEach(comp => {
-        comp.estado = 'rechazado';
-      });
-      
-      // Actualizar los detalles de pago
-      const updatedDetails = paymentDetails.map(detail => ({
-        ...detail,
-        estado: 'rechazado' as const,
-        motivo_rechazo: detalles.motivo_rechazo
-      }));
-      setPaymentDetails(updatedDetails);
-    }
+  const prepareRequestData = (tipo: 'aceptado' | 'rechazado') => {
+    const isPartialReject = rejectType === 'partial' && tipo === 'rechazado';
+
+    console.log('=== Preparando datos ===');
+    console.log('Operación:', tipo);
+    console.log('Rechazo parcial:', isPartialReject);
+    console.log('Índice de imagen:', imageIndex);
+    console.log('Total de pagos:', modalPayments.length);
+    console.log('=======================');
 
     const requestData = {
-      montoTotal: totalAmount,
+      montoTotal: Number(totalAmount).toFixed(2),
       userData: {
         agencia: agenciaCode,
         cod_caja: user?.agencias?.[0]?.cod_caja || '',
         user_caja: user?.agencias?.[0]?.user_caja || '',
         email: user?.email || '',
-        dni_usuario: user?.dni || ''
+        dni_usuario: user?.dni || '',
       },
-      vouchers: paymentDetails
-        .map((detail) => {
-          const payment = modalPayments.find(p =>
-            p.comprobantebase_64.some(c => c.ruta === detail.ruta)
+      vouchers: modalPayments.map((payment, paymentIdx) => {
+        const finalState = tipo === 'aceptado' ? 'atendido' : 'rechazado';
+        const isCurrentPayment = payment === displayedPayment;
+
+        const voucherDetails = payment.comprobantebase_64.map((comp, idx) => {
+          const detail = paymentDetails.find(
+            (d) => d.imageIndex === idx && d.ruta === comp.ruta
           );
-          if (!payment) return null;
+
+          if (!detail) return null;
+
+          let finalState = detail.estado;
+          let finalMotivo = detail.motivo_rechazo;
+
+          // Establecer estado según el tipo de operación
+          if (tipo === 'aceptado') {
+            finalState = 'aceptado';
+          } else if (tipo === 'rechazado') {
+            if (rejectType === 'total') {
+              // En rechazo total, todos los vouchers pasan a rechazado con el mismo motivo
+              finalState = 'rechazado';
+              finalMotivo = selectedRejectReason || customReason;
+            } else if (isCurrentPayment && isPartialReject && idx === imageIndex) {
+              // En rechazo parcial, solo el voucher seleccionado
+              finalState = 'rechazado';
+              finalMotivo = selectedRejectReason || customReason;
+            }
+          }
 
           return {
-            identificacion: {
-              dni: payment.dni,
-              fecha: payment.fecha,
-              hora: payment.hora,
-              indice: detail.imageIndex
-            },
-            detalles: {
-              montoPago: detail.montoPago,
-              nroOperacion: detail.nroOperacion,
-              tipoOperacion: detail.tipoOperacion
-            }
+            indice: idx,
+            montoPago: finalState === 'rechazado' ? '0' : detail.montoPago,
+            nroOperacion: detail.nroOperacion || '',
+            tipoOperacion: detail.tipoOperacion || '',
+            estado: finalState as 'pendiente' | 'aceptado' | 'rechazado',
+            _id: comp._id,
+            motivo_rechazo: finalMotivo,
           };
-        })
-        .filter((voucher): voucher is NonNullable<typeof voucher> => voucher !== null)
+        }).filter((d): d is NonNullable<typeof d> => d !== null);
+
+        const totalVouchers = voucherDetails.length;
+        const rejectedCount = voucherDetails.filter((d) => d.estado === 'rechazado').length;
+        const acceptedCount = voucherDetails.filter((d) => d.estado === 'aceptado').length;
+        const pendingCount = totalVouchers - rejectedCount - acceptedCount;
+
+        // Determinar estado general
+        let estadoGeneral: string;
+        if (tipo === 'aceptado' || (tipo === 'rechazado' && rejectType === 'total')) {
+          // Si es aceptación o rechazo total, pasa a atendido
+          estadoGeneral = 'atendido';
+        } else if (rejectedCount > 0 && pendingCount > 0) {
+          // Si hay rechazos parciales y pendientes
+          estadoGeneral = 'parcial';
+        } else {
+          estadoGeneral = 'pendiente';
+        }
+
+        console.log(`Estado del pago ${payment.fecha} ${payment.hora}:`, {
+          total: totalVouchers,
+          rechazados: rejectedCount,
+          aceptados: acceptedCount,
+          pendientes: pendingCount,
+          estado: estadoGeneral,
+        });
+
+        return {
+          identificacion: {
+            creditoId: payment.creditoId || '',
+            dni: payment.dni,
+            fecha: payment.fecha,
+            hora: payment.hora,
+            estadoGeneral,
+          },
+          detalles: voucherDetails,
+        };
+      }),
     };
-    
-    onUpdateStatus(estado, requestData, indice);
+
+    console.log('=== Resumen de la operación ===');
+    console.log('Estado general por pago:');
+    requestData.vouchers.forEach((v) => {
+      console.log(`- Pago ${v.identificacion.fecha} ${v.identificacion.hora}:`, {
+        estado: v.identificacion.estadoGeneral,
+        totalVouchers: v.detalles.length,
+        rechazados: v.detalles.filter((d) => d.estado === 'rechazado').length,
+        pendientes: v.detalles.filter((d) => d.estado === 'pendiente').length,
+      });
+    });
+    console.log('============================');
+
+    return requestData;
   };
 
   const agenciaSeleccionada = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaCode)?.[0] || agenciaCode;
@@ -472,7 +645,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 currentIndex={imageIndex}
                 onChangeIndex={(index) => {
                   setImageIndex(index);
-                  // Asegurarse de que el formulario corresponda a la imagen actual
                   const currentVoucher = paymentDetails.find(detail =>
                     detail.imageIndex === index
                   );
@@ -498,8 +670,12 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 onUpdateVoucher={updateVoucherDetail}
                 onRejectVoucher={handleRejectVoucher}
                 agenciaName={agenciaSeleccionada}
-                isEditable={displayedPayment.estadoGeneral === 'pendiente' &&
-                  displayedPayment.comprobantebase_64[imageIndex]?.estado !== 'rechazado'}
+                isEditable={
+                  // Solo editable si estado general es pendiente o parcial
+                  ['pendiente', 'parcial'].includes(displayedPayment.estadoGeneral) &&
+                  // Y si el voucher específico está pendiente
+                  displayedPayment.comprobantebase_64[imageIndex]?.estado === 'pendiente'
+                }
               />
             </div>
           </div>
@@ -513,10 +689,38 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               showRejectModal={showRejectModal}
               selectedRejectReason={selectedRejectReason}
               customReason={customReason}
-              onUpdateStatus={(estado, data) => handleUpdateStatus(estado, data, paymentIndex)}
-              onReject={onReject}
+              rejectType={rejectType}
+              onUpdateStatus={(estado, data) => {
+                if (estado === 'rechazado' && !data.motivo_rechazo) {
+                  toast.error('Debe seleccionar un motivo de rechazo');
+                  return;
+                }
+
+                const targetIndex = rejectType === 'partial' ? imageIndex : paymentIndex;
+
+                handleUpdateStatus(estado, {
+                  ...data,
+                  motivo_rechazo: rejectType === 'partial'
+                    ? `[Rechazo Parcial] ${data.motivo_rechazo}`
+                    : `[Rechazo Total] ${data.motivo_rechazo}`
+                }, targetIndex);
+
+                console.log('=== Datos de rechazo ===');
+                console.log('Tipo:', rejectType);
+                console.log('Índice de imagen:', imageIndex);
+                console.log('Índice de pago:', paymentIndex);
+                console.log('Estado:', estado);
+                console.log('=====================');
+              }}
+              onReject={() => {
+                setRejectType('partial');
+                onReject();
+              }}
               onCloseModal={onCloseModal}
-              onConfirmReject={onConfirmReject}
+              onConfirmReject={(type) => {
+                setRejectType(type);
+                onConfirmReject(type);
+              }}
               setSelectedRejectReason={setSelectedRejectReason}
               setCustomReason={setCustomReason}
               totalMonto={monto}
