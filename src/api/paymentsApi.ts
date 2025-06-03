@@ -98,10 +98,10 @@ export const fetchPaymentsByDNI = async (dni: string) => {
   }
 };
 
-export const fetchPaymentsByStatus = async (status: string) => {
+export const fetchPaymentsByStatus = async (status: 'pendiente' | 'parcial' | 'atendido') => {
   try {
     const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
-      `/api/comprobantes/estado/${status}`
+      `/api/comprobantes/estadoGeneral/${status}`
     );
     response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
     return response.data;
@@ -142,7 +142,8 @@ export const updatePaymentStatus = async (
   agenciaData?: { agencia: string; cod_caja: string; user_caja: string } | null,
   monto?: number | null,
   dni_usuario?: string,
-  email?: string
+  email?: string,
+  indice: number = 0
 ) => {
   try {
     const requestBody = {
@@ -151,6 +152,7 @@ export const updatePaymentStatus = async (
       estado: nuevoEstado,
       motivo_rechazo: motivo_Rechazo || null,
       monto: nuevoEstado === 'aceptado' ? monto : null,
+      indice,
       userData: {
         ...(agenciaData && {
           agencia: agenciaData.agencia,

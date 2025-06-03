@@ -9,17 +9,25 @@ interface PaymentCardViewProps {
   onOpenModal: (e: React.MouseEvent) => void;
 }
 
-const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado' }) => {
+const StatusBadge = ({ estado }: { estado: 'pendiente' | 'parcial' | 'atendido' }) => {
   const badgeStyles = {
-    aceptado: "flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full",
-    rechazado: "flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full",
+    atendido: "flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full",
+    parcial: "flex items-center text-blue-600 bg-blue-50 px-3 py-1 rounded-full",
     pendiente: "flex items-center text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full"
   };
 
   return (
     <div className={badgeStyles[estado]}>
-      {estado === 'aceptado' ? <CheckCircle className="w-4 h-4 mr-1" /> : <Clock className="w-4 h-4 mr-1" />}
-      <span>{estado === 'aceptado' ? 'Pagado' : estado === 'rechazado' ? 'Rechazado' : 'Pendiente'}</span>
+      {estado === 'atendido' ? (
+        <CheckCircle className="w-4 h-4 mr-1" />
+      ) : (
+        <Clock className="w-4 h-4 mr-1" />
+      )}
+      <span>
+        {estado === 'atendido' ? 'Atendido' :
+         estado === 'parcial' ? 'Parcialmente Atendido' :
+         'Pendiente'}
+      </span>
     </div>
   );
 };
@@ -57,7 +65,7 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
         </div>
       </div>
       <div className="flex items-center space-x-2">
-        <StatusBadge estado={currentPayment.estado as 'pendiente' | 'aceptado' | 'rechazado'} />
+        <StatusBadge estado={currentPayment.estadoGeneral as 'pendiente' | 'parcial' | 'atendido'} />
       </div>
       <div className="mt-4 flex justify-between items-center">
         <button
@@ -65,7 +73,7 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
           disabled={isLoading}
           className={`bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {isLoading ? 'Cargando...' : currentPayment.estado === 'pendiente' ? 'Aplicar Pago' : 'Ver Comprobante'}
+          {isLoading ? 'Cargando...' : currentPayment.estadoGeneral === 'pendiente' || currentPayment.estadoGeneral === 'parcial' ? 'Aplicar Pago' : 'Ver Comprobante'}
         </button>
       </div>
     </div>

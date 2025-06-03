@@ -12,6 +12,7 @@ interface PaymentCardProps {
   onUpdateStatus: (
     payment: PaymentRecord,
     estado: 'pendiente' | 'aceptado' | 'rechazado',
+    indice: number,
     motivoRechazo?: string,
     agenciaCode?: string,
     monto?: string | null
@@ -135,7 +136,7 @@ const handleOpenModal = async (e: React.MouseEvent) => {
     if (updatedPayment) {
       setCurrentPayment(updatedPayment);
 
-      if (updatedPayment.estado === 'pendiente' && updatedPayment.creditoId) {
+      if (updatedPayment.estadoGeneral === 'pendiente' && updatedPayment.creditoId) {
         const payments = await fetchPendingPaymentsByPagare(updatedPayment.creditoId);
         const total = payments.reduce(
           (sum, p) => sum + Number(p.cuotasVencidasTotalAPagar),
@@ -161,7 +162,7 @@ const handleOpenModal = async (e: React.MouseEvent) => {
 
   const handleReject = () => {
     setShowRejectModal(true);
-    setShowImage(false);
+    //setShowImage(false);
   };
 
   const handleConfirmReject = async () => {
@@ -174,22 +175,28 @@ const handleOpenModal = async (e: React.MouseEvent) => {
     // Estructura para rechazo
     const rejectData = {
       montoTotal: '0',
-      vouchers: [{
+      vouchers: currentPayment.comprobante.map((comp, idx) => ({
         identificacion: {
           dni: currentPayment.dni,
           fecha: currentPayment.fecha,
-          hora: currentPayment.hora
+          hora: currentPayment.hora,
+          indice: idx
         },
         detalles: {
           montoPago: '0',
           nroOperacion: '',
           tipoOperacion: ''
         }
-      }],
+      })),
       motivo_rechazo: finalReason
     };
 
-    await updateStatus('rechazado', rejectData);
+    // Rechazar cada comprobante individual
+    for (let i = 0; i < currentPayment.comprobante.length; i++) {
+      if (currentPayment.comprobante[i].estado === 'pendiente') {
+        await updateStatus('rechazado', rejectData, i);
+      }
+    }
   };
 
   const updateStatus = async (
@@ -197,17 +204,19 @@ const handleOpenModal = async (e: React.MouseEvent) => {
     detallesPago: {
       montoTotal: string;
       vouchers: {
-        identificacion: { dni: string; fecha: string; hora: string };
+        identificacion: { dni: string; fecha: string; hora: string; indice: number };
         detalles: { montoPago: string; nroOperacion: string; tipoOperacion: string };
       }[];
       motivo_rechazo?: string;
-    }
+    },
+    indice: number
   ) => {
     setIsLoading(true);
     try {
       const datosCompletos = {
         estado,
         montoTotal: detallesPago.montoTotal,
+        indice,
         userData: {
           agencia: agenciaCode,
           cod_caja: user?.agencias?.[0]?.cod_caja || '',
@@ -216,7 +225,7 @@ const handleOpenModal = async (e: React.MouseEvent) => {
           dni_usuario: user?.dni || ''
         },
         motivo_rechazo: estado === 'rechazado' ? detallesPago.motivo_rechazo : undefined,
-        vouchers: detallesPago.vouchers
+        vouchers: detallesPago.vouchers.filter(v => v.identificacion.indice === indice)
       };
 
       console.log('=== DATOS QUE SE ENVIARÍAN AL BACKEND ===');

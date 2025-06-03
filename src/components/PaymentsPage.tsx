@@ -120,7 +120,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
     try {
       const response = await fetchPaymentsByDNI(dniFilter);
       const filteredPayments = response?.comprobantes.filter(
-        payment => selectedStatus === 'todos' || payment.estado === selectedStatus
+        payment => selectedStatus === 'todos' || payment.estadoGeneral === selectedStatus
       ) || [];
       setPayments(filteredPayments);
       if (filteredPayments.length > 0) {
@@ -142,19 +142,19 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
       if (dniFilter.trim()) {
         const response = await fetchPaymentsByDNI(dniFilter);
         const filteredPayments = response?.comprobantes.filter(
-          payment => newStatus === 'todos' || payment.estado === newStatus
+          payment => newStatus === 'todos' || payment.estadoGeneral === newStatus
         ) || [];
         setPayments(filteredPayments);
       } else if (newStatus === 'todos') {
         const allPayments = await Promise.all([
           fetchPaymentsByStatus('pendiente'),
-          fetchPaymentsByStatus('aceptado'),
-          fetchPaymentsByStatus('rechazado')
+          fetchPaymentsByStatus('parcial'),
+          fetchPaymentsByStatus('atendido')
         ]);
         const combinedPayments = allPayments.flatMap(p => p.comprobantes || []);
         setPayments(combinedPayments);
       } else {
-        const response = await fetchPaymentsByStatus(newStatus);
+        const response = await fetchPaymentsByStatus(newStatus as 'pendiente' | 'parcial' | 'atendido');
         setPayments(response?.comprobantes || []);
       }
     } catch (error) {
@@ -174,7 +174,8 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   const handleUpdatePaymentStatus = async (
     payment: PaymentRecord,
     estado: 'pendiente' | 'aceptado' | 'rechazado',
-    motivo_Rechazo?: string,
+    indice: number,
+    motivoRechazo?: string,
     agenciaCode?: string,
     monto?: string | null,
     dni_usuario?: string
@@ -210,20 +211,26 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
         payment.fecha,
         payment.hora,
         estado,
-        motivo_Rechazo,
+        motivoRechazo,
         agenciaData || null,
         monto ? parseFloat(monto) : null,
         dni_usuario || user?.dni || undefined,
-        user?.email
+        user?.email,
+        indice
       );
       
       if (result && !(result as any).error) {
         setPayments(prevPayments =>
           prevPayments.map(p =>
             p.dni === payment.dni && p.fecha === payment.fecha && p.hora === payment.hora
-              ? { ...p, estado, ...(motivo_Rechazo && { motivo_rechazo: motivo_Rechazo }) }
+              ? {
+                  ...p,
+                  comprobante: p.comprobante.map((c, idx) =>
+                    idx === indice ? { ...c, estado, motivo_rechazo: motivoRechazo } : c
+                  )
+                }
               : p
-          ).filter(p => selectedStatus === 'todos' || p.estado === selectedStatus)
+          ).filter(p => selectedStatus === 'todos' || p.estadoGeneral === selectedStatus)
         );
       }
     } catch (error) {
@@ -335,8 +342,8 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                         className="w-48 rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-cyan-500"
                       >
                         <option value="pendiente">Pendiente</option>
-                        <option value="aceptado">Aceptado</option>
-                        <option value="rechazado">Rechazado</option>
+                        <option value="parcial">Parcialmente Atendido</option>
+                        <option value="atendido">Atendido</option>
                         <option value="todos">Todos</option>
                       </select>
                     </div>

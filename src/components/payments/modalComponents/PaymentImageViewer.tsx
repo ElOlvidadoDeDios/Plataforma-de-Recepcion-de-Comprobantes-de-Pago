@@ -2,15 +2,19 @@ import React from 'react';
 import { PaymentImage } from '../../PaymentImage';
 
 interface PaymentImageViewerProps {
-  imageSource: string | string[]; // Acepta string o array de strings
+  imageSource: string | string[];
   altText: string;
   isLoading: boolean;
+  currentIndex: number;
+  onChangeIndex: (index: number) => void;
 }
 
 export const PaymentImageViewer: React.FC<PaymentImageViewerProps> = ({
   imageSource,
   altText,
-  isLoading
+  isLoading,
+  currentIndex,
+  onChangeIndex
 }) => {
   // Asegurarse de que imageSource siempre sea un array
   const images = Array.isArray(imageSource) ? imageSource : [imageSource];
@@ -25,8 +29,10 @@ export const PaymentImageViewer: React.FC<PaymentImageViewerProps> = ({
         ) : (
           <div className="relative w-full h-full">
             <PaymentImage
-              imageSource={images} // Siempre pasamos un array
+              imageSource={images}
               alt={altText}
+              currentIndex={currentIndex}
+              onChangeIndex={onChangeIndex}
             />
           </div>
         )}

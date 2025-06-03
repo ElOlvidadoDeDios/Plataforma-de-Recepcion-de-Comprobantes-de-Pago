@@ -2,13 +2,24 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface PaymentImageProps {
-  imageSource: string | string[]; // Puede ser URL, ruta relativa, base64 o array de estos
+  imageSource: string | string[];
   alt: string;
+  currentIndex?: number;
+  onChangeIndex?: (index: number) => void;
 }
 
-export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) => {
+export const PaymentImage: React.FC<PaymentImageProps> = ({
+  imageSource,
+  alt,
+  currentIndex = 0,
+  onChangeIndex
+}) => {
   const [showFullImage, setShowFullImage] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [localImageIndex, setLocalImageIndex] = useState(currentIndex);
+
+  // Usar el índice controlado si se proporciona onChangeIndex
+  const currentImageIndex = onChangeIndex ? currentIndex : localImageIndex;
+  const setCurrentImageIndex = onChangeIndex || setLocalImageIndex;
   
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
@@ -36,9 +47,14 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
       if (image.startsWith('http://') || image.startsWith('https://')) {
         return image;
       }
-      // Si es una ruta relativa, extraer el nombre del archivo y construir la URL
+      // Extraer solo el nombre del archivo y usar el prefijo /comprobantes
       const fileName = image.split(/[/\\]/).pop();
-      return `${API_BASE_URL}/comprobantes/${fileName}`;
+      console.log('Ruta original:', image);
+      console.log('Nombre del archivo:', fileName);
+      if (!fileName) return '';
+      const finalUrl = `${API_BASE_URL}/comprobantes/${fileName}`;
+      console.log('URL final:', finalUrl);
+      return finalUrl;
     }
 
     // Si no es ninguno de los anteriores, asumimos que es un string base64
@@ -47,12 +63,14 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({ imageSource, alt }) 
 
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    const newIndex = currentImageIndex > 0 ? currentImageIndex - 1 : images.length - 1;
+    setCurrentImageIndex(newIndex);
   };
 
   const handleNextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    const newIndex = currentImageIndex < images.length - 1 ? currentImageIndex + 1 : 0;
+    setCurrentImageIndex(newIndex);
   };
 
   // Componente de navegación reutilizable

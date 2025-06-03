@@ -19,10 +19,16 @@ export interface PaymentRecord {
     media_id: string;
     cdn_url: string;
     _id: string;
+    estado: 'pendiente' | 'aceptado' | 'rechazado';
+    motivo_rechazo?: string;
   }>;
-  comprobantebase_64: string[]; // Actualizado a array de strings
-  estado: string;
-  motivo_rechazo?: string;
+  comprobantebase_64: Array<{
+    ruta: string;
+    estado: 'pendiente' | 'aceptado' | 'rechazado';
+    motivo_rechazo?: string;
+    _id?: string;
+  }>;
+  estadoGeneral: 'pendiente' | 'parcial' | 'atendido';
   fecha: string;
   hora: string;
 }

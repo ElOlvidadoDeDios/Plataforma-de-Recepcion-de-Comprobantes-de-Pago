@@ -14,11 +14,11 @@ interface PaymentActionsProps {
   onUpdateStatus: (estado: 'aceptado' | 'rechazado', data: {
     montoTotal: string;
     vouchers: {
-      identificacion: { dni: string; fecha: string; hora: string };
+      identificacion: { dni: string; fecha: string; hora: string; indice: number };
       detalles: { montoPago: string; nroOperacion: string; tipoOperacion: string };
     }[];
     motivo_rechazo?: string;
-  }) => void;
+  }, indice: number) => void;
   onReject: () => void;
   onCloseModal: () => void;
   onConfirmReject: () => void;
@@ -43,7 +43,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   onUpdateStatus,
   onReject,
   onCloseModal,
-  onConfirmReject,
+  //onConfirmReject,
   setSelectedRejectReason,
   setCustomReason,
   totalMonto,
@@ -78,10 +78,13 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
           </div>
           <div className="flex gap-2">
           <button
-            onClick={() => onUpdateStatus('aceptado', {
-              montoTotal: totalMonto,
-              vouchers: []  // Los vouchers se llenan en el PaymentDetailsModal
-            })}
+            onClick={() => {
+              // Los vouchers se llenan en el PaymentDetailsModal
+              onUpdateStatus('aceptado', {
+                montoTotal: totalMonto,
+                vouchers: []
+              }, 0);
+            }}
             className={`bg-green-500 text-white px-3 py-1.5 text-sm rounded hover:bg-green-600 transition-colors ${
               isLoading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
@@ -96,7 +99,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
             }`}
             disabled={isLoading}
           >
-            {isLoading ? 'Procesando...' : 'Rechazar'}
+            {isLoading ? 'Procesando...' : 'Rechazar Todo'}
           </button>
           </div>
         </div>
@@ -116,7 +119,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               className="bg-white w-[90%] max-w-md mx-auto relative p-6 rounded-lg shadow-lg"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-lg font-semibold mb-4">Motivo de Rechazo</h3>
+              <h3 className="text-lg font-semibold mb-4">Motivo de Rechazo (Rechazo parcial)</h3>
               <div className="space-y-4">
                 <select
                   value={selectedRejectReason}
@@ -163,14 +166,14 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
                         montoTotal: '0',
                         vouchers: [],  // Los vouchers se manejan en el modal principal
                         motivo_rechazo: finalReason
-                      });
+                      }, 0);
                     }}
                     className={`px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 ${
                       isLoading ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Procesando...' : 'Confirmar Rechazo'}
+                    {isLoading ? 'Procesando...' : 'Confirmar Rechazo Parcial'}
                   </button>
                 </div>
               </div>
