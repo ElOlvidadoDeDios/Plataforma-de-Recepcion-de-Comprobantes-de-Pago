@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
 import { PaymentRecord } from '../../../types';
 import { procesarInfoPago } from '../../../api/paymentsApi';
+import StatusBadge from '../../shared/StatusBadge';
 
 interface PaymentDetails {
   PAGARE: string;
@@ -30,7 +31,7 @@ interface PaymentHeaderProps {
   currentIndex?: number;
   totalPayments?: number;
   onCloseModal: () => void;
-  showImage: boolean; // Para saber cuando el modal está visible
+  showImage: boolean;
   onTypeChange?: (type: 'normal' | 'liquidacion', maxAmount: number) => void;
 }
 
@@ -93,20 +94,6 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
     }
   }, [displayedPayment.creditoId, displayedPayment.dni, showImage]);
 
-  const StatusBadge = ({ estado }: { estado: 'pendiente' | 'aceptado' | 'rechazado' }) => {
-    const badgeStyles = {
-      aceptado: "flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full",
-      rechazado: "flex items-center text-red-600 bg-red-50 px-3 py-1 rounded-full",
-      pendiente: "flex items-center text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full"
-    };
-    
-    return (
-      <div className={badgeStyles[estado]}>
-        <span>{estado === 'aceptado' ? 'Pagado' : estado === 'rechazado' ? 'Rechazado' : 'Pendiente'}</span>
-      </div>
-    );
-  };
-
   return (
     <div className="p-3 lg:p-4 border-b border-gray-200">
       <div className="flex justify-between items-start gap-2">
@@ -168,7 +155,7 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
             <div className="col-span-2 flex items-center flex-wrap gap-2 border-t border-gray-200 pt-3 mt-3">
               <div className="flex items-center flex-shrink-0">
                 <span className="text-xs sm:text-sm font-medium text-gray-700 mr-2">Estado:</span>
-                <StatusBadge estado={displayedPayment.estadoGeneral as 'pendiente' | 'aceptado' | 'rechazado'} />
+                <StatusBadge estado={displayedPayment.estadoGeneral} />
               </div>
               {totalAmount && (
                 <p className="text-gray-600 text-xs sm:text-sm font-semibold">

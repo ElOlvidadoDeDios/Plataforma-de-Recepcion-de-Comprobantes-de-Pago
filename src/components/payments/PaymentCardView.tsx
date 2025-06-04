@@ -1,6 +1,6 @@
 import React from 'react';
-import { Clock, CheckCircle } from 'lucide-react';
 import { PaymentRecord } from '../../types';
+import StatusBadge from '../shared/StatusBadge';
 
 interface PaymentCardViewProps {
   payment: PaymentRecord;
@@ -8,29 +8,6 @@ interface PaymentCardViewProps {
   isLoading: boolean;
   onOpenModal: (e: React.MouseEvent) => void;
 }
-
-const StatusBadge = ({ estado }: { estado: 'pendiente' | 'parcial' | 'atendido' }) => {
-  const badgeStyles = {
-    atendido: "flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full",
-    parcial: "flex items-center text-blue-600 bg-blue-50 px-3 py-1 rounded-full",
-    pendiente: "flex items-center text-yellow-600 bg-yellow-50 px-3 py-1 rounded-full"
-  };
-
-  return (
-    <div className={badgeStyles[estado]}>
-      {estado === 'atendido' ? (
-        <CheckCircle className="w-4 h-4 mr-1" />
-      ) : (
-        <Clock className="w-4 h-4 mr-1" />
-      )}
-      <span>
-        {estado === 'atendido' ? 'Atendido' :
-         estado === 'parcial' ? 'Parcialmente Atendido' :
-         'Pendiente'}
-      </span>
-    </div>
-  );
-};
 
 export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
   payment,
@@ -65,7 +42,7 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
         </div>
       </div>
       <div className="flex items-center space-x-2">
-        <StatusBadge estado={currentPayment.estadoGeneral as 'pendiente' | 'parcial' | 'atendido'} />
+        <StatusBadge estado={currentPayment.estadoGeneral} />
       </div>
       <div className="mt-4 flex justify-between items-center">
         <button
@@ -73,7 +50,12 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
           disabled={isLoading}
           className={`bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          {isLoading ? 'Cargando...' : currentPayment.estadoGeneral === 'pendiente' || currentPayment.estadoGeneral === 'parcial' ? 'Aplicar Pago' : 'Ver Comprobante'}
+          {isLoading 
+            ? 'Cargando...' 
+            : currentPayment.estadoGeneral === 'pendiente' || currentPayment.estadoGeneral === 'parcial' 
+              ? 'Aplicar Pago' 
+              : 'Ver Comprobante'
+          }
         </button>
       </div>
     </div>

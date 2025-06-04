@@ -22,7 +22,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
 }) => {
   const { user } = useContext(AuthContext);
   const [showImage, setShowImage] = useState(false);
-  const [displayedImageIndex, setDisplayedImageIndex] = useState(0);
+  const [, setDisplayedImageIndex] = useState(0);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [currentPayment, setCurrentPayment] = useState(payment);
   const [modalPosition, setModalPosition] = useState<{
@@ -36,7 +36,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [monto, setMonto] = useState(payment.cuotasVencidasTotalAPagar);
   const [agenciaCode] = useState(agencias[0] || '');
-  const [rejectType, setRejectType] = useState<'partial' | 'total'>('total');
+  const [, setRejectType] = useState<'partial' | 'total'>('total');
 
   const handlePaymentUpdated = useCallback((updatedPayment: PaymentRecord) => {
     if (
@@ -147,11 +147,6 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   };
 
   const handleConfirmReject = (type: 'partial' | 'total') => {
-    const finalReason = selectedRejectReason === 'Otro (especificar)' ? customReason.trim() : selectedRejectReason.trim();
-    if (!finalReason) {
-      toast.error('Debe especificar un motivo de rechazo');
-      return;
-    }
     setRejectType(type);
     setShowRejectModal(false);
   };

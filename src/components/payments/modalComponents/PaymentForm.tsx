@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface VoucherDetail {
   montoPago: string;
@@ -17,12 +17,23 @@ interface PaymentFormProps {
   isEditable: boolean;
 }
 
+interface ErrorMessageProps {
+  message: string;
+}
+
+const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => (
+  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm mt-2">
+    {message}
+  </div>
+);
+
 export const PaymentForm: React.FC<PaymentFormProps> = ({
   vouchers,
   onUpdateVoucher,
   onRejectVoucher,
   isEditable
 }) => {
+  const [errorMessage, setErrorMessage] = useState('');
   return (
     <div className="w-full h-full rounded-lg flex flex-col p-2 space-y-6 overflow-y-auto">
       {vouchers.map((voucher, index) => (
@@ -41,13 +52,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
           {isEditable && voucher.estado !== 'rechazado' && (
             <div className="absolute top-2 right-2 flex items-center gap-2">
               <span className="text-xs text-gray-500"></span>
-                <button
-                  onClick={() => onRejectVoucher(index)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors"
-                  title="Rechazar comprobante actual"
-                >
-                  Rechazo parcial
-                </button>
+              <button
+                onClick={() => {
+                  const currentVoucher = vouchers[index];
+                  if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.tipoOperacion) {
+                    setErrorMessage('Debe completar todos los datos del comprobante antes de rechazarlo');
+                    return;
+                  }
+                  setErrorMessage('');
+                  onRejectVoucher(index);
+                }}
+                className="text-red-500 hover:text-red-700 flex items-center gap-1"
+                title="Rechazar comprobante actual"
+              >
+                <span className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors">Rechazo parcial</span>
+              </button>
             </div>
           )}
 
@@ -96,6 +115,11 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               />
             </div>
           </div>
+          {errorMessage && (
+            <div className="mt-4">
+              <ErrorMessage message={errorMessage} />
+            </div>
+          )}
         </div>
       ))}
     </div>
