@@ -28,7 +28,7 @@ export const usePaymentDetailsState = (
 
   useEffect(() => {
     const loadRelatedPayments = async () => {
-      if (currentPayment.estadoGeneral === 'pendiente' && currentPayment.creditoId) {
+      if ((currentPayment.estadoGeneral === 'pendiente' || currentPayment.estadoGeneral === 'parcial') && currentPayment.creditoId) {
         setLoadingRelated(true);
         try {
           const payments = await fetchPendingPaymentsByPagare(currentPayment.creditoId);

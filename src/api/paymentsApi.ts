@@ -287,3 +287,50 @@ export const procesarInfoPago = async (pagare: string, dni_socio: string) => {
     throw new APIError('Error al procesar información del pagaré');
   }
 };
+
+export const procesarComprobantesMasivo = async (data: {
+  montoTotal: string;
+  userData: {
+    agencia: string;
+    cod_caja: string;
+    user_caja: string;
+    email: string;
+    dni_usuario: string;
+  };
+  vouchers: Array<{
+    identificacion: {
+      creditoId: string;
+      dni: string;
+      fecha: string;
+      hora: string;
+      estadoGeneral: string;
+    };
+    detalles: Array<{
+      indice: number;
+      montoPago: string;
+      nroOperacion: string;
+      tipoOperacion: string;
+      estado: string;
+      _id: string;
+      motivo_rechazo?: string;
+    }>;
+  }>;
+}) => {
+  try {
+    const response = await axiosInstance.post('/api/comprobantes/procesar-masivo', data);
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      // Extraer mensaje específico del backend
+      const backendMessage = error.response?.data?.message ||
+                           error.response?.data?.error ||
+                           'Error al procesar comprobantes masivos';
+      
+      throw new APIError(
+        backendMessage,
+        error.response?.status
+      );
+    }
+    throw new APIError('Error al procesar comprobantes masivos');
+  }
+};

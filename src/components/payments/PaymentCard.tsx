@@ -118,7 +118,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
       if (updatedPayment) {
         setCurrentPayment(updatedPayment);
 
-        if (updatedPayment.estadoGeneral === 'pendiente' && updatedPayment.creditoId) {
+        if ((updatedPayment.estadoGeneral === 'pendiente' || updatedPayment.estadoGeneral === 'parcial') && updatedPayment.creditoId) {
           const payments = await fetchPendingPaymentsByPagare(updatedPayment.creditoId);
           const total = payments.reduce(
             (sum, p) => sum + Number(p.cuotasVencidasTotalAPagar),

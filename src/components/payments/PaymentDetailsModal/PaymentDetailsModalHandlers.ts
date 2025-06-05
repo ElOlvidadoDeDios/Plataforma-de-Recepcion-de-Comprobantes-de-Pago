@@ -1,5 +1,6 @@
 import { PaymentRecord } from '../../../types';
 import { VoucherDetail } from './PaymentDetailsModalTypes';
+import { procesarComprobantesMasivo } from '../../../api/paymentsApi';
 import toast from 'react-hot-toast';
 
 interface PaymentHandlerProps {
@@ -22,8 +23,7 @@ interface PaymentHandlerProps {
 }
 
 export const handleUpdateStatus = async (
-  props: PaymentHandlerProps,
-  onUpdateStatus: (estado: 'aceptado' | 'rechazado', data: any, index: number) => void
+  props: PaymentHandlerProps
 ) => {
   const {
     displayedPayment,
@@ -101,7 +101,7 @@ export const handleUpdateStatus = async (
             nroOperacion: detail.nroOperacion || '',
             tipoOperacion: detail.tipoOperacion || '',
             estado: 'rechazado',
-            _id: comp._id,
+            _id: comp._id || '',
             motivo_rechazo: finalReason,
           };
         }).filter((d): d is NonNullable<typeof d> => d !== null)
@@ -122,7 +122,31 @@ export const handleUpdateStatus = async (
     });
 
     setPaymentDetails(updatedDetails);
-    onUpdateStatus('rechazado', requestData, paymentIndex);
+    
+    console.log('=== RECHAZO TOTAL ===');
+    console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
+    console.log('======================');
+    
+    try {
+      await procesarComprobantesMasivo(requestData);
+      toast.success('Comprobantes rechazados exitosamente');
+    } catch (error: any) {
+      console.error('Error:', error);
+      
+      // Extraer mensaje específico del error
+      let errorMessage = 'Error al procesar el rechazo';
+      
+      if (error?.response?.data?.message) {
+        // Error del backend con mensaje específico
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        // Error con mensaje directo
+        errorMessage = error.message;
+      }
+      
+      // Mostrar mensaje específico en el toast
+      toast.error(errorMessage);
+    }
     return;
   }
 
@@ -176,7 +200,7 @@ export const handleUpdateStatus = async (
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
           estado: shouldReject ? 'rechazado' as const : detail.estado,
-          _id: comp._id,
+          _id: comp._id || '',
           motivo_rechazo: shouldReject ? finalReason : detail.motivo_rechazo,
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null);
@@ -214,19 +238,41 @@ export const handleUpdateStatus = async (
   });
 
   setPaymentDetails(updatedDetails);
-  onUpdateStatus('rechazado', requestData, imageIndex);
+  
+  console.log('=== RECHAZO PARCIAL ===');
+  console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
+  console.log('========================');
+  
+  try {
+    await procesarComprobantesMasivo(requestData);
+    toast.success('Comprobante rechazado exitosamente');
+  } catch (error: any) {
+    console.error('Error:', error);
+    
+    // Extraer mensaje específico del error
+    let errorMessage = 'Error al procesar el rechazo';
+    
+    if (error?.response?.data?.message) {
+      // Error del backend con mensaje específico
+      errorMessage = error.response.data.message;
+    } else if (error?.message) {
+      // Error con mensaje directo
+      errorMessage = error.message;
+    }
+    
+    // Mostrar mensaje específico en el toast
+    toast.error(errorMessage);
+  }
 };
 
 export const handleAcceptStatus = async (
-  props: PaymentHandlerProps,
-  onUpdateStatus: (estado: 'aceptado' | 'rechazado', data: any, index: number) => void
+  props: PaymentHandlerProps
 ): Promise<string | null> => {
   const {
     displayedPayment,
     modalPayments,
     paymentDetails,
     setPaymentDetails,
-    paymentIndex,
     agenciaCode,
     userData
   } = props;
@@ -290,9 +336,9 @@ export const handleAcceptStatus = async (
           montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
-          estado: 'aceptado',
-          _id: comp._id,
-          motivo_rechazo: '',
+          estado: detail.estado === 'pendiente' ? 'aceptado' : detail.estado,
+          _id: comp._id || '',
+          motivo_rechazo: detail.estado === 'pendiente' ? '' : detail.motivo_rechazo,
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null)
     }))
@@ -311,6 +357,43 @@ export const handleAcceptStatus = async (
   });
 
   setPaymentDetails(updatedDetails);
-  onUpdateStatus('aceptado', requestData, paymentIndex);
+  
+  console.log('=== ACEPTACIÓN ===');
+  console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
+  console.log('==================');
+  
+  try {
+    await procesarComprobantesMasivo(requestData);
+    toast.success('Comprobantes aceptados exitosamente');
+  } catch (error: any) {
+    console.error('Error completo:', error);
+    console.error('Error response:', error?.response);
+    console.error('Error response data:', error?.response?.data);
+    
+    // Extraer mensaje específico del error - MÁS OPCIONES
+    let errorMessage = 'Error al procesar la aceptación';
+    
+    if (error?.response?.data?.message) {
+      // Error del backend con mensaje específico (formato estándar)
+      errorMessage = error.response.data.message;
+    } else if (error?.response?.data?.error) {
+      // Error del backend con campo 'error'
+      errorMessage = error.response.data.error;
+    } else if (error?.response?.data) {
+      // Si data es un string directamente
+      if (typeof error.response.data === 'string') {
+        errorMessage = error.response.data;
+      }
+    } else if (error?.message) {
+      // Error con mensaje directo
+      errorMessage = error.message;
+    }
+    
+    console.log('Mensaje final a mostrar:', errorMessage);
+    
+    // Mostrar mensaje específico en el toast
+    toast.error(errorMessage);
+    throw error;
+  }
   return null;
 };

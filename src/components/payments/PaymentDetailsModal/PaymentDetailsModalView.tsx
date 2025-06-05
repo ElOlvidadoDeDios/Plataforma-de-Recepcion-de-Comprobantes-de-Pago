@@ -29,8 +29,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   setCustomReason,
   onCloseModal,
   onReject,
-  onConfirmReject,
-  onUpdateStatus
+  onConfirmReject
 }) => {
   const { user } = useContext(AuthContext);
   const {
@@ -252,7 +251,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   agenciaCode,
                   totalAmount,
                   userData: user
-                }, onUpdateStatus);
+                });
               }}
               onAcceptStatus={async () => {
                 const error = await handleAcceptStatus({
@@ -268,7 +267,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   agenciaCode,
                   totalAmount,
                   userData: user
-                }, onUpdateStatus);
+                });
                 
                 if (error) {
                   // El error se manejará en PaymentActions
