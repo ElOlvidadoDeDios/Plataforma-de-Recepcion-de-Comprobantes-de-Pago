@@ -73,17 +73,25 @@ export const usePaymentDetailsState = (
 
     loadRelatedPayments();
 
-    // Inicializar los detalles del pago actual
-    const details: VoucherDetail[] = currentPayment.comprobantebase_64.map((comp, idx) => ({
-      montoPago: (Number(currentPayment.cuotasVencidasTotalAPagar) / currentPayment.comprobantebase_64.length).toFixed(2),
-      nroOperacion: '',
-      tipoOperacion: '',
-      estado: comp.estado,
-      imageIndex: idx,
-      ruta: comp.ruta,
-      motivo_rechazo: comp.motivo_rechazo,
-      paymentIndex: 0
-    }));
+    // Inicializar los detalles del pago actual - PRECARGAR DATOS EXISTENTES
+    const details: VoucherDetail[] = currentPayment.comprobantebase_64.map((comp, idx) => {
+      // Calcular monto por defecto (división equitativa)
+      const defaultMonto = (Number(currentPayment.cuotasVencidasTotalAPagar) / currentPayment.comprobantebase_64.length).toFixed(2);
+      
+      // Usar monto guardado en BD si existe, sino usar el calculado
+      const montoPago = comp.monto_pago ? comp.monto_pago.toFixed(2) : defaultMonto;
+      
+      return {
+        montoPago,
+        nroOperacion: comp.nroOperacion || '', // ✅ Precargar si ya existe
+        tipoOperacion: comp.tipoOperacion || '', // ✅ Precargar si ya existe
+        estado: comp.estado,
+        imageIndex: idx,
+        ruta: comp.ruta,
+        motivo_rechazo: comp.motivo_rechazo,
+        paymentIndex: 0
+      };
+    });
     setPaymentDetails(details);
   }, [currentPayment, setMonto]);
 

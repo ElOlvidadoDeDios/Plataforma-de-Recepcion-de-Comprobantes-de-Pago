@@ -286,7 +286,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               setSelectedRejectReason={setSelectedRejectReason}
               setCustomReason={setCustomReason}
               totalMonto={monto}
-              onMontoTotalChange={setMonto}
               paymentDetails={paymentDetails}
             />
           </div>

@@ -27,6 +27,9 @@ export interface PaymentRecord {
     estado: 'pendiente' | 'aceptado' | 'rechazado';
     motivo_rechazo?: string;
     _id?: string;
+    nroOperacion?: string;
+    tipoOperacion?: string;
+    monto_pago?: number;
   }>;
   estadoGeneral: 'pendiente' | 'parcial' | 'atendido';
   fecha: string;

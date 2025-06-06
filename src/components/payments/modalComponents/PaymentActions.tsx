@@ -13,7 +13,6 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => (
 
 interface PaymentActionsProps {
   totalMonto: string;
-  onMontoTotalChange: (value: string) => void;
   isPending: boolean;
   isLoading: boolean;
   isMobile: boolean;
@@ -47,7 +46,6 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   setSelectedRejectReason,
   setCustomReason,
   totalMonto,
-  onMontoTotalChange,
   paymentDetails = [],
 }) => {
   const [showTotalRejectModal, setShowTotalRejectModal] = useState(false);
@@ -107,12 +105,11 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               Monto Total:
             </label>
             <input
-              type="number"
-              step="0.01"
-              value={totalMonto}
-              onChange={(e) => onMontoTotalChange(e.target.value)}
-              className="w-full sm:w-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-500"
-              disabled={isLoading}
+              type="text"
+              value={`S/ ${totalMonto}`}
+              readOnly
+              className="w-full sm:w-32 rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-50 text-gray-700 cursor-not-allowed"
+              title="El monto total se calcula automáticamente sumando los montos individuales de cada voucher"
             />
           </div>
           <div className="flex gap-2">
