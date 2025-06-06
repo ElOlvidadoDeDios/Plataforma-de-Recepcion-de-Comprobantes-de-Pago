@@ -46,7 +46,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     loadingRelated,
     totalAmount,
     modalPayments,
-    removePayment
+    removePayment,
+    paymentType,
+    setPaymentType,
+    paymentLimit,
+    setPaymentLimit
   } = usePaymentDetailsState(currentPayment, monto, setMonto);
 
   const handleNextPayment = () => {
@@ -104,6 +108,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             totalPayments={allPayments.length}
             onCloseModal={onCloseModal}
             showImage={showImage}
+            onTypeChange={(type, maxAmount) => {
+              setPaymentType(type);
+              setPaymentLimit(maxAmount);
+              console.log(`Tipo de pago seleccionado: ${type}, Límite: ${maxAmount}`);
+            }}
           />
 
           <div className={`flex-1 flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} gap-2 sm:gap-3 p-2 sm:p-4 text-sm overflow-hidden relative min-h-0`}>
@@ -266,7 +275,9 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   customReason,
                   agenciaCode,
                   totalAmount,
-                  userData: user
+                  userData: user,
+                  paymentType,
+                  paymentLimit
                 });
                 
                 if (error) {

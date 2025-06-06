@@ -18,6 +18,8 @@ export const usePaymentDetailsState = (
   const [totalAmount, setTotalAmount] = useState(monto);
   const [modalPayments, setModalPayments] = useState<PaymentRecord[]>([]);
   const [relatedPayments, setRelatedPayments] = useState<PaymentRecord[]>([]);
+  const [paymentType, setPaymentType] = useState<'normal' | 'liquidacion'>('normal');
+  const [paymentLimit, setPaymentLimit] = useState<number>(0);
 
   // Inicializar modalPayments con el comprobante actual
   useEffect(() => {
@@ -141,6 +143,10 @@ export const usePaymentDetailsState = (
     totalAmount,
     modalPayments,
     relatedPayments,
-    removePayment
+    removePayment,
+    paymentType,
+    setPaymentType,
+    paymentLimit,
+    setPaymentLimit
   };
 };

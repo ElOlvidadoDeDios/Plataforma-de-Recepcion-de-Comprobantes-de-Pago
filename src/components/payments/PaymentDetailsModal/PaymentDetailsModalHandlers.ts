@@ -20,6 +20,8 @@ interface PaymentHandlerProps {
     email?: string;
     dni?: string;
   } | null;
+  paymentType?: 'normal' | 'liquidacion';
+  paymentLimit?: number;
 }
 
 export const handleUpdateStatus = async (
@@ -274,7 +276,9 @@ export const handleAcceptStatus = async (
     paymentDetails,
     setPaymentDetails,
     agenciaCode,
-    userData
+    userData,
+    paymentType,
+    paymentLimit
   } = props;
 
   // Validar estado general del comprobante
@@ -303,6 +307,15 @@ export const handleAcceptStatus = async (
     const monto = parseFloat(voucher.montoPago) || 0;
     return sum + monto;
   }, 0);
+
+  // VALIDAR LÍMITES SEGÚN EL TIPO DE PAGO
+  if (paymentType && paymentLimit && paymentLimit > 0) {
+    if (paymentType === 'normal' && totalMonto > paymentLimit) {
+      return `El monto total (S/ ${totalMonto.toFixed(2)}) excede el máximo permitido para Pago Normal (S/ ${paymentLimit.toFixed(2)})`;
+    } else if (paymentType === 'liquidacion' && Math.abs(totalMonto - paymentLimit) > 0.01) {
+      return `Para Liquidación Total, el monto debe ser exactamente S/ ${paymentLimit.toFixed(2)}, pero se ingresó S/ ${totalMonto.toFixed(2)}`;
+    }
+  }
 
   const requestData = {
     montoTotal: totalMonto.toString(),
