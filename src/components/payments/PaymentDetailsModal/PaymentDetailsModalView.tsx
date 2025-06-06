@@ -93,7 +93,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           className={`bg-white shadow-2xl border border-gray-200 z-[10000] flex flex-col ${
             modalPosition.isMobile
               ? 'fixed inset-0 overflow-hidden'
-              : 'relative w-[800px] rounded-lg h-[90vh] max-h-[1000px]'
+              : 'relative w-[90vw] max-w-[1200px] min-w-[320px] rounded-lg h-[90vh] max-h-[900px] min-h-[500px]'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
@@ -106,7 +106,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             showImage={showImage}
           />
 
-          <div className={`flex-1 flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} gap-3 p-4 text-sm overflow-hidden relative`}>
+          <div className={`flex-1 flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} gap-2 sm:gap-3 p-2 sm:p-4 text-sm overflow-hidden relative min-h-0`}>
             {allPayments.length > 1 && (
               <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-50 pointer-events-none">
                 <button
@@ -162,8 +162,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             <div className={`${
               modalPosition.isMobile
                 ? activeTab === 'image' ? 'flex-1' : 'hidden'
-                : 'w-7/12 min-h-[600px]'
-            } flex-shrink-0 h-full overflow-hidden relative`}>
+                : 'w-7/12 lg:w-2/3 xl:w-7/12'
+            } flex-shrink-0 h-full overflow-hidden relative min-h-0`}>
               <p className="mb-1 px-2 text-xs text-gray-500">
                 {paymentIndex === 0 ? 'Comprobante principal' : `Comprobante adicional ${paymentIndex}`}
               </p>
@@ -179,8 +179,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             <div className={`${
               modalPosition.isMobile
                 ? activeTab === 'form' ? 'flex-1' : 'hidden'
-                : 'w-5/12'
-            } overflow-auto relative z-20`}>
+                : 'w-5/12 lg:w-1/3 xl:w-5/12'
+            } overflow-auto relative z-20 min-h-0`}>
               <PaymentForm
                 vouchers={[paymentDetails.find(detail =>
                   detail.imageIndex === imageIndex &&
