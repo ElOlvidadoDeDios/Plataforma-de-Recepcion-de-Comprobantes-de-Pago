@@ -26,7 +26,7 @@ interface PaymentHandlerProps {
 
 export const handleUpdateStatus = async (
   props: PaymentHandlerProps
-) => {
+): Promise<string | null> => {
   const {
     displayedPayment,
     modalPayments,
@@ -48,8 +48,7 @@ export const handleUpdateStatus = async (
 
   // Validar estado general del comprobante
   if (!['pendiente', 'parcial'].includes(displayedPayment.estadoGeneral)) {
-    toast.error('Este comprobante ya ha sido completamente procesado');
-    return;
+    return 'Este comprobante ya ha sido completamente procesado';
   }
 
   if (rejectType === 'total') {
@@ -66,18 +65,41 @@ export const handleUpdateStatus = async (
     );
 
     if (incompleteVouchers.length > 0) {
-      toast.error('Debe completar los datos de todos los comprobantes pendientes');
-      return;
+      return 'Debe completar los datos de todos los comprobantes pendientes';
+    }
+
+    // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND (RECHAZO TOTAL)
+    if (!agenciaCode || agenciaCode.trim() === '') {
+      return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
+    }
+
+    const codCaja = userData?.agencias?.[0]?.cod_caja || '';
+    const userCaja = userData?.agencias?.[0]?.user_caja || '';
+
+    if (!codCaja || codCaja.trim() === '') {
+      return 'Falta información de código de caja. Contacte al administrador para configurar su agencia correctamente.';
+    }
+
+    if (!userCaja || userCaja.trim() === '') {
+      return 'Falta información de usuario de caja. Contacte al administrador para configurar su agencia correctamente.';
+    }
+
+    if (!userData?.email || userData.email.trim() === '') {
+      return 'Falta información del usuario (email). Inicie sesión nuevamente.';
+    }
+
+    if (!userData?.dni || userData.dni.trim() === '') {
+      return 'Falta información del usuario (DNI). Inicie sesión nuevamente.';
     }
 
     const requestData = {
       montoTotal: '0',
       userData: {
         agencia: agenciaCode,
-        cod_caja: userData?.agencias?.[0]?.cod_caja || '',
-        user_caja: userData?.agencias?.[0]?.user_caja || '',
-        email: userData?.email || '',
-        dni_usuario: userData?.dni || '',
+        cod_caja: codCaja,
+        user_caja: userCaja,
+        email: userData.email,
+        dni_usuario: userData.dni,
       },
       vouchers: modalPayments.map(payment => ({
         identificacion: {
@@ -99,7 +121,7 @@ export const handleUpdateStatus = async (
 
           return {
             indice: idx,
-            montoPago: '0',
+            montoPago: detail.montoPago || '0',
             nroOperacion: detail.nroOperacion || '',
             tipoOperacion: detail.tipoOperacion || '',
             estado: 'rechazado',
@@ -149,7 +171,7 @@ export const handleUpdateStatus = async (
       // Mostrar mensaje específico en el toast
       toast.error(errorMessage);
     }
-    return;
+    return null;
   }
 
   // Rechazo parcial
@@ -160,28 +182,49 @@ export const handleUpdateStatus = async (
   );
 
   if (!selectedVoucher) {
-    toast.error('No se encontró el voucher seleccionado');
-    return;
+    return 'No se encontró el voucher seleccionado';
   }
 
   if (selectedVoucher.estado !== 'pendiente') {
-    toast.error('Este comprobante ya ha sido procesado');
-    return;
+    return 'Este comprobante ya ha sido procesado';
   }
 
   if (!selectedVoucher.montoPago || !selectedVoucher.nroOperacion || !selectedVoucher.tipoOperacion) {
-    toast.error('Debe completar todos los datos del comprobante seleccionado');
-    return;
+    return 'Debe completar todos los datos del comprobante seleccionado';
+  }
+
+  // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND (RECHAZO PARCIAL)
+  if (!agenciaCode || agenciaCode.trim() === '') {
+    return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
+  }
+
+  const codCaja = userData?.agencias?.[0]?.cod_caja || '';
+  const userCaja = userData?.agencias?.[0]?.user_caja || '';
+
+  if (!codCaja || codCaja.trim() === '') {
+    return 'Falta información de código de caja. Contacte al administrador para configurar su agencia correctamente.';
+  }
+
+  if (!userCaja || userCaja.trim() === '') {
+    return 'Falta información de usuario de caja. Contacte al administrador para configurar su agencia correctamente.';
+  }
+
+  if (!userData?.email || userData.email.trim() === '') {
+    return 'Falta información del usuario (email). Inicie sesión nuevamente.';
+  }
+
+  if (!userData?.dni || userData.dni.trim() === '') {
+    return 'Falta información del usuario (DNI). Inicie sesión nuevamente.';
   }
 
   const requestData = {
     montoTotal: totalAmount,
     userData: {
       agencia: agenciaCode,
-      cod_caja: userData?.agencias?.[0]?.cod_caja || '',
-      user_caja: userData?.agencias?.[0]?.user_caja || '',
-      email: userData?.email || '',
-      dni_usuario: userData?.dni || '',
+      cod_caja: codCaja,
+      user_caja: userCaja,
+      email: userData.email,
+      dni_usuario: userData.dni,
     },
     vouchers: modalPayments.map(payment => {
       const isCurrentPayment = payment === displayedPayment;
@@ -198,7 +241,7 @@ export const handleUpdateStatus = async (
         const shouldReject = isCurrentPayment && idx === imageIndex;
         return {
           indice: idx,
-          montoPago: shouldReject ? '0' : detail.montoPago,
+          montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
           estado: shouldReject ? 'rechazado' as const : detail.estado,
@@ -233,7 +276,7 @@ export const handleUpdateStatus = async (
         ...detail,
         estado: 'rechazado' as const,
         motivo_rechazo: finalReason,
-        montoPago: '0'
+        montoPago: detail.montoPago || '0'
       };
     }
     return detail;
@@ -265,6 +308,8 @@ export const handleUpdateStatus = async (
     // Mostrar mensaje específico en el toast
     toast.error(errorMessage);
   }
+  
+  return null;
 };
 
 export const handleAcceptStatus = async (
@@ -317,14 +362,38 @@ export const handleAcceptStatus = async (
     }
   }
 
+  // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND
+  if (!agenciaCode || agenciaCode.trim() === '') {
+    return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
+  }
+
+  const codCaja = userData?.agencias?.[0]?.cod_caja || '';
+  const userCaja = userData?.agencias?.[0]?.user_caja || '';
+
+  if (!codCaja || codCaja.trim() === '') {
+    return 'Falta información de código de caja. Contacte al administrador para configurar su agencia correctamente.';
+  }
+
+  if (!userCaja || userCaja.trim() === '') {
+    return 'Falta información de usuario de caja. Contacte al administrador para configurar su agencia correctamente.';
+  }
+
+  if (!userData?.email || userData.email.trim() === '') {
+    return 'Falta información del usuario (email). Inicie sesión nuevamente.';
+  }
+
+  if (!userData?.dni || userData.dni.trim() === '') {
+    return 'Falta información del usuario (DNI). Inicie sesión nuevamente.';
+  }
+
   const requestData = {
     montoTotal: totalMonto.toString(),
     userData: {
       agencia: agenciaCode,
-      cod_caja: userData?.agencias?.[0]?.cod_caja || '',
-      user_caja: userData?.agencias?.[0]?.user_caja || '',
-      email: userData?.email || '',
-      dni_usuario: userData?.dni || '',
+      cod_caja: codCaja,
+      user_caja: userCaja,
+      email: userData.email,
+      dni_usuario: userData.dni,
     },
     vouchers: modalPayments.map(payment => ({
       identificacion: {
@@ -352,6 +421,7 @@ export const handleAcceptStatus = async (
           estado: detail.estado === 'pendiente' ? 'aceptado' : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: detail.estado === 'pendiente' ? '' : detail.motivo_rechazo,
+          monto_pago: parseFloat(detail.montoPago) || 0,  // ✅ AGREGAR COMO NÚMERO
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null)
     }))

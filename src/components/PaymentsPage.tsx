@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { fetchPaymentsByDNI, fetchPaymentsByStatus, updatePaymentStatus } from '../api';
+import { fetchPaymentsByDNI, fetchPaymentsByStatus } from '../api'; //updatePaymentStatus
 import { PaymentCard } from './PaymentCard';
 import { PaymentRecord, AGENCIAS } from '../types';
 import { UserRole } from '../types/roles';
@@ -171,73 +171,73 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
     await fetchInitialPayments();
   };
 
-  const handleUpdatePaymentStatus = async (
-    payment: PaymentRecord,
-    estado: 'pendiente' | 'aceptado' | 'rechazado',
-    indice: number,
-    motivoRechazo?: string,
-    agenciaCode?: string,
-    monto?: string | null,
-    dni_usuario?: string
-  ) => {
-    if (!user) {
-      toast.error('Debe iniciar sesión para procesar pagos');
-      return;
-    }
+  // const handleUpdatePaymentStatus = async (
+  //   payment: PaymentRecord,
+  //   estado: 'pendiente' | 'aceptado' | 'rechazado',
+  //   indice: number,
+  //   motivoRechazo?: string,
+  //   agenciaCode?: string,
+  //   monto?: string | null,
+  //   dni_usuario?: string
+  // ) => {
+  //   if (!user) {
+  //     toast.error('Debe iniciar sesión para procesar pagos');
+  //     return;
+  //   }
 
-    if (user.role === UserRole.PAYMENTS_USER && !selectedAgencia) {
-      toast.error('Debe seleccionar una agencia antes de procesar pagos');
-      return;
-    }
+  //   if (user.role === UserRole.PAYMENTS_USER && !selectedAgencia) {
+  //     toast.error('Debe seleccionar una agencia antes de procesar pagos');
+  //     return;
+  //   }
 
-    if (!user.email || !user.dni) {
-      toast.error('Falta información del usuario. Por favor, inicie sesión nuevamente');
-      return;
-    }
+  //   if (!user.email || !user.dni) {
+  //     toast.error('Falta información del usuario. Por favor, inicie sesión nuevamente');
+  //     return;
+  //   }
 
-    try {
-      // Obtener los datos completos de la agencia seleccionada
-      const agenciaData = user?.agencias?.find(ag => ag.agencia === (agenciaCode || selectedAgencia));
+  //   try {
+  //     // Obtener los datos completos de la agencia seleccionada
+  //     const agenciaData = user?.agencias?.find(ag => ag.agencia === (agenciaCode || selectedAgencia));
 
-      if (!agenciaData && estado === 'aceptado') {
-        toast.error('No se encontró la información completa de la agencia');
-        return;
-      }
+  //     if (!agenciaData && estado === 'aceptado') {
+  //       toast.error('No se encontró la información completa de la agencia');
+  //       return;
+  //     }
 
-      console.log('Datos de agencia para enviar:', agenciaData);
+  //     console.log('Datos de agencia para enviar:', agenciaData);
 
-      const result = await updatePaymentStatus(
-        payment.dni,
-        payment.fecha,
-        payment.hora,
-        estado,
-        motivoRechazo,
-        agenciaData || null,
-        monto ? parseFloat(monto) : null,
-        dni_usuario || user?.dni || undefined,
-        user?.email,
-        indice
-      );
+  //     const result = await updatePaymentStatus(
+  //       payment.dni,
+  //       payment.fecha,
+  //       payment.hora,
+  //       estado,
+  //       motivoRechazo,
+  //       agenciaData || null,
+  //       monto ? parseFloat(monto) : null,
+  //       dni_usuario || user?.dni || undefined,
+  //       user?.email,
+  //       indice
+  //     );
       
-      if (result && !(result as any).error) {
-        setPayments(prevPayments =>
-          prevPayments.map(p =>
-            p.dni === payment.dni && p.fecha === payment.fecha && p.hora === payment.hora
-              ? {
-                  ...p,
-                  comprobante: p.comprobante.map((c, idx) =>
-                    idx === indice ? { ...c, estado, motivo_rechazo: motivoRechazo } : c
-                  )
-                }
-              : p
-          ).filter(p => selectedStatus === 'todos' || p.estadoGeneral === selectedStatus)
-        );
-      }
-    } catch (error) {
-      console.error('Error al actualizar el estado:', error);
-      toast.error('No se pudo actualizar el estado.');
-    }
-  };
+  //     if (result && !(result as any).error) {
+  //       setPayments(prevPayments =>
+  //         prevPayments.map(p =>
+  //           p.dni === payment.dni && p.fecha === payment.fecha && p.hora === payment.hora
+  //             ? {
+  //                 ...p,
+  //                 comprobante: p.comprobante.map((c, idx) =>
+  //                   idx === indice ? { ...c, estado, motivo_rechazo: motivoRechazo } : c
+  //                 )
+  //               }
+  //             : p
+  //         ).filter(p => selectedStatus === 'todos' || p.estadoGeneral === selectedStatus)
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error('Error al actualizar el estado:', error);
+  //     toast.error('No se pudo actualizar el estado.');
+  //   }
+  // };
 
   return (
     <Layout title="Gestión de Pagos">
@@ -301,66 +301,104 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 )}
               </div>
             </div>
-              <div className="space-y-4 border-b border-gray-200 pb-4">
-                {/* Contenedor de filtros */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  {/* Búsqueda por DNI */}
-                  <div className="flex flex-col px-4">
-                    <label htmlFor="dni-input" className="text-sm font-medium text-gray-700 mb-2">Buscar por DNI</label>
-                    <div className="w-full max-w-sm flex gap-2">
-                      <div className="w-32">
-                        <input
-                          id="dni-input"
-                          type="text"
-                          value={dniFilter}
-                          onChange={(e) => setDniFilter(e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-cyan-500"
-                          placeholder="DNI"
-                          maxLength={8}
-                        />
-                      </div>
-                      <div>
+              <div className="space-y-6 border-b border-gray-200 pb-6">
+                {/* Contenedor principal de filtros */}
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    Filtros de Búsqueda
+                  </h3>
+
+                  {/* Contenedor de filtros organizados */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Búsqueda por DNI */}
+                    <div className="space-y-3">
+                      <label htmlFor="dni-input" className="block text-sm font-medium text-gray-700">
+                        🔍 Buscar por DNI del Cliente
+                      </label>
+                      <div className="flex gap-3">
+                        <div className="flex-1 max-w-xs">
+                          <input
+                            id="dni-input"
+                            type="text"
+                            value={dniFilter}
+                            onChange={(e) => setDniFilter(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors shadow-sm"
+                            placeholder="Ingrese DNI (8 dígitos)"
+                            maxLength={8}
+                          />
+                        </div>
                         <button
                           onClick={handleDNISearch}
                           disabled={!esDniValido(dniFilter)}
-                          className={`bg-cyan-600 text-white px-4 py-1.5 rounded-md whitespace-nowrap ${!esDniValido(dniFilter) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-cyan-700'}`}
+                          className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 shadow-sm ${
+                            !esDniValido(dniFilter)
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-cyan-600 text-white hover:bg-cyan-700 hover:shadow-md transform hover:scale-105'
+                          }`}
                         >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
                           Buscar
                         </button>
                       </div>
+                      {dniFilter && !esDniValido(dniFilter) && (
+                        <p className="text-xs text-red-500 mt-1">⚠️ El DNI debe tener exactamente 8 dígitos</p>
+                      )}
                     </div>
-                  </div>
 
-                  {/* Filtro por Estado */}
-                  <div className="flex flex-col px-4">
-                    <label htmlFor="status-select" className="text-sm font-medium text-gray-700 mb-2">Filtrar por Estado</label>
-                    <div className="w-full max-w-sm">
-                      <select
-                        id="status-select"
-                        value={selectedStatus}
-                        onChange={handleStatusChange}
-                        className="w-48 rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-cyan-500"
-                      >
-                        <option value="pendiente">Pendiente</option>
-                        <option value="parcial">Parcialmente Atendido</option>
-                        <option value="atendido">Atendido</option>
-                        <option value="todos">Todos</option>
-                      </select>
+                    {/* Filtro por Estado */}
+                    <div className="space-y-3">
+                      <label htmlFor="status-select" className="block text-sm font-medium text-gray-700">
+                        📊 Filtrar por Estado de Pago
+                      </label>
+                      <div className="relative max-w-xs">
+                        <select
+                          id="status-select"
+                          value={selectedStatus}
+                          onChange={handleStatusChange}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors shadow-sm appearance-none bg-white"
+                        >
+                          <option value="pendiente">🟡 Pendiente</option>
+                          <option value="parcial">🟠 Parcialmente Atendido</option>
+                          <option value="atendido">🟢 Atendido</option>
+                          <option value="todos">📋 Todos los Estados</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Resultados y Limpiar Filtros */}
-                <div className="flex justify-between items-center px-4">
-                  <div className="text-sm text-gray-500">
-                    {payments.length > 0 && (
-                      <span>Mostrando {payments.length} comprobante{payments.length !== 1 ? 's' : ''}</span>
-                    )}
+                {/* Barra de resultados y acciones */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 px-2">
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm text-gray-600 font-medium">
+                      {payments.length > 0 ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          Mostrando {payments.length} comprobante{payments.length !== 1 ? 's' : ''}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2 text-gray-500">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          Sin resultados
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => navigate('/payments/history')}
-                      className="bg-cyan-500 text-white px-4 py-1.5 rounded-md hover:bg-cyan-600 transition-colors text-sm flex items-center gap-2"
+                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-5 py-2.5 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -369,8 +407,11 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     </button>
                     <button
                       onClick={clearFilters}
-                      className="bg-gray-500 text-white px-4 py-1.5 rounded-md hover:bg-gray-600 transition-colors text-sm"
+                      className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-5 py-2.5 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
                     >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
                       Limpiar Filtros
                     </button>
                   </div>
@@ -395,7 +436,6 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 <PaymentCard
                   key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                   payment={payment}
-                  onUpdateStatus={handleUpdatePaymentStatus}
                   socket={socket}
                   agencias={user?.role === UserRole.PAYMENTS_USER && user.agencias
                     ? user.agencias.map(ag => ag.agencia)

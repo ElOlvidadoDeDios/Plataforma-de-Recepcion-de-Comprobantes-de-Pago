@@ -29,6 +29,12 @@ interface PaymentActionsProps {
   setSelectedRejectReason: (value: string) => void;
   setCustomReason: (value: string) => void;
   paymentDetails?: any[];
+  userData?: {
+    agencias?: { cod_caja: string; user_caja: string }[];
+    email?: string;
+    dni?: string;
+  } | null;
+  agenciaCode?: string;
 }
 
 export const PaymentActions: React.FC<PaymentActionsProps> = ({
@@ -47,9 +53,39 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   setCustomReason,
   totalMonto,
   paymentDetails = [],
+  userData,
+  agenciaCode,
 }) => {
   const [showTotalRejectModal, setShowTotalRejectModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Función para validar datos obligatorios
+  const validateRequiredData = (): string | null => {
+    if (!agenciaCode || agenciaCode.trim() === '') {
+      return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
+    }
+
+    const codCaja = userData?.agencias?.[0]?.cod_caja || '';
+    const userCaja = userData?.agencias?.[0]?.user_caja || '';
+
+    if (!codCaja || codCaja.trim() === '') {
+      return 'Falta información de código de caja. Contacte al administrador para configurar su agencia correctamente.';
+    }
+
+    if (!userCaja || userCaja.trim() === '') {
+      return 'Falta información de usuario de caja. Contacte al administrador para configurar su agencia correctamente.';
+    }
+
+    if (!userData?.email || userData.email.trim() === '') {
+      return 'Falta información del usuario (email). Inicie sesión nuevamente.';
+    }
+
+    if (!userData?.dni || userData.dni.trim() === '') {
+      return 'Falta información del usuario (DNI). Inicie sesión nuevamente.';
+    }
+
+    return null;
+  };
 
   if (!isPending) {
     return (
@@ -62,6 +98,13 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   }
 
   const handleRejectAll = () => {
+    // VALIDAR DATOS OBLIGATORIOS PRIMERO
+    const validationError = validateRequiredData();
+    if (validationError) {
+      setErrorMessage(validationError);
+      return;
+    }
+
     // Solo verificar que todos los vouchers pendientes tengan sus campos completos
     const pendingVouchers = paymentDetails.filter(detail => detail.estado === 'pendiente');
     const incompleteVouchers = pendingVouchers.filter(

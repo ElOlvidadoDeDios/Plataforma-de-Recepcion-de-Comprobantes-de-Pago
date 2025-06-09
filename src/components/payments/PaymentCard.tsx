@@ -12,7 +12,7 @@ interface PaymentCardProps {
   socket: any;
   agencias?: string[];
   userAgencias?: AgenciaCaja[];
-  onUpdateStatus: (payment: PaymentRecord, estado: 'pendiente' | 'aceptado' | 'rechazado') => Promise<void>;
+  onUpdateStatus?: (payment: PaymentRecord, estado: 'pendiente' | 'aceptado' | 'rechazado') => Promise<void>;
 }
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({

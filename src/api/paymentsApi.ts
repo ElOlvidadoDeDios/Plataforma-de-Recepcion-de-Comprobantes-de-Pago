@@ -3,23 +3,33 @@ import { PaymentRecord } from '../types';
 import { APIError } from '../utils/error';
 
 export interface PaymentHistoryRecord {
+  email: string;
+  dni_usuario: string;
   fecha_pago: string;
-  dni_usuario: string;  
   hora_pago: string;
   monto: number;
   agencia: string;
-  estado: 'aceptado' | 'rechazado';
-  motivo_rechazo?: string;
+  tipo_operacion: 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial' | 'modificacion_parcial';
+  estadoGeneral_anterior: string;
+  estadoGeneral_final: string;
+  monto_total_operacion: number;
   comprobante: {
     dni: string;
     nombreSocio: string;
     creditoId: string;
-    cuotaSeleccionada: string;
-    comprobantebase_64: string[], // Actualizado a array de strings
     fecha_comprobante: string;
     hora_comprobante: string;
-    estado_anterior: string;
-  }
+    vouchers_modificados: Array<{
+      indice: number;
+      estado_anterior: string;
+      estado_nuevo: string;
+      nroOperacion: string;
+      tipoOperacion: string;
+      motivo_rechazo?: string;
+      monto_pago: number;
+      ruta_comprobante: string;
+    }>;
+  };
 }
 
 export interface PaymentHistoryResponse {
@@ -246,7 +256,7 @@ export const fetchPaymentHistory = async (params: {
   fechaInicio?: string;
   fechaFin?: string;
   dni?: string;
-  estado?: 'aceptado' | 'rechazado';
+  estado?: 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial';
 }) => {
   try {
     const queryParams = new URLSearchParams();

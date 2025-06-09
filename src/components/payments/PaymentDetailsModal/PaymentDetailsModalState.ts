@@ -45,10 +45,16 @@ export const usePaymentDetailsState = (
           [currentPayment, ...filteredPayments].forEach((payment, paymentIndex) => {
             if (payment.comprobantebase_64 && payment.comprobantebase_64.length > 0) {
               payment.comprobantebase_64.forEach((comp, idx) => {
+                // Calcular monto por defecto (división equitativa)
+                const defaultMonto = (Number(payment.cuotasVencidasTotalAPagar) / payment.comprobantebase_64.length).toFixed(2);
+                
+                // ✅ PRECARGAR DATOS EXISTENTES DE LA BD
+                const montoPago = comp.monto_pago ? comp.monto_pago.toFixed(2) : defaultMonto;
+                
                 details.push({
-                  montoPago: (Number(payment.cuotasVencidasTotalAPagar) / payment.comprobantebase_64.length).toFixed(2),
-                  nroOperacion: '',
-                  tipoOperacion: '',
+                  montoPago,
+                  nroOperacion: comp.nroOperacion || '', // ✅ Precargar si ya existe
+                  tipoOperacion: comp.tipoOperacion || '', // ✅ Precargar si ya existe
                   estado: comp.estado,
                   imageIndex: idx,
                   ruta: comp.ruta,

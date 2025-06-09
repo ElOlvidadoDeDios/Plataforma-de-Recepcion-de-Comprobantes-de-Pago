@@ -232,6 +232,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   ['pendiente', 'parcial'].includes(displayedPayment.estadoGeneral) &&
                   displayedPayment.comprobantebase_64[imageIndex]?.estado === 'pendiente'
                 }
+                userData={user}
+                agenciaCode={agenciaCode}
               />
             </div>
           </div>
@@ -246,8 +248,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               selectedRejectReason={selectedRejectReason}
               customReason={customReason}
               rejectType={rejectType}
-              onUpdateStatus={() => {
-                handleUpdateStatus({
+              onUpdateStatus={async () => {
+                const error = await handleUpdateStatus({
                   displayedPayment,
                   modalPayments,
                   paymentDetails,
@@ -261,6 +263,11 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   totalAmount,
                   userData: user
                 });
+                
+                if (error) {
+                  // El error se manejará en PaymentActions
+                  throw new Error(error);
+                }
               }}
               onAcceptStatus={async () => {
                 const error = await handleAcceptStatus({
@@ -298,6 +305,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               setCustomReason={setCustomReason}
               totalMonto={monto}
               paymentDetails={paymentDetails}
+              userData={user}
+              agenciaCode={agenciaCode}
             />
           </div>
         </motion.div>
