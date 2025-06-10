@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogoutButton } from './LogoutButton';
 import UserInfo from './UserInfo';
 import { usePermissions } from '../hooks/useAuth';
+import { UserChangePasswordModal } from './gestion_usuarios';
+import { useAuth } from '../hooks/useAuth';
 import logo from '../logo_dile.webp';
 
 interface LayoutProps {
@@ -13,10 +15,9 @@ interface LayoutProps {
 }
 
 // Sidebar component
-const Sidebar = () => {
+const Sidebar = ({ isMobile, isOpen, setIsOpen }: { isMobile: boolean, isOpen: boolean, setIsOpen: (open: boolean) => void }) => {
   const navigate = useNavigate();
   const permissions = usePermissions();
-  const [isOpen, setIsOpen] = React.useState(true);
   
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -33,28 +34,34 @@ const Sidebar = () => {
   );
   
   return (
-    <div className={`px-4 sm:px-6 py-4 w-full h-full bg-gradient-to-b from-cyan-500 to-blue-500 border-r border-white/20 transition-all duration-300 ease-in-out shadow-xl ${isOpen ? 'w-64' : 'w-16'}`}>
+    <div className={`px-4 sm:px-6 py-4 h-full bg-gradient-to-b from-cyan-500 to-blue-500 border-r border-white/20 transition-all duration-300 ease-in-out shadow-xl ${
+      isMobile
+        ? 'w-64 fixed top-0 left-0 z-50'
+        : isOpen ? 'w-64' : 'w-16'
+    }`}>
       <div className="flex justify-between items-center mb-6">
-        <h3 className={`text-white font-semibold text-lg ${!isOpen && 'hidden'}`}>Panel de Control</h3>
-        <button
-          onClick={toggleSidebar}
-          className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
-        >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <h3 className={`text-white font-semibold text-lg ${(!isOpen && !isMobile) && 'hidden'}`}>Panel de Control</h3>
+        {!isMobile && (
+          <button
+            onClick={toggleSidebar}
+            className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
           >
-            {isOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-            )}
-          </svg>
-        </button>
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              )}
+            </svg>
+          </button>
+        )}
       </div>
-      <div className={`space-y-2 ${!isOpen && 'hidden'}`}>
+      <div className={`space-y-2 ${(!isOpen && !isMobile) && 'hidden'}`}>
         {permissions.canAccessPayments() && (
           <NavButton
             onClick={() => navigate('/payments')}
@@ -134,7 +141,29 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
   const navigate = useNavigate();
   const location = useLocation();
   const permissions = usePermissions();
+  const { user } = useAuth();
   const isHome = location.pathname === '/';
+  
+  // Estados para el sidebar
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 1024);
+  const [sidebarMobileOpen, setSidebarMobileOpen] = React.useState(false);
+  const [sidebarDesktopOpen, setSidebarDesktopOpen] = React.useState(true);
+  
+  // Estado para el modal de cambiar contraseña
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  
+  React.useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setSidebarMobileOpen(false); // Cerrar sidebar móvil en desktop
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <div className="min-h-screen w-screen flex flex-col bg-gradient-to-b from-cyan-500 to-blue-500">
@@ -198,21 +227,75 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
               <span>Volver al Inicio</span>
             </button>
           )}
-          <div className="w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            {/* Botón de cambiar contraseña */}
+            <button
+              onClick={() => setShowChangePasswordModal(true)}
+              className="w-full sm:w-auto bg-purple-500/80 hover:bg-purple-600/90 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+              <span>Cambiar Contraseña</span>
+            </button>
             <LogoutButton />
           </div>
         </div>
 
+        {/* Botón flotante para móvil */}
+        {!permissions.isBasicUser() && !isHome && isMobile && (
+          <button
+            onClick={() => setSidebarMobileOpen(!sidebarMobileOpen)}
+            className="fixed top-4 left-4 z-[60] bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {sidebarMobileOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+        )}
+
+        {/* Overlay para sidebar móvil */}
+        {!permissions.isBasicUser() && !isHome && isMobile && sidebarMobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setSidebarMobileOpen(false)}
+          />
+        )}
+
         {/* Contenedor principal con sidebar y contenido */}
-        <div className="flex flex-col lg:flex-row flex-grow min-h-0">
+        <div className="flex flex-row flex-grow min-h-0 relative">
           {/* Sidebar - visible solo para usuarios no básicos y cuando no está en la página principal */}
           {!permissions.isBasicUser() && !isHome && (
-            <div className="flex-shrink-0 transition-all duration-300 ease-in-out">
-              <Sidebar />
-            </div>
+            <>
+              {/* Sidebar Desktop */}
+              {!isMobile && (
+                <div className="flex-shrink-0 transition-all duration-300 ease-in-out">
+                  <Sidebar isMobile={isMobile} isOpen={sidebarDesktopOpen} setIsOpen={setSidebarDesktopOpen} />
+                </div>
+              )}
+              
+              {/* Sidebar Mobile */}
+              {isMobile && sidebarMobileOpen && (
+                <div className="fixed top-0 left-0 h-full z-50">
+                  <Sidebar isMobile={isMobile} isOpen={sidebarMobileOpen} setIsOpen={setSidebarMobileOpen} />
+                </div>
+              )}
+            </>
           )}
           
-          {/* Contenido principal - ajusta el ancho según si el sidebar está visible */}
+          {/* Contenido principal */}
           <div className="flex-grow overflow-auto transition-all duration-300 ease-in-out">
             <div className="bg-white/90 backdrop-blur-sm p-6 h-full">
               {children}
@@ -225,6 +308,25 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
       <div className="bg-blue-600/20 backdrop-blur-sm p-4 text-center text-white text-sm border-t border-white/10 mt-auto">
         <p>© 2025 DILE. Todos los derechos reservados.</p>
       </div>
+
+      {/* Modal de cambiar contraseña */}
+      <UserChangePasswordModal
+        isOpen={showChangePasswordModal}
+        user={user ? {
+          _id: user.id,
+          email: user.email,
+          name: user.name,
+          lastName: user.lastName,
+          dni: user.dni,
+          role: user.role,
+          status: 1,
+          agencias: [],
+          statusText: 'ACTIVO',
+          lastLogin: new Date().toISOString()
+        } : null}
+        currentUser={user}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
     </div>
   );
 };

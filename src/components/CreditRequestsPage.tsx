@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useCreditRequests } from '../hooks/useCreditRequests';
 import { useCreditAttention } from '../hooks/useCreditAttention';
 import { useAuth } from '../hooks/useAuth';
@@ -14,12 +15,28 @@ const CreditRequestsPage: React.FC = () => {
   const { hasPermission } = useAuth();
   const [searchDni, setSearchDni] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('APPROVED_PENDING');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<{id: string, dni: string, nombre: string} | null>(null);
   const [customMessage, setCustomMessage] = useState('');
   const [attentionUsers, setAttentionUsers] = useState<Record<string, {email: string, fecha: string, hora: string}>>({});
+  const [modalError, setModalError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Detectar si está en móvil
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Determinar el modo de vista basado en el tamaño de pantalla
+  const viewMode = isMobile ? 'cards' : 'table';
 
   // Función para validar si el DNI es correcto (8 dígitos, solo números)
   const esDniValido = (dni: string) => {
@@ -134,16 +151,16 @@ const CreditRequestsPage: React.FC = () => {
   // Colores para los estados de las solicitudes
   const getStatusBadgeColor = (status: CreditRequestStatus) => {
     switch (status) {
-      case 'APPROVED': return 'bg-green-100 text-green-800';
-      case 'REJECTED': return 'bg-red-100 text-red-800';
-      default: return 'bg-yellow-100 text-yellow-800';
+      case 'APPROVED': return 'bg-emerald-100 text-emerald-800 border border-emerald-200';
+      case 'REJECTED': return 'bg-rose-100 text-rose-800 border border-rose-200';
+      default: return 'bg-amber-100 text-amber-800 border border-amber-200';
     }
   };
 
   const getAttentionBadgeColor = (status: AttentionStatus) => {
     return status === 'ATENDIDO'
-      ? 'bg-blue-500 text-white hover:bg-blue-600'
-      : 'bg-gray-500 text-white hover:bg-gray-600';
+      ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-md'
+      : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700 shadow-md';
   };
 
   // Función para preparar respuesta al cliente
@@ -167,6 +184,9 @@ Quedo atento a su respuesta.`;
   const handleRespond = async () => {
     if (!selectedRequest) return;
 
+    setIsLoading(true);
+    setModalError('');
+
     try {
       const response = await getBotInteractionsByDni(selectedRequest.dni);
       if (response.data.length > 0) {
@@ -175,17 +195,20 @@ Quedo atento a su respuesta.`;
         const encodedMessage = encodeURIComponent(customMessage);
         window.open(`https://wa.me/${formattedPhone}?text=${encodedMessage}`, '_blank');
         
-        // Aquí deberías actualizar el estado de la solicitud para marcar que se respondió
+        // Cerrar el modal después de enviar exitosamente
         toast.success(`Mensaje enviado a ${selectedRequest.nombre}`);
         setShowModal(false);
         setSelectedRequest(null);
         setCustomMessage('');
+        setModalError('');
       } else {
-        toast.error('No se encontró el número de teléfono para este DNI');
+        setModalError('No se encontró el número de teléfono para este DNI. Verifica que el cliente haya interactuado con el bot.');
       }
     } catch (error) {
       console.error('Error al buscar el número de teléfono:', error);
-      toast.error('Error al buscar el número de teléfono');
+      setModalError('Error al buscar el número de teléfono. Por favor, intenta nuevamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -193,6 +216,8 @@ Quedo atento a su respuesta.`;
     setShowModal(false);
     setSelectedRequest(null);
     setCustomMessage('');
+    setModalError('');
+    setIsLoading(false);
   };
 
   // Mostrar pantalla de carga
@@ -219,49 +244,54 @@ Quedo atento a su respuesta.`;
   // Interfaz principal
   return (
     <Layout title="Solicitudes de Crédito">
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 mt-8 transition-all duration-300">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Formulario de búsqueda por DNI */}
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <input
-              type="text"
-              value={searchDni}
-              onChange={(e) => setSearchDni(e.target.value)}
-              placeholder="Buscar por DNI"
-              className="flex-1 rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-            />
-            <button
-              type="submit"
-              disabled={!esDniValido(searchDni)} // Desactivar si el DNI no es válido
-              className={`bg-cyan-600 text-white px-4 py-2 rounded-md transition-all duration-200 transform ${
-                !esDniValido(searchDni) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-cyan-700 hover:scale-105'
-              }`}
+      {/* Panel de Filtros con Sombreado de Dos Colores */}
+      <div className="bg-gradient-to-br from-cyan-50 to-blue-100 rounded-xl shadow-lg p-4 sm:p-6 mb-6 border border-cyan-200">
+        <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 shadow-inner border border-white/50">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+            </svg>
+            Panel de Filtros - Solicitudes de Crédito
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+            {/* Formulario de búsqueda por DNI */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={searchDni}
+                onChange={(e) => setSearchDni(e.target.value)}
+                placeholder="Buscar por DNI"
+                className="flex-1 min-w-0 rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200 bg-white/90 text-sm"
+              />
+              <button
+                type="submit"
+                onClick={handleSearch}
+                disabled={!esDniValido(searchDni)}
+                className={`bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-3 py-2 rounded-md transition-all duration-200 transform shadow-md text-sm font-medium whitespace-nowrap ${
+                  !esDniValido(searchDni) ? 'opacity-50 cursor-not-allowed' : 'hover:from-cyan-700 hover:to-blue-700 hover:scale-105'
+                }`}
+              >
+                Buscar
+              </button>
+            </div>
+
+            {/* Filtro por estado */}
+            <select
+              value={statusFilter}
+              onChange={(e) => handleStatusFilter(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200 bg-white/90 text-sm"
             >
-              Buscar
-            </button>
-          </form>
-
-          {/* Filtro por estado */}
-          <select
-            value={statusFilter}
-            onChange={(e) => handleStatusFilter(e.target.value)}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-200"
-          >
-            <option value="APPROVED_PENDING">Aprobados Pendientes</option>
-            <option value="APPROVED_ATTENDED">Aprobados Atendidos</option>
-            <option value="REJECTED">Rechazados</option>
-            <option value="">Todos</option>
-          </select>
-
-          {/* Botones para cambiar vista (tarjetas/tabla) */}
-          <div className="flex justify-end">
-           <button
-             onClick={() => setViewMode(viewMode === 'table' ? 'cards' : 'table')}
-             className="px-4 py-2 rounded-md bg-cyan-600 text-white hover:bg-cyan-700 transition-all duration-200"
-           >
-             Ver como {viewMode === 'table' ? 'Tarjetas' : 'Tabla'}
-           </button>
-         </div>
+              <option value="APPROVED_PENDING">Aprobados Pendientes</option>
+              <option value="APPROVED_ATTENDED">Aprobados Atendidos</option>
+              <option value="REJECTED">Rechazados</option>
+              <option value="">Todos</option>
+            </select>
+          </div>
+          
+          {/* Indicador de vista actual */}
+          <div className="mt-2 text-sm text-gray-600">
+            Vista actual: {viewMode === 'table' ? 'Tabla (Escritorio)' : 'Tarjetas (Móvil)'}
+          </div>
         </div>
       </div>
 
@@ -371,7 +401,7 @@ Quedo atento a su respuesta.`;
                 {request.status === 'APPROVED' && !request.respondidoEn && request.estadoAtencion !== 'ATENDIDO' && (
                   <button
                     onClick={() => handlePrepareRespond(request._id, request.dni, request.nombre)}
-                    className="w-full px-2 py-1 rounded-md text-sm bg-cyan-600 text-white hover:bg-cyan-700 transition-all duration-200"
+                    className="w-full px-2 py-1 rounded-md text-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 transition-all duration-200 shadow-md font-medium"
                   >
                     Responder
                   </button>
@@ -384,34 +414,36 @@ Quedo atento a su respuesta.`;
         /* Vista de tabla */
         <div className="bg-white rounded-xl shadow-lg overflow-x-auto animate-fade-in">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gradient-to-r from-cyan-50 to-blue-100">
                <tr>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   Nombre
+                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                   Nombre Completo
                  </th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                    DNI
                  </th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                    Fecha/Hora
                  </th>
-                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                   Puntage
+                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                   Puntaje
                  </th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                    Estado
                  </th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                    Atención
                  </th>
-                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                    Acciones
                  </th>
                </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredRequests.map((request: CreditRequest) => (
-                <tr key={request._id} className="hover:bg-gray-50 transition-all duration-200">
+            <tbody className="bg-white divide-y divide-gray-100">
+              {filteredRequests.map((request: CreditRequest, index) => (
+                <tr key={request._id} className={`transition-all duration-200 hover:bg-cyan-50 ${
+                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                }`}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {request.nombre} {request.apellido}
                   </td>
@@ -512,7 +544,7 @@ Quedo atento a su respuesta.`;
                     {request.status === 'APPROVED' && !request.respondidoEn && request.estadoAtencion !== 'ATENDIDO' && (
                       <button
                         onClick={() => handlePrepareRespond(request._id, request.dni, request.nombre)}
-                        className="w-full px-2 py-1 rounded-md text-sm bg-cyan-600 text-white hover:bg-cyan-700 transition-all duration-200"
+                        className="w-full px-3 py-2 rounded-md text-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 transition-all duration-200 shadow-md font-medium"
                       >
                         Responder
                       </button>
@@ -525,45 +557,133 @@ Quedo atento a su respuesta.`;
         </div>
       )}
       {/* Modal de Respuesta */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Responder a {selectedRequest?.nombre}
-              </h3>
+      {showModal && createPortal(
+        <div
+          className="fixed inset-0 w-screen h-screen bg-black/50 z-[9999] backdrop-blur-sm"
+          onClick={closeModal}
+          style={{
+            position: 'fixed',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh'
+          }}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-cyan-200 z-[10000] mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header del modal */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Responder por WhatsApp
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Cliente: {selectedRequest?.nombre}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={closeModal}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-colors"
               >
                 <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <textarea
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              className="w-full p-4 text-gray-800 border rounded-lg focus:ring-2 focus:ring-green-500 mb-4"
-              rows={8}
-              placeholder="Escribe tu mensaje aquí..."
-            />
-            <div className="flex justify-end gap-3">
+            
+            {/* Contenido del modal */}
+            <div className="space-y-4">
+              {/* Mensaje de error */}
+              {modalError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.732 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-sm font-medium text-red-800">Error al enviar mensaje</h4>
+                      <p className="text-sm text-red-700 mt-1">{modalError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mensaje para enviar:
+                </label>
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => setCustomMessage(e.target.value)}
+                  className="w-full p-4 text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors resize-none"
+                  rows={isMobile ? 6 : 8}
+                  placeholder="Escribe tu mensaje aquí..."
+                  disabled={isLoading}
+                />
+              </div>
+              
+              {/* Contador de caracteres */}
+              <div className="text-right text-sm text-gray-500">
+                {customMessage.length} caracteres
+              </div>
+            </div>
+            
+            {/* Footer del modal */}
+            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 rounded-md bg-gray-500 text-white hover:bg-gray-600 transition-all duration-200"
+                disabled={isLoading}
+                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isLoading
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-500 text-white hover:bg-gray-600'
+                }`}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleRespond}
-                className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 transition-all duration-200"
+                disabled={!customMessage.trim() || isLoading}
+                className={`px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${
+                  (customMessage.trim() && !isLoading)
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-md'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
-                Enviar por WhatsApp
+                {isLoading ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    Enviar por WhatsApp
+                  </>
+                )}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </Layout>
   );

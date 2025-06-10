@@ -31,13 +31,13 @@ axiosInstance.interceptors.request.use(
 );
 
 export interface BotInteraction {
+  _id: string;
   phone_number: string;
-  phon_no_id: string;
+  tipo: string;
+  status: string;
+  dni: string;
   fecha: string;
   hora: string;
-  dni: string;
-  nombre: string;
-  apellido: string;
 }
 
 export const getBotInteractions = async () => {
