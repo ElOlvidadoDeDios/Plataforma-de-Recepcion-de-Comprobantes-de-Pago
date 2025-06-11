@@ -36,20 +36,21 @@ const UserTable: React.FC<UserTableProps> = ({
   setShowChangePasswordModal
 }) => {
   return (
-    <div className="hidden md:block overflow-x-auto">
-      <table className="w-full border-collapse">
+    <div className="hidden lg:block w-full max-w-full">
+      <div className="w-full">
+        <table className="w-full table-fixed border-collapse">
         <thead>
           <tr className="bg-gray-50">
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
+            <th className="w-[40%] px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
               Usuario
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
+            <th className="w-[15%] px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
               Estado
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
+            <th className="w-[20%] px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
               Rol
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
+            <th className="w-[25%] px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-y border-gray-200">
               Acciones
             </th>
           </tr>
@@ -57,8 +58,8 @@ const UserTable: React.FC<UserTableProps> = ({
         <tbody className="divide-y divide-gray-200 bg-white">
           {users.map((user: User) => (
             <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm font-medium text-gray-900">{user.email}</div>
+              <td className="w-[40%] px-3 py-3">
+                <div className="text-sm font-medium text-gray-900 truncate">{user.email}</div>
                 <div className="text-sm text-gray-500">
                   {canViewSensitiveInfo(user) ? (
                     <>
@@ -69,24 +70,40 @@ const UserTable: React.FC<UserTableProps> = ({
                     <span className="text-gray-400 italic">Información restringida</span>
                   )}
                 </div>
-                {(user.role === UserRole.PAYMENTS_USER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) && (user.agencias ?? []).length > 0 && (
-                  <div className="mt-1 text-xs text-gray-500">
-                    Agencias: {(user.agencias ?? []).length} asignada(s)
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {(user.agencias ?? []).map((ag, idx) => (
-                        <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-cyan-50 text-cyan-700">
-                          {Object.entries(AGENCIAS).find(([_, code]) => code === ag.agencia)?.[0] || ag.agencia}
-                        </span>
-                      ))}
+                {(() => {
+                  // 🔧 Filtrar solo agencias válidas (sin arrays vacíos)
+                  const agenciasValidas = (user.agencias || []).filter(ag =>
+                    ag &&
+                    !Array.isArray(ag) &&
+                    typeof ag === 'object' &&
+                    typeof ag.agencia === 'string' &&
+                    typeof ag.cod_caja === 'string' &&
+                    typeof ag.user_caja === 'string' &&
+                    ag.agencia.trim() !== '' &&
+                    ag.cod_caja.trim() !== '' &&
+                    ag.user_caja.trim() !== ''
+                  );
+
+                  // Solo mostrar si hay agencias válidas
+                  return (user.role === UserRole.PAYMENTS_USER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) && agenciasValidas.length > 0 && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      Agencias: {agenciasValidas.length} asignada(s)
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {agenciasValidas.map((ag, idx) => (
+                          <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-cyan-50 text-cyan-700">
+                            {Object.entries(AGENCIAS).find(([_, code]) => code === ag.agencia)?.[0] || ag.agencia}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="w-[15%] px-3 py-3">
                 <select
                   value={user.status}
                   onChange={(e) => handleStatusChange(user._id, Number(e.target.value))}
-                  className={`text-sm border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 ${
+                  className={`text-xs w-full border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 ${
                     (user.role === UserRole.SUPER_ADMIN && !isSuperAdmin) ||
                     (currentUser?.email === user.email)
                       ? 'bg-gray-100 cursor-not-allowed'
@@ -111,17 +128,17 @@ const UserTable: React.FC<UserTableProps> = ({
                 </select>
                 {currentUser?.email === user.email && (
                   <div className="text-xs text-blue-600 mt-1 flex items-center">
-                    🔒 <span className="ml-1">Tu cuenta - Protegida</span>
+                    🔒 <span className="ml-1">Protegida</span>
                   </div>
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap">
+              <td className="w-[20%] px-3 py-3">
                 {canAssignRoles() ? (
                   <div>
                     <select
                       value={user.role}
                       onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                      className={`text-sm border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 ${
+                      className={`text-xs w-full border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 ${
                         (!canAssignRole(user.role as UserRole, user)) ||
                         (currentUser?.email === user.email)
                           ? 'bg-gray-100 cursor-not-allowed'
@@ -141,15 +158,15 @@ const UserTable: React.FC<UserTableProps> = ({
                         <option key={role} value={role}>
                           {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
                            role === UserRole.ADMIN ? 'Admin' :
-                           role === UserRole.PAYMENTS_USER ? 'Usuario de Pagos' :
-                           role === UserRole.CREDIT_USER ? 'Usuario de Créditos' :
-                           'Usuario Básico'}
+                           role === UserRole.PAYMENTS_USER ? 'Pagos' :
+                           role === UserRole.CREDIT_USER ? 'Créditos' :
+                           'Básico'}
                         </option>
                       ))}
                     </select>
                     {currentUser?.email === user.email && (
                       <div className="text-xs text-blue-600 mt-1">
-                        🛡️ Auto-protegido
+                        🛡️ Protegido
                       </div>
                     )}
                   </div>
@@ -159,17 +176,17 @@ const UserTable: React.FC<UserTableProps> = ({
                   </span>
                 )}
               </td>
-              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <div className="flex flex-wrap gap-2 justify-end">
+              <td className="w-[25%] px-3 py-3 text-xs font-medium">
+                <div className="flex flex-col gap-1">
                   {user.status !== 1 && (
                     <button
                       onClick={() => {
                         setSelectedUser(user);
                         setShowActivateModal(true);
                       }}
-                      className="px-3 py-1 rounded-md text-xs font-semibold bg-green-100 text-green-800 hover:bg-green-200 transition-colors"
+                      className="w-full px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-800 hover:bg-green-200 transition-colors"
                     >
-                      Activar Usuario
+                      Activar
                     </button>
                   )}
                   {user.status === 1 && (
@@ -178,26 +195,26 @@ const UserTable: React.FC<UserTableProps> = ({
                         setSelectedUser(user);
                         setShowChangePasswordModal(true);
                       }}
-                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      className={`w-full px-2 py-1 rounded text-xs font-semibold transition-colors ${
                         currentUser?.email === user.email
                           ? 'bg-purple-100 text-purple-800 hover:bg-purple-200'
                           : 'bg-orange-100 text-orange-800 hover:bg-orange-200'
                       }`}
                       title={currentUser?.email === user.email ? 'Cambiar mi contraseña' : 'Cambiar contraseña del usuario'}
                     >
-                      🔑 {currentUser?.email === user.email ? 'Mi Contraseña' : 'Cambiar Contraseña'}
+                      🔑 {currentUser?.email === user.email ? 'Mi Contraseña' : 'Contraseña'}
                     </button>
                   )}
                   {canManageAgenciasOf(user) && (
                     <button
                       onClick={() => handleOpenAgenciaModal(user)}
-                      className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
+                      className={`w-full px-2 py-1 rounded text-xs font-semibold transition-colors ${
                         currentUser?.id === user._id
                           ? 'bg-green-100 text-green-800 hover:bg-green-200'
                           : 'bg-cyan-100 text-cyan-800 hover:bg-cyan-200'
                       }`}
                     >
-                      {currentUser?.id === user._id ? '⚙️ Mis Agencias' : 'Gestionar Agencias'}
+                      {currentUser?.id === user._id ? '⚙️ Mis Agencias' : 'Agencias'}
                     </button>
                   )}
                 </div>
@@ -205,7 +222,8 @@ const UserTable: React.FC<UserTableProps> = ({
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 };

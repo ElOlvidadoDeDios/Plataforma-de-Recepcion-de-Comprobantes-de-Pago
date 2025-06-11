@@ -287,11 +287,6 @@ Quedo atento a su respuesta.`;
               <option value="">Todos</option>
             </select>
           </div>
-          
-          {/* Indicador de vista actual */}
-          <div className="mt-2 text-sm text-gray-600">
-            Vista actual: {viewMode === 'table' ? 'Tabla (Escritorio)' : 'Tarjetas (Móvil)'}
-          </div>
         </div>
       </div>
 
@@ -411,60 +406,72 @@ Quedo atento a su respuesta.`;
           ))}
         </div>
       ) : (
-        /* Vista de tabla */
-        <div className="bg-white rounded-xl shadow-lg overflow-x-auto animate-fade-in">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gradient-to-r from-cyan-50 to-blue-100">
-               <tr>
-                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                   Nombre Completo
-                 </th>
-                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                   DNI
-                 </th>
-                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                   Fecha/Hora
-                 </th>
-                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                   Puntaje
-                 </th>
-                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                   Estado
-                 </th>
-                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                   Atención
-                 </th>
-                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                   Acciones
-                 </th>
-               </tr>
-            </thead>
+        /* Vista de tabla responsive */
+        <div className="bg-white rounded-xl shadow-lg animate-fade-in w-full max-w-full">
+          <div className="w-full">
+            <table className="w-full table-fixed divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-cyan-50 to-blue-100">
+                 <tr>
+                   <th className="w-[22%] px-1 sm:px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                     <span className="hidden sm:inline">Nombre Completo</span>
+                     <span className="sm:hidden">Nombre</span>
+                   </th>
+                   <th className="w-[12%] px-1 sm:px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                     DNI
+                   </th>
+                   <th className="w-[14%] px-1 sm:px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                     <span className="hidden md:inline">Fecha/Hora</span>
+                     <span className="md:hidden">Fecha</span>
+                   </th>
+                   <th className="w-[10%] px-1 sm:px-3 py-2 text-center text-xs font-semibold text-gray-700 uppercase">
+                     <span className="hidden sm:inline">Puntaje</span>
+                     <span className="sm:hidden">Pts</span>
+                   </th>
+                   <th className="w-[12%] px-1 sm:px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                     Estado
+                   </th>
+                   <th className="w-[15%] px-1 sm:px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                     <span className="hidden sm:inline">Atención</span>
+                     <span className="sm:hidden">Atenc.</span>
+                   </th>
+                   <th className="w-[15%] px-1 sm:px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase">
+                     <span className="hidden sm:inline">Acciones</span>
+                     <span className="sm:hidden">Acc.</span>
+                   </th>
+                 </tr>
+              </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {filteredRequests.map((request: CreditRequest, index) => (
                 <tr key={request._id} className={`transition-all duration-200 hover:bg-cyan-50 ${
                   index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                 }`}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {request.nombre} {request.apellido}
+                  <td className="w-[22%] px-1 sm:px-3 py-2 text-xs sm:text-sm font-medium text-gray-900">
+                    <div className="truncate">
+                      {request.nombre} {request.apellido}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.dni}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {request.fecha} - {request.hora}
+                  <td className="w-[12%] px-1 sm:px-3 py-2 text-xs sm:text-sm text-gray-500">{request.dni}</td>
+                  <td className="w-[14%] px-1 sm:px-3 py-2">
+                    <div className="text-xs sm:text-sm text-gray-500">
+                      <div className="hidden md:block">{request.fecha} - {request.hora}</div>
+                      <div className="md:hidden">{request.fecha}</div>
                        {request.estadoAtencion === 'ATENDIDO' && attentionUsers[request.dni] && (
-                         <p className="mt-1 text-xs">
+                         <p className="mt-1 text-xs hidden xl:block">
                            Atendido por: {attentionUsers[request.dni].email}<br/>
                            {attentionUsers[request.dni].fecha} - {attentionUsers[request.dni].hora}
                          </p>
                        )}
                      </div>
                    </td>
-                   <td className="px-6 py-4 whitespace-nowrap text-center">
+                   <td className="w-[10%] px-1 sm:px-3 py-2 text-center">
                      {request.puntaje && (
-                       <span className="text-cyan-600 font-medium">{request.puntaje.toFixed(2)}</span>
+                       <span className="text-cyan-600 font-medium text-xs sm:text-sm">
+                         <span className="hidden sm:inline">{request.puntaje.toFixed(2)}</span>
+                         <span className="sm:hidden">{request.puntaje.toFixed(1)}</span>
+                       </span>
                      )}
                    </td>
-                   <td className="px-6 py-4 whitespace-nowrap">
+                   <td className="w-[12%] px-1 sm:px-3 py-2">
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusBadgeColor(
                         request.status
@@ -473,7 +480,7 @@ Quedo atento a su respuesta.`;
                       {request.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap relative">
+                  <td className="w-[15%] px-1 sm:px-3 py-2 relative">
                     <div className="relative">
                       <button
                         onClick={() => {
@@ -540,20 +547,22 @@ Quedo atento a su respuesta.`;
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="w-[15%] px-1 sm:px-3 py-2 text-xs sm:text-sm font-medium">
                     {request.status === 'APPROVED' && !request.respondidoEn && request.estadoAtencion !== 'ATENDIDO' && (
                       <button
                         onClick={() => handlePrepareRespond(request._id, request.dni, request.nombre)}
-                        className="w-full px-3 py-2 rounded-md text-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 transition-all duration-200 shadow-md font-medium"
+                        className="w-full px-2 py-1 rounded-md text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-green-500 text-white hover:from-emerald-600 hover:to-green-600 transition-all duration-200"
                       >
-                        Responder
+                        <span className="hidden sm:inline">Responder</span>
+                        <span className="sm:hidden">Resp.</span>
                       </button>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
       {/* Modal de Respuesta */}

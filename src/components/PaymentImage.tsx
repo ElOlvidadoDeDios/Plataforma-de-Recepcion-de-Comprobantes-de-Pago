@@ -101,16 +101,16 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
   return (
     <>
       <div className="w-full h-full rounded-lg overflow-hidden shadow-lg cursor-pointer bg-gray-50" onClick={() => setShowFullImage(true)}>
-        <div className="relative w-full h-full flex items-center justify-center p-2">
+        <div className="relative w-full h-full flex items-center justify-center p-1">
           <img
             src={getImageSrc(images[currentImageIndex])}
             alt={`${alt} ${currentImageIndex + 1}/${images.length}`}
-            className="max-w-full max-h-full w-auto h-auto object-contain"
+            className="w-full h-full object-contain"
             style={{
+              minWidth: '0',
+              minHeight: '0',
               maxWidth: '100%',
-              maxHeight: '100%',
-              width: 'auto',
-              height: 'auto'
+              maxHeight: '100%'
             }}
             loading="lazy"
           />

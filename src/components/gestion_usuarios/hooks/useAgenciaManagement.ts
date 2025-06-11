@@ -30,17 +30,39 @@ export const useAgenciaManagement = ({
 
   const handleAgenciaChange = (index: number, field: keyof AgenciaCaja, value: string) => {
     const newAgencias = [...userAgencias];
-    newAgencias[index] = { ...newAgencias[index], [field]: value };
-    setUserAgencias(newAgencias);
+    
+    // 🔧 Validación segura del índice y objeto existente
+    if (index >= 0 && index < newAgencias.length) {
+      // Asegurar que existe un objeto válido en el índice
+      if (!newAgencias[index]) {
+        newAgencias[index] = { agencia: '', cod_caja: '', user_caja: '' };
+      }
+      
+      newAgencias[index] = {
+        ...newAgencias[index],
+        [field]: typeof value === 'string' ? value : ''
+      };
+      setUserAgencias(newAgencias);
+    }
   };
 
   const handleAddAgencia = () => {
-    const tieneFilaVacia = userAgencias.some(ag =>
+    // 🔧 Filtrar agencias válidas (sin arrays vacíos)
+    const agenciasValidas = userAgencias.filter(ag =>
+      ag &&
+      !Array.isArray(ag) &&
+      typeof ag === 'object' &&
+      typeof ag.agencia === 'string' &&
+      typeof ag.cod_caja === 'string' &&
+      typeof ag.user_caja === 'string'
+    );
+
+    const tieneFilaVacia = agenciasValidas.some(ag =>
       !ag.agencia.trim() && !ag.cod_caja.trim() && !ag.user_caja.trim()
     );
     
     if (!tieneFilaVacia) {
-      setUserAgencias([...userAgencias, { agencia: '', cod_caja: '', user_caja: '' }]);
+      setUserAgencias([...agenciasValidas, { agencia: '', cod_caja: '', user_caja: '' }]);
     } else {
       toast('Complete la fila vacía existente antes de agregar una nueva', {
         duration: 4000,
@@ -79,12 +101,29 @@ export const useAgenciaManagement = ({
     
     setSelectedUser(user);
     
-    const agenciasIniciales = user.agencias?.length
-      ? [...user.agencias]
+    // 🔧 Validación segura para agencias (incluye arrays vacíos)
+    const agenciasValidas = user.agencias?.filter(ag =>
+      ag &&
+      !Array.isArray(ag) &&  // ✅ Excluir arrays vacíos
+      typeof ag === 'object' &&
+      typeof ag.agencia === 'string' &&
+      typeof ag.cod_caja === 'string' &&
+      typeof ag.user_caja === 'string' &&
+      ag.agencia.trim() !== '' &&  // ✅ Excluir strings vacíos
+      ag.cod_caja.trim() !== '' &&
+      ag.user_caja.trim() !== ''
+    ) || [];
+    
+    const agenciasIniciales = agenciasValidas.length > 0
+      ? [...agenciasValidas]
       : [{ agencia: '', cod_caja: '', user_caja: '' }];
     
+    // 🔧 Validación segura para verificar si están llenas
     const todasLlenas = agenciasIniciales.every(ag =>
-      ag.agencia.trim() && ag.cod_caja.trim() && ag.user_caja.trim()
+      ag &&
+      typeof ag.agencia === 'string' && ag.agencia.trim() &&
+      typeof ag.cod_caja === 'string' && ag.cod_caja.trim() &&
+      typeof ag.user_caja === 'string' && ag.user_caja.trim()
     );
     
     if (todasLlenas) {
@@ -101,17 +140,37 @@ export const useAgenciaManagement = ({
       return;
     }
 
+    // 🔧 Filtro seguro para agencias no vacías
     const agenciasNoVacias = userAgencias.filter(ag =>
-      ag.agencia.trim() !== '' &&
-      ag.cod_caja.trim() !== '' &&
-      ag.user_caja.trim() !== ''
+      ag &&
+      typeof ag.agencia === 'string' && ag.agencia.trim() !== '' &&
+      typeof ag.cod_caja === 'string' && ag.cod_caja.trim() !== '' &&
+      typeof ag.user_caja === 'string' && ag.user_caja.trim() !== ''
     );
 
-    const agenciasActuales = selectedUser.agencias ?? [];
+    // 🔧 Validación segura de agencias actuales (incluye arrays vacíos)
+    const agenciasActuales = selectedUser.agencias?.filter(ag =>
+      ag &&
+      !Array.isArray(ag) &&  // ✅ Excluir arrays vacíos
+      typeof ag === 'object' &&
+      typeof ag.agencia === 'string' &&
+      typeof ag.cod_caja === 'string' &&
+      typeof ag.user_caja === 'string' &&
+      ag.agencia.trim() !== '' &&  // ✅ Excluir strings vacíos
+      ag.cod_caja.trim() !== '' &&
+      ag.user_caja.trim() !== ''
+    ) ?? [];
 
+    // 🔧 Comparación segura de agencias
     const agenciasIguales = agenciasNoVacias.length === agenciasActuales.length &&
       agenciasNoVacias.every((ag, idx) => {
         const agActual = agenciasActuales[idx];
+        if (!agActual ||
+            typeof agActual.agencia !== 'string' ||
+            typeof agActual.cod_caja !== 'string' ||
+            typeof agActual.user_caja !== 'string') {
+          return false;
+        }
         return ag.agencia.trim() === agActual.agencia.trim() &&
                ag.cod_caja.trim() === agActual.cod_caja.trim() &&
                ag.user_caja.trim() === agActual.user_caja.trim();

@@ -35,8 +35,14 @@ const SearchBar = ({ searchQuery, tipoDocumento, onSearchChange, onTipoDocumento
               value={searchQuery}
               onChange={(e) => {
                 const value = e.target.value;
-                if ((tipoDocumento === TipoDocumento.DNI || tipoDocumento === TipoDocumento.CUENTA)) {
+                if (tipoDocumento === TipoDocumento.DNI) {
+                  // Solo números para DNI
                   if (!/^\d*$/.test(value)) {
+                    return;
+                  }
+                } else if (tipoDocumento === TipoDocumento.CUENTA) {
+                  // Para cuentas: números, guiones, espacios y algunos caracteres especiales
+                  if (!/^[0-9\-\s]*$/.test(value)) {
                     return;
                   }
                 }
@@ -45,7 +51,7 @@ const SearchBar = ({ searchQuery, tipoDocumento, onSearchChange, onTipoDocumento
               className="w-full border-2 border-cyan-200 rounded-lg p-2 md:p-3 focus:outline-none focus:border-cyan-400 transition-colors"
               placeholder={`Escriba el ${tipoDocumento === TipoDocumento.DNI ? 'DNI (solo números)' :
                 tipoDocumento === TipoDocumento.NOMBRE ? 'nombre' :
-                'número de cuenta (solo números)'} (mínimo 3 caracteres)...`}
+                'número de cuenta (números y guiones)'} (mínimo 3 caracteres)...`}
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

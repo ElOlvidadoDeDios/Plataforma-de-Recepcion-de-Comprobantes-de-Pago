@@ -344,3 +344,29 @@ export const procesarComprobantesMasivo = async (data: {
     throw new APIError('Error al procesar comprobantes masivos');
   }
 };
+
+// Obtener todos los pagos de un préstamo específico
+export const getPaymentsByCreditoId = async (creditoId: string) => {
+  try {
+    const response = await axiosInstance.get<{
+      success: boolean;
+      count: number;
+      data: PaymentRecord[];
+      creditoId: string
+    }>(`/api/comprobantes/pagare/${creditoId}/todos`);
+    
+    if (response.data.data) {
+      response.data.data = normalizePaymentRecords(response.data.data);
+    }
+    
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new APIError(
+        'Error al obtener los pagos del préstamo',
+        error.response?.status
+      );
+    }
+    throw new APIError('Error al obtener los pagos del préstamo');
+  }
+};

@@ -1,7 +1,11 @@
 import { useState, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { DetalleCredito, ClienteResponse } from '../../../api/customerConsultationAPI';
+import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
+import { PaymentRecord } from '../../../types';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
+// const PagosPrestamoModal = lazy(() => import('./PagosPrestamoModal'));
 
 interface CreditosTableProps {
   creditos: DetalleCredito[];
@@ -11,10 +15,70 @@ interface CreditosTableProps {
 const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPrestamo, setSelectedPrestamo] = useState<DetalleCredito | null>(null);
+  const [isPagosModalOpen, setIsPagosModalOpen] = useState(false);
+  const [pagosData, setPagosData] = useState<PaymentRecord[]>([]);
+  const [selectedCreditoId, setSelectedCreditoId] = useState<string>('');
+  const [loadingPagos, setLoadingPagos] = useState(false);
+
+  // Obtener la URL base del env y asegurarse que no termine en slash
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+
+  // Función para determinar si es una ruta de comprobante
+  const isComprobantePath = (str: string): boolean => {
+    return str.startsWith('/comprobantes/') || str.includes('public/comprobantes') || str.includes('public\\comprobantes');
+  };
+
+  // Función para construir el src de la imagen (igual que en PaymentImage)
+  const getImageSrc = (image: string): string => {
+    if (!image) return ''; // Protección contra undefined
+
+    // Si ya comienza con data:image, es un base64 completo
+    if (image.startsWith('data:image')) {
+      return image;
+    }
+    
+    // Si es una ruta de comprobante
+    if (isComprobantePath(image)) {
+      // Si ya es una URL completa, usarla tal cual
+      if (image.startsWith('http://') || image.startsWith('https://')) {
+        return image;
+      }
+      // Extraer solo el nombre del archivo y usar el prefijo /comprobantes
+      const fileName = image.split(/[/\\]/).pop();
+      if (!fileName) return '';
+      const finalUrl = `${API_BASE_URL}/comprobantes/${fileName}`;
+      return finalUrl;
+    }
+
+    // Si no es ninguno de los anteriores, asumimos que es un string base64
+    return `data:image/jpeg;base64,${image}`;
+  };
 
   const handleVerCronograma = (credito: DetalleCredito) => {
     setSelectedPrestamo(credito);
     setIsModalOpen(true);
+  };
+
+  const handleVerPagos = async (creditoId: string) => {
+    try {
+      setLoadingPagos(true);
+      setSelectedCreditoId(creditoId);
+      
+      const response = await getPaymentsByCreditoId(creditoId);
+      
+      if (response.success && response.data.length > 0) {
+        setPagosData(response.data);
+        setIsPagosModalOpen(true);
+      } else {
+        // Mostrar mensaje si no hay pagos
+        alert('No se encontraron pagos para este préstamo');
+      }
+    } catch (error) {
+      console.error('Error al cargar pagos:', error);
+      alert('Error al cargar los pagos del préstamo');
+    } finally {
+      setLoadingPagos(false);
+    }
   };
 
   if (!Array.isArray(creditos) || creditos.length === 0 || typeof creditos[0] === 'string') {
@@ -59,7 +123,22 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
           <tbody>
             {creditos.map((credito, index) => (
               <tr key={`${credito.ID_PRESTAMO}-${index}`} className="transition-colors duration-200 ease-in-out hover:bg-gradient-to-r hover:from-cyan-50 hover:to-teal-50">
-                <td className="px-4 py-2 text-sm border border-gray-200">{credito.ID_PRESTAMO}</td>
+                <td className="px-4 py-2 text-sm border border-gray-200">
+                  <button
+                    onClick={() => handleVerPagos(credito.ID_PRESTAMO)}
+                    className="text-blue-600 hover:text-blue-800 underline cursor-pointer transition-colors duration-200 font-medium"
+                    disabled={loadingPagos}
+                  >
+                    {loadingPagos && selectedCreditoId === credito.ID_PRESTAMO ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        Cargando...
+                      </span>
+                    ) : (
+                      credito.ID_PRESTAMO
+                    )}
+                  </button>
+                </td>
                 <td className="px-4 py-2 text-sm border border-gray-200">
                   <span className="px-2 py-1 rounded-full text-xs font-medium">{credito.ESTADO}</span>
                 </td>
@@ -89,7 +168,23 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
         {creditos.map((credito, index) => (
           <div key={`${credito.ID_PRESTAMO}-${index}`} className="bg-white rounded-lg shadow-md p-3 mb-3">
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-bold text-cyan-800">ID Préstamo: {credito.ID_PRESTAMO}</h3>
+              <h3 className="text-lg font-bold text-cyan-800">
+                ID Préstamo:
+                <button
+                  onClick={() => handleVerPagos(credito.ID_PRESTAMO)}
+                  className="text-blue-600 hover:text-blue-800 underline cursor-pointer transition-colors duration-200 ml-2"
+                  disabled={loadingPagos}
+                >
+                  {loadingPagos && selectedCreditoId === credito.ID_PRESTAMO ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      Cargando...
+                    </span>
+                  ) : (
+                    credito.ID_PRESTAMO
+                  )}
+                </button>
+              </h3>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${credito.ESTADO === 'Vigente' ? 'bg-green-200 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
                 {credito.ESTADO}
               </span>
@@ -127,6 +222,142 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
             clientData={clientData}
           />
         </Suspense>
+      )}
+
+      {/* Modal simple de pagos del préstamo */}
+      {isPagosModalOpen && createPortal(
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4"
+          onClick={(e) => {
+            // Cerrar modal al hacer clic en el fondo
+            if (e.target === e.currentTarget) {
+              setIsPagosModalOpen(false);
+              setPagosData([]);
+              setSelectedCreditoId('');
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-[85vw] w-full max-h-[95vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()} // Evitar que se cierre al hacer clic dentro del modal
+          >
+            {/* Header del modal */}
+            <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 sm:px-6 py-3 flex justify-between items-center">
+              <h2 className="text-lg sm:text-xl font-bold">
+                Pagos del Préstamo: {selectedCreditoId}
+              </h2>
+              <button
+                onClick={() => {
+                  setIsPagosModalOpen(false);
+                  setPagosData([]);
+                  setSelectedCreditoId('');
+                }}
+                className="text-white hover:text-gray-200 transition-colors p-1"
+              >
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Contenido del modal */}
+            <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(95vh-60px)]">
+              {pagosData.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-gray-500 text-lg">No se encontraron pagos para este préstamo</div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {pagosData.map((pago, index) => (
+                    <div key={`${pago.dni}-${pago.fecha}-${pago.hora}-${index}`} className="border rounded-lg p-4 bg-gray-50">
+                      {/* Información del pago */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                          <h3 className="font-semibold text-lg text-cyan-800">📅 {pago.fecha} - {pago.hora}</h3>
+                          <p className="text-sm text-gray-600">Cliente: {pago.nombreSocio}</p>
+                          <p className="text-sm text-gray-600">DNI: {pago.dni}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Cuotas Vencidas: <span className="font-medium">{pago.cuotasVencidasCantidad}</span></p>
+                          <p className="text-sm text-gray-600">Estado General:
+                            <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                              pago.estadoGeneral === 'atendido' ? 'bg-green-100 text-green-800' :
+                              pago.estadoGeneral === 'parcial' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {pago.estadoGeneral.toUpperCase()}
+                            </span>
+                          </p>
+                        </div>
+                        {/* <div className="text-right">
+                          <p className="text-xs text-gray-500">Cuota Seleccionada:</p>
+                          <p className="text-sm font-medium">{pago.cuotaSeleccionada || 'No especificada'}</p>
+                        </div> */}
+                      </div>
+
+                      {/* Imágenes de comprobantes */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {pago.comprobantebase_64?.map((comprobante, compIndex) => (
+                          <div key={`${comprobante._id}-${compIndex}`} className="border rounded-lg p-2 bg-white shadow-sm">
+                            <div className="aspect-[3/4] mb-2 bg-gray-100 rounded overflow-hidden">
+                              <img
+                                src={getImageSrc(comprobante.ruta)}
+                                alt={`Comprobante ${compIndex + 1}`}
+                                className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform"
+                                onClick={() => window.open(getImageSrc(comprobante.ruta), '_blank')}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120"><rect width="100%" height="100%" fill="%23ddd"/><text x="50%" y="50%" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy="0.3em">Error al cargar imagen</text></svg>';
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-medium">Estado:</span>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  comprobante.estado === 'aceptado' ? 'bg-green-100 text-green-800' :
+                                  comprobante.estado === 'rechazado' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {comprobante.estado.toUpperCase()}
+                                </span>
+                              </div>
+                              {comprobante.monto_pago && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-medium">Monto:</span>
+                                  <span className="text-xs">S/ {comprobante.monto_pago}</span>
+                                </div>
+                              )}
+                              {comprobante.nroOperacion && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-medium">Nro. Op:</span>
+                                  <span className="text-xs">{comprobante.nroOperacion}</span>
+                                </div>
+                              )}
+                              {comprobante.tipoOperacion && (
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-medium">Tipo:</span>
+                                  <span className="text-xs">{comprobante.tipoOperacion}</span>
+                                </div>
+                              )}
+                              {comprobante.motivo_rechazo && (
+                                <div className="mt-2">
+                                  <span className="text-xs font-medium text-red-600">Motivo rechazo:</span>
+                                  <p className="text-xs text-red-600 mt-1">{comprobante.motivo_rechazo}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

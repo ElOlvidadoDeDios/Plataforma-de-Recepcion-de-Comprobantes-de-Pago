@@ -17,9 +17,21 @@ export const LogoutButton = () => {
   return (
     <button
       onClick={handleLogout}
-      className="bg-red-500 text-white p-2 rounded hover:bg-red-600"
+      className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white px-2 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
     >
-      Cerrar Sesión
+      <svg
+        className="w-4 h-4 sm:w-5 sm:h-5"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      <span className="hidden sm:inline">Cerrar Sesión</span>
+      <span className="sm:hidden">Salir</span>
     </button>
   );
 };

@@ -166,10 +166,10 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
   }, []);
 
   return (
-    <div className="min-h-screen w-screen flex flex-col bg-gradient-to-b from-cyan-500 to-blue-500">
+    <div className="min-h-screen w-full max-w-full flex flex-col bg-gradient-to-b from-cyan-500 to-blue-500 overflow-x-hidden">
       <div className="w-full flex flex-col flex-grow bg-gradient-to-r from-cyan-500 to-blue-500">
-        <div className="w-full">
-          <div className="w-full px-6 sm:px-8 py-4">
+        <div className="w-full max-w-full">
+          <div className="w-full px-2 sm:px-6 lg:px-8 py-4">
             {/* Header container */}
             <div className="overflow-visible flex flex-col sm:flex-row items-center justify-between gap-4">
               <motion.div
@@ -207,14 +207,14 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
         </div>
 
         {/* Botones */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 px-6 sm:px-8 py-1.5 border-t border-white/10">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-2 px-2 sm:px-6 lg:px-8 py-1.5 border-t border-white/10 overflow-x-hidden">
           {showBackButton && !isHome && (
             <button
               onClick={() => navigate('/')}
-              className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-2 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4 sm:w-5 sm:h-5"
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -224,17 +224,18 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
               >
                 <path d="M15 19l-7-7 7-7" />
               </svg>
-              <span>Volver al Inicio</span>
+              <span className="hidden sm:inline">Volver al Inicio</span>
+              <span className="sm:hidden">Volver</span>
             </button>
           )}
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto max-w-full">
             {/* Botón de cambiar contraseña */}
             <button
               onClick={() => setShowChangePasswordModal(true)}
-              className="w-full sm:w-auto bg-purple-500/80 hover:bg-purple-600/90 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2"
+              className="w-full sm:w-auto bg-blue-400/80 hover:bg-blue-500/90 text-white px-2 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4 sm:w-5 sm:h-5"
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -242,9 +243,10 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
                 viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1 1 21 9z" />
               </svg>
-              <span>Cambiar Contraseña</span>
+              <span className="hidden sm:inline">Cambiar Contraseña</span>
+              <span className="sm:hidden">Contraseña</span>
             </button>
             <LogoutButton />
           </div>
@@ -296,8 +298,8 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
           )}
           
           {/* Contenido principal */}
-          <div className="flex-grow overflow-auto transition-all duration-300 ease-in-out">
-            <div className="bg-white/90 backdrop-blur-sm p-6 h-full">
+          <div className="flex-grow overflow-hidden transition-all duration-300 ease-in-out">
+            <div className="bg-white/90 backdrop-blur-sm p-6 h-full overflow-y-auto">
               {children}
             </div>
           </div>
@@ -315,8 +317,8 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
         user={user ? {
           _id: user.id,
           email: user.email,
-          name: user.name,
-          lastName: user.lastName,
+          name: user.name || '',
+          lastName: user.lastName || '',
           dni: user.dni,
           role: user.role,
           status: 1,

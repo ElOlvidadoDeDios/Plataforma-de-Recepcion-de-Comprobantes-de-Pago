@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { User, AgenciaCaja, AGENCIAS } from '../../../types';
 
 interface UserAgencyModalProps {
@@ -26,8 +27,8 @@ const UserAgencyModal: React.FC<UserAgencyModalProps> = ({
 }) => {
   if (!isOpen || !user) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  return ReactDOM.createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
       <div className="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-cyan-700">
@@ -142,7 +143,8 @@ const UserAgencyModal: React.FC<UserAgencyModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

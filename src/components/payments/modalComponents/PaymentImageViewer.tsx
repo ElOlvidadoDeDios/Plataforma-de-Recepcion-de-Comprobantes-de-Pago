@@ -20,14 +20,14 @@ export const PaymentImageViewer: React.FC<PaymentImageViewerProps> = ({
   const images = Array.isArray(imageSource) ? imageSource : [imageSource];
   
   return (
-    <div className="bg-white/90 rounded-lg h-full relative overflow-hidden min-h-0">
-      <div className="absolute inset-0 flex items-center justify-center p-1 sm:p-2">
+    <div className="bg-white/90 rounded-lg h-full relative overflow-hidden">
+      <div className="absolute inset-0 flex items-center justify-center p-2">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-gray-600 text-sm sm:text-base">Cargando imagen...</div>
           </div>
         ) : (
-          <div className="relative w-full h-full min-h-0 flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center">
             <PaymentImage
               imageSource={images}
               alt={altText}
