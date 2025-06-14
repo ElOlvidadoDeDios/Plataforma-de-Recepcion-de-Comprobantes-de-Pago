@@ -12,7 +12,7 @@ import { PaymentActions } from '../modalComponents/PaymentActions';
 
 import { PaymentDetailsModalProps } from './PaymentDetailsModalTypes';
 import { usePaymentDetailsState } from './PaymentDetailsModalState';
-import { handleUpdateStatus, handleAcceptStatus } from './PaymentDetailsModalHandlers';
+import { handleUpdateStatus, handleAcceptStatus, handlePartialAcceptStatus } from './PaymentDetailsModalHandlers';
 
 export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   showImage,
@@ -119,16 +119,18 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
           <div className={`${modalPosition.isMobile ? 'min-h-[80vh]' : 'flex-1'} flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} gap-2 sm:gap-3 p-2 sm:p-4 text-sm ${modalPosition.isMobile ? '' : 'overflow-hidden'} relative min-h-0`}>
             {allPayments.length > 1 && (
-              <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-4 z-50 pointer-events-none">
+              <div className={`absolute ${modalPosition.isMobile ? 'top-1/2 -translate-y-1/2' : 'inset-y-0'} left-0 right-0 flex items-center justify-between px-4 z-50 pointer-events-none`}>
                 <button
                   onClick={handlePrevPayment}
-                  className="p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all"
+                  className={`p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all ${modalPosition.isMobile ? 'relative' : ''}`}
+                  style={modalPosition.isMobile ? { transform: 'translateY(-50%)' } : {}}
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                   onClick={handleNextPayment}
-                  className="p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all"
+                  className={`p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all ${modalPosition.isMobile ? 'relative' : ''}`}
+                  style={modalPosition.isMobile ? { transform: 'translateY(-50%)' } : {}}
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
@@ -173,7 +175,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             <div className={`${
               modalPosition.isMobile
                 ? activeTab === 'image' ? 'h-[60vh]' : 'hidden'
-                : 'w-7/12 lg:w-2/3 xl:w-7/12'
+                : 'w-1/2 lg:w-3/5 xl:w-1/2'
             } flex-shrink-0 ${modalPosition.isMobile ? '' : 'h-full overflow-hidden'} relative min-h-0`}>
               <p className="mb-1 px-2 text-xs text-gray-500">
                 {paymentIndex === 0 ? 'Comprobante principal' : `Comprobante adicional ${paymentIndex}`}
@@ -190,7 +192,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             <div className={`${
               modalPosition.isMobile
                 ? activeTab === 'form' ? 'h-[60vh] overflow-y-auto' : 'hidden'
-                : 'w-5/12 lg:w-1/3 xl:w-5/12'
+                : 'w-1/2 lg:w-2/5 xl:w-1/2'
             } ${modalPosition.isMobile ? '' : 'overflow-auto'} relative z-20 min-h-0`}>
               <PaymentForm
                 vouchers={[paymentDetails.find(detail =>
@@ -228,6 +230,28 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 onRejectVoucher={() => {
                   setRejectType('partial');
                   onReject();
+                }}
+                onAcceptVoucher={async () => {
+                  const error = await handlePartialAcceptStatus({
+                    displayedPayment,
+                    modalPayments,
+                    paymentDetails,
+                    setPaymentDetails,
+                    imageIndex,
+                    paymentIndex,
+                    agenciaCode,
+                    userData: user,
+                    paymentType,
+                    paymentLimit,
+                    rejectType: 'partial',
+                    selectedRejectReason: '',
+                    customReason: '',
+                    totalAmount
+                  });
+                  
+                  if (error) {
+                    throw new Error(error);
+                  }
                 }}
                 agenciaName={agenciaSeleccionada}
                 isEditable={

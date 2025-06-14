@@ -437,9 +437,9 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                   key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                   payment={payment}
                   socket={socket}
-                  agencias={user?.role === UserRole.PAYMENTS_USER && user.agencias
-                    ? user.agencias.map(ag => ag.agencia)
-                    : []}
+                  agencias={user?.role === UserRole.PAYMENTS_USER && selectedAgencia
+                    ? [selectedAgencia]
+                    : user?.agencias?.map(ag => ag.agencia) || []}
                   userAgencias={user?.agencias || []}
                 />
               ))}

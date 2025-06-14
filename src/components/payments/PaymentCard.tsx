@@ -35,7 +35,15 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
   const [customReason, setCustomReason] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [monto, setMonto] = useState(payment.cuotasVencidasTotalAPagar);
-  const [agenciaCode] = useState(agencias[0] || '');
+  // Obtener la agencia activa del usuario
+  const [agenciaCode] = useState(() => {
+    // Si el usuario tiene agencias asignadas, usar la primera como activa
+    if (user?.agencias && user.agencias.length > 0) {
+      return user.agencias[0].agencia;
+    }
+    // Fallback al primer elemento de agencias pasado como prop
+    return agencias[0] || '';
+  });
   const [, setRejectType] = useState<'partial' | 'total'>('total');
 
   const handlePaymentUpdated = useCallback((updatedPayment: PaymentRecord) => {
@@ -56,6 +64,19 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
       };
     }
   }, [socket, handlePaymentUpdated]);
+
+  // Listener para cerrar modal después de procesamiento exitoso
+  useEffect(() => {
+    const handleCloseModalEvent = () => {
+      handleCloseModal();
+    };
+
+    window.addEventListener('closePaymentModal', handleCloseModalEvent);
+    
+    return () => {
+      window.removeEventListener('closePaymentModal', handleCloseModalEvent);
+    };
+  }, []);
 
   const handleOpenModal = async (e: React.MouseEvent) => {
     e.preventDefault();

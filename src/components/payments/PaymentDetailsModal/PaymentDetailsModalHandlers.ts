@@ -69,6 +69,10 @@ export const handleUpdateStatus = async (
     }
 
     // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND (RECHAZO TOTAL)
+    if (!userData?.agencias || userData.agencias.length === 0) {
+      return 'Su usuario no tiene agencias asignadas. Contacte al administrador para configurar su acceso.';
+    }
+
     if (!agenciaCode || agenciaCode.trim() === '') {
       return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
     }
@@ -94,6 +98,7 @@ export const handleUpdateStatus = async (
 
     const requestData = {
       montoTotal: '0',
+      tipo_pago: 'rechazo_total', // Para rechazo total, usar tipo específico
       userData: {
         agencia: agenciaCode,
         cod_caja: codCaja,
@@ -154,9 +159,12 @@ export const handleUpdateStatus = async (
     try {
       await procesarComprobantesMasivo(requestData);
       toast.success('Comprobantes rechazados exitosamente');
-    } catch (error: any) {
-      console.error('Error:', error);
       
+      // Cerrar modal después del éxito - usar setTimeout para permitir que se complete el toast
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('closePaymentModal'));
+      }, 1000);
+    } catch (error: any) {
       // Extraer mensaje específico del error
       let errorMessage = 'Error al procesar el rechazo';
       
@@ -194,6 +202,10 @@ export const handleUpdateStatus = async (
   }
 
   // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND (RECHAZO PARCIAL)
+  if (!userData?.agencias || userData.agencias.length === 0) {
+    return 'Su usuario no tiene agencias asignadas. Contacte al administrador para configurar su acceso.';
+  }
+
   if (!agenciaCode || agenciaCode.trim() === '') {
     return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
   }
@@ -219,6 +231,7 @@ export const handleUpdateStatus = async (
 
   const requestData = {
     montoTotal: totalAmount,
+    tipo_pago: 'rechazo_parcial', // Para rechazo parcial, usar tipo específico
     userData: {
       agencia: agenciaCode,
       cod_caja: codCaja,
@@ -291,8 +304,12 @@ export const handleUpdateStatus = async (
   try {
     await procesarComprobantesMasivo(requestData);
     toast.success('Comprobante rechazado exitosamente');
+    
+    // Cerrar modal después del éxito - usar setTimeout para permitir que se complete el toast
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('closePaymentModal'));
+    }, 1000);
   } catch (error: any) {
-    console.error('Error:', error);
     
     // Extraer mensaje específico del error
     let errorMessage = 'Error al procesar el rechazo';
@@ -307,6 +324,203 @@ export const handleUpdateStatus = async (
     
     // Mostrar mensaje específico en el toast
     toast.error(errorMessage);
+  }
+  
+  return null;
+};
+
+export const handlePartialAcceptStatus = async (
+  props: PaymentHandlerProps & { imageIndex: number; paymentIndex: number }
+): Promise<string | null> => {
+  const {
+    displayedPayment,
+    modalPayments,
+    paymentDetails,
+    setPaymentDetails,
+    imageIndex,
+    paymentIndex,
+    agenciaCode,
+    userData,
+    paymentType,
+    paymentLimit
+  } = props;
+
+  // Validar estado general del comprobante
+  if (!['pendiente', 'parcial'].includes(displayedPayment.estadoGeneral)) {
+    return 'Este comprobante ya ha sido completamente procesado';
+  }
+
+  // Buscar el voucher seleccionado (similar al rechazo parcial)
+  const selectedVoucher = paymentDetails.find(v =>
+    v.imageIndex === imageIndex &&
+    v.paymentIndex === paymentIndex &&
+    displayedPayment.comprobantebase_64[imageIndex]?.ruta === v.ruta
+  );
+
+  if (!selectedVoucher) {
+    return 'No se encontró el voucher seleccionado';
+  }
+
+  if (selectedVoucher.estado !== 'pendiente') {
+    return 'Este comprobante ya ha sido procesado';
+  }
+
+  if (!selectedVoucher.montoPago || !selectedVoucher.nroOperacion || !selectedVoucher.tipoOperacion) {
+    return 'Debe completar todos los datos del comprobante seleccionado';
+  }
+
+  // Validar monto individual del voucher
+  const montoVoucher = parseFloat(selectedVoucher.montoPago) || 0;
+  
+  // VALIDAR LÍMITES SEGÚN EL TIPO DE PAGO (IGUAL QUE handleAcceptStatus)
+  if (!paymentType) {
+    return 'Error: No se ha seleccionado el tipo de pago. Seleccione "Pago Normal" o "Liquidación Total" antes de continuar.';
+  }
+
+  if (!paymentLimit || paymentLimit <= 0) {
+    return 'Error: No se pudo obtener el límite de pago. Espere a que carguen los datos del crédito o recargue la página.';
+  }
+
+  if (paymentType === 'normal') {
+    if (montoVoucher > paymentLimit) {
+      return `El monto del comprobante (S/ ${montoVoucher.toFixed(2)}) excede el máximo permitido para Pago Normal (S/ ${paymentLimit.toFixed(2)})`;
+    }
+  } else if (paymentType === 'liquidacion') {
+    if (montoVoucher < paymentLimit) {
+      return `Para Liquidación, el monto debe ser mayor o igual al saldo pendiente (S/ ${paymentLimit.toFixed(2)}), pero se ingresó S/ ${montoVoucher.toFixed(2)}`;
+    }
+  }
+
+  // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND (PAGO PARCIAL)
+  if (!userData?.agencias || userData.agencias.length === 0) {
+    return 'Su usuario no tiene agencias asignadas. Contacte al administrador para configurar su acceso.';
+  }
+
+  if (!agenciaCode || agenciaCode.trim() === '') {
+    return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
+  }
+
+  const codCaja = userData?.agencias?.[0]?.cod_caja || '';
+  const userCaja = userData?.agencias?.[0]?.user_caja || '';
+
+  if (!codCaja || codCaja.trim() === '') {
+    return 'Falta información de código de caja. Contacte al administrador para configurar su agencia correctamente.';
+  }
+
+  if (!userCaja || userCaja.trim() === '') {
+    return 'Falta información de usuario de caja. Contacte al administrador para configurar su agencia correctamente.';
+  }
+
+  if (!userData?.email || userData.email.trim() === '') {
+    return 'Falta información del usuario (email). Inicie sesión nuevamente.';
+  }
+
+  if (!userData?.dni || userData.dni.trim() === '') {
+    return 'Falta información del usuario (DNI). Inicie sesión nuevamente.';
+  }
+
+  const requestData = {
+    montoTotal: selectedVoucher.montoPago, // Solo el monto del voucher seleccionado
+    tipo_pago: paymentType === 'liquidacion' ? 'pago_liquida' : 'pago_normal',
+    userData: {
+      agencia: agenciaCode,
+      cod_caja: codCaja,
+      user_caja: userCaja,
+      email: userData.email,
+      dni_usuario: userData.dni,
+    },
+    vouchers: modalPayments.map(payment => {
+      const isCurrentPayment = payment === displayedPayment;
+      const voucherDetails = payment.comprobantebase_64.map((comp, idx) => {
+        const detail = paymentDetails.find(
+          d => d.imageIndex === idx &&
+              d.paymentIndex === modalPayments.indexOf(payment) &&
+              d.ruta === comp.ruta
+        );
+
+        if (!detail) return null;
+
+        // Solo modificar el voucher seleccionado en pago parcial
+        const shouldAccept = isCurrentPayment && idx === imageIndex;
+        return {
+          indice: idx,
+          montoPago: detail.montoPago || '0',
+          nroOperacion: detail.nroOperacion || '',
+          tipoOperacion: detail.tipoOperacion || '',
+          estado: shouldAccept ? 'aceptado' as const : detail.estado,
+          _id: comp._id || '',
+          motivo_rechazo: shouldAccept ? '' : detail.motivo_rechazo,
+          monto_pago: shouldAccept ? (parseFloat(detail.montoPago) || 0) : (detail.estado === 'aceptado' ? (parseFloat(detail.montoPago) || 0) : 0),
+        };
+      }).filter((d): d is NonNullable<typeof d> => d !== null);
+
+      // Determinar estado general del pago
+      const hasAccepted = voucherDetails.some(d => d.estado === 'aceptado');
+      const hasRejected = voucherDetails.some(d => d.estado === 'rechazado');
+      const hasPending = voucherDetails.some(d => d.estado === 'pendiente');
+      
+      const estadoGeneral = (hasAccepted || hasRejected) && hasPending ? 'parcial'
+        : (hasAccepted || hasRejected) ? 'atendido'
+        : 'pendiente';
+
+      return {
+        identificacion: {
+          creditoId: payment.creditoId || '',
+          dni: payment.dni,
+          fecha: payment.fecha,
+          hora: payment.hora,
+          estadoGeneral,
+        },
+        detalles: voucherDetails,
+      };
+    }),
+  };
+
+  const updatedDetails = paymentDetails.map(detail => {
+    if (detail === selectedVoucher) {
+      return {
+        ...detail,
+        estado: 'aceptado' as const,
+        motivo_rechazo: ''
+      };
+    }
+    return detail;
+  });
+
+  setPaymentDetails(updatedDetails);
+  
+  console.log('=== PAGO PARCIAL ===');
+  console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
+  console.log('====================');
+  
+  try {
+    await procesarComprobantesMasivo(requestData);
+    toast.success('Comprobante aceptado exitosamente');
+    
+    // Cerrar modal después del éxito - usar setTimeout para permitir que se complete el toast
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('closePaymentModal'));
+    }, 1000);
+  } catch (error: any) {
+    console.error('Error:', error);
+    
+    // Extraer mensaje específico del error
+    let errorMessage = 'Error al procesar el pago parcial';
+    
+    if (error?.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error?.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    } else if (error?.response?.data) {
+      if (typeof error.response.data === 'string') {
+        errorMessage = error.response.data;
+      }
+    } else if (error?.message) {
+      errorMessage = error.message;
+    }
+    
+    toast.error(errorMessage);
+    throw error;
   }
   
   return null;
@@ -354,15 +568,29 @@ export const handleAcceptStatus = async (
   }, 0);
 
   // VALIDAR LÍMITES SEGÚN EL TIPO DE PAGO
-  if (paymentType && paymentLimit && paymentLimit > 0) {
-    if (paymentType === 'normal' && totalMonto > paymentLimit) {
+  if (!paymentType) {
+    return 'Error: No se ha seleccionado el tipo de pago. Seleccione "Pago Normal" o "Liquidación Total" antes de continuar.';
+  }
+
+  if (!paymentLimit || paymentLimit <= 0) {
+    return 'Error: No se pudo obtener el límite de pago. Espere a que carguen los datos del crédito o recargue la página.';
+  }
+
+  if (paymentType === 'normal') {
+    if (totalMonto > paymentLimit) {
       return `El monto total (S/ ${totalMonto.toFixed(2)}) excede el máximo permitido para Pago Normal (S/ ${paymentLimit.toFixed(2)})`;
-    } else if (paymentType === 'liquidacion' && Math.abs(totalMonto - paymentLimit) > 0.01) {
-      return `Para Liquidación Total, el monto debe ser exactamente S/ ${paymentLimit.toFixed(2)}, pero se ingresó S/ ${totalMonto.toFixed(2)}`;
+    }
+  } else if (paymentType === 'liquidacion') {
+    if (totalMonto < paymentLimit) {
+      return `Para Liquidación Total, el monto debe ser mayor o igual a S/ ${paymentLimit.toFixed(2)}, pero se ingresó S/ ${totalMonto.toFixed(2)}`;
     }
   }
 
   // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND
+  if (!userData?.agencias || userData.agencias.length === 0) {
+    return 'Su usuario no tiene agencias asignadas. Contacte al administrador para configurar su acceso.';
+  }
+
   if (!agenciaCode || agenciaCode.trim() === '') {
     return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
   }
@@ -388,6 +616,7 @@ export const handleAcceptStatus = async (
 
   const requestData = {
     montoTotal: totalMonto.toString(),
+    tipo_pago: paymentType === 'liquidacion' ? 'pago_liquida' : 'pago_normal',
     userData: {
       agencia: agenciaCode,
       cod_caja: codCaja,
@@ -448,10 +677,12 @@ export const handleAcceptStatus = async (
   try {
     await procesarComprobantesMasivo(requestData);
     toast.success('Comprobantes aceptados exitosamente');
+    
+    // Cerrar modal después del éxito - usar setTimeout para permitir que se complete el toast
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('closePaymentModal'));
+    }, 1000);
   } catch (error: any) {
-    console.error('Error completo:', error);
-    console.error('Error response:', error?.response);
-    console.error('Error response data:', error?.response?.data);
     
     // Extraer mensaje específico del error - MÁS OPCIONES
     let errorMessage = 'Error al procesar la aceptación';
@@ -471,9 +702,6 @@ export const handleAcceptStatus = async (
       // Error con mensaje directo
       errorMessage = error.message;
     }
-    
-    console.log('Mensaje final a mostrar:', errorMessage);
-    
     // Mostrar mensaje específico en el toast
     toast.error(errorMessage);
     throw error;

@@ -140,22 +140,22 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
 
   return (
     <>
-      <div className="p-3 border-t border-gray-200 bg-white mt-auto space-y-3">
+      <div className="p-2 sm:p-3 border-t border-gray-200 bg-white mt-auto space-y-2 sm:space-y-3">
         {errorMessage && <ErrorMessage message={errorMessage} />}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+        <div className="flex items-center justify-between gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-3">
+            <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
               Monto Total:
             </label>
             <input
               type="text"
               value={`S/ ${totalMonto}`}
               readOnly
-              className="w-full sm:w-32 rounded-md border border-gray-300 px-3 py-2 text-sm bg-gray-50 text-gray-700 cursor-not-allowed"
+              className="w-20 sm:w-32 rounded-md border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm bg-gray-50 text-gray-700 cursor-not-allowed"
               title="El monto total se calcula automáticamente sumando los montos individuales de cada voucher"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2">
             <button
               onClick={async () => {
                 setErrorMessage('');
@@ -165,7 +165,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
                   setErrorMessage(error instanceof Error ? error.message : 'Error al procesar la aceptación');
                 }
               }}
-              className={`bg-green-500 text-white px-3 py-1.5 text-sm rounded hover:bg-green-600 transition-colors ${
+              className={`bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-green-600 transition-colors ${
                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               disabled={isLoading}
@@ -174,7 +174,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
             </button>
             <button
               onClick={handleRejectAll}
-              className={`bg-red-500 text-white px-3 py-1.5 text-sm rounded hover:bg-red-600 transition-colors ${
+              className={`bg-red-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-red-600 transition-colors ${
                 isLoading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               disabled={isLoading}

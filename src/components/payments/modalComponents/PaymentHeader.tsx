@@ -49,17 +49,12 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
   const currentPayment = useRef<string | null>(null);
 
   useEffect(() => {
-    if (paymentDetails && totalAmount) {
-      const totalAmountNum = parseFloat(totalAmount);
-      const isMensual = paymentDetails.FRECUENCIA?.toUpperCase() === 'MESES';
-      
-      if ((isMensual && totalAmountNum > paymentDetails.MAXIMO_PAGO) ||
-          (!isMensual && totalAmountNum >= paymentDetails.MONTO_LIQUIDA)) {
-        setPaymentType('liquidacion');
-        onTypeChange?.('liquidacion', paymentDetails.MONTO_LIQUIDA);
-      }
+    if (paymentDetails && currentPayment.current !== displayedPayment.creditoId) {
+      // Solo establecer el tipo normal cuando es un nuevo pago (no resetear si ya se cambió)
+      setPaymentType('normal');
+      onTypeChange?.('normal', paymentDetails.MAXIMO_PAGO);
     }
-  }, [totalAmount, paymentDetails, onTypeChange]);
+  }, [paymentDetails, onTypeChange, displayedPayment.creditoId]);
 
   useEffect(() => {
     const shouldFetchData =
@@ -114,40 +109,48 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                   {paymentDetails.DETALLE}
                 </div>
               )}
-              <div className="flex gap-2">
-                <label className="flex-1 flex items-center hover:bg-gray-50 p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
+              <div className="flex gap-1 sm:gap-2">
+                <label className="flex-1 flex items-center hover:bg-gray-50 p-1 sm:p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
                   <input
                     type="radio"
                     name="paymentType"
-                    className="form-radio h-5 w-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
+                    className="form-radio h-4 w-4 sm:h-5 sm:w-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
                     checked={paymentType === 'normal'}
+                    disabled={!paymentDetails}
                     onChange={() => {
+                      console.log('🔵 SELECCIONANDO PAGO NORMAL');
                       setPaymentType('normal');
-                      onTypeChange?.('normal', paymentDetails?.MAXIMO_PAGO || 0);
+                      const maxPago = paymentDetails?.MAXIMO_PAGO || 0;
+                      console.log('🔵 Enviando límite normal:', maxPago);
+                      onTypeChange?.('normal', maxPago);
                     }}
                   />
-                  <span className="ml-2 text-xs sm:text-sm text-gray-700">
+                  <span className="ml-1 sm:ml-2 text-[10px] sm:text-sm text-gray-700">
                     Pago Normal
-                    <span className="text-[10px] sm:text-xs text-gray-500 ml-1">
+                    <span className="text-[9px] sm:text-xs text-gray-500 ml-1 block sm:inline">
                       (Máximo: S/ {paymentDetails?.MAXIMO_PAGO?.toFixed(2) || '0.00'})
                     </span>
                   </span>
                 </label>
 
-                <label className="flex-1 flex items-center hover:bg-gray-50 p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
+                <label className="flex-1 flex items-center hover:bg-gray-50 p-1 sm:p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
                   <input
                     type="radio"
                     name="paymentType"
-                    className="form-radio h-5 w-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
+                    className="form-radio h-4 w-4 sm:h-5 sm:w-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
                     checked={paymentType === 'liquidacion'}
+                    disabled={!paymentDetails}
                     onChange={() => {
+                      console.log('🔵 SELECCIONANDO LIQUIDACIÓN');
                       setPaymentType('liquidacion');
-                      onTypeChange?.('liquidacion', paymentDetails?.MONTO_LIQUIDA || 0);
+                      const montoLiquida = paymentDetails?.MONTO_LIQUIDA || 0;
+                      console.log('🔵 Enviando límite liquidación:', montoLiquida);
+                      onTypeChange?.('liquidacion', montoLiquida);
                     }}
                   />
-                  <span className="ml-2 text-sm text-gray-700">
+                  <span className="ml-1 sm:ml-2 text-[10px] sm:text-sm text-gray-700">
                     Liquidación Total
-                    <span className="text-xs text-gray-500 ml-1">(Monto: S/ {paymentDetails?.MONTO_LIQUIDA?.toFixed(2) || '0.00'})</span>
+                    <span className="text-[9px] sm:text-xs text-gray-500 ml-1 block sm:inline">(Monto: S/ {paymentDetails?.MONTO_LIQUIDA?.toFixed(2) || '0.00'})</span>
                   </span>
                 </label>
               </div>
@@ -157,11 +160,6 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                 <span className="text-xs sm:text-sm font-medium text-gray-700 mr-2">Estado:</span>
                 <StatusBadge estado={displayedPayment.estadoGeneral} />
               </div>
-              {totalAmount && (
-                <p className="text-gray-600 text-xs sm:text-sm font-semibold">
-                  Total Acumulado: S/ {totalAmount}
-                </p>
-              )}
             </div>
           </div>
         </div>

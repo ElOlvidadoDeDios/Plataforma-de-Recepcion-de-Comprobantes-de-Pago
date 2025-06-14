@@ -13,6 +13,7 @@ interface PaymentFormProps {
   vouchers: VoucherDetail[];
   onUpdateVoucher: (index: number, field: keyof VoucherDetail, value: string) => void;
   onRejectVoucher: (index: number) => void;
+  onAcceptVoucher?: (index: number) => void;
   agenciaName: string;
   isEditable: boolean;
   userData?: {
@@ -37,6 +38,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   vouchers,
   onUpdateVoucher,
   onRejectVoucher,
+  onAcceptVoucher,
   isEditable,
   userData,
   agenciaCode
@@ -71,23 +73,44 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
     return null;
   };
   return (
-    <div className="w-full h-full rounded-lg flex flex-col p-2 space-y-6 overflow-y-auto">
+    <div className="w-full h-full rounded-lg flex flex-col p-2 pt-8 space-y-6 overflow-y-auto">
       {vouchers.map((voucher, index) => (
         <div key={voucher.imageIndex} className="border rounded-lg p-4 relative">
-          {/* Título del voucher */}
-          <h3 className="text-sm font-medium text-gray-700 mb-4">
-            Comprobante {voucher.imageIndex + 1}
-            {voucher.estado !== 'pendiente' && (
-              <span className={`ml-2 ${voucher.estado === 'rechazado' ? 'text-red-500' : 'text-green-500'}`}>
-                ({voucher.estado})
-              </span>
-            )}
-          </h3>
-          
-          {/* Botón de rechazar voucher individual */}
-          {isEditable && voucher.estado !== 'rechazado' && (
+          {/* Botones de acción individual - movidos arriba del título */}
+          {isEditable && voucher.estado === 'pendiente' && (
             <div className="absolute top-2 right-2 flex items-center gap-2">
-              <span className="text-xs text-gray-500"></span>
+              {/* Botón Aceptar Parcial */}
+              {onAcceptVoucher && (
+                <button
+                  onClick={async () => {
+                    // VALIDAR DATOS OBLIGATORIOS PRIMERO
+                    const validationError = validateRequiredData();
+                    if (validationError) {
+                      setErrorMessage(validationError);
+                      return;
+                    }
+
+                    const currentVoucher = vouchers[index];
+                    if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.tipoOperacion) {
+                      setErrorMessage('Debe completar todos los datos del comprobante antes de aceptarlo');
+                      return;
+                    }
+                    
+                    try {
+                      setErrorMessage('');
+                      await onAcceptVoucher?.(index);
+                    } catch (error: any) {
+                      setErrorMessage(error.message || 'Error al procesar la aceptación parcial');
+                    }
+                  }}
+                  className="text-green-500 hover:text-green-700 flex items-center gap-1"
+                  title="Aceptar solo este comprobante"
+                >
+                  <span className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded font-medium transition-colors">Aceptar parcial</span>
+                </button>
+              )}
+              
+              {/* Botón Rechazar Parcial */}
               <button
                 onClick={() => {
                   // VALIDAR DATOS OBLIGATORIOS PRIMERO
@@ -106,14 +129,14 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                   onRejectVoucher(index);
                 }}
                 className="text-red-500 hover:text-red-700 flex items-center gap-1"
-                title="Rechazar comprobante actual"
+                title="Rechazar solo este comprobante"
               >
-                <span className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs font-medium transition-colors">Rechazo parcial</span>
+                <span className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded font-medium transition-colors">Rechazo parcial</span>
               </button>
             </div>
           )}
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 mt-4">
             {/* Monto */}
             <div className="flex flex-col gap-1">
               <label className="text-sm text-center font-medium text-gray-700">
@@ -166,6 +189,19 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               />
             </div>
           </div>
+          
+          {/* Indicador del comprobante en la parte inferior */}
+          <div className="mt-4 pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 text-center">
+              📄 Comprobante {voucher.imageIndex + 1}
+              {voucher.estado !== 'pendiente' && (
+                <span className={`ml-2 font-medium ${voucher.estado === 'rechazado' ? 'text-red-500' : 'text-green-500'}`}>
+                  • {voucher.estado.toUpperCase()}
+                </span>
+              )}
+            </p>
+          </div>
+          
           {errorMessage && (
             <div className="mt-4">
               <ErrorMessage message={errorMessage} />

@@ -19,6 +19,9 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
   const [pagosData, setPagosData] = useState<PaymentRecord[]>([]);
   const [selectedCreditoId, setSelectedCreditoId] = useState<string>('');
   const [loadingPagos, setLoadingPagos] = useState(false);
+  // Estados para el modal de notificación
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
@@ -70,12 +73,14 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
         setPagosData(response.data);
         setIsPagosModalOpen(true);
       } else {
-        // Mostrar mensaje si no hay pagos
-        alert('No se encontraron pagos para este préstamo');
+        // Mostrar mensaje en modal si no hay pagos
+        setNotificationMessage('No se encontraron pagos para este préstamo');
+        setShowNotificationModal(true);
       }
     } catch (error) {
       console.error('Error al cargar pagos:', error);
-      alert('Error al cargar los pagos del préstamo');
+      setNotificationMessage('Error al cargar los pagos del préstamo');
+      setShowNotificationModal(true);
     } finally {
       setLoadingPagos(false);
     }
@@ -354,6 +359,30 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal de Notificación */}
+      {showNotificationModal && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6 text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
+                <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Información</h3>
+              <p className="text-gray-500 mb-6">{notificationMessage}</p>
+              <button
+                onClick={() => setShowNotificationModal(false)}
+                className="w-full px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+              >
+                Entendido
+              </button>
             </div>
           </div>
         </div>,

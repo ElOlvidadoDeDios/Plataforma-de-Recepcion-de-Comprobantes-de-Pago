@@ -3,8 +3,34 @@ import { createPortal } from 'react-dom';
 import { format, subDays } from 'date-fns';
 import Layout from './Layout';
 import { fetchPaymentHistory, PaymentHistoryRecord, PaymentHistoryResponse } from '../api/paymentsApi';
+import { AGENCIAS } from '../types';
 //import { useAuth } from '../hooks/useAuth';
 import { PaymentImage } from './PaymentImage';
+
+
+// Función para obtener el nombre de la agencia por su código
+const getAgencyName = (agencyCode: string): string => {
+  const entry = Object.entries(AGENCIAS).find(([, code]) => code === agencyCode);
+  return entry ? entry[0] : agencyCode; // Si no encuentra el código, devuelve el código original
+};
+
+// Función para obtener el nombre del tipo de pago
+const getTipoPagoTexto = (tipoPago: string): string => {
+  const tipos = {
+    'pago_normal': 'Pago Normal',
+    'pago_liquida': 'Liquidación',
+    'rechazo_total': 'Rechazo Total',
+    'rechazo_parcial': 'Rechazo Parcial'
+  };
+  return tipos[tipoPago as keyof typeof tipos] || tipoPago;
+};
+
+// Función para calcular el monto real pagado (solo vouchers aceptados)
+const calcularMontoRealPagado = (registro: PaymentHistoryRecord): number => {
+  return registro.comprobante.vouchers_modificados
+    .filter(voucher => voucher.estado_nuevo === 'aceptado')
+    .reduce((total, voucher) => total + (voucher.monto_pago || 0), 0);
+};
 
 // Componente Modal para ver imagen del comprobante
 const ImagenComprobanteModal: React.FC<{
@@ -78,94 +104,97 @@ const DetalleComprobanteModal: React.FC<{
   return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" onClick={onClose}>
       <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b">
+        <div className="p-3 border-b">
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold">Detalle del Registro de Pago</h3>
+            <h3 className="text-sm font-semibold">Detalle del Registro de Pago</h3>
             <button
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 text-2xl"
+              className="text-gray-500 hover:text-gray-700 text-xl"
             >
               ×
             </button>
           </div>
         </div>
         
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4">
           {/* Información general */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg text-gray-900">Información del Cliente</h4>
-              <div className="space-y-2">
-                <p><span className="font-medium">Cliente:</span> {registro.comprobante.nombreSocio}</p>
-                <p><span className="font-medium">DNI:</span> {registro.comprobante.dni}</p>
-                <p><span className="font-medium">Crédito ID:</span> {registro.comprobante.creditoId}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm text-gray-900">Información del Cliente</h4>
+              <div className="space-y-1">
+                <p className="text-xs"><span className="font-medium">Cliente:</span> {registro.comprobante.nombreSocio}</p>
+                <p className="text-xs"><span className="font-medium">DNI:</span> {registro.comprobante.dni}</p>
+                <p className="text-xs"><span className="font-medium">Crédito ID:</span> {registro.comprobante.creditoId}</p>
+                <p className="text-xs">
+                  <span className="font-medium">Tipo Pago:</span> {getTipoPagoTexto(registro.tipo_pago)}
+                </p>
               </div>
             </div>
             
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg text-gray-900">Información del Proceso</h4>
-              <div className="space-y-2">
-                <p><span className="font-medium">Fecha/Hora:</span> {registro.fecha_pago} {registro.hora_pago}</p>
-                <p><span className="font-medium">Agencia:</span> {registro.agencia}</p>
-                <p><span className="font-medium">Procesado por:</span> {registro.dni_usuario}</p>
-                <p><span className="font-medium">Email:</span> {registro.email}</p>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-sm text-gray-900">Información del Proceso</h4>
+              <div className="space-y-1">
+                <p className="text-xs"><span className="font-medium">Fecha/Hora:</span> {registro.fecha_pago} {registro.hora_pago}</p>
+                <p className="text-xs"><span className="font-medium">Agencia:</span> {getAgencyName(registro.agencia)}</p>
+                <p className="text-xs"><span className="font-medium">Procesado por:</span> {registro.dni_usuario}</p>
+                <p className="text-xs"><span className="font-medium">Email:</span> {registro.email}</p>
               </div>
             </div>
           </div>
 
           {/* Tipo de operación y estados */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-lg text-gray-900 mb-3">Detalles de la Operación</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <h4 className="font-semibold text-sm text-gray-900 mb-2">Detalles de la Operación</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <span className="text-sm text-gray-600">Tipo de Operación:</span>
-                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-1 ${getTipoOperacionBadge(registro.tipo_operacion)}`}>
+                <span className="text-xs text-gray-600">Tipo de Operación:</span>
+                <div className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${getTipoOperacionBadge(registro.tipo_operacion)}`}>
                   {getTipoOperacionTexto(registro.tipo_operacion)}
                 </div>
               </div>
               <div>
-                <span className="text-sm text-gray-600">Estado Anterior:</span>
-                <p className="font-medium text-red-600">{registro.estadoGeneral_anterior}</p>
+                <span className="text-xs text-gray-600">Estado Anterior:</span>
+                <p className="font-medium text-red-600 text-xs">{registro.estadoGeneral_anterior}</p>
               </div>
               <div>
-                <span className="text-sm text-gray-600">Estado Final:</span>
-                <p className="font-medium text-green-600">{registro.estadoGeneral_final}</p>
+                <span className="text-xs text-gray-600">Estado Final:</span>
+                <p className="font-medium text-green-600 text-xs">{registro.estadoGeneral_final}</p>
               </div>
             </div>
-            <div className="mt-4">
-              <span className="text-sm text-gray-600">Monto Total Operación:</span>
-              <p className="text-xl font-bold text-cyan-600">S/ {registro.monto_total_operacion?.toFixed(2) || '0.00'}</p>
+            <div className="mt-3">
+              <span className="text-xs text-gray-600">Monto Real Pagado:</span>
+              <p className="text-lg font-bold text-cyan-600">S/ {calcularMontoRealPagado(registro).toFixed(2)}</p>
             </div>
           </div>
 
           {/* Vouchers modificados */}
           <div>
-            <h4 className="font-semibold text-lg text-gray-900 mb-4">Vouchers Procesados ({registro.comprobante.vouchers_modificados.length})</h4>
+            <h4 className="font-semibold text-sm text-gray-900 mb-3">Vouchers Procesados ({registro.comprobante.vouchers_modificados.length})</h4>
             <div className="overflow-x-auto">
               <table className="min-w-full bg-white border rounded-lg">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="px-3 py-2 text-left text-sm font-medium">Voucher</th>
-                    <th className="px-3 py-2 text-left text-sm font-medium">Estado Anterior</th>
-                    <th className="px-3 py-2 text-left text-sm font-medium">Estado Nuevo</th>
-                    <th className="px-3 py-2 text-left text-sm font-medium">Nro. Operación</th>
-                    <th className="px-3 py-2 text-left text-sm font-medium">Tipo</th>
-                    <th className="px-3 py-2 text-right text-sm font-medium">Monto</th>
-                    <th className="px-3 py-2 text-left text-sm font-medium">Motivo Rechazo</th>
-                    <th className="px-3 py-2 text-center text-sm font-medium">Comprobante</th>
+                    <th className="px-2 py-1.5 text-left text-xs font-medium">Voucher</th>
+                    <th className="px-2 py-1.5 text-left text-xs font-medium">Estado Anterior</th>
+                    <th className="px-2 py-1.5 text-left text-xs font-medium">Estado Nuevo</th>
+                    <th className="px-2 py-1.5 text-left text-xs font-medium">Nro. Operación</th>
+                    <th className="px-2 py-1.5 text-left text-xs font-medium">Tipo</th>
+                    <th className="px-2 py-1.5 text-right text-xs font-medium">Monto</th>
+                    <th className="px-2 py-1.5 text-left text-xs font-medium">Motivo Rechazo</th>
+                    <th className="px-2 py-1.5 text-center text-xs font-medium">Comprobante</th>
                   </tr>
                 </thead>
                 <tbody>
                   {registro.comprobante.vouchers_modificados.map((voucher, index) => (
                     <tr key={index} className="border-b hover:bg-gray-50">
-                      <td className="px-3 py-2 text-sm">#{voucher.indice + 1}</td>
-                      <td className="px-3 py-2 text-sm">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                      <td className="px-2 py-1.5 text-xs">#{voucher.indice + 1}</td>
+                      <td className="px-2 py-1.5 text-xs">
+                        <span className="px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
                           {voucher.estado_anterior}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-sm">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      <td className="px-2 py-1.5 text-xs">
+                        <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                           voucher.estado_nuevo === 'aceptado'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
@@ -173,19 +202,19 @@ const DetalleComprobanteModal: React.FC<{
                           {voucher.estado_nuevo}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-sm font-mono">{voucher.nroOperacion || '-'}</td>
-                      <td className="px-3 py-2 text-sm">{voucher.tipoOperacion || '-'}</td>
-                      <td className="px-3 py-2 text-right text-sm font-medium">
+                      <td className="px-2 py-1.5 text-xs font-mono">{voucher.nroOperacion || '-'}</td>
+                      <td className="px-2 py-1.5 text-xs">{voucher.tipoOperacion || '-'}</td>
+                      <td className="px-2 py-1.5 text-right text-xs font-medium">
                         S/ {voucher.monto_pago?.toFixed(2) || '0.00'}
                       </td>
-                      <td className="px-3 py-2 text-sm text-red-600">
+                      <td className="px-2 py-1.5 text-xs text-red-600">
                         {voucher.motivo_rechazo || '-'}
                       </td>
-                      <td className="px-3 py-2 text-center">
+                      <td className="px-2 py-1.5 text-center">
                         {voucher.ruta_comprobante && (
                           <button
                             onClick={() => handleVerImagen(voucher.ruta_comprobante)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-xs transition-colors"
+                            className="bg-blue-500 hover:bg-blue-600 text-white py-0.5 px-1.5 rounded text-xs transition-colors"
                             title="Ver imagen del comprobante"
                           >
                             📷 Ver
@@ -234,18 +263,18 @@ const PaymentCard: React.FC<{
   const vouchersRechazados = registro.comprobante.vouchers_modificados.filter(v => v.estado_nuevo === 'rechazado');
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4 mb-4 border-l-4 border-cyan-500">
-      <div className="flex justify-between items-start mb-3">
+    <div className="bg-white rounded-lg shadow-md p-3 mb-3 border-l-4 border-cyan-500">
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <h3 className="font-semibold text-gray-900">{registro.comprobante.nombreSocio}</h3>
-          <p className="text-sm text-gray-600">DNI: {registro.comprobante.dni}</p>
+          <h3 className="text-sm font-semibold text-gray-900">{registro.comprobante.nombreSocio}</h3>
+          <p className="text-xs text-gray-600">DNI: {registro.comprobante.dni}</p>
         </div>
         <div className={`px-2 py-1 rounded text-xs font-medium ${getTipoOperacionBadge(registro.tipo_operacion)}`}>
           {getTipoOperacionTexto(registro.tipo_operacion)}
         </div>
       </div>
       
-      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
         <div>
           <span className="text-gray-500">Fecha:</span>
           <p className="font-medium">{registro.fecha_pago}</p>
@@ -256,15 +285,19 @@ const PaymentCard: React.FC<{
         </div>
         <div>
           <span className="text-gray-500">Monto Total:</span>
-          <p className="font-medium text-lg">S/ {registro.monto_total_operacion?.toFixed(2) || '0.00'}</p>
+          <p className="font-medium text-sm">S/ {calcularMontoRealPagado(registro).toFixed(2)}</p>
         </div>
         <div>
           <span className="text-gray-500">Agencia:</span>
-          <p className="font-medium">{registro.agencia}</p>
+          <p className="font-medium">{getAgencyName(registro.agencia)}</p>
+        </div>
+        <div>
+          <span className="text-gray-500">Tipo Pago:</span>
+          <p className="font-medium">{getTipoPagoTexto(registro.tipo_pago)}</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+      <div className="grid grid-cols-2 gap-2 text-xs mb-2">
         <div>
           <span className="text-gray-500">Estado:</span>
           <p className="font-medium">{registro.estadoGeneral_anterior} → {registro.estadoGeneral_final}</p>
@@ -278,14 +311,14 @@ const PaymentCard: React.FC<{
         </div>
       </div>
 
-      <div className="text-sm mb-3">
+      <div className="text-xs mb-2">
         <span className="text-gray-500">Crédito ID:</span>
         <p className="font-medium">{registro.comprobante.creditoId}</p>
       </div>
 
       <button
         onClick={() => onVerDetalle(registro)}
-        className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-2 px-4 rounded-md text-sm font-medium transition-colors"
+        className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-1.5 px-3 rounded-md text-xs font-medium transition-colors"
       >
         Ver Detalle Completo
       </button>
@@ -328,7 +361,6 @@ const PaymentHistoryPage: React.FC = () => {
       });
       setHistorialPagos(response.data);
     } catch (error) {
-      console.error('Error al cargar el historial:', error);
       setHistorialPagos([]);
     } finally {
       setLoading(false);
@@ -373,7 +405,7 @@ const PaymentHistoryPage: React.FC = () => {
     <Layout title="Historial de Pagos">
       <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6">
         <div className="mb-6 pb-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Historial de Pagos</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Historial de Atención de Comprobantes</h2>
           <p className="text-sm text-gray-500">Consulta el historial completo de pagos procesados desde la tabla de modificaciones</p>
         </div>
 
@@ -454,17 +486,18 @@ const PaymentHistoryPage: React.FC = () => {
                 <table className="min-w-full bg-white">
                   <thead>
                     <tr className="bg-gradient-to-r from-cyan-500 to-cyan-700 text-white">
-                      <th className="px-4 py-2 text-left">Fecha y Hora</th>
-                      <th className="px-4 py-2 text-left">DNI Cliente</th>
-                      <th className="px-4 py-2 text-left">Cliente</th>
-                      <th className="px-4 py-2 text-right">Monto Total</th>
-                      <th className="px-4 py-2 text-left">Agencia</th>
-                      <th className="px-4 py-2 text-center">Tipo Operación</th>
-                      <th className="px-4 py-2 text-center">Estado Final</th>
-                      <th className="px-4 py-2 text-left">Crédito ID</th>
-                      <th className="px-4 py-2 text-center">Aplicado por</th>
-                      <th className="px-4 py-2 text-center">Vouchers</th>
-                      <th className="px-4 py-2 text-center">Acción</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Fecha y Hora</th>
+                      <th className="px-2 py-1.5 text-left text-xs">DNI Cliente</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Cliente</th>
+                      <th className="px-2 py-1.5 text-right text-xs">Monto Total</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Agencia</th>
+                      <th className="px-2 py-1.5 text-center text-xs">Tipo Pago</th>
+                      <th className="px-2 py-1.5 text-center text-xs">Tipo Operación</th>
+                      <th className="px-2 py-1.5 text-center text-xs">Estado Final</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Crédito ID</th>
+                      <th className="px-2 py-1.5 text-center text-xs">Aplicado por</th>
+                      <th className="px-2 py-1.5 text-center text-xs">Vouchers</th>
+                      <th className="px-2 py-1.5 text-center text-xs">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -477,31 +510,32 @@ const PaymentHistoryPage: React.FC = () => {
                           key={`${registro.comprobante.dni}-${registro.fecha_pago}-${registro.hora_pago}-${index}`}
                           className="border-b hover:bg-gray-50"
                         >
-                          <td className="px-4 py-2 text-sm">
+                          <td className="px-2 py-1.5 text-xs">
                             <div>{registro.fecha_pago}</div>
                             <div className="text-gray-500">{registro.hora_pago}</div>
                           </td>
-                          <td className="px-4 py-2 font-medium">{registro.comprobante.dni}</td>
-                          <td className="px-4 py-2">{registro.comprobante.nombreSocio}</td>
-                          <td className="px-4 py-2 text-right font-medium">
-                            S/ {registro.monto_total_operacion?.toFixed(2) || '0.00'}
+                          <td className="px-2 py-1.5 text-xs font-medium">{registro.comprobante.dni}</td>
+                          <td className="px-2 py-1.5 text-xs">{registro.comprobante.nombreSocio}</td>
+                          <td className="px-2 py-1.5 text-xs text-right font-medium">
+                            S/ {calcularMontoRealPagado(registro).toFixed(2)}
                           </td>
-                          <td className="px-4 py-2">{registro.agencia}</td>
-                          <td className="px-4 py-2 text-center">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${getTipoOperacionBadge(registro.tipo_operacion)}`}>
+                          <td className="px-2 py-1.5 text-xs">{getAgencyName(registro.agencia)}</td>
+                          <td className="px-2 py-1.5 text-xs">{getTipoPagoTexto(registro.tipo_pago)}</td>
+                          <td className="px-2 py-1.5 text-center">
+                            <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getTipoOperacionBadge(registro.tipo_operacion)}`}>
                               {getTipoOperacionTexto(registro.tipo_operacion)}
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-center">
-                            <span className="text-sm">
+                          <td className="px-2 py-1.5 text-center">
+                            <span className="text-xs">
                               {registro.estadoGeneral_anterior} → <span className="font-medium">{registro.estadoGeneral_final}</span>
                             </span>
                           </td>
-                          <td className="px-4 py-2 text-sm font-mono">
+                          <td className="px-2 py-1.5 text-xs font-mono">
                             {registro.comprobante.creditoId}
                           </td>
-                          <td className="px-4 py-2 text-sm">{registro.dni_usuario}</td>
-                          <td className="px-4 py-2 text-center text-sm">
+                          <td className="px-2 py-1.5 text-xs">{registro.dni_usuario}</td>
+                          <td className="px-2 py-1.5 text-center text-xs">
                             <div>
                               <span className="text-green-600 font-medium">{vouchersAceptados.length} ✓</span>
                               {vouchersRechazados.length > 0 && (
@@ -509,10 +543,10 @@ const PaymentHistoryPage: React.FC = () => {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-2 text-center">
+                          <td className="px-2 py-1.5 text-center">
                             <button
                               onClick={() => handleVerDetalle(registro)}
-                              className="bg-cyan-500 hover:bg-cyan-600 text-white py-1 px-3 rounded text-sm font-medium transition-colors"
+                              className="bg-cyan-500 hover:bg-cyan-600 text-white py-0.5 px-2 rounded text-xs font-medium transition-colors"
                             >
                               Ver Detalle
                             </button>
