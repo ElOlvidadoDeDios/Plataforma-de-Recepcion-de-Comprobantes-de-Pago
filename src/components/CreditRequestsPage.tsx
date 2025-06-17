@@ -3,14 +3,16 @@ import { createPortal } from 'react-dom';
 import { useCreditRequests } from '../hooks/useCreditRequests';
 import { useCreditAttention } from '../hooks/useCreditAttention';
 import { useAuth } from '../hooks/useAuth';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { CreditRequest, CreditRequestStatus, AttentionStatus } from '../types/creditRequest';
 import { getBotInteractionsByDni } from '../api/botInteractionsApi';
 import Layout from './Layout';
+import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
 import toast from 'react-hot-toast';
 
 // Componente principal
 const CreditRequestsPage: React.FC = () => {
-  const { requests, loading, error, loadRequests, loadRequestsByStatus, loadRequestsByDni, updateAttentionStatus } = useCreditRequests();
+  const { requests, loading, error, loadingMore, pagination, loadRequests, loadRequestsByStatus, loadRequestsByDni, loadMoreData, updateAttentionStatus, resetData } = useCreditRequests();
   const { getLastAttentionUser } = useCreditAttention();
   const { hasPermission } = useAuth();
   const [searchDni, setSearchDni] = useState('');
@@ -44,6 +46,23 @@ const CreditRequestsPage: React.FC = () => {
     return dniLimpio.length === 8 && /^\d+$/.test(dniLimpio);
   };
 
+ 
+
+  // 🚀 Filtrar solicitudes en el frontend (para compatibilidad con estados combinados)
+  const filteredRequests = React.useMemo(() => {
+    return requests.filter((request) => {
+      if (statusFilter === '') {
+        return true;
+      } else if (statusFilter === 'APPROVED_PENDING') {
+        return request.status === 'APPROVED' && request.estadoAtencion === 'PENDIENTE';
+      } else if (statusFilter === 'APPROVED_ATTENDED') {
+        return request.status === 'APPROVED' && request.estadoAtencion === 'ATENDIDO';
+      } else {
+        return request.status === statusFilter;
+      }
+    });
+  }, [requests, statusFilter]);
+
   // Función para buscar solicitudes por DNI
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,40 +77,50 @@ const CreditRequestsPage: React.FC = () => {
   // Filtrar solicitudes según el estado
   const handleStatusFilter = (filter: string) => {
     setStatusFilter(filter);
+    resetData(); // Limpiar datos anteriores
+    
     if (filter === '') {
-      // Si se selecciona "Todos", usar loadRequests que trae todas las solicitudes
-      loadRequests();
+      loadRequests(1, false);
     } else if (filter === 'APPROVED_PENDING' || filter === 'APPROVED_ATTENDED') {
-      loadRequestsByStatus('APPROVED');
+      loadRequestsByStatus('APPROVED', 1, false);
     } else {
-      loadRequestsByStatus(filter as CreditRequestStatus);
+      loadRequestsByStatus(filter as CreditRequestStatus, 1, false);
     }
   };
 
-  const filteredRequests = requests
-    .filter((request) => {
-      if (statusFilter === '') {
-        // Si el filtro es vacío (Todos), mostrar todas las solicitudes
-        return true;
-      } else if (statusFilter === 'APPROVED_PENDING') {
-        return request.status === 'APPROVED' && request.estadoAtencion === 'PENDIENTE';
-      } else if (statusFilter === 'APPROVED_ATTENDED') {
-        return request.status === 'APPROVED' && request.estadoAtencion === 'ATENDIDO';
-      } else {
-        return request.status === statusFilter;
-      }
-    })
-    .sort((a, b) => {
-      // Si es APPROVED_PENDING, mantener el orden actual (más antiguo primero)
-      if (statusFilter === 'APPROVED_PENDING') {
-        return 0; // mantiene el orden original
-      }
-      
-      // Para los demás casos, ordenar por fecha más reciente primero
-      const dateA = new Date(`${a.fecha} ${a.hora}`);
-      const dateB = new Date(`${b.fecha} ${b.hora}`);
-      return dateB.getTime() - dateA.getTime(); // orden descendente
-    });
+  // useEffect para cargar los datos iniciales según el filtro por defecto
+  useEffect(() => {
+    // Cargar datos iniciales con el filtro por defecto (APPROVED_PENDING)
+    if (statusFilter === 'APPROVED_PENDING' || statusFilter === 'APPROVED_ATTENDED') {
+      loadRequestsByStatus('APPROVED', 1, false);
+    } else if (statusFilter === '') {
+      loadRequests(1, false);
+    } else {
+      loadRequestsByStatus(statusFilter as CreditRequestStatus, 1, false);
+    }
+  }, []); // Solo al montar el componente
+
+  // Función para cargar más datos cuando se hace scroll
+  const handleLoadMore = React.useCallback(() => {
+    // Determinar el estado actual para cargar más
+    let currentStatus: CreditRequestStatus | undefined;
+    if (statusFilter === 'APPROVED_PENDING' || statusFilter === 'APPROVED_ATTENDED') {
+      currentStatus = 'APPROVED';
+    } else if (statusFilter && statusFilter !== '') {
+      currentStatus = statusFilter as CreditRequestStatus;
+    }
+    
+    loadMoreData(currentStatus);
+  }, [statusFilter, loadMoreData]);
+
+  // 🚀 Hook para infinite scroll optimizado
+  const { setSentinelRef } = useInfiniteScroll({
+    hasNext: pagination.hasNext,
+    loading: loadingMore,
+    onLoadMore: handleLoadMore,
+    disabled: !!searchDni.trim(), // Desactivar durante búsquedas por DNI
+    threshold: 300
+  });
 
   // Actualizar el estado de atención (Pendiente/Atendido)
   const handleAttentionUpdate = async (id: string, newStatus: AttentionStatus, dni: string, currentStatus: AttentionStatus) => {
@@ -205,7 +234,6 @@ Quedo atento a su respuesta.`;
         setModalError('No se encontró el número de teléfono para este DNI. Verifica que el cliente haya interactuado con el bot.');
       }
     } catch (error) {
-      console.error('Error al buscar el número de teléfono:', error);
       setModalError('Error al buscar el número de teléfono. Por favor, intenta nuevamente.');
     } finally {
       setIsLoading(false);
@@ -297,8 +325,9 @@ Quedo atento a su respuesta.`;
         </div>
       ) : viewMode === 'cards' ? (
         /* Vista de tarjetas */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
-          {filteredRequests.map((request: CreditRequest) => (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in">
+            {filteredRequests.map((request: CreditRequest) => (
             <div
               key={request._id}
               className="bg-white rounded-xl shadow-lg p-4 hover:shadow-xl transition-all duration-300 flex flex-col justify-between relative"
@@ -404,7 +433,23 @@ Quedo atento a su respuesta.`;
               </div>
             </div>
           ))}
-        </div>
+          </div>
+
+          {/* 🚀 Sentinel element para Intersection Observer */}
+          {pagination.hasNext && !searchDni.trim() && (
+            <div ref={setSentinelRef} className="h-4" />
+          )}
+
+          {/* 🚀 Indicador de infinite scroll */}
+          {!searchDni.trim() && (
+            <InfiniteScrollIndicator
+              loading={loadingMore}
+              hasMore={pagination.hasNext}
+              total={pagination.total}
+              itemName="solicitudes"
+            />
+          )}
+        </>
       ) : (
         /* Vista de tabla responsive */
         <div className="bg-white rounded-xl shadow-lg animate-fade-in w-full max-w-full">
@@ -441,7 +486,7 @@ Quedo atento a su respuesta.`;
                  </tr>
               </thead>
             <tbody className="bg-white divide-y divide-gray-100">
-              {filteredRequests.map((request: CreditRequest, index) => (
+              {filteredRequests.map((request: CreditRequest, index: number) => (
                 <tr key={request._id} className={`transition-all duration-200 hover:bg-cyan-50 ${
                   index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
                 }`}>
@@ -563,6 +608,21 @@ Quedo atento a su respuesta.`;
             </tbody>
             </table>
           </div>
+          
+          {/* 🚀 Sentinel element para Intersection Observer */}
+          {pagination.hasNext && !searchDni.trim() && (
+            <div ref={setSentinelRef} className="h-4" />
+          )}
+          
+          {/* 🚀 Indicador de infinite scroll */}
+          {!searchDni.trim() && (
+            <InfiniteScrollIndicator
+              loading={loadingMore}
+              hasMore={pagination.hasNext}
+              total={pagination.total}
+              itemName="solicitudes"
+            />
+          )}
         </div>
       )}
       {/* Modal de Respuesta */}

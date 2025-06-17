@@ -78,7 +78,6 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
         setShowNotificationModal(true);
       }
     } catch (error) {
-      console.error('Error al cargar pagos:', error);
       setNotificationMessage('Error al cargar los pagos del préstamo');
       setShowNotificationModal(true);
     } finally {

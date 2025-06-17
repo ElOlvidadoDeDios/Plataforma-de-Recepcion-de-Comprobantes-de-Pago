@@ -49,11 +49,8 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
       }
       // Extraer solo el nombre del archivo y usar el prefijo /comprobantes
       const fileName = image.split(/[/\\]/).pop();
-      console.log('Ruta original:', image);
-      console.log('Nombre del archivo:', fileName);
       if (!fileName) return '';
       const finalUrl = `${API_BASE_URL}/comprobantes/${fileName}`;
-      console.log('URL final:', finalUrl);
       return finalUrl;
     }
 

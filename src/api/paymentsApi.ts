@@ -9,6 +9,7 @@ export interface PaymentHistoryRecord {
   hora_pago: string;
   monto: number;
   agencia: string;
+  tipo_pago: string;
   tipo_operacion: 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial' | 'modificacion_parcial';
   estadoGeneral_anterior: string;
   estadoGeneral_final: string;
@@ -108,17 +109,57 @@ export const fetchPaymentsByDNI = async (dni: string) => {
   }
 };
 
-export const fetchPaymentsByStatus = async (status: 'pendiente' | 'parcial' | 'atendido') => {
+export const fetchPaymentsByStatus = async (
+  status: 'pendiente' | 'parcial' | 'atendido',
+  page: number = 1,
+  limit: number = 12,
+  sortBy: string = 'fecha',
+  sortOrder: 'asc' | 'desc' = 'desc'
+): Promise<{
+  success: boolean;
+  comprobantes: PaymentRecord[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}> => {
   try {
-    const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
-      `/api/comprobantes/estadoGeneral/${status}`
-    );
-    response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
+    const validPage = Math.max(1, page);
+    const validLimit = Math.min(Math.max(1, limit), 50);
+
+    const response = await axiosInstance.get<{
+      success: boolean;
+      comprobantes: PaymentRecord[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    }>(`/api/comprobantes/estadoGeneral/${status}`, {
+      params: {
+        page: validPage,
+        limit: validLimit,
+        sortBy,
+        sortOrder
+      },
+      timeout: 10000
+    });
+
+    if (response.data.comprobantes) {
+      response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
+    }
+    
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
+      if (error.code === 'ECONNABORTED') {
+        throw new APIError('Tiempo de espera agotado al cargar pagos por estado', 408);
+      }
       throw new APIError(
-        'Error al obtener los pagos por estado',
+        error.response?.data?.message || 'Error al obtener los pagos por estado',
         error.response?.status
       );
     }
@@ -173,8 +214,6 @@ export const updatePaymentStatus = async (
         email
       }
     };
-
-    console.log('Enviando al backend:', requestBody);
     
     const response = await axiosInstance.put<PaymentRecord>(
       `/api/comprobantes/${dni}`,
@@ -187,28 +226,73 @@ export const updatePaymentStatus = async (
   } catch (error) {
     if (error instanceof AxiosError) {
       const errorMessage = error.response?.data?.message || error.message;
-      console.error('Error detallado:', error.response?.data);
       throw new APIError(
         `Error al actualizar el estado del pago: ${errorMessage}`,
         error.response?.status
       );
     }
-    console.error('Error no-Axios:', error);
     throw new APIError('Error al actualizar el estado del pago');
   }
 };
 
-export const fetchPayments = async (fechaInicio: string, fechaFin: string) => {
+export const fetchPayments = async (params: {
+  fechaInicio?: string;
+  fechaFin?: string;
+  dni?: string;
+  estado?: 'pendiente' | 'parcial' | 'atendido';
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}): Promise<{
+  success: boolean;
+  comprobantes: PaymentRecord[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}> => {
   try {
-    const response = await axiosInstance.get<{ total: number; comprobantes: PaymentRecord[] }>(
-      `/api/comprobantes?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
-    );
-    response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
+    const validPage = Math.max(1, params.page || 1);
+    const validLimit = Math.min(Math.max(1, params.limit || 12), 50);
+
+    const queryParams = new URLSearchParams();
+    if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
+    if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
+    if (params.dni) queryParams.append('dni', params.dni);
+    if (params.estado) queryParams.append('estado', params.estado);
+    queryParams.append('page', validPage.toString());
+    queryParams.append('limit', validLimit.toString());
+    queryParams.append('sortBy', params.sortBy || 'fecha');
+    queryParams.append('sortOrder', params.sortOrder || 'desc');
+
+    const response = await axiosInstance.get<{
+      success: boolean;
+      comprobantes: PaymentRecord[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    }>(`/api/comprobantes?${queryParams.toString()}`, {
+      timeout: 10000
+    });
+
+    if (response.data.comprobantes) {
+      response.data.comprobantes = normalizePaymentRecords(response.data.comprobantes);
+    }
+    
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
+      if (error.code === 'ECONNABORTED') {
+        throw new APIError('Tiempo de espera agotado al cargar pagos', 408);
+      }
       throw new APIError(
-        'Error al obtener los pagos',
+        error.response?.data?.message || 'Error al obtener los pagos',
         error.response?.status
       );
     }
@@ -257,22 +341,46 @@ export const fetchPaymentHistory = async (params: {
   fechaFin?: string;
   dni?: string;
   estado?: 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial';
-}) => {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}): Promise<PaymentHistoryResponse & {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}> => {
   try {
     const queryParams = new URLSearchParams();
     if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
     if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
     if (params.dni) queryParams.append('dni', params.dni);
     if (params.estado) queryParams.append('estado', params.estado);
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
-    const response = await axiosInstance.get<PaymentHistoryResponse>(
-      `/api/comprobantes/historial-pagos?${queryParams.toString()}`
-    );
+    const response = await axiosInstance.get<PaymentHistoryResponse & {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+      hasNext: boolean;
+      hasPrev: boolean;
+    }>(`/api/comprobantes/historial-pagos?${queryParams.toString()}`);
+    
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
+      if (error.code === 'ECONNABORTED') {
+        throw new APIError('Tiempo de espera agotado al cargar historial de pagos', 408);
+      }
       throw new APIError(
-        'Error al obtener el historial de pagos',
+        error.response?.data?.message || 'Error al obtener el historial de pagos',
         error.response?.status
       );
     }

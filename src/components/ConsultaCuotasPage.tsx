@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import Layout from './Layout';
 import { fetchAllConsultas, fetchConsultasByDniAndPagare, fetchConsultasByFecha } from '../api';
 import { ConsultaCuota } from '../types/consultaCuotas';
-import { DateRangePicker } from './DateRangePicker';
 
 const ConsultaCuotasPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
@@ -46,9 +45,6 @@ const ConsultaCuotasPage: React.FC = () => {
     retry: 3
   });
 
-  const toggleView = () => {
-    setViewMode(prev => prev === 'table' ? 'cards' : 'table');
-  };
 
   const TableView = () => (
     <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
@@ -239,7 +235,7 @@ const ConsultaCuotasPage: React.FC = () => {
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            Listado de Consultas
+            Historial de Consultas de Cuotas por medio del bot
           </h2>
           <span className="text-sm text-gray-500">
             Vista: {isMobile ? 'Tarjetas' : 'Tabla'}

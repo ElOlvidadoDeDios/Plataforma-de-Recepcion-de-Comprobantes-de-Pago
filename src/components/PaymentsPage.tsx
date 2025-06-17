@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { fetchPaymentsByDNI, fetchPaymentsByStatus } from '../api'; //updatePaymentStatus
+import { fetchPaymentsByDNI } from '../api';
 import { PaymentCard } from './PaymentCard';
 import { PaymentRecord, AGENCIAS } from '../types';
 import { UserRole } from '../types/roles';
 import Layout from './Layout';
 import { usePermissions, useAuth } from '../hooks/useAuth';
+import { usePayments } from '../hooks/usePayments';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
 import { Navigate } from 'react-router-dom';
 
 interface PaymentsPageProps {
@@ -18,10 +21,10 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   const navigate = useNavigate();
   const { canAccessPayments } = usePermissions();
   const { user } = useAuth();
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { payments, loading, loadingMore, pagination, loadPayments, loadMoreData, resetData, updatePayment } = usePayments();
   const [dniFilter, setDniFilter] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('pendiente');
+  const [selectedStatus, setSelectedStatus] = useState<'pendiente' | 'parcial' | 'atendido' | 'todos'>('pendiente');
+  const [searchMode, setSearchMode] = useState(false); // Para diferenciar búsqueda por DNI vs filtros
   
   // Estado inicial de agencia con useMemo
   const defaultAgencia = React.useMemo(() => {
@@ -78,97 +81,98 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
     return dniLimpio.length === 8 && /^\d+$/.test(dniLimpio);
   };
 
-  useEffect(() => {
-    fetchInitialPayments();
-  }, []);
+  // Función para cargar más datos
+  const handleLoadMore = React.useCallback(() => {
+    if (!searchMode) {
+      const filters = {
+        estado: selectedStatus === 'todos' ? undefined : selectedStatus
+      };
+      loadMoreData(filters);
+    }
+  }, [searchMode, selectedStatus, loadMoreData]);
 
+  // 🚀 Hook para infinite scroll optimizado
+  const { setSentinelRef } = useInfiniteScroll({
+    hasNext: pagination.hasNext && !searchMode, // Desactivar si estamos en modo búsqueda
+    loading: loadingMore,
+    onLoadMore: handleLoadMore,
+    disabled: false,
+    threshold: 300
+  });
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    const filters = {
+      estado: selectedStatus === 'todos' ? undefined : selectedStatus
+    };
+    loadPayments(filters, 1, false);
+    setSearchMode(false);
+  }, [selectedStatus, loadPayments]);
+
+  // Escuchar actualizaciones por socket
   useEffect(() => {
     if (socket) {
       socket.on('paymentUpdated', (updatedPayment: PaymentRecord) => {
-        setPayments(prevPayments =>
-          prevPayments.map(payment =>
-            payment.dni === updatedPayment.dni &&
-            payment.fecha === updatedPayment.fecha &&
-            payment.hora === updatedPayment.hora
-              ? updatedPayment
-              : payment
-          )
-        );
+        updatePayment(updatedPayment);
       });
       return () => {
         socket.off('paymentUpdated');
       };
     }
-  }, [socket]);
+  }, [socket, updatePayment]);
 
-  const fetchInitialPayments = async () => {
-    setLoading(true);
-    try {
-      const response = await fetchPaymentsByStatus('pendiente');
-      setPayments(response?.comprobantes || []);
-    } catch (error) {
-      console.error('Error al cargar pagos iniciales:', error);
-      setPayments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Función para búsqueda por DNI (modo búsqueda independiente)
+  const [dniSearchResults, setDniSearchResults] = useState<PaymentRecord[]>([]);
 
   const handleDNISearch = async () => {
     if (!esDniValido(dniFilter)) return;
-    setLoading(true);
+    
     try {
+      setSearchMode(true);
+      // Para búsqueda por DNI, usar la API específica
       const response = await fetchPaymentsByDNI(dniFilter);
-      const filteredPayments = response?.comprobantes.filter(
-        payment => selectedStatus === 'todos' || payment.estadoGeneral === selectedStatus
-      ) || [];
-      setPayments(filteredPayments);
+      const filteredPayments = response?.comprobantes || [];
+      setDniSearchResults(filteredPayments);
+      
       if (filteredPayments.length > 0) {
         toast.success(`Se encontraron ${filteredPayments.length} pagos para el DNI: ${dniFilter}`);
+      } else {
+        toast(`No se encontraron pagos para el DNI: ${dniFilter}`, {
+          icon: 'ℹ️',
+          duration: 3000
+        });
       }
     } catch (error) {
-      console.error('Error al buscar por DNI:', error);
-      setPayments([]);
-    } finally {
-      setLoading(false);
+      setDniSearchResults([]);
+      toast.error('Error al buscar pagos por DNI');
     }
   };
 
   const handleStatusChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const newStatus = event.target.value;
+    const newStatus = event.target.value as 'pendiente' | 'parcial' | 'atendido' | 'todos';
     setSelectedStatus(newStatus);
-    setLoading(true);
-    try {
-      if (dniFilter.trim()) {
-        const response = await fetchPaymentsByDNI(dniFilter);
-        const filteredPayments = response?.comprobantes.filter(
-          payment => newStatus === 'todos' || payment.estadoGeneral === newStatus
-        ) || [];
-        setPayments(filteredPayments);
-      } else if (newStatus === 'todos') {
-        const allPayments = await Promise.all([
-          fetchPaymentsByStatus('pendiente'),
-          fetchPaymentsByStatus('parcial'),
-          fetchPaymentsByStatus('atendido')
-        ]);
-        const combinedPayments = allPayments.flatMap(p => p.comprobantes || []);
-        setPayments(combinedPayments);
-      } else {
-        const response = await fetchPaymentsByStatus(newStatus as 'pendiente' | 'parcial' | 'atendido');
-        setPayments(response?.comprobantes || []);
-      }
-    } catch (error) {
-      console.error('Error al filtrar por estado:', error);
-      setPayments([]);
-    } finally {
-      setLoading(false);
-    }
+    setSearchMode(false);
+    setDniSearchResults([]);
+    
+    // Cargar con el nuevo filtro
+    const filters = {
+      estado: newStatus === 'todos' ? undefined : newStatus
+    };
+    resetData(); // Limpiar datos anteriores
+    loadPayments(filters, 1, false);
   };
 
   const clearFilters = async () => {
     setDniFilter('');
     setSelectedStatus('pendiente');
-    await fetchInitialPayments();
+    setSearchMode(false);
+    setDniSearchResults([]);
+    
+    const filters = {
+      estado: 'pendiente' as const
+    };
+    resetData();
+    loadPayments(filters, 1, false);
   };
 
   // const handleUpdatePaymentStatus = async (
@@ -360,7 +364,8 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                           id="status-select"
                           value={selectedStatus}
                           onChange={handleStatusChange}
-                          className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors shadow-sm appearance-none bg-white"
+                          disabled={searchMode}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors shadow-sm appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
                           <option value="pendiente">🟡 Pendiente</option>
                           <option value="parcial">🟠 Parcialmente Atendido</option>
@@ -381,10 +386,12 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 px-2">
                   <div className="flex items-center gap-3">
                     <div className="text-sm text-gray-600 font-medium">
-                      {payments.length > 0 ? (
+                      {(searchMode ? dniSearchResults : payments).length > 0 ? (
                         <span className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          Mostrando {payments.length} comprobante{payments.length !== 1 ? 's' : ''}
+                          Mostrando {(searchMode ? dniSearchResults : payments).length} comprobante{(searchMode ? dniSearchResults : payments).length !== 1 ? 's' : ''}
+                          {!searchMode && pagination.total > 0 && ` de ${pagination.total} total`}
+                          {searchMode && <span className="text-cyan-600 ml-1">({dniFilter})</span>}
                         </span>
                       ) : (
                         <span className="flex items-center gap-2 text-gray-500">
@@ -419,31 +426,48 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
               </div>
           </div>
 
-          {loading ? (
+          {loading && !loadingMore ? (
             <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-8 text-center">
               <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-gray-600 font-medium">Cargando pagos...</p>
             </div>
-          ) : payments.length === 0 ? (
+          ) : (searchMode ? dniSearchResults : payments).length === 0 ? (
             <div className="rounded-xl p-8 text-center">
               <p className="text-gray-600 font-medium">
-                {dniFilter ? `No se encontraron comprobantes para el DNI ${dniFilter}` : `No se encontraron comprobantes`}
+                {searchMode && dniFilter ? `No se encontraron comprobantes para el DNI ${dniFilter}` : `No se encontraron comprobantes`}
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-              {payments.map((payment) => (
-                <PaymentCard
-                  key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
-                  payment={payment}
-                  socket={socket}
-                  agencias={user?.role === UserRole.PAYMENTS_USER && selectedAgencia
-                    ? [selectedAgencia]
-                    : user?.agencias?.map(ag => ag.agencia) || []}
-                  userAgencias={user?.agencias || []}
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                {(searchMode ? dniSearchResults : payments).map((payment) => (
+                  <PaymentCard
+                    key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
+                    payment={payment}
+                    socket={socket}
+                    agencias={user?.role === UserRole.PAYMENTS_USER && selectedAgencia
+                      ? [selectedAgencia]
+                      : user?.agencias?.map(ag => ag.agencia) || []}
+                    userAgencias={user?.agencias || []}
+                  />
+                ))}
+              </div>
+
+              {/* 🚀 Sentinel element para Intersection Observer */}
+              {!searchMode && pagination.hasNext && (
+                <div ref={setSentinelRef} className="h-4" />
+              )}
+
+              {/* 🚀 Indicador de infinite scroll */}
+              {!searchMode && (
+                <InfiniteScrollIndicator
+                  loading={loadingMore}
+                  hasMore={pagination.hasNext}
+                  total={pagination.total}
+                  itemName="comprobantes"
                 />
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       )}

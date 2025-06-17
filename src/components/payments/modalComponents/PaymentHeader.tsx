@@ -38,7 +38,6 @@ interface PaymentHeaderProps {
 export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
   onTypeChange,
   displayedPayment,
-  totalAmount,
   currentIndex,
   totalPayments,
   onCloseModal,
@@ -118,10 +117,8 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                     checked={paymentType === 'normal'}
                     disabled={!paymentDetails}
                     onChange={() => {
-                      console.log('🔵 SELECCIONANDO PAGO NORMAL');
                       setPaymentType('normal');
                       const maxPago = paymentDetails?.MAXIMO_PAGO || 0;
-                      console.log('🔵 Enviando límite normal:', maxPago);
                       onTypeChange?.('normal', maxPago);
                     }}
                   />
@@ -141,10 +138,8 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                     checked={paymentType === 'liquidacion'}
                     disabled={!paymentDetails}
                     onChange={() => {
-                      console.log('🔵 SELECCIONANDO LIQUIDACIÓN');
                       setPaymentType('liquidacion');
                       const montoLiquida = paymentDetails?.MONTO_LIQUIDA || 0;
-                      console.log('🔵 Enviando límite liquidación:', montoLiquida);
                       onTypeChange?.('liquidacion', montoLiquida);
                     }}
                   />

@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
-import { getBotInteractions, getBotInteractionsByDni, type BotInteraction } from '../api/botInteractionsApi';
+import React, { useState, useEffect } from 'react';
+import { type BotInteraction } from '../api/botInteractionsApi';
+import { useBotInteractions } from '../hooks/useBotInteractions';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
 import Layout from './Layout';
 import { DateRangePicker } from './DateRangePicker';
 
@@ -8,13 +11,12 @@ const formatDate = (date: Date) => {
 };
 
 const BotInteractionsPage = () => {
-  const [interactions, setInteractions] = useState<BotInteraction[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { interactions, loading, error, loadingMore, pagination, loadInteractions, loadMoreData, searchByDni, resetData } = useBotInteractions();
   const [searchDni, setSearchDni] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
   const [startDate, setStartDate] = useState(formatDate(new Date(new Date().setDate(new Date().getDate() - 30))));
   const [endDate, setEndDate] = useState(formatDate(new Date()));
+  const [searchMode, setSearchMode] = useState(false); // Para diferenciar búsqueda específica vs filtros
   const [filteredInteractions, setFilteredInteractions] = useState<BotInteraction[]>([]);
 
   const formatPhoneNumber = (number: string) => {
@@ -22,74 +24,79 @@ const BotInteractionsPage = () => {
     return cleaned.startsWith('51') ? cleaned : `51${cleaned}`;
   };
 
-  const filterInteractionsByDate = (interactions: BotInteraction[]) => {
-    return interactions.filter(interaction => {
-      const interactionDate = new Date(interaction.fecha);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      return interactionDate >= start && interactionDate <= end;
-    });
-  };
+  // Función para cargar más datos
+  const handleLoadMore = React.useCallback(() => {
+    if (!searchMode) {
+      const filters = {
+        fechaInicio: startDate,
+        fechaFin: endDate
+      };
+      loadMoreData(filters);
+    }
+  }, [searchMode, startDate, endDate, loadMoreData]);
 
-  const fetchInteractions = async (dni?: string) => {
-    try {
-      setLoading(true);
-      const response = dni
-        ? await getBotInteractionsByDni(dni)
-        : await getBotInteractions();
-      
-      const sortedInteractions = response.data.sort((a, b) => {
-        const dateA = new Date(`${a.fecha} ${a.hora}`);
-        const dateB = new Date(`${b.fecha} ${b.hora}`);
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      setInteractions(sortedInteractions);
-      setFilteredInteractions(filterInteractionsByDate(sortedInteractions));
-      setError('');
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        setInteractions([]);
-        setFilteredInteractions([]);
-      } else {
-        console.error('Error al cargar interacciones:', err);
-        setError('Error al cargar las interacciones');
+  // 🚀 Hook para infinite scroll optimizado
+  const { setSentinelRef } = useInfiniteScroll({
+    hasNext: pagination.hasNext && !searchMode,
+    loading: loadingMore,
+    onLoadMore: handleLoadMore,
+    disabled: false,
+    threshold: 300
+  });
+
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    const filters = {
+      fechaInicio: startDate,
+      fechaFin: endDate
+    };
+    loadInteractions(filters, 1, false);
+    setSearchMode(false);
+  }, [startDate, endDate, loadInteractions]);
+
+  // Aplicar filtros locales solo para el teléfono (el resto se maneja en el backend)
+  useEffect(() => {
+    if (searchMode) {
+      // En modo búsqueda, usar directamente los datos del hook
+      setFilteredInteractions(interactions);
+    } else {
+      // En modo normal, aplicar solo filtro de teléfono localmente
+      let filtered = interactions;
+      if (searchPhone) {
+        filtered = interactions.filter(i => i.phone_number.includes(searchPhone));
       }
-    } finally {
-      setLoading(false);
+      setFilteredInteractions(filtered);
     }
+  }, [interactions, searchPhone, searchMode]);
+
+  // Función para búsqueda por DNI
+  const handleDniSearch = async () => {
+    if (!searchDni.trim()) return;
+    
+    setSearchMode(true);
+    await searchByDni(searchDni.trim());
   };
-
-  useEffect(() => {
-    fetchInteractions();
-  }, []);
-
-  useEffect(() => {
-    let filtered = interactions;
-    
-    // Aplicar filtros en orden
-    filtered = filterInteractionsByDate(filtered);
-    
-    if (searchDni) {
-      filtered = filtered.filter(i => i.dni.includes(searchDni));
-    }
-    
-    if (searchPhone) {
-      filtered = filtered.filter(i => i.phone_number.includes(searchPhone));
-    }
-    
-    setFilteredInteractions(filtered);
-  }, [interactions, startDate, endDate, searchDni, searchPhone]);
 
   const handleRefresh = () => {
     setSearchDni('');
     setSearchPhone('');
-    setStartDate(formatDate(new Date(new Date().setFullYear(2000))));  // Fecha muy anterior
-    setEndDate(formatDate(new Date(new Date().setFullYear(2050))));    // Fecha muy posterior
-    fetchInteractions();
+    setSearchMode(false);
+    setStartDate(formatDate(new Date(new Date().setDate(new Date().getDate() - 30))));
+    setEndDate(formatDate(new Date()));
+    
+    const filters = {
+      fechaInicio: formatDate(new Date(new Date().setDate(new Date().getDate() - 30))),
+      fechaFin: formatDate(new Date())
+    };
+    resetData();
+    loadInteractions(filters, 1, false);
   };
 
-  if (loading) {
+  // Usar directamente los datos según el modo
+  const displayInteractions = searchMode ? interactions : filteredInteractions;
+
+  if (loading && !loadingMore) {
     return (
       <Layout title="Interacciones con el Bot">
         <div className="flex justify-center items-center h-full">
@@ -104,6 +111,12 @@ const BotInteractionsPage = () => {
       <Layout title="Interacciones con el Bot">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl shadow-lg">
           {error}
+          <button
+            onClick={handleRefresh}
+            className="ml-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg"
+          >
+            Reintentar
+          </button>
         </div>
       </Layout>
     );
@@ -127,18 +140,21 @@ const BotInteractionsPage = () => {
                  <input
                    type="text"
                    value={searchDni}
-                   onChange={(e) => {
-                     const value = e.target.value;
-                     setSearchDni(value);
-                     if (value) {
-                       setFilteredInteractions(interactions.filter(i => i.dni.includes(value)));
-                     } else {
-                       setFilteredInteractions(filterInteractionsByDate(interactions));
-                     }
-                   }}
+                   onChange={(e) => setSearchDni(e.target.value)}
                    placeholder="Buscar por DNI"
                    className="w-40 rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white/90"
                  />
+                 <button
+                   onClick={handleDniSearch}
+                   disabled={!searchDni.trim()}
+                   className={`px-3 py-1.5 rounded-md text-sm font-medium ${
+                     !searchDni.trim()
+                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                       : 'bg-blue-600 text-white hover:bg-blue-700'
+                   }`}
+                 >
+                   Buscar
+                 </button>
                </div>
 
                <div className="flex-none flex gap-2">
@@ -150,11 +166,6 @@ const BotInteractionsPage = () => {
                      onChange={(e) => {
                        const value = formatPhoneNumber(e.target.value);
                        setSearchPhone(value);
-                       if (value) {
-                         setFilteredInteractions(interactions.filter(i => i.phone_number.includes(value)));
-                       } else {
-                         setFilteredInteractions(filterInteractionsByDate(interactions));
-                       }
                      }}
                      placeholder="Buscar por celular"
                      className="w-40 rounded-md border border-gray-300 pl-8 pr-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white/90"
@@ -196,7 +207,7 @@ const BotInteractionsPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredInteractions.map((interaction, index) => (
+              {displayInteractions.map((interaction, index) => (
                 <tr key={interaction._id || index} className="hover:bg-blue-50 transition-colors duration-200">
                   <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{interaction.dni}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -227,7 +238,7 @@ const BotInteractionsPage = () => {
 
       {/* Vista móvil */}
       <div className="md:hidden space-y-4">
-        {filteredInteractions.map((interaction, index) => (
+        {displayInteractions.map((interaction, index) => (
           <div key={interaction._id || index} className="bg-white rounded-lg shadow-md p-4 space-y-3 border border-gray-200">
             <div className="flex justify-between items-center">
               <span className="font-medium text-gray-900">DNI: {interaction.dni}</span>
@@ -263,8 +274,34 @@ const BotInteractionsPage = () => {
         ))}
       </div>
 
+      {/* 🚀 Sentinel element para Intersection Observer - SOLO en modo normal */}
+      {!searchMode && pagination.hasNext && displayInteractions.length > 0 && (
+        <div ref={setSentinelRef} className="h-4" />
+      )}
+
+      {/* 🚀 Indicador de infinite scroll - SOLO en modo normal */}
+      {!searchMode && displayInteractions.length > 0 && (
+        <InfiniteScrollIndicator
+          loading={loadingMore}
+          hasMore={pagination.hasNext}
+          total={pagination.total}
+          itemName="interacciones"
+        />
+      )}
+
+      {/* Contador de resultados */}
+      {displayInteractions.length > 0 && (
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
+          <p className="text-sm text-gray-600 text-center">
+            Mostrando {displayInteractions.length} interacciones
+            {!searchMode && pagination.total > 0 && ` de ${pagination.total} total`}
+            {searchMode && searchDni && <span className="text-blue-600 ml-1">para DNI: {searchDni}</span>}
+          </p>
+        </div>
+      )}
+
       {/* Resumen estadístico */}
-      {filteredInteractions.length > 0 && (
+      {displayInteractions.length > 0 && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg p-6 border border-blue-200">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,12 +313,12 @@ const BotInteractionsPage = () => {
           {/* Estadísticas Generales */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="bg-white/70 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-blue-600">{filteredInteractions.length}</div>
-              <div className="text-sm text-gray-600">Total Interacciones</div>
+              <div className="text-3xl font-bold text-blue-600">{displayInteractions.length}</div>
+              <div className="text-sm text-gray-600">{searchMode ? 'Encontradas' : 'Mostrando'}</div>
             </div>
             <div className="bg-white/70 rounded-lg p-4 text-center">
               <div className="text-3xl font-bold text-green-600">
-                {filteredInteractions.filter(i => i.status === 'PROCESADO').length}
+                {displayInteractions.filter(i => i.status === 'PROCESADO').length}
               </div>
               <div className="text-sm text-gray-600">Procesadas</div>
             </div>
@@ -293,19 +330,19 @@ const BotInteractionsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white/70 rounded-lg p-4 text-center border-l-4 border-orange-400">
                 <div className="text-2xl font-bold text-orange-600">
-                  {filteredInteractions.filter(i => i.tipo === 'PAGAR_CUOTAS').length}
+                  {displayInteractions.filter(i => i.tipo === 'PAGAR_CUOTAS').length}
                 </div>
                 <div className="text-sm text-gray-600">Pagar Cuotas</div>
               </div>
               <div className="bg-white/70 rounded-lg p-4 text-center border-l-4 border-purple-400">
                 <div className="text-2xl font-bold text-purple-600">
-                  {filteredInteractions.filter(i => i.tipo === 'VER_CUOTAS').length}
+                  {displayInteractions.filter(i => i.tipo === 'VER_CUOTAS').length}
                 </div>
                 <div className="text-sm text-gray-600">Ver Cuotas</div>
               </div>
               <div className="bg-white/70 rounded-lg p-4 text-center border-l-4 border-indigo-400">
                 <div className="text-2xl font-bold text-indigo-600">
-                  {filteredInteractions.filter(i => i.tipo === 'SOLICITAR_CREDITO').length}
+                  {displayInteractions.filter(i => i.tipo === 'SOLICITAR_CREDITO').length}
                 </div>
                 <div className="text-sm text-gray-600">Solicitar Crédito</div>
               </div>
@@ -318,19 +355,19 @@ const BotInteractionsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-white/70 rounded-lg p-4 text-center border-l-4 border-green-400">
                 <div className="text-2xl font-bold text-green-600">
-                  {filteredInteractions.filter(i => i.status === 'PROCESADO').length}
+                  {displayInteractions.filter(i => i.status === 'PROCESADO').length}
                 </div>
                 <div className="text-sm text-gray-600">Procesadas</div>
               </div>
               <div className="bg-white/70 rounded-lg p-4 text-center border-l-4 border-yellow-400">
                 <div className="text-2xl font-bold text-yellow-600">
-                  {filteredInteractions.filter(i => i.status === 'PENDIENTE').length}
+                  {displayInteractions.filter(i => i.status === 'PENDIENTE').length}
                 </div>
                 <div className="text-sm text-gray-600">Pendientes</div>
               </div>
               <div className="bg-white/70 rounded-lg p-4 text-center border-l-4 border-gray-400">
                 <div className="text-2xl font-bold text-gray-600">
-                  {filteredInteractions.filter(i => i.status !== 'PROCESADO' && i.status !== 'PENDIENTE').length}
+                  {displayInteractions.filter(i => i.status !== 'PROCESADO' && i.status !== 'PENDIENTE').length}
                 </div>
                 <div className="text-sm text-gray-600">Otros Estados</div>
               </div>

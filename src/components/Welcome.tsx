@@ -104,7 +104,7 @@ const Welcome: React.FC = () => {
           
           {!permissions.isBasicUser() && (
             <DashboardCard 
-              title="Consulta de Clientes" 
+              title="Consultar socios" 
               description="Gestiona tu base de clientes"
               onClick={() => navigate('/consulta-clientes')}
               icon="👥"

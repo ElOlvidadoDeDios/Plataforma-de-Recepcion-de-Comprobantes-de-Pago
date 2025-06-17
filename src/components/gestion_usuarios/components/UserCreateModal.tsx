@@ -16,7 +16,6 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
   isOpen,
   onClose,
   canCreateUsers,
-  isSuperAdmin
 }) => {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1); // 1: datos básicos, 2: verificación, 3: completar registro
@@ -35,21 +34,21 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
 
   if (!isOpen || !canCreateUsers) return null;
 
-  const getAvailableRoles = (): UserRole[] => {
-    const baseRoles = [
-      UserRole.BASIC_USER,
-      UserRole.CREDIT_USER,
-      UserRole.PAYMENTS_USER,
-      UserRole.ADMIN
-    ];
+//   const getAvailableRoles = (): UserRole[] => {
+//     const baseRoles = [
+//       UserRole.BASIC_USER,
+//       UserRole.CREDIT_USER,
+//       UserRole.PAYMENTS_USER,
+//       UserRole.ADMIN
+//     ];
     
-    // Solo SUPER_ADMIN puede crear otros SUPER_ADMIN
-    if (isSuperAdmin) {
-      return [UserRole.SUPER_ADMIN, ...baseRoles];
-    }
+//     // Solo SUPER_ADMIN puede crear otros SUPER_ADMIN
+//     if (isSuperAdmin) {
+//       return [UserRole.SUPER_ADMIN, ...baseRoles];
+//     }
     
-    return baseRoles;
-  };
+//     return baseRoles;
+//   };
 
   const handleRegisterEmail = async (e: React.FormEvent) => {
     e.preventDefault();

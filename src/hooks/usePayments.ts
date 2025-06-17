@@ -1,64 +1,180 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { fetchPayments, fetchPaymentsByStatus } from '../api/paymentsApi';
 import { PaymentRecord } from '../types';
-import { fetchPayments, updatePaymentStatus } from '../api';
-import { getErrorMessage } from '../utils/error';
-import { toast } from 'react-hot-toast';
+import { APIError } from '../utils/error';
+import toast from 'react-hot-toast';
 
-export const usePayments = (startDate: string, endDate: string) => {
+interface PaymentFilters {
+  fechaInicio?: string;
+  fechaFin?: string;
+  dni?: string;
+  estado?: 'pendiente' | 'parcial' | 'atendido';
+}
+
+export const usePayments = () => {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 12,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false
+  });
+  const abortController = useRef<AbortController | null>(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const paymentsData = await fetchPayments(startDate, endDate);
-      setPayments(paymentsData.comprobantes);
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
+  const handleError = useCallback((err: unknown) => {
+    if (err instanceof APIError) {
+      if (err.statusCode === 401) {
+        toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+      setError(err.message);
+      toast.error(err.message);
+    } else {
+      const message = 'Error inesperado al procesar la solicitud';
+      setError(message);
+      toast.error(message);
     }
-  }, [startDate, endDate]);
+  }, []);
 
-  const handleUpdateStatus = async (
-    payment: PaymentRecord,
-    nuevoEstado: string,
-    motivoRechazo?: string,
-    agencia?: { agencia: string; cod_caja: string; user_caja: string; } | null,
-    monto?: string | null,
-    dni_usuario?: string 
+  // Cargar pagos con paginación
+  const loadPayments = useCallback(async (
+    filters: PaymentFilters,
+    page: number = 1,
+    append: boolean = false
   ) => {
     try {
-      const { dni, fecha, hora } = payment;
-      const updatedPayment = await updatePaymentStatus(
-        dni,
-        fecha,
-        hora,
-        nuevoEstado,
-        motivoRechazo,
-        agencia,
-        monto ? parseFloat(monto) : null,
-        dni_usuario 
-      );
+      // Cancelar solicitud anterior si existe
+      if (abortController.current) {
+        abortController.current.abort();
+      }
+      
+      if (page === 1) {
+        setLoading(true);
+        setError(null);
+        setPayments([]); // Limpiar datos previos
+      } else if (append) {
+        setLoadingMore(true);
+      }
 
-      setPayments(prevPayments =>
-        prevPayments.map(p =>
-          (p.dni === updatedPayment.dni &&
-           p.fecha === updatedPayment.fecha &&
-           p.hora === updatedPayment.hora) ? updatedPayment : p
-        )
-      );
+      let response;
 
-      toast.success(nuevoEstado === 'aceptado' ? 'Pago procesado correctamente' : 'Estado de pago actualizado');
-    } catch (error) {
-      toast.error(getErrorMessage(error));
+      // Determinar qué endpoint usar
+      if (filters.estado) {
+        // Usar endpoint por estado
+        response = await fetchPaymentsByStatus(
+          filters.estado,
+          page,
+          12, // límite fijo
+          'fecha',
+          'desc'
+        );
+        // Mapear respuesta al formato esperado
+        response = {
+          ...response,
+          comprobantes: response.comprobantes || []
+        };
+      } else {
+        // Usar endpoint general
+        response = await fetchPayments({
+          fechaInicio: filters.fechaInicio,
+          fechaFin: filters.fechaFin,
+          dni: filters.dni || undefined,
+          estado: undefined, // No filtrar por estado en endpoint general
+          page,
+          limit: 12,
+          sortBy: 'fecha',
+          sortOrder: 'desc'
+        });
+      }
+
+      const newPayments = response.comprobantes || [];
+
+      if (append && page > 1) {
+        setPayments(prev => {
+          // Evitar duplicados usando dni + fecha + hora como identificador único
+          const existingIds = new Set(
+            prev.map(payment => `${payment.dni}-${payment.fecha}-${payment.hora}`)
+          );
+          const filteredNewPayments = newPayments.filter(
+            payment => !existingIds.has(`${payment.dni}-${payment.fecha}-${payment.hora}`)
+          );
+          return [...prev, ...filteredNewPayments];
+        });
+      } else {
+        setPayments(newPayments);
+      }
+
+      setPagination({
+        total: response.total || 0,
+        page: response.page || page,
+        limit: response.limit || 12,
+        totalPages: response.totalPages || 0,
+        hasNext: response.hasNext || false,
+        hasPrev: response.hasPrev || false
+      });
+
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        handleError(err);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-  };
+  }, [handleError]);
+
+  // Función para cargar más datos (infinite scroll)
+  const loadMoreData = useCallback(async (filters: PaymentFilters) => {
+    if (pagination.hasNext && !loadingMore && !loading) {
+      const nextPage = pagination.page + 1;
+      await loadPayments(filters, nextPage, true);
+    }
+  }, [pagination.hasNext, pagination.page, loadingMore, loading, loadPayments]);
+
+  // Función para resetear datos
+  const resetData = useCallback(() => {
+    setPayments([]);
+    setPagination({
+      total: 0,
+      page: 1,
+      limit: 12,
+      totalPages: 0,
+      hasNext: false,
+      hasPrev: false
+    });
+    setError(null);
+    setLoadingMore(false);
+  }, []);
+
+  // Función para actualizar un pago específico (después de cambios de estado)
+  const updatePayment = useCallback((updatedPayment: PaymentRecord) => {
+    setPayments(prev => 
+      prev.map(payment => 
+        payment.dni === updatedPayment.dni && 
+        payment.fecha === updatedPayment.fecha && 
+        payment.hora === updatedPayment.hora
+          ? updatedPayment
+          : payment
+      )
+    );
+  }, []);
 
   return {
     payments,
     loading,
-    fetchData,
-    handleUpdateStatus
+    error,
+    loadingMore,
+    pagination,
+    loadPayments,
+    loadMoreData,
+    resetData,
+    updatePayment
   };
 };

@@ -29,8 +29,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   const [user, setUser] = useState<UserWithRole | null>(() => {
     const storedUser = localStorage.getItem('user');
-    console.log('Intentando recuperar usuario del localStorage');
-    
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
@@ -68,7 +66,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     setUser(newUser);
     localStorage.setItem('user', JSON.stringify(newUser));
-    console.log('Usuario inicializado:',localStorage.getItem('user'));
   };
 
   // Ahora la verificación de permisos se delega al backend

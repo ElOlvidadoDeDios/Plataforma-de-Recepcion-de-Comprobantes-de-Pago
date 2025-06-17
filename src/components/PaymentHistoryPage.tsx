@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { format, subDays } from 'date-fns';
 import Layout from './Layout';
-import { fetchPaymentHistory, PaymentHistoryRecord, PaymentHistoryResponse } from '../api/paymentsApi';
+import { PaymentHistoryRecord } from '../api/paymentsApi';
+import { usePaymentHistory } from '../hooks/usePaymentHistory';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { AGENCIAS } from '../types';
-//import { useAuth } from '../hooks/useAuth';
 import { PaymentImage } from './PaymentImage';
+import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
+import ReportePagosAplicados from './reportes/ReportePagosAplicados';
 
 
 // Función para obtener el nombre de la agencia por su código
@@ -24,7 +27,15 @@ const getTipoPagoTexto = (tipoPago: string): string => {
   };
   return tipos[tipoPago as keyof typeof tipos] || tipoPago;
 };
-
+// Función para formatear la fecha y hora
+function formatearFechaYHora(fechaStr: String, horaStr: String) {
+  const fecha = new Date(`${fechaStr}T${horaStr}`);
+  const dia = String(fecha.getDate()).padStart(2, '0');
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+  const anio = fecha.getFullYear();
+  const hora = fecha.toTimeString().split(' ')[0];
+  return `${dia}/${mes}/${anio} ${hora}`;
+}
 // Función para calcular el monto real pagado (solo vouchers aceptados)
 const calcularMontoRealPagado = (registro: PaymentHistoryRecord): number => {
   return registro.comprobante.vouchers_modificados
@@ -275,13 +286,9 @@ const PaymentCard: React.FC<{
       </div>
       
       <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-        <div>
-          <span className="text-gray-500">Fecha:</span>
-          <p className="font-medium">{registro.fecha_pago}</p>
-        </div>
-        <div>
-          <span className="text-gray-500">Hora:</span>
-          <p className="font-medium">{registro.hora_pago}</p>
+        <div className="col-span-2">
+          <span className="text-gray-500">Fecha y Hora:</span>
+          <p className="font-medium">{formatearFechaYHora(registro.fecha_pago, registro.hora_pago)}</p>
         </div>
         <div>
           <span className="text-gray-500">Monto Total:</span>
@@ -327,17 +334,17 @@ const PaymentCard: React.FC<{
 };
 
 const PaymentHistoryPage: React.FC = () => {
+  const { records, loading, error, loadingMore, pagination, loadHistory, loadMoreData, resetData } = usePaymentHistory();
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [historialPagos, setHistorialPagos] = useState<PaymentHistoryRecord[]>([]);
-  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRegistro, setSelectedRegistro] = useState<PaymentHistoryRecord | null>(null);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [dniFilter, setDniFilter] = useState('');
-  const [estadoFilter, setEstadoFilter] = useState<'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial' | ''>('');
+  const [tipoPagoFilter, setTipoPagoFilter] = useState<'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | ''>('');
+  const [reporteModalOpen, setReporteModalOpen] = useState(false);
 
   // Detectar vista móvil
   useEffect(() => {
@@ -350,22 +357,33 @@ const PaymentHistoryPage: React.FC = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const loadHistorial = async () => {
-    try {
-      setLoading(true);
-      const response: PaymentHistoryResponse = await fetchPaymentHistory({
-        fechaInicio: startDate,
-        fechaFin: endDate,
-        dni: dniFilter || undefined,
-        estado: estadoFilter || undefined
-      });
-      setHistorialPagos(response.data);
-    } catch (error) {
-      setHistorialPagos([]);
-    } finally {
-      setLoading(false);
+  // Función para cargar historial con filtros
+  const handleLoadHistory = React.useCallback((resetPage: boolean = false) => {
+    const filters = {
+      fechaInicio: startDate,
+      fechaFin: endDate,
+      dni: dniFilter || undefined,
+      tipoPago: tipoPagoFilter || undefined
+    };
+
+    if (resetPage) {
+      resetData();
     }
-  };
+    
+    loadHistory(filters, 1, false);
+  }, [startDate, endDate, dniFilter, tipoPagoFilter, loadHistory, resetData]);
+
+  // Función para cargar más datos cuando se hace scroll
+  const handleLoadMore = React.useCallback(() => {
+    const filters = {
+      fechaInicio: startDate,
+      fechaFin: endDate,
+      dni: dniFilter || undefined,
+      tipoPago: tipoPagoFilter || undefined
+    };
+    
+    loadMoreData(filters);
+  }, [startDate, endDate, dniFilter, tipoPagoFilter, loadMoreData]);
 
   const handleVerDetalle = (registro: PaymentHistoryRecord) => {
     setSelectedRegistro(registro);
@@ -377,9 +395,19 @@ const PaymentHistoryPage: React.FC = () => {
     setImageModalOpen(true);
   };
 
+  // Cargar historial inicial y cuando cambien los filtros
   useEffect(() => {
-    loadHistorial();
-  }, [startDate, endDate, dniFilter, estadoFilter]);
+    handleLoadHistory(true);
+  }, [handleLoadHistory]);
+
+  // 🚀 Hook para infinite scroll optimizado
+  const { setSentinelRef } = useInfiniteScroll({
+    hasNext: pagination.hasNext,
+    loading: loadingMore,
+    onLoadMore: handleLoadMore,
+    disabled: false,
+    threshold: 300
+  });
 
   const getTipoOperacionBadge = (tipo: string) => {
     const badges = {
@@ -440,14 +468,15 @@ const PaymentHistoryPage: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Tipo de Operación</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Tipo de Pago</label>
             <select
-              value={estadoFilter}
-              onChange={(e) => setEstadoFilter(e.target.value as 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial' | '')}
+              value={tipoPagoFilter}
+              onChange={(e) => setTipoPagoFilter(e.target.value as 'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | '')}
               className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-cyan-500"
             >
-              <option value="">📋 Todos los Tipos</option>
-              <option value="aceptacion_total">✅ Aceptación Total</option>
+              <option value="">Todos los Tipos de Pago</option>
+              <option value="pago_normal">💰 Pago Normal</option>
+              <option value="pago_liquida">🔄 Liquidación</option>
               <option value="rechazo_total">❌ Rechazo Total</option>
               <option value="rechazo_parcial">⚠️ Rechazo Parcial</option>
             </select>
@@ -459,20 +488,42 @@ const PaymentHistoryPage: React.FC = () => {
             <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-gray-600">Cargando historial...</p>
           </div>
-        ) : historialPagos.length === 0 ? (
+        ) : records.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-600">No se encontraron registros para los filtros especificados</p>
           </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-600">Error: {error}</p>
+            <button
+              onClick={() => handleLoadHistory(true)}
+              className="mt-4 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg"
+            >
+              Reintentar
+            </button>
+          </div>
         ) : (
           <>
-            <p className="text-sm text-gray-500 mb-4">
-              Mostrando {historialPagos.length} registro{historialPagos.length !== 1 ? 's' : ''} de historial
-            </p>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-gray-500">
+                Mostrando {records.length} registro{records.length !== 1 ? 's' : ''} de {pagination.total > 0 ? pagination.total : 'muchos'} total
+              </p>
+              
+              {/* 🚀 BOTÓN DE EXPORTACIÓN */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setReporteModalOpen(true)}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  📊 Exportar Pagos
+                </button>
+              </div>
+            </div>
             
             {/* Vista móvil - Tarjetas */}
             {isMobile ? (
               <div className="space-y-4">
-                {historialPagos.map((registro, index) => (
+                {records.map((registro, index) => (
                   <PaymentCard
                     key={`${registro.comprobante.dni}-${registro.fecha_pago}-${registro.hora_pago}-${index}`}
                     registro={registro}
@@ -489,19 +540,19 @@ const PaymentHistoryPage: React.FC = () => {
                       <th className="px-2 py-1.5 text-left text-xs">Fecha y Hora</th>
                       <th className="px-2 py-1.5 text-left text-xs">DNI Cliente</th>
                       <th className="px-2 py-1.5 text-left text-xs">Cliente</th>
-                      <th className="px-2 py-1.5 text-right text-xs">Monto Total</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Monto Total</th>
                       <th className="px-2 py-1.5 text-left text-xs">Agencia</th>
-                      <th className="px-2 py-1.5 text-center text-xs">Tipo Pago</th>
-                      <th className="px-2 py-1.5 text-center text-xs">Tipo Operación</th>
-                      <th className="px-2 py-1.5 text-center text-xs">Estado Final</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Tipo Pago</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Tipo Operación</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Estado Final</th>
                       <th className="px-2 py-1.5 text-left text-xs">Crédito ID</th>
-                      <th className="px-2 py-1.5 text-center text-xs">Aplicado por</th>
+                      <th className="px-2 py-1.5 text-left text-xs">Aplicado por</th>
                       <th className="px-2 py-1.5 text-center text-xs">Vouchers</th>
                       <th className="px-2 py-1.5 text-center text-xs">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {historialPagos.map((registro, index) => {
+                    {records.map((registro, index) => {
                       const vouchersAceptados = registro.comprobante.vouchers_modificados.filter(v => v.estado_nuevo === 'aceptado');
                       const vouchersRechazados = registro.comprobante.vouchers_modificados.filter(v => v.estado_nuevo === 'rechazado');
                       
@@ -511,22 +562,21 @@ const PaymentHistoryPage: React.FC = () => {
                           className="border-b hover:bg-gray-50"
                         >
                           <td className="px-2 py-1.5 text-xs">
-                            <div>{registro.fecha_pago}</div>
-                            <div className="text-gray-500">{registro.hora_pago}</div>
+                          <div>{formatearFechaYHora(registro.fecha_pago, registro.hora_pago)}</div>
                           </td>
                           <td className="px-2 py-1.5 text-xs font-medium">{registro.comprobante.dni}</td>
                           <td className="px-2 py-1.5 text-xs">{registro.comprobante.nombreSocio}</td>
-                          <td className="px-2 py-1.5 text-xs text-right font-medium">
+                          <td className="px-2 py-1.5 text-xs text-left font-medium">
                             S/ {calcularMontoRealPagado(registro).toFixed(2)}
                           </td>
                           <td className="px-2 py-1.5 text-xs">{getAgencyName(registro.agencia)}</td>
                           <td className="px-2 py-1.5 text-xs">{getTipoPagoTexto(registro.tipo_pago)}</td>
-                          <td className="px-2 py-1.5 text-center">
+                          <td className="px-2 py-1.5 text-left">
                             <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getTipoOperacionBadge(registro.tipo_operacion)}`}>
                               {getTipoOperacionTexto(registro.tipo_operacion)}
                             </span>
                           </td>
-                          <td className="px-2 py-1.5 text-center">
+                          <td className="px-2 py-1.5 text-left">
                             <span className="text-xs">
                               {registro.estadoGeneral_anterior} → <span className="font-medium">{registro.estadoGeneral_final}</span>
                             </span>
@@ -558,6 +608,19 @@ const PaymentHistoryPage: React.FC = () => {
                 </table>
               </div>
             )}
+
+            {/* 🚀 Sentinel element para Intersection Observer */}
+            {pagination.hasNext && (
+              <div ref={setSentinelRef} className="h-4" />
+            )}
+
+            {/* 🚀 Indicador de infinite scroll */}
+            <InfiniteScrollIndicator
+              loading={loadingMore}
+              hasMore={pagination.hasNext}
+              total={pagination.total}
+              itemName="registros"
+            />
           </>
         )}
       </div>
@@ -576,6 +639,32 @@ const PaymentHistoryPage: React.FC = () => {
         onClose={() => setImageModalOpen(false)}
         imagenUrl={selectedImageUrl}
       />
+
+      {/* 🚀 MODAL DE REPORTE DE PAGOS APLICADOS */}
+      {reporteModalOpen && createPortal(
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4" onClick={() => setReporteModalOpen(false)}>
+          <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white z-10 px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-semibold text-gray-900">Reporte de Pagos Aplicados</h2>
+                <button
+                  onClick={() => setReporteModalOpen(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full"
+                >
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              <ReportePagosAplicados />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </Layout>
   );
 };

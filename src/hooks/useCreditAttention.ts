@@ -59,7 +59,6 @@ export const useCreditAttention = () => {
             }
             return null;
         } catch (err) {
-            console.error('Error al obtener el último usuario que atendió:', err);
             return null;
         }
     }, [loadHistorialBySolicitudDni]);

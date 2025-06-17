@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { User, AgenciaCaja } from '../../../types';
 import { UserRole } from '../../../types/roles';
 import { updateUserAgencias, updateUserRole } from '../../../api';

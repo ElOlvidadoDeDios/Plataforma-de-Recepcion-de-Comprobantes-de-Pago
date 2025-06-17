@@ -254,7 +254,6 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
       setSelectedRejectReason('');
       setCustomReason('');
     } catch (error) {
-      console.error('Error al actualizar estado:', error);
       toast.error(`Error al actualizar el estado a ${estado}`);
     } finally {
       setIsLoading(false);

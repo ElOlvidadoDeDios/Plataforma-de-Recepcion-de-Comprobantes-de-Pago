@@ -112,7 +112,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               onTypeChange={(type, maxAmount) => {
                 setPaymentType(type);
                 setPaymentLimit(maxAmount);
-                console.log(`Tipo de pago seleccionado: ${type}, Límite: ${maxAmount}`);
               }}
             />
           </div>

@@ -32,7 +32,6 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
           setCronograma(data);
         }
       } catch (error) {
-        console.error('Error al obtener el cronograma:', error);
       } finally {
         setLoading(false);
       }
@@ -262,11 +261,9 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
         });
 
         if (!result.success) {
-          console.error('Error al enviar WhatsApp:', result.error);
         }
       }
     } catch (error) {
-      console.error('Error al generar PDF:', error);
     }
   };
 

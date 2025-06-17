@@ -40,15 +40,43 @@ axiosInstance.interceptors.response.use(
 );
 
 export const creditRequestApi = {
-    // Obtener todas las solicitudes
-    getAll: async (): Promise<{ total: number; solicitudes: CreditRequest[] }> => {
+    // Obtener todas las solicitudes con paginación
+    getAll: async (page: number = 1, limit: number = 12, sortBy: string = 'fecha', sortOrder: 'asc' | 'desc' = 'desc'): Promise<{
+        total: number;
+        solicitudes: CreditRequest[];
+        page: number;
+        limit: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    }> => {
         try {
-            const response = await axiosInstance.get('/api/solicitudes-credito');
-            return response.data;
+            // Validar parámetros
+            const validPage = Math.max(1, page);
+            const validLimit = Math.min(Math.max(1, limit), 50); // Límite máximo de 50 para performance
+            
+            const response = await axiosInstance.get('/api/solicitudes-credito', {
+                params: {
+                    page: validPage,
+                    limit: validLimit,
+                    sortBy,
+                    sortOrder
+                },
+                timeout: 10000 // 10 segundos timeout
+            });
+            
+            return {
+                ...response.data,
+                page: validPage,
+                limit: validLimit
+            };
         } catch (error) {
             if (error instanceof AxiosError) {
+                if (error.code === 'ECONNABORTED') {
+                    throw new APIError('Tiempo de espera agotado al cargar solicitudes', 408);
+                }
                 throw new APIError(
-                    'Error al obtener las solicitudes',
+                    error.response?.data?.message || 'Error al obtener las solicitudes',
                     error.response?.status
                 );
             }
@@ -72,15 +100,49 @@ export const creditRequestApi = {
         }
     },
 
-    // Obtener solicitudes por estado
-    getByStatus: async (status: CreditRequest['status']): Promise<{ total: number; solicitudes: CreditRequest[] }> => {
+    // Obtener solicitudes por estado con paginación
+    getByStatus: async (
+        status: CreditRequest['status'],
+        page: number = 1,
+        limit: number = 12,
+        sortBy: string = 'fecha',
+        sortOrder: 'asc' | 'desc' = 'desc'
+    ): Promise<{
+        total: number;
+        solicitudes: CreditRequest[];
+        page: number;
+        limit: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+    }> => {
         try {
-            const response = await axiosInstance.get(`/api/solicitudes-credito/estado/${status}`);
-            return response.data;
+            // Validar parámetros
+            const validPage = Math.max(1, page);
+            const validLimit = Math.min(Math.max(1, limit), 50);
+            
+            const response = await axiosInstance.get(`/api/solicitudes-credito/estado/${status}`, {
+                params: {
+                    page: validPage,
+                    limit: validLimit,
+                    sortBy,
+                    sortOrder
+                },
+                timeout: 10000
+            });
+            
+            return {
+                ...response.data,
+                page: validPage,
+                limit: validLimit
+            };
         } catch (error) {
             if (error instanceof AxiosError) {
+                if (error.code === 'ECONNABORTED') {
+                    throw new APIError('Tiempo de espera agotado al cargar solicitudes por estado', 408);
+                }
                 throw new APIError(
-                    'Error al obtener las solicitudes por estado',
+                    error.response?.data?.message || 'Error al obtener las solicitudes por estado',
                     error.response?.status
                 );
             }

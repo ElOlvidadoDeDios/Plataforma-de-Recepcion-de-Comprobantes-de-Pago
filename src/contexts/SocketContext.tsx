@@ -31,19 +31,15 @@ const initializeSocket = () => {
   });
 
   socket.io.on("error", (_error: Error) => {
-    //console.log('Error de Socket.IO:', error);
   });
 
   socket.on('connect_error', (_error: Error) => {
-    //console.log('Error de conexión Socket.IO:', _error.message);
   });
 
   socket.on('connect', () => {
-    //console.log('Socket.IO conectado');
   });
 
   socket.on('disconnect', () => {
-    //console.log('Socket.IO desconectado');
   });
 
   return socket;
@@ -63,7 +59,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       if (newSocket) {
-        //console.log('Desconectando socket');
         newSocket.disconnect();
         newSocket.removeAllListeners();
       }
