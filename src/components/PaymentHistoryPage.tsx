@@ -9,6 +9,8 @@ import { AGENCIAS } from '../types';
 import { PaymentImage } from './PaymentImage';
 import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
 import ReportePagosAplicados from './reportes/ReportePagosAplicados';
+import { useAuth } from '../hooks/useAuth';
+import { UserRole } from '../types/roles';
 
 
 // Función para obtener el nombre de la agencia por su código
@@ -27,6 +29,8 @@ const getTipoPagoTexto = (tipoPago: string): string => {
   };
   return tipos[tipoPago as keyof typeof tipos] || tipoPago;
 };
+
+
 // Función para formatear la fecha y hora
 function formatearFechaYHora(fechaStr: String, horaStr: String) {
   const fecha = new Date(`${fechaStr}T${horaStr}`);
@@ -38,9 +42,10 @@ function formatearFechaYHora(fechaStr: String, horaStr: String) {
 }
 // Función para calcular el monto real pagado (solo vouchers aceptados)
 const calcularMontoRealPagado = (registro: PaymentHistoryRecord): number => {
-  return registro.comprobante.vouchers_modificados
-    .filter(voucher => voucher.estado_nuevo === 'aceptado')
-    .reduce((total, voucher) => total + (voucher.monto_pago || 0), 0);
+  const vouchers = (registro as any).vouchers_modificados || registro.comprobante?.vouchers_modificados || [];
+  return vouchers
+    .filter((voucher: any) => voucher.estado_nuevo === 'aceptado')
+    .reduce((total: number, voucher: any) => total + (voucher.monto_pago || 0), 0);
 };
 
 // Componente Modal para ver imagen del comprobante
@@ -334,7 +339,14 @@ const PaymentCard: React.FC<{
 };
 
 const PaymentHistoryPage: React.FC = () => {
+  const { user } = useAuth();
   const { records, loading, error, loadingMore, pagination, loadHistory, loadMoreData, resetData } = usePaymentHistory();
+  
+  // Determinar permisos según rol del usuario
+  const esAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+  const esSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
+  const esUserPayment = user?.role === UserRole.PAYMENTS_USER;
+  
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [modalOpen, setModalOpen] = useState(false);
@@ -343,7 +355,7 @@ const PaymentHistoryPage: React.FC = () => {
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [dniFilter, setDniFilter] = useState('');
-  const [tipoPagoFilter, setTipoPagoFilter] = useState<'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | ''>('');
+  const [tipoPagoFilter, setTipoPagoFilter] = useState<'pagos_aplicados' | 'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | 'todos'>('pagos_aplicados');
   const [reporteModalOpen, setReporteModalOpen] = useState(false);
 
   // Detectar vista móvil
@@ -359,11 +371,44 @@ const PaymentHistoryPage: React.FC = () => {
 
   // Función para cargar historial con filtros
   const handleLoadHistory = React.useCallback((resetPage: boolean = false) => {
+    // ✅ Aplicar filtros automáticos según el rol del usuario
+    let tipoPagoFiltro: 'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | '' | undefined;
+    let mostrarSoloPagosAplicados = false;
+    
+    // 🚨 LÓGICA DE FILTRADO POR TIPO DE PAGO
+    switch (tipoPagoFilter) {
+      case 'pagos_aplicados':
+        // Por defecto: solo pagos aplicados
+        mostrarSoloPagosAplicados = true;
+        tipoPagoFiltro = '';
+        break;
+      case 'todos':
+        // Ver todos los tipos de pago
+        mostrarSoloPagosAplicados = false;
+        tipoPagoFiltro = '';
+        break;
+      case 'pago_normal':
+      case 'pago_liquida':
+      case 'rechazo_total':
+      case 'rechazo_parcial':
+        // Filtro específico
+        mostrarSoloPagosAplicados = false;
+        tipoPagoFiltro = tipoPagoFilter;
+        break;
+      default:
+        mostrarSoloPagosAplicados = true;
+        tipoPagoFiltro = '';
+        break;
+    }
+
     const filters = {
       fechaInicio: startDate,
       fechaFin: endDate,
       dni: dniFilter || undefined,
-      tipoPago: tipoPagoFilter || undefined
+      tipoPago: tipoPagoFiltro,
+      mostrarSoloPagosAplicados,
+      // 🔒 Si es usuario de pago, filtrar automáticamente por su DNI o email
+      usuarioFiltro: esUserPayment ? (user?.dni || user?.email) : undefined
     };
 
     if (resetPage) {
@@ -371,19 +416,48 @@ const PaymentHistoryPage: React.FC = () => {
     }
     
     loadHistory(filters, 1, false);
-  }, [startDate, endDate, dniFilter, tipoPagoFilter, loadHistory, resetData]);
+  }, [startDate, endDate, dniFilter, tipoPagoFilter, esUserPayment, user?.dni, user?.email, loadHistory, resetData]);
 
   // Función para cargar más datos cuando se hace scroll
   const handleLoadMore = React.useCallback(() => {
+    // ✅ Aplicar misma lógica de filtrado que en handleLoadHistory
+    let tipoPagoFiltro: 'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | '' | undefined;
+    let mostrarSoloPagosAplicados = false;
+    
+    switch (tipoPagoFilter) {
+      case 'pagos_aplicados':
+        mostrarSoloPagosAplicados = true;
+        tipoPagoFiltro = '';
+        break;
+      case 'todos':
+        mostrarSoloPagosAplicados = false;
+        tipoPagoFiltro = '';
+        break;
+      case 'pago_normal':
+      case 'pago_liquida':
+      case 'rechazo_total':
+      case 'rechazo_parcial':
+        mostrarSoloPagosAplicados = false;
+        tipoPagoFiltro = tipoPagoFilter;
+        break;
+      default:
+        mostrarSoloPagosAplicados = true;
+        tipoPagoFiltro = '';
+        break;
+    }
+
     const filters = {
       fechaInicio: startDate,
       fechaFin: endDate,
       dni: dniFilter || undefined,
-      tipoPago: tipoPagoFilter || undefined
+      tipoPago: tipoPagoFiltro,
+      mostrarSoloPagosAplicados,
+      // 🔒 Si es usuario de pago, filtrar automáticamente por su DNI o email
+      usuarioFiltro: esUserPayment ? (user?.dni || user?.email) : undefined
     };
     
     loadMoreData(filters);
-  }, [startDate, endDate, dniFilter, tipoPagoFilter, loadMoreData]);
+  }, [startDate, endDate, dniFilter, tipoPagoFilter, esUserPayment, user?.dni, user?.email, loadMoreData]);
 
   const handleVerDetalle = (registro: PaymentHistoryRecord) => {
     setSelectedRegistro(registro);
@@ -434,7 +508,20 @@ const PaymentHistoryPage: React.FC = () => {
       <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6">
         <div className="mb-6 pb-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Historial de Atención de Comprobantes</h2>
-          <p className="text-sm text-gray-500">Consulta el historial completo de pagos procesados desde la tabla de modificaciones</p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">Consulta el historial completo de pagos procesados desde la tabla de modificaciones</p>
+            {/* 🔒 Indicador de filtro por rol */}
+            {esUserPayment && (
+              <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium">
+                👤 Mostrando solo tus pagos procesados
+              </div>
+            )}
+            {(esAdmin || esSuperAdmin) && (
+              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
+                🌐 Viendo todos los pagos {esSuperAdmin ? '(Super Admin)' : '(Admin)'}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Filtros mejorados */}
@@ -471,15 +558,18 @@ const PaymentHistoryPage: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Tipo de Pago</label>
             <select
               value={tipoPagoFilter}
-              onChange={(e) => setTipoPagoFilter(e.target.value as 'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | '')}
+              onChange={(e) => setTipoPagoFilter(e.target.value as 'pagos_aplicados' | 'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | 'todos')}
               className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-cyan-500"
             >
-              <option value="">Todos los Tipos de Pago</option>
-              <option value="pago_normal">💰 Pago Normal</option>
-              <option value="pago_liquida">🔄 Liquidación</option>
-              <option value="rechazo_total">❌ Rechazo Total</option>
-              <option value="rechazo_parcial">⚠️ Rechazo Parcial</option>
+              <option value="pagos_aplicados">✅ Solo Pagos Aplicados </option>
+              <option value="pago_normal">💰 Solo Pago Normal</option>
+              <option value="pago_liquida">🔄 Solo Liquidación</option>
+              <option value="rechazo_total">❌ Solo Rechazo Total</option>
+              <option value="rechazo_parcial">⚠️ Solo Rechazo Parcial</option>
+              <option value="todos">📋 Ver Todos los Tipos</option>
             </select>
+            {tipoPagoFilter === 'pagos_aplicados'}
+            {tipoPagoFilter === 'todos'}
           </div>
         </div>
 

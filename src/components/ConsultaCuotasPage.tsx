@@ -235,7 +235,7 @@ const ConsultaCuotasPage: React.FC = () => {
 
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            Historial de Consultas de Cuotas por medio del bot
+            Historial de Consulta de Cuotas por medio del bot
           </h2>
           <span className="text-sm text-gray-500">
             Vista: {isMobile ? 'Tarjetas' : 'Tabla'}

@@ -160,22 +160,36 @@ export const useAgenciaManagement = ({
       ag.user_caja.trim() !== ''
     ) ?? [];
 
-    // 🔧 Comparación segura de agencias
-    const agenciasIguales = agenciasNoVacias.length === agenciasActuales.length &&
-      agenciasNoVacias.every((ag, idx) => {
-        const agActual = agenciasActuales[idx];
-        if (!agActual ||
-            typeof agActual.agencia !== 'string' ||
-            typeof agActual.cod_caja !== 'string' ||
-            typeof agActual.user_caja !== 'string') {
-          return false;
-        }
-        return ag.agencia.trim() === agActual.agencia.trim() &&
-               ag.cod_caja.trim() === agActual.cod_caja.trim() &&
-               ag.user_caja.trim() === agActual.user_caja.trim();
+    // 🔧 Comparación mejorada de agencias - comparar por contenido no por orden
+    const agenciasActualesNormalizadas = agenciasActuales.map(ag => ({
+      agencia: ag.agencia.trim(),
+      cod_caja: ag.cod_caja.trim(),
+      user_caja: ag.user_caja.trim()
+    })).sort((a, b) => a.cod_caja.localeCompare(b.cod_caja));
+
+    const agenciasNuevasNormalizadas = agenciasNoVacias.map(ag => ({
+      agencia: ag.agencia.trim(),
+      cod_caja: ag.cod_caja.trim(),
+      user_caja: ag.user_caja.trim()
+    })).sort((a, b) => a.cod_caja.localeCompare(b.cod_caja));
+
+    const agenciasIguales = agenciasNuevasNormalizadas.length === agenciasActualesNormalizadas.length &&
+      agenciasNuevasNormalizadas.every((agNueva, idx) => {
+        const agActual = agenciasActualesNormalizadas[idx];
+        return agNueva.agencia === agActual.agencia &&
+               agNueva.cod_caja === agActual.cod_caja &&
+               agNueva.user_caja === agActual.user_caja;
       });
 
+    // 🔍 Debug: Log de comparación
+    console.log('🔍 Comparación de agencias:', {
+      agenciasActuales: agenciasActualesNormalizadas,
+      agenciasNuevas: agenciasNuevasNormalizadas,
+      sonIguales: agenciasIguales
+    });
+
     if (agenciasIguales) {
+      console.log('ℹ️ No hay cambios en las agencias, cerrando modal');
       setShowAgenciaModal(false);
       setSelectedUser(null);
       setUserAgencias([]);
@@ -193,6 +207,13 @@ export const useAgenciaManagement = ({
         cod_caja: ag.cod_caja.trim(),
         user_caja: ag.user_caja.trim(),
       }));
+
+      // 🔍 Debug: Log de las agencias que se van a enviar
+      console.log('🔍 Agencias a enviar:', {
+        userId: selectedUser._id,
+        agenciasFormateadas,
+        agenciasOriginales: selectedUser.agencias
+      });
 
       const validaciones = {
         camposCompletos: agenciasFormateadas.every(ag => ag.agencia && ag.cod_caja && ag.user_caja),
@@ -237,7 +258,14 @@ export const useAgenciaManagement = ({
         return;
       }
 
-      await updateUserAgencias(selectedUser._id, agenciasFormateadas);
+      // 🔍 Debug: Log antes de enviar la petición
+      console.log('🚀 Enviando petición de actualización...');
+      
+      const updatedUser = await updateUserAgencias(selectedUser._id, agenciasFormateadas);
+      
+      // 🔍 Debug: Log de la respuesta
+      console.log('✅ Respuesta del servidor:', updatedUser);
+      
       toast.success('Agencias actualizadas correctamente');
 
       if (pendingRoleChange) {
@@ -245,10 +273,33 @@ export const useAgenciaManagement = ({
         setPendingRoleChange(null);
       }
 
+      // Actualizar el cache de usuarios directamente para reflejar los cambios inmediatamente
+      queryClient.setQueryData(['users'], (oldUsers: any) => {
+        if (!oldUsers) return oldUsers;
+        const updatedUsers = oldUsers.map((user: any) =>
+          user._id === selectedUser._id
+            ? { ...user, agencias: agenciasFormateadas }
+            : user
+        );
+        
+        // 🔍 Debug: Log del cache actualizado
+        console.log('🔄 Cache actualizado:', {
+          usuarioActualizado: updatedUsers.find((u: any) => u._id === selectedUser._id),
+          totalUsuarios: updatedUsers.length
+        });
+        
+        return updatedUsers;
+      });
+
       setShowAgenciaModal(false);
       setSelectedUser(null);
       setUserAgencias([]);
+      
+      // Invalidar queries para refrescar desde el servidor
       queryClient.invalidateQueries({ queryKey: ['users'] });
+      
+      // 🔍 Debug: Confirmar que el proceso terminó
+      console.log('✅ Proceso de actualización completado');
     } catch (error: any) {
       const status = error.response?.status;
       switch (status) {

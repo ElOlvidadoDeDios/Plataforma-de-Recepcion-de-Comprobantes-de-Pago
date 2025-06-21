@@ -3,11 +3,16 @@ import { fetchPaymentHistory, PaymentHistoryRecord } from '../api/paymentsApi';
 import { APIError } from '../utils/error';
 import toast from 'react-hot-toast';
 
+// Tipos de pago válidos por defecto (solo pagos aplicados)
+const TIPOS_PAGO_APLICADOS = ['pago_normal', 'pago_liquida'];
+
 interface PaymentHistoryFilters {
   fechaInicio?: string;
   fechaFin?: string;
   dni?: string;
   tipoPago?: 'pago_normal' | 'pago_liquida' | 'rechazo_total' | 'rechazo_parcial' | '';
+  usuarioFiltro?: string; // 🆕 Filtro por DNI del usuario que procesó
+  mostrarSoloPagosAplicados?: boolean; // 🆕 Para filtrar solo pagos aplicados
 }
 
 export const usePaymentHistory = () => {
@@ -67,16 +72,24 @@ export const usePaymentHistory = () => {
         fechaInicio: filters.fechaInicio,
         fechaFin: filters.fechaFin,
         dni: filters.dni || undefined,
+        usuarioFiltro: filters.usuarioFiltro, // 🆕 Pasar filtro de usuario
         page,
         limit: 12, // 🔧 TEMPORAL: Para testear mejor el infinite scroll (cambiar a 20 después)
         sortBy: 'fecha_modi',
         sortOrder: 'desc'
       });
 
-      // Filtrar por tipo de pago en el frontend (si es necesario)
+      // Filtrar en el frontend según los criterios
       let filteredData = response.data;
+      
+      // 🚨 FILTRO CRÍTICO: Si mostrarSoloPagosAplicados está activo, filtrar solo pagos aplicados
+      if (filters.mostrarSoloPagosAplicados) {
+        filteredData = filteredData.filter(record => TIPOS_PAGO_APLICADOS.includes(record.tipo_pago));
+      }
+      
+      // Filtrar por tipo de pago específico (si se especifica)
       if (filters.tipoPago) {
-        filteredData = response.data.filter(record => record.tipo_pago === filters.tipoPago);
+        filteredData = filteredData.filter(record => record.tipo_pago === filters.tipoPago);
       }
 
       if (append && page > 1) {

@@ -1,10 +1,17 @@
-import React, { useState, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { useReactToPrint } from 'react-to-print';
 import ExcelJS from 'exceljs';
-import { fetchPaymentHistory, PaymentHistoryRecord, PaymentHistoryResponse } from '../../api/paymentsApi';
-import { AGENCIAS } from '../../types';
+import { fetchPaymentHistoryForReport, PaymentHistoryRecord, PaymentHistoryResponse } from '../../api/paymentsApi';
+import { AGENCIAS, UserResponse, AgenciaCaja } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import { UserRole } from '../../types/roles';
+import { fetchAllUsers } from '../../api/userApi';
+import {
+  ReportConfigModal,
+  ReportPreview,
+  PrintableReport
+} from './components';
 
 // Función para obtener el nombre de la agencia por su código
 const getAgencyName = (agencyCode: string): string => {
@@ -22,6 +29,9 @@ const getTipoPagoTexto = (tipoPago: string): string => {
   };
   return tipos[tipoPago as keyof typeof tipos] || tipoPago;
 };
+
+// Tipos de pago válidos para reportes (solo pagos aplicados, no rechazos)
+const TIPOS_PAGO_VALIDOS = ['pago_normal', 'pago_liquida'];
 
 // Función para obtener el nombre del tipo de operación
 const getTipoOperacionTexto = (tipo: string) => {
@@ -58,6 +68,9 @@ interface DatosPagoAplicado {
   nombre_cliente: string;
   credito_id: string;
   agencia: string;
+  agencia_codigo: string; // Código original de agencia
+  cod_caja: string;
+  user_caja: string;
   tipo_pago: string;
   tipo_operacion: string;
   estado_anterior: string;
@@ -73,10 +86,23 @@ interface DatosPagoAplicado {
     tipo_operacion: string;
     monto: number;
     estado: string;
+    estado_anterior: string;
+    motivo_rechazo: string;
+    ruta_comprobante: string;
   }>;
 }
 
+// Tipo para filtros de tipo de pago (solo tipos válidos para reportes)
+type TipoPagoFilter = 'todos' | 'pago_normal' | 'pago_liquida';
+
 const ReportePagosAplicados: React.FC = () => {
+  const { user } = useAuth();
+  
+  // Determinar opciones disponibles según el rol
+  const esAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+  const esSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
+  const esUserPayment = user?.role === UserRole.PAYMENTS_USER;
+  
   const [loading, setLoading] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [rangoExporte, setRangoExporte] = useState<'hoy' | 'rango' | 'todo'>('hoy');
@@ -85,10 +111,56 @@ const ReportePagosAplicados: React.FC = () => {
   const [datosPagos, setDatosPagos] = useState<DatosPagoAplicado[]>([]);
   const [mostrandoVista, setMostrandoVista] = useState(false);
   
-  const printRef = useRef<HTMLDivElement>(null);
+  // Nuevas opciones de filtro - Super Admin por defecto ve TODAS las agencias
+  const [filtroAgencia, setFiltroAgencia] = useState<'mis_pagos' | 'mis_agencias' | 'agencia_especifica' | 'todas' | 'por_usuario' | 'usuario_y_agencia'>(
+    esSuperAdmin ? 'todas' : 'mis_pagos'
+  );
+  const [agenciaEspecifica, setAgenciaEspecifica] = useState('');
+  const [filtroTipoPago, setFiltroTipoPago] = useState<'todos' | 'pago_normal' | 'pago_liquida'>('todos');
+  const [filtroUsuario, setFiltroUsuario] = useState('');
+  
+  // 🆕 Estados para cargar usuarios disponibles (solo admin/super admin)
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<UserResponse[]>([]);
+  const [cargandoUsuarios, setCargandoUsuarios] = useState(false);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState('');
+  const [agenciasUsuarioSeleccionado, setAgenciasUsuarioSeleccionado] = useState<AgenciaCaja[]>([]);
+  const [agenciaUsuarioEspecifica, setAgenciaUsuarioEspecifica] = useState('');
+  
+
+  // 🆕 Cargar usuarios disponibles para admin/super admin
+  useEffect(() => {
+    const cargarUsuarios = async () => {
+      if (!esAdmin && !esSuperAdmin) return;
+      
+      setCargandoUsuarios(true);
+      try {
+        const usuarios = await fetchAllUsers();
+        // 🎯 Filtrar solo usuarios que pueden hacer pagos
+        const usuariosPagos = usuarios.filter(usuario => {
+          const role = usuario.role;
+          return role === UserRole.PAYMENTS_USER || role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
+        });
+        setUsuariosDisponibles(usuariosPagos);
+      } catch (error) {
+      } finally {
+        setCargandoUsuarios(false);
+      }
+    };
+
+    cargarUsuarios();
+  }, [esAdmin, esSuperAdmin]);
 
   // Función para obtener datos de pagos aplicados
-  const obtenerDatosPagosAplicados = async (rango: 'hoy' | 'rango' | 'todo', fechaInicio?: string, fechaFin?: string): Promise<DatosPagoAplicado[]> => {
+  const obtenerDatosPagosAplicados = async (
+    rango: 'hoy' | 'rango' | 'todo',
+    fechaInicio?: string,
+    fechaFin?: string,
+    filtroAgencia: 'mis_pagos' | 'mis_agencias' | 'agencia_especifica' | 'todas' | 'por_usuario' | 'usuario_y_agencia' = 'mis_pagos',
+    agenciaEspecifica?: string,
+    filtroTipoPago: TipoPagoFilter = 'todos',
+    filtroUsuario?: string,
+    agenciaUsuario?: string
+  ): Promise<DatosPagoAplicado[]> => {
     try {
       let fechas = { fechaInicio: '', fechaFin: '' };
       
@@ -105,57 +177,80 @@ const ReportePagosAplicados: React.FC = () => {
           break;
       }
 
-      const response: PaymentHistoryResponse = await fetchPaymentHistory({
+      // 🚀 Usar API específica para reportes - SIN PAGINACIÓN
+      const response: PaymentHistoryResponse = await fetchPaymentHistoryForReport({
         fechaInicio: fechas.fechaInicio,
-        fechaFin: fechas.fechaFin
+        fechaFin: fechas.fechaFin,
+        tipoPago: filtroTipoPago !== 'todos' ? filtroTipoPago : undefined,
+        agencia: filtroAgencia === 'agencia_especifica' ? agenciaEspecifica :
+                filtroAgencia === 'usuario_y_agencia' ? agenciaUsuario : undefined,
+        usuario: (filtroAgencia === 'por_usuario' || filtroAgencia === 'usuario_y_agencia') ? filtroUsuario : undefined
       });
 
       if (!response.data || response.data.length === 0) {
         return [];
       }
 
-      // Filtrar solo pagos aceptados y procesar datos
-      const pagosAplicados = response.data
-        .filter(registro => {
-          const tieneVouchersAceptados = registro.comprobante.vouchers_modificados.some(v => v.estado_nuevo === 'aceptado');
-          const esAceptacionTotal = registro.tipo_operacion === 'aceptacion_total';
-          const esRechazoParciálConAceptados = registro.tipo_operacion === 'rechazo_parcial' && tieneVouchersAceptados;
-          
-          return esAceptacionTotal || esRechazoParciálConAceptados;
-        })
-        .map(registro => {
-          const vouchersAceptados = registro.comprobante.vouchers_modificados.filter(v => v.estado_nuevo === 'aceptado');
-          const vouchersRechazados = registro.comprobante.vouchers_modificados.filter(v => v.estado_nuevo === 'rechazado');
-          
-          return {
-            fecha_pago: registro.fecha_pago,
-            hora_pago: registro.hora_pago,
-            dni_cliente: registro.comprobante.dni,
-            nombre_cliente: registro.comprobante.nombreSocio,
-            credito_id: registro.comprobante.creditoId,
-            agencia: getAgencyName(registro.agencia),
-            tipo_pago: getTipoPagoTexto(registro.tipo_pago),
-            tipo_operacion: getTipoOperacionTexto(registro.tipo_operacion),
-            estado_anterior: registro.estadoGeneral_anterior,
-            estado_final: registro.estadoGeneral_final,
-            monto_total_aplicado: calcularMontoRealPagado(registro),
-            vouchers_aceptados: vouchersAceptados.length,
-            vouchers_rechazados: vouchersRechazados.length,
-            procesado_por: registro.dni_usuario,
-            email_procesador: registro.email,
-            detalle_vouchers: vouchersAceptados.map(v => ({
-              indice: v.indice,
-              nro_operacion: v.nroOperacion || 'N/A',
-              tipo_operacion: v.tipoOperacion || 'N/A',
-              monto: v.monto_pago || 0,
-              estado: v.estado_nuevo
-            }))
-          };
-        });
+      // ✅ Los filtros principales se aplican en el backend
+      // Solo aplicar filtros adicionales de frontend si es necesario
+      const registrosFiltrados = response.data.filter(registro => {
+        // 🚨 FILTRO CRÍTICO: Solo incluir tipos de pago válidos para reportes
+        if (!TIPOS_PAGO_VALIDOS.includes(registro.tipo_pago)) {
+          return false;
+        }
 
+        // Filtros por rol del usuario
+        if (filtroAgencia === 'mis_pagos') {
+          return registro.dni_usuario === user?.dni;
+        } else if (filtroAgencia === 'mis_agencias') {
+          const misAgencias = user?.agencias?.map(ag => ag.agencia) || [];
+          return misAgencias.includes(registro.agencia);
+        } else if (filtroAgencia === 'todas' && (esAdmin || esSuperAdmin)) {
+          return true; // Admin/SuperAdmin pueden ver todos
+        }
+        
+        return true; // Para otros casos, mostrar todos los datos del backend
+      });
+      
+      // Convertir a formato del reporte
+      const pagosAplicados = registrosFiltrados.map(registro => {
+        const vouchersAceptados = registro.comprobante.vouchers_modificados.filter(v => v.estado_nuevo === 'aceptado');
+        const vouchersRechazados = registro.comprobante.vouchers_modificados.filter(v => v.estado_nuevo === 'rechazado');
+        
+        return {
+          fecha_pago: registro.fecha_pago,
+          hora_pago: registro.hora_pago,
+          dni_cliente: registro.comprobante.dni,
+          nombre_cliente: registro.comprobante.nombreSocio,
+          credito_id: registro.comprobante.creditoId,
+          agencia: getAgencyName(registro.agencia),
+          agencia_codigo: registro.agencia,
+          cod_caja: registro.cod_caja || '', // ✅ Corregido: usar campo directo
+          user_caja: registro.user_caja || '', // ✅ Corregido: usar campo directo
+          tipo_pago: getTipoPagoTexto(registro.tipo_pago),
+          tipo_operacion: getTipoOperacionTexto(registro.tipo_operacion),
+          estado_anterior: registro.estadoGeneral_anterior,
+          estado_final: registro.estadoGeneral_final,
+          monto_total_aplicado: calcularMontoRealPagado(registro),
+          vouchers_aceptados: vouchersAceptados.length,
+          vouchers_rechazados: vouchersRechazados.length,
+          procesado_por: registro.dni_usuario,
+          email_procesador: registro.email,
+          // ✅ CORREGIDO: Incluir TODOS los vouchers, no solo los aceptados
+          detalle_vouchers: registro.comprobante.vouchers_modificados.map(v => ({
+            indice: v.indice,
+            nro_operacion: v.nroOperacion || 'N/A',
+            tipo_operacion: v.tipoOperacion || 'N/A',
+            monto: v.monto_pago || 0,
+            estado: v.estado_nuevo,
+            estado_anterior: v.estado_anterior || '',
+            motivo_rechazo: v.motivo_rechazo || '',
+            ruta_comprobante: v.ruta_comprobante || ''
+          }))
+        };
+      });
       return pagosAplicados;
     } catch (error) {
-      console.error('Error al obtener datos de pagos:', error);
       return [];
     }
   };
@@ -164,7 +259,16 @@ const ReportePagosAplicados: React.FC = () => {
   const handleExportExcel = async () => {
     setLoading(true);
     try {
-      const datos = await obtenerDatosPagosAplicados(rangoExporte, fechaInicioExporte, fechaFinExporte);
+      const datos = await obtenerDatosPagosAplicados(
+        rangoExporte,
+        fechaInicioExporte,
+        fechaFinExporte,
+        filtroAgencia,
+        agenciaEspecifica,
+        filtroTipoPago,
+        filtroUsuario,
+        agenciaUsuarioEspecifica
+      );
       
       const workbook = new ExcelJS.Workbook();
       
@@ -199,13 +303,12 @@ const ReportePagosAplicados: React.FC = () => {
         'Nombre Cliente',
         'Crédito ID',
         'Agencia',
+        'Código Caja',
+        'Usuario Caja',
         'Tipo Pago',
         'Tipo Operación',
-        'Estado Anterior',
-        'Estado Final',
         'Monto Aplicado',
         'Vouchers Aceptados',
-        'Procesado Por',
         'Email Procesador'
       ]);
 
@@ -217,13 +320,12 @@ const ReportePagosAplicados: React.FC = () => {
           pago.nombre_cliente,
           pago.credito_id,
           pago.agencia,
+          pago.cod_caja,
+          pago.user_caja,
           pago.tipo_pago,
           pago.tipo_operacion,
-          pago.estado_anterior,
-          pago.estado_final,
           pago.monto_total_aplicado,
           pago.vouchers_aceptados,
-          pago.procesado_por,
           pago.email_procesador
         ]);
       });
@@ -231,50 +333,117 @@ const ReportePagosAplicados: React.FC = () => {
       // Hoja detallada de vouchers
       const worksheetDetalle = workbook.addWorksheet('Detalle de Vouchers');
       worksheetDetalle.addRow([
+        'Fecha y Hora',
         'DNI Cliente',
         'Nombre Cliente',
         'Crédito ID',
-        'Fecha Pago',
-        'Voucher #',
-        'Nro Operación',
-        'Tipo Operación',
-        'Monto',
-        'Estado',
         'Agencia',
-        'Procesado Por'
+        'Código Agencia',
+        'Código Caja',
+        'Usuario Caja',
+        'Tipo Pago',
+        'Tipo Operación',
+        'Estado Anterior',
+        'Estado Final',
+        'Monto Total Aplicado',
+        'Vouchers Aceptados',
+        'Voucher N° de Total',
+        'Procesado Por',
+        'Email Procesador',
+        'Estado Anterior Voucher',
+        'Estado Nuevo Voucher',
+        'Nro Operación',
+        'Tipo Operación Voucher',
+        'Monto Voucher'
       ]);
 
+      // ✅ CORREGIDO: Agregar datos de vouchers - cada voucher en su propia fila
+      let totalVouchersDetalle = 0;
       datos.forEach(pago => {
-        pago.detalle_vouchers.forEach(voucher => {
+        
+        if (pago.detalle_vouchers.length === 0) {
+          // Si no hay vouchers, crear una fila con los datos básicos del pago
+          totalVouchersDetalle++;
           worksheetDetalle.addRow([
+            formatearFechaYHora(pago.fecha_pago, pago.hora_pago),
             pago.dni_cliente,
             pago.nombre_cliente,
             pago.credito_id,
-            formatearFechaYHora(pago.fecha_pago, pago.hora_pago),
-            voucher.indice + 1,
-            voucher.nro_operacion,
-            voucher.tipo_operacion,
-            voucher.monto,
-            voucher.estado,
             pago.agencia,
-            pago.procesado_por
+            pago.agencia_codigo,
+            pago.cod_caja,
+            pago.user_caja,
+            pago.tipo_pago,
+            pago.tipo_operacion,
+            pago.estado_anterior,
+            pago.estado_final,
+            pago.monto_total_aplicado,
+            pago.vouchers_aceptados,
+            'N/A', // Voucher N° de Total (no hay vouchers)
+            pago.procesado_por,
+            pago.email_procesador,
+            'N/A', // Estado Anterior Voucher
+            'N/A', // Estado Nuevo Voucher
+            'N/A', // Nro Operación
+            'N/A', // Tipo Operación Voucher
+            0      // Monto Voucher
           ]);
-        });
-      });
-
-      // Dar formato a las columnas
-      [worksheetResumen, worksheetDetalle].forEach(ws => {
-        ws.columns.forEach(column => {
-          column.width = 15;
-        });
-        
-        // Estilo del encabezado
-        const headerRow = ws.getRow(ws.rowCount > 10 ? 7 : 1);
-        if (headerRow) {
-          headerRow.font = { bold: true };
-          headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0891B2' } };
+        } else {
+          // ✅ CADA VOUCHER EN SU PROPIA FILA con datos completos del pago
+          pago.detalle_vouchers.forEach((voucher, index) => {
+            totalVouchersDetalle++;
+            const voucherNumero = `${index + 1} de ${pago.detalle_vouchers.length}`;
+            worksheetDetalle.addRow([
+              formatearFechaYHora(pago.fecha_pago, pago.hora_pago),
+              pago.dni_cliente,
+              pago.nombre_cliente,
+              pago.credito_id,
+              pago.agencia,
+              pago.agencia_codigo,
+              pago.cod_caja,
+              pago.user_caja,
+              pago.tipo_pago,
+              pago.tipo_operacion,
+              pago.estado_anterior,
+              pago.estado_final,
+              pago.monto_total_aplicado,
+              pago.vouchers_aceptados,
+              voucherNumero, // ✅ Voucher N° de Total (ej: "1 de 2", "2 de 2")
+              pago.procesado_por,
+              pago.email_procesador,
+              voucher.estado_anterior,
+              voucher.estado,
+              voucher.nro_operacion,
+              voucher.tipo_operacion,
+              voucher.monto
+            ]);
+          });
         }
       });
+      
+      // Dar formato a la hoja de resumen
+      worksheetResumen.columns.forEach(column => {
+        column.width = 15;
+      });
+      
+      // Estilo del encabezado de la hoja de resumen (fila 7)
+      const headerRowResumen = worksheetResumen.getRow(7);
+      if (headerRowResumen) {
+        headerRowResumen.font = { bold: true };
+        headerRowResumen.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0891B2' } };
+      }
+
+      // Dar formato a la hoja de detalle
+      worksheetDetalle.columns.forEach(column => {
+        column.width = 15;
+      });
+      
+      // Estilo del encabezado de la hoja de detalle (fila 1)
+      const headerRowDetalle = worksheetDetalle.getRow(1);
+      if (headerRowDetalle) {
+        headerRowDetalle.font = { bold: true };
+        headerRowDetalle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0891B2' } };
+      }
 
       // Generar archivo
       const buffer = await workbook.xlsx.writeBuffer();
@@ -299,7 +468,6 @@ const ReportePagosAplicados: React.FC = () => {
       window.URL.revokeObjectURL(url);
       setExportModalOpen(false);
     } catch (error) {
-      console.error('Error al exportar:', error);
     } finally {
       setLoading(false);
     }
@@ -309,40 +477,81 @@ const ReportePagosAplicados: React.FC = () => {
   const handleMostrarVista = async () => {
     setLoading(true);
     try {
-      const datos = await obtenerDatosPagosAplicados(rangoExporte, fechaInicioExporte, fechaFinExporte);
+      const datos = await obtenerDatosPagosAplicados(
+        rangoExporte,
+        fechaInicioExporte,
+        fechaFinExporte,
+        filtroAgencia,
+        agenciaEspecifica,
+        filtroTipoPago,
+        filtroUsuario,
+        agenciaUsuarioEspecifica
+      );
       setDatosPagos(datos);
       setMostrandoVista(true);
       setExportModalOpen(false);
     } catch (error) {
-      console.error('Error al cargar datos:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Configurar impresión
+  const printComponentRef = useRef<HTMLDivElement>(null);
+
+  // Configurar impresión con estilos para múltiples páginas
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
+    contentRef: printComponentRef,
     pageStyle: `
       @page {
-        size: A4 landscape;
-        margin: 15mm;
+        size: A4;
+        margin: 1.5cm;
       }
       @media print {
-        body { 
-          -webkit-print-color-adjust: exact;
-          font-size: 10px;
+        body {
+          font-family: Arial, sans-serif;
+          font-size: 12px;
+          line-height: 1.4;
         }
         table {
-          font-size: 8px;
+          border-collapse: collapse !important;
+          width: 100% !important;
+          page-break-inside: auto;
         }
-        th, td {
-          padding: 2px !important;
-          font-size: 8px !important;
+        thead {
+          display: table-header-group;
+        }
+        tbody {
+          display: table-row-group;
+        }
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        td, th {
+          border: 1px solid #000 !important;
+          padding: 4px !important;
+          font-size: 10px !important;
+          vertical-align: top;
+        }
+        th {
+          background-color: #f5f5f5 !important;
+          font-weight: bold !important;
+        }
+        .page-break {
+          page-break-before: always;
         }
       }
     `
   });
+
+  // Función para manejar el clic de imprimir
+  const handlePrintClick = () => {
+    if (!datosPagos || datosPagos.length === 0) {
+      alert('No hay datos para imprimir. Por favor, genere un reporte primero.');
+      return;
+    }
+    handlePrint();
+  };
 
   return (
     <div className="space-y-6">
@@ -365,7 +574,7 @@ const ReportePagosAplicados: React.FC = () => {
           
           {datosPagos.length > 0 && (
             <button
-              onClick={handlePrint}
+              onClick={handlePrintClick}
               className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
             >
               🖨️ Imprimir
@@ -375,198 +584,50 @@ const ReportePagosAplicados: React.FC = () => {
       </div>
 
       {/* Vista previa de datos */}
-      {mostrandoVista && datosPagos.length > 0 && (
-        <div className="mt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Vista Previa del Reporte</h3>
-            <p className="text-sm text-gray-600">
-              {datosPagos.length} registro{datosPagos.length !== 1 ? 's' : ''} |
-              Total: S/ {datosPagos.reduce((total, d) => total + d.monto_total_aplicado, 0).toFixed(2)}
-            </p>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border rounded-lg">
-              <thead>
-                <tr className="bg-cyan-500 text-white">
-                  <th className="px-3 py-2 text-left text-xs font-medium">Fecha y Hora</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium">Cliente</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium">DNI</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium">Crédito ID</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium">Agencia</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium">Monto</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium">Vouchers</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium">Procesado Por</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datosPagos.map((pago, index) => (
-                  <tr key={index} className="border-b hover:bg-gray-50">
-                    <td className="px-3 py-2 text-xs">{formatearFechaYHora(pago.fecha_pago, pago.hora_pago)}</td>
-                    <td className="px-3 py-2 text-xs">{pago.nombre_cliente}</td>
-                    <td className="px-3 py-2 text-xs font-mono">{pago.dni_cliente}</td>
-                    <td className="px-3 py-2 text-xs font-mono">{pago.credito_id}</td>
-                    <td className="px-3 py-2 text-xs">{pago.agencia}</td>
-                    <td className="px-3 py-2 text-xs text-right font-medium">S/ {pago.monto_total_aplicado.toFixed(2)}</td>
-                    <td className="px-3 py-2 text-xs text-center">
-                      <span className="text-green-600">{pago.vouchers_aceptados} ✓</span>
-                      {pago.vouchers_rechazados > 0 && <span className="text-red-600 ml-1">{pago.vouchers_rechazados} ✗</span>}
-                    </td>
-                    <td className="px-3 py-2 text-xs">{pago.procesado_por}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <ReportPreview
+        mostrandoVista={mostrandoVista}
+        datosPagos={datosPagos}
+      />
 
-      {/* Contenido para impresión */}
-      <div ref={printRef} className="hidden print:block">
-        <div className="p-4">
-          <div className="text-center mb-6">
-            <h1 className="text-xl font-bold">REPORTE DE PAGOS APLICADOS</h1>
-            <p className="text-sm text-gray-600">Generado el {format(new Date(), 'dd/MM/yyyy HH:mm:ss')}</p>
-          </div>
-          
-          {datosPagos.length > 0 && (
-            <table className="w-full text-xs border-collapse border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="border p-1">Fecha/Hora</th>
-                  <th className="border p-1">Cliente</th>
-                  <th className="border p-1">DNI</th>
-                  <th className="border p-1">Crédito</th>
-                  <th className="border p-1">Agencia</th>
-                  <th className="border p-1">Monto</th>
-                  <th className="border p-1">Vouchers</th>
-                  <th className="border p-1">Procesado Por</th>
-                </tr>
-              </thead>
-              <tbody>
-                {datosPagos.map((pago, index) => (
-                  <tr key={index}>
-                    <td className="border p-1">{formatearFechaYHora(pago.fecha_pago, pago.hora_pago)}</td>
-                    <td className="border p-1">{pago.nombre_cliente}</td>
-                    <td className="border p-1">{pago.dni_cliente}</td>
-                    <td className="border p-1">{pago.credito_id}</td>
-                    <td className="border p-1">{pago.agencia}</td>
-                    <td className="border p-1 text-right">S/ {pago.monto_total_aplicado.toFixed(2)}</td>
-                    <td className="border p-1 text-center">{pago.vouchers_aceptados} ✓ {pago.vouchers_rechazados > 0 && `${pago.vouchers_rechazados} ✗`}</td>
-                    <td className="border p-1">{pago.procesado_por}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+      {/* Modal de configuración */}
+      <ReportConfigModal
+        exportModalOpen={exportModalOpen}
+        setExportModalOpen={setExportModalOpen}
+        filtroAgencia={filtroAgencia}
+        setFiltroAgencia={setFiltroAgencia}
+        agenciaEspecifica={agenciaEspecifica}
+        setAgenciaEspecifica={setAgenciaEspecifica}
+        usuariosDisponibles={usuariosDisponibles}
+        cargandoUsuarios={cargandoUsuarios}
+        usuarioSeleccionado={usuarioSeleccionado}
+        setUsuarioSeleccionado={setUsuarioSeleccionado}
+        setFiltroUsuario={setFiltroUsuario}
+        agenciasUsuarioSeleccionado={agenciasUsuarioSeleccionado}
+        setAgenciasUsuarioSeleccionado={setAgenciasUsuarioSeleccionado}
+        agenciaUsuarioEspecifica={agenciaUsuarioEspecifica}
+        setAgenciaUsuarioEspecifica={setAgenciaUsuarioEspecifica}
+        filtroTipoPago={filtroTipoPago}
+        setFiltroTipoPago={setFiltroTipoPago}
+        rangoExporte={rangoExporte}
+        setRangoExporte={setRangoExporte}
+        fechaInicioExporte={fechaInicioExporte}
+        setFechaInicioExporte={setFechaInicioExporte}
+        fechaFinExporte={fechaFinExporte}
+        setFechaFinExporte={setFechaFinExporte}
+        handleMostrarVista={handleMostrarVista}
+        handleExportExcel={handleExportExcel}
+        loading={loading}
+        user={user}
+        esAdmin={esAdmin}
+        esSuperAdmin={esSuperAdmin}
+        esUserPayment={esUserPayment}
+      />
 
-      {/* Modal de exportación */}
-      {exportModalOpen && createPortal(
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10001] p-4" onClick={() => setExportModalOpen(false)}>
-          <div className="bg-white rounded-lg max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Configurar Reporte de Pagos</h3>
-              <button
-                onClick={() => setExportModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700 text-xl"
-              >
-                ×
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rango de fechas:</label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="rango"
-                      value="hoy"
-                      checked={rangoExporte === 'hoy'}
-                      onChange={(e) => setRangoExporte(e.target.value as 'hoy')}
-                      className="mr-2"
-                    />
-                    📅 Pagos aplicados hoy ({format(new Date(), 'dd/MM/yyyy')})
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="rango"
-                      value="rango"
-                      checked={rangoExporte === 'rango'}
-                      onChange={(e) => setRangoExporte(e.target.value as 'rango')}
-                      className="mr-2"
-                    />
-                    📆 Rango de fechas personalizado
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="rango"
-                      value="todo"
-                      checked={rangoExporte === 'todo'}
-                      onChange={(e) => setRangoExporte(e.target.value as 'todo')}
-                      className="mr-2"
-                    />
-                    📋 Todos los pagos aplicados
-                  </label>
-                </div>
-              </div>
-
-              {rangoExporte === 'rango' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
-                    <input
-                      type="date"
-                      value={fechaInicioExporte}
-                      onChange={(e) => setFechaInicioExporte(e.target.value)}
-                      className="w-full rounded-md border border-gray-300 p-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
-                    <input
-                      type="date"
-                      value={fechaFinExporte}
-                      onChange={(e) => setFechaFinExporte(e.target.value)}
-                      className="w-full rounded-md border border-gray-300 p-2 text-sm"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2 pt-4">
-                <button
-                  onClick={handleMostrarVista}
-                  disabled={loading}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-                >
-                  {loading ? '⏳ Cargando...' : '👁️ Ver Vista Previa'}
-                </button>
-                <button
-                  onClick={handleExportExcel}
-                  disabled={loading}
-                  className="flex-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-                >
-                  {loading ? '⏳ Exportando...' : '📊 Exportar Excel'}
-                </button>
-              </div>
-              
-              <button
-                onClick={() => setExportModalOpen(false)}
-                className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Componente para impresión (oculto) */}
+      <PrintableReport
+        ref={printComponentRef}
+        datosPagos={datosPagos}
+      />
     </div>
 
   );

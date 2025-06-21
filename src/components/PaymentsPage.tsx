@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import { fetchPaymentsByDNI } from '../api';
+import { fetchPayments } from '../api';
 import { PaymentCard } from './PaymentCard';
 import { PaymentRecord, AGENCIAS } from '../types';
 import { UserRole } from '../types/roles';
@@ -122,28 +122,36 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   }, [socket, updatePayment]);
 
   // Función para búsqueda por DNI (modo búsqueda independiente)
-  const [dniSearchResults, setDniSearchResults] = useState<PaymentRecord[]>([]);
+  const [,setDniSearchResults] = useState<PaymentRecord[]>([]);
+  const [filteredDniResults, setFilteredDniResults] = useState<PaymentRecord[]>([]);
 
   const handleDNISearch = async () => {
     if (!esDniValido(dniFilter)) return;
     
     try {
       setSearchMode(true);
-      // Para búsqueda por DNI, usar la API específica
-      const response = await fetchPaymentsByDNI(dniFilter);
+      // Para búsqueda por DNI, usar la API que soporta filtros combinados
+      const response = await fetchPayments({
+        dni: dniFilter,
+        estado: selectedStatus === 'todos' ? undefined : selectedStatus,
+        page: 1,
+        limit: 50 // Cargar más registros para DNI específico
+      });
       const filteredPayments = response?.comprobantes || [];
       setDniSearchResults(filteredPayments);
+      setFilteredDniResults(filteredPayments);
       
       if (filteredPayments.length > 0) {
-        toast.success(`Se encontraron ${filteredPayments.length} pagos para el DNI: ${dniFilter}`);
+        //toast.success(`Se encontraron ${filteredPayments.length} pagos para el DNI: ${dniFilter} (${selectedStatus !== 'todos' ? selectedStatus : 'todos los estados'})`);
       } else {
-        toast(`No se encontraron pagos para el DNI: ${dniFilter}`, {
-          icon: 'ℹ️',
-          duration: 3000
-        });
+        // toast(`No se encontraron pagos para el DNI: ${dniFilter} con estado: ${selectedStatus}`, {
+        //   icon: 'ℹ️',
+        //   duration: 3000
+        // });
       }
     } catch (error) {
       setDniSearchResults([]);
+      setFilteredDniResults([]);
       toast.error('Error al buscar pagos por DNI');
     }
   };
@@ -151,15 +159,40 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   const handleStatusChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = event.target.value as 'pendiente' | 'parcial' | 'atendido' | 'todos';
     setSelectedStatus(newStatus);
-    setSearchMode(false);
-    setDniSearchResults([]);
     
-    // Cargar con el nuevo filtro
-    const filters = {
-      estado: newStatus === 'todos' ? undefined : newStatus
-    };
-    resetData(); // Limpiar datos anteriores
-    loadPayments(filters, 1, false);
+    // Verificar si hay un DNI activo (válido y no vacío)
+    if (dniFilter && esDniValido(dniFilter)) {
+      // Si hay DNI activo, filtrar solo para ese DNI
+      try {
+        const response = await fetchPayments({
+          dni: dniFilter,
+          estado: newStatus === 'todos' ? undefined : newStatus,
+          page: 1,
+          limit: 50
+        });
+        const filteredPayments = response?.comprobantes || [];
+        setSearchMode(true);
+        setDniSearchResults(filteredPayments);
+        setFilteredDniResults(filteredPayments);
+        
+        //toast.success(`DNI ${dniFilter} - ${newStatus !== 'todos' ? newStatus : 'todos los estados'}: ${filteredPayments.length} resultado(s)`);
+      } catch (error) {
+        setDniSearchResults([]);
+        setFilteredDniResults([]);
+        //toast.error('Error al filtrar pagos por DNI');
+      }
+    } else {
+      // Si NO hay DNI activo, filtrar de forma general
+      setSearchMode(false);
+      setDniSearchResults([]);
+      setFilteredDniResults([]);
+      
+      const filters = {
+        estado: newStatus === 'todos' ? undefined : newStatus
+      };
+      resetData();
+      loadPayments(filters, 1, false);
+    }
   };
 
   const clearFilters = async () => {
@@ -167,6 +200,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
     setSelectedStatus('pendiente');
     setSearchMode(false);
     setDniSearchResults([]);
+    setFilteredDniResults([]);
     
     const filters = {
       estado: 'pendiente' as const
@@ -364,7 +398,6 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                           id="status-select"
                           value={selectedStatus}
                           onChange={handleStatusChange}
-                          disabled={searchMode}
                           className="w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-10 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors shadow-sm appearance-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
                           <option value="pendiente">🟡 Pendiente</option>
@@ -386,12 +419,12 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 px-2">
                   <div className="flex items-center gap-3">
                     <div className="text-sm text-gray-600 font-medium">
-                      {(searchMode ? dniSearchResults : payments).length > 0 ? (
+                      {(searchMode ? filteredDniResults : payments).length > 0 ? (
                         <span className="flex items-center gap-2">
                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          Mostrando {(searchMode ? dniSearchResults : payments).length} comprobante{(searchMode ? dniSearchResults : payments).length !== 1 ? 's' : ''}
+                          Mostrando {(searchMode ? filteredDniResults : payments).length} comprobante{(searchMode ? filteredDniResults : payments).length !== 1 ? 's' : ''}
                           {!searchMode && pagination.total > 0 && ` de ${pagination.total} total`}
-                          {searchMode && <span className="text-cyan-600 ml-1">({dniFilter})</span>}
+                          {searchMode && <span className="text-cyan-600 ml-1">({dniFilter}) - {selectedStatus !== 'todos' ? `Estado: ${selectedStatus}` : 'Todos los estados'}</span>}
                         </span>
                       ) : (
                         <span className="flex items-center gap-2 text-gray-500">
@@ -431,7 +464,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
               <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4" />
               <p className="text-gray-600 font-medium">Cargando pagos...</p>
             </div>
-          ) : (searchMode ? dniSearchResults : payments).length === 0 ? (
+          ) : (searchMode ? filteredDniResults : payments).length === 0 ? (
             <div className="rounded-xl p-8 text-center">
               <p className="text-gray-600 font-medium">
                 {searchMode && dniFilter ? `No se encontraron comprobantes para el DNI ${dniFilter}` : `No se encontraron comprobantes`}
@@ -440,7 +473,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                {(searchMode ? dniSearchResults : payments).map((payment) => (
+                {(searchMode ? filteredDniResults : payments).map((payment) => (
                   <PaymentCard
                     key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                     payment={payment}

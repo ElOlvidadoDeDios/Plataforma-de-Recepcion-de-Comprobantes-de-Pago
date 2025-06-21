@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo, useRef } from 'react';
 import { type BotInteraction } from '../api/botInteractionsApi';
 import { useBotInteractions } from '../hooks/useBotInteractions';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
@@ -10,14 +10,18 @@ const formatDate = (date: Date) => {
   return date.toISOString().split('T')[0];
 };
 
+
 const BotInteractionsPage = () => {
-  const { interactions, loading, error, loadingMore, pagination, loadInteractions, loadMoreData, searchByDni, resetData } = useBotInteractions();
+  const { interactions, loading, error, loadingMore, pagination, loadInteractions, loadMoreData, resetData } = useBotInteractions();
   const [searchDni, setSearchDni] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
   const [startDate, setStartDate] = useState(formatDate(new Date(new Date().setDate(new Date().getDate() - 30))));
   const [endDate, setEndDate] = useState(formatDate(new Date()));
   const [searchMode, setSearchMode] = useState(false); // Para diferenciar búsqueda específica vs filtros
   const [filteredInteractions, setFilteredInteractions] = useState<BotInteraction[]>([]);
+  
+  // Ref para mantener el foco en el input DNI
+  const dniInputRef = useRef<HTMLInputElement>(null);
 
   const formatPhoneNumber = (number: string) => {
     const cleaned = number.replace(/[^0-9]/g, '');
@@ -45,7 +49,7 @@ const BotInteractionsPage = () => {
   });
 
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales solo con fechas
   useEffect(() => {
     const filters = {
       fechaInicio: startDate,
@@ -54,6 +58,41 @@ const BotInteractionsPage = () => {
     loadInteractions(filters, 1, false);
     setSearchMode(false);
   }, [startDate, endDate, loadInteractions]);
+
+  // Búsqueda por DNI con la misma lógica que customerConsultation
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+
+    const searchTimeout = setTimeout(async () => {
+      if (searchDni.length >= 3) {  // Mínimo 3 caracteres como customerConsultation
+        const filters = {
+          fechaInicio: startDate,
+          fechaFin: endDate,
+          dni: searchDni.trim()
+        };
+        
+        if (isActive) {
+          loadInteractions(filters, 1, false, true); // isSearching = true
+        }
+      } else if (searchDni === '') {
+        // Si está vacío, cargar datos normales
+        const filters = {
+          fechaInicio: startDate,
+          fechaFin: endDate
+        };
+        if (isActive) {
+          loadInteractions(filters, 1, false, false); // isSearching = false
+        }
+      }
+    }, 500);
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      clearTimeout(searchTimeout);
+    };
+  }, [searchDni, startDate, endDate, loadInteractions]);
 
   // Aplicar filtros locales solo para el teléfono (el resto se maneja en el backend)
   useEffect(() => {
@@ -70,13 +109,6 @@ const BotInteractionsPage = () => {
     }
   }, [interactions, searchPhone, searchMode]);
 
-  // Función para búsqueda por DNI
-  const handleDniSearch = async () => {
-    if (!searchDni.trim()) return;
-    
-    setSearchMode(true);
-    await searchByDni(searchDni.trim());
-  };
 
   const handleRefresh = () => {
     setSearchDni('');
@@ -138,23 +170,21 @@ const BotInteractionsPage = () => {
              <div className="flex flex-wrap gap-4 items-start">
                <div className="flex-none flex gap-2">
                  <input
+                   ref={dniInputRef}
                    type="text"
                    value={searchDni}
                    onChange={(e) => setSearchDni(e.target.value)}
-                   placeholder="Buscar por DNI"
+                   placeholder="Buscar por DNI (mín. 3 caracteres)"
                    className="w-40 rounded-md border border-gray-300 px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white/90"
+                   onBlur={(e) => {
+                     // Restaurar foco si se pierde durante la búsqueda
+                     setTimeout(() => {
+                       if (document.activeElement !== e.target && searchDni.length >= 3) {
+                         dniInputRef.current?.focus();
+                       }
+                     }, 100);
+                   }}
                  />
-                 <button
-                   onClick={handleDniSearch}
-                   disabled={!searchDni.trim()}
-                   className={`px-3 py-1.5 rounded-md text-sm font-medium ${
-                     !searchDni.trim()
-                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                       : 'bg-blue-600 text-white hover:bg-blue-700'
-                   }`}
-                 >
-                   Buscar
-                 </button>
                </div>
 
                <div className="flex-none flex gap-2">

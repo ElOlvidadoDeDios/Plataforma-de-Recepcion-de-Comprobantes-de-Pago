@@ -49,7 +49,8 @@ export const useBotInteractions = () => {
   const loadInteractions = useCallback(async (
     filters: BotInteractionFilters,
     page: number = 1,
-    append: boolean = false
+    append: boolean = false,
+    isSearching: boolean = false
   ) => {
     try {
       // Cancelar solicitud anterior si existe
@@ -58,9 +59,11 @@ export const useBotInteractions = () => {
       }
       
       if (page === 1) {
-        setLoading(true);
+        if (!isSearching) {
+          setLoading(true);
+          setInteractions([]); // Solo limpiar si no es búsqueda
+        }
         setError(null);
-        setInteractions([]); // Limpiar datos previos
       } else if (append) {
         setLoadingMore(true);
       }

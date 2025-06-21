@@ -89,32 +89,7 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
   };
 
   const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 15mm;
-      }
-      @media print {
-        body { 
-          -webkit-print-color-adjust: exact;
-          font-size: 10px;
-        }
-        .page-break {
-          page-break-before: always;
-        }
-        .no-page-break {
-          page-break-inside: avoid;
-        }
-        table {
-          font-size: 9px;
-        }
-        th, td {
-          padding: 3px !important;
-          font-size: 9px !important;
-        }
-      }
-    `
+    contentRef: printRef
   });
 
   const handleExportExcel = async () => {

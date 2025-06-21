@@ -150,15 +150,29 @@ export const updateUserRole = async (userId: string, role: UserRole): Promise<Us
     if (error instanceof AxiosError) {
       const errorMessage = error.response?.data?.message || 'Error al actualizar el rol del usuario';
 
-      if (error.response?.status === 400 && errorMessage.includes('eliminado')) {
-        throw new APIError('No se puede modificar el rol de un usuario eliminado');
+      // 🔧 Manejo mejorado de errores específicos
+      switch (error.response?.status) {
+        case 400:
+          if (errorMessage.includes('eliminado')) {
+            throw new APIError('No se puede modificar el rol de un usuario eliminado');
+          }
+          if (errorMessage.includes('propio rol')) {
+            throw new APIError('No puedes cambiar tu propio rol. Solicita a otro administrador.');
+          }
+          throw new APIError(errorMessage);
+          
+        case 401:
+          throw new APIError('No tienes permisos para realizar esta operación');
+          
+        case 403:
+          throw new APIError('Acceso denegado. No tienes los permisos necesarios para esta acción.');
+          
+        case 404:
+          throw new APIError('Usuario no encontrado');
+          
+        default:
+          throw new APIError(errorMessage, error.response?.status);
       }
-
-      if (error.response?.status === 403 && errorMessage.includes('SUPER_ADMIN')) {
-        throw new APIError('No se puede modificar el rol de un SUPER_ADMIN');
-      }
-
-      throw new APIError(errorMessage, error.response?.status);
     }
     throw new APIError('Error al actualizar el rol del usuario');
   }
@@ -199,6 +213,13 @@ export const updateUserAgencias = async (userId: string, agencias: AgenciaCaja[]
       user_caja: String(ag.user_caja || '').trim()
     }));
 
+    // 🔍 Debug: Log de la función updateUserAgencias
+    console.log('🔍 updateUserAgencias - Datos de entrada:', {
+      userId,
+      agenciasOriginales: agencias,
+      agenciasFormateadas
+    });
+
     const camposIncompletos = agenciasFormateadas.some(ag => !ag.agencia || !ag.cod_caja || !ag.user_caja);
     if (camposIncompletos) {
       throw new APIError('Todos los campos son requeridos', 400);
@@ -214,10 +235,24 @@ export const updateUserAgencias = async (userId: string, agencias: AgenciaCaja[]
       throw new APIError('Los códigos de caja deben ser únicos', 400);
     }
 
+    const requestPayload = { agencias: agenciasFormateadas };
+    
+    // 🔍 Debug: Log de la petición HTTP
+    console.log('🔍 Enviando petición HTTP:', {
+      url: `users/${userId}/agencias`,
+      payload: requestPayload
+    });
+
     const response = await userApiInstance.patch<User>(
       `users/${userId}/agencias`,
-      { agencias: agenciasFormateadas }
+      requestPayload
     );
+
+    // 🔍 Debug: Log de la respuesta HTTP
+    console.log('🔍 Respuesta HTTP recibida:', {
+      status: response.status,
+      data: response.data
+    });
 
     if (!response.data) {
       throw new APIError('Respuesta inválida del servidor', 500);

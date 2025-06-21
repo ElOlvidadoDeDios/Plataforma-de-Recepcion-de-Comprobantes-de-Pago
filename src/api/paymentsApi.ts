@@ -9,6 +9,8 @@ export interface PaymentHistoryRecord {
   hora_pago: string;
   monto: number;
   agencia: string;
+  cod_caja: string; // ✅ Agregado: Código de caja
+  user_caja: string; // ✅ Agregado: Usuario de caja
   tipo_pago: string;
   tipo_operacion: 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial' | 'modificacion_parcial';
   estadoGeneral_anterior: string;
@@ -341,6 +343,8 @@ export const fetchPaymentHistory = async (params: {
   fechaFin?: string;
   dni?: string;
   estado?: 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial';
+  tipoPago?: string;
+  usuarioFiltro?: string; // 🔧 Nuevo parámetro para filtrar por usuario que procesó
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -359,6 +363,8 @@ export const fetchPaymentHistory = async (params: {
     if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
     if (params.dni) queryParams.append('dni', params.dni);
     if (params.estado) queryParams.append('estado', params.estado);
+    if (params.tipoPago) queryParams.append('tipoPago', params.tipoPago);
+    if (params.usuarioFiltro) queryParams.append('usuario', params.usuarioFiltro); // 🔧 Filtro por usuario
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
@@ -385,6 +391,42 @@ export const fetchPaymentHistory = async (params: {
       );
     }
     throw new APIError('Error al obtener el historial de pagos');
+  }
+};
+
+// 🆕 API específica para reportes - SIN PAGINACIÓN
+export const fetchPaymentHistoryForReport = async (params: {
+  fechaInicio?: string;
+  fechaFin?: string;
+  dni?: string;
+  estado?: 'aceptacion_total' | 'rechazo_total' | 'rechazo_parcial';
+  tipoPago?: string;
+  agencia?: string;
+  usuario?: string;
+}): Promise<PaymentHistoryResponse> => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.fechaInicio) queryParams.append('fechaInicio', params.fechaInicio);
+    if (params.fechaFin) queryParams.append('fechaFin', params.fechaFin);
+    if (params.dni) queryParams.append('dni', params.dni);
+    if (params.estado) queryParams.append('estado', params.estado);
+    if (params.tipoPago) queryParams.append('tipoPago', params.tipoPago);
+    if (params.agencia) queryParams.append('agencia', params.agencia);
+    if (params.usuario) queryParams.append('usuario', params.usuario);
+
+    const response = await axiosInstance.get<PaymentHistoryResponse>(
+      `/api/comprobantes/reportes/historial-pagos?${queryParams.toString()}`
+    );
+    
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new APIError(
+        error.response?.data?.message || 'Error al generar reporte de historial de pagos',
+        error.response?.status
+      );
+    }
+    throw new APIError('Error al generar reporte de historial de pagos');
   }
 };
 
