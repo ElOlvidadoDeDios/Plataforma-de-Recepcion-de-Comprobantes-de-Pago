@@ -37,36 +37,36 @@ export const DataRow = ({
 
 // Componente para la tabla del cronograma
 export const CronogramaTable = ({ cuotas }: { cuotas: CuotaCronograma[] }) => (
-  <table className="w-full bg-white border border-gray-300 text-xs">
+  <table className="w-full bg-white border border-gray-300 text-[10px] print:text-[9px]">
     <thead>
       <tr className="bg-gradient-to-r from-cyan-500 to-cyan-700 text-white">
-        <th className="px-2 py-2 border border-gray-300">N°CUO.</th>
-        <th className="px-2 py-2 border border-gray-300">F.Venc</th>
-        <th className="px-2 py-2 border border-gray-300">F.Pago</th>
-        <th className="px-2 py-2 border border-gray-300">Mora</th>
-        <th className="px-2 py-2 border border-gray-300">Cuota</th>
-        <th className="px-2 py-2 border border-gray-300">Capital</th>
-        <th className="px-2 py-2 border border-gray-300">Interés</th>
-        <th className="px-2 py-2 border border-gray-300">Desgrav.</th>
-        <th className="px-2 py-2 border border-gray-300">Seguro</th>
-        <th className="px-2 py-2 border border-gray-300">Saldo</th>
-        <th className="px-2 py-2 border border-gray-300">Estado</th>
+        <th className="px-1 py-1 border border-gray-300">N°CUO.</th>
+        <th className="px-1 py-1 border border-gray-300">F.Venc</th>
+        <th className="px-1 py-1 border border-gray-300">F.Pago</th>
+        <th className="px-1 py-1 border border-gray-300">Mora</th>
+        <th className="px-1 py-1 border border-gray-300">Cuota</th>
+        <th className="px-1 py-1 border border-gray-300">Capital</th>
+        <th className="px-1 py-1 border border-gray-300">Interés</th>
+        <th className="px-1 py-1 border border-gray-300">Desgrav.</th>
+        <th className="px-1 py-1 border border-gray-300">Seguro</th>
+        <th className="px-1 py-1 border border-gray-300">Saldo</th>
+        <th className="px-1 py-1 border border-gray-300">Estado</th>
       </tr>
     </thead>
     <tbody>
       {cuotas.map((cuota) => (
         <tr key={cuota.NUMERO_CUOTA} className="hover:bg-gray-50">
-          <td className="px-2 py-1 border border-gray-200 text-center">{cuota.NUMERO_CUOTA}</td>
-          <td className="px-2 py-1 border border-gray-200 text-center">{formatDate(cuota.FECHA_VENCIMIENTO)}</td>
-          <td className="px-2 py-1 border border-gray-200 text-center">{formatDate(cuota.FECHA_PAGO)}</td>
-          <td className="px-2 py-1 border border-gray-200 text-center">{cuota.DIAS_MORA}</td>
-          <td className="px-2 py-1 border border-gray-200 text-right">{formatNumber(cuota.CUOTA_TOTAL)}</td>
-          <td className="px-2 py-1 border border-gray-200 text-right">{formatNumber(cuota.PAGO_CAPITAL)}</td>
-          <td className="px-2 py-1 border border-gray-200 text-right">{formatNumber(cuota.PAGO_INTERES)}</td>
-          <td className="px-2 py-1 border border-gray-200 text-right">{formatNumber(cuota.DESGRAVAMEN)}</td>
-          <td className="px-2 py-1 border border-gray-200 text-right">{formatNumber(cuota.SEGURO)}</td>
-          <td className="px-2 py-1 border border-gray-200 text-right">{formatNumber(cuota.SALDO_PROYECTADO)}</td>
-          <td className={`px-2 py-1 border border-gray-200 text-center ${
+          <td className="px-1 py-1 border border-gray-200 text-center">{cuota.NUMERO_CUOTA}</td>
+          <td className="px-1 py-1 border border-gray-200 text-center">{formatDate(cuota.FECHA_VENCIMIENTO)}</td>
+          <td className="px-1 py-1 border border-gray-200 text-center">{formatDate(cuota.FECHA_PAGO)}</td>
+          <td className="px-1 py-1 border border-gray-200 text-center">{cuota.DIAS_MORA}</td>
+          <td className="px-1 py-1 border border-gray-200 text-right">{formatNumber(cuota.CUOTA_TOTAL)}</td>
+          <td className="px-1 py-1 border border-gray-200 text-right">{formatNumber(cuota.PAGO_CAPITAL)}</td>
+          <td className="px-1 py-1 border border-gray-200 text-right">{formatNumber(cuota.PAGO_INTERES)}</td>
+          <td className="px-1 py-1 border border-gray-200 text-right">{formatNumber(cuota.DESGRAVAMEN)}</td>
+          <td className="px-1 py-1 border border-gray-200 text-right">{formatNumber(cuota.SEGURO)}</td>
+          <td className="px-1 py-1 border border-gray-200 text-right">{formatNumber(cuota.SALDO_PROYECTADO)}</td>
+          <td className={`px-1 py-1 border border-gray-200 text-center ${
             cuota.ESTADO === 'CANCELADO'
               ? 'text-green-600'
               : cuota.ESTADO === 'VENCIDO'
