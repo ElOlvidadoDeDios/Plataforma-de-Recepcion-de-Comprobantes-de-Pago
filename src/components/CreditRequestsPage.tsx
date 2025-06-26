@@ -9,6 +9,7 @@ import { getBotInteractionsByDni } from '../api/botInteractionsApi';
 import Layout from './Layout';
 import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 // Componente principal
 const CreditRequestsPage: React.FC = () => {
@@ -24,6 +25,7 @@ const CreditRequestsPage: React.FC = () => {
   const [attentionUsers, setAttentionUsers] = useState<Record<string, {email: string, fecha: string, hora: string}>>({});
   const [modalError, setModalError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   // Detectar si está en móvil
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -301,20 +303,37 @@ Quedo atento a su respuesta.`;
               >
                 Buscar
               </button>
-            </div>
 
-            {/* Filtro por estado */}
-            <select
-              value={statusFilter}
-              onChange={(e) => handleStatusFilter(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200 bg-white/90 text-sm"
-            >
-              <option value="APPROVED_PENDING">Aprobados Pendientes</option>
-              <option value="APPROVED_ATTENDED">Aprobados Atendidos</option>
-              <option value="REJECTED">Rechazados</option>
-              <option value="">Todos</option>
-            </select>
-          </div>
+              
+              </div>
+
+              {/* Filtro por estado */}
+              <select
+                value={statusFilter}
+                onChange={(e) => handleStatusFilter(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200 bg-white/90 text-sm"
+              >
+                <option value="APPROVED_PENDING">Aprobados Pendientes</option>
+                <option value="APPROVED_ATTENDED">Aprobados Atendidos</option>
+                <option value="REJECTED">Rechazados</option>
+                <option value="">Todos</option>
+              </select>
+              
+            </div>
+              {/* Botón de Historial de Atención */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  navigate('/historial-atencion-credito');
+                }}
+                className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white px-4 py-2 rounded-md transition-all duration-200 transform shadow-md text-sm font-medium hover:from-cyan-700 hover:to-blue-700 hover:scale-105 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Ver Historial de Atención de Crédito
+              </button>
+            </div>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useReactToPrint } from 'react-to-print';
 import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
@@ -6,7 +7,8 @@ import html2canvas from 'html2canvas';
 import { getCronograma, CuotaCronograma } from '../../api/cronogramaApi';
 import { DetalleCredito, ClienteResponse } from '../../api/customerConsultationAPI';
 import logoDile from '../../logo_dile.webp';
-import { CronogramaTable, DataRow, formatNumber } from './components/CronogramaTable';
+import { CronogramaTable, DataRow } from './components/CronogramaTable';
+import { formatNumber } from './components/cronogramaUtils';
 import { sendWhatsAppMessage } from './components/WhatsAppService.tsx';
 
 interface CronogramaModalProps {
@@ -64,7 +66,7 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
     const firstPageFixedContent = headerHeight + partialClientInfoHeight + partialLoanInfoHeight + tableHeaderHeight + footerHeight;
     const firstPageAvailableForRows = availableHeight - firstPageFixedContent;
     const firstPageRows = Math.floor(firstPageAvailableForRows / rowHeight);
-    const limitedFirstPageRows = Math.min(firstPageRows, 30);
+    const limitedFirstPageRows = Math.min(firstPageRows, 26);//limte  de 26 filas primera pagina
 
     const otherPagesFixedContent = headerHeight + tableHeaderHeight + footerHeight;
     const otherPagesAvailableForRows = availableHeight - otherPagesFixedContent;
@@ -244,8 +246,8 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh'}}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-auto">
         <div className="sticky top-0 bg-white z-10 px-6 py-4 border-b border-gray-200">
           <button onClick={onClose} className="ml-auto block p-2 hover:bg-gray-100 rounded-full">
@@ -436,7 +438,8 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

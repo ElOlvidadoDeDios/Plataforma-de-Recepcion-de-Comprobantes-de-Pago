@@ -13,5 +13,16 @@ export interface CreditRequest {
     respondidoEn?: string;
 }
 
+export interface HistorialCredito {
+    _id: string;
+    email: string;
+    fecha_atencion: string;
+    hora_atencion: string;
+    solicitud_atendida:CreditRequest; 
+
+}
+
+
 export type CreditRequestStatus = CreditRequest['status'];
 export type AttentionStatus = CreditRequest['estadoAtencion'];
+

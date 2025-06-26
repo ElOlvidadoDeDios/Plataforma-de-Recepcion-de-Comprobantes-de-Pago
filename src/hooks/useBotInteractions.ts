@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import { getBotInteractions, getBotInteractionsByDni, BotInteraction } from '../api/botInteractionsApi';
-import { useAuth } from './useAuth';
 import { APIError } from '../utils/error';
 import toast from 'react-hot-toast';
 
@@ -25,7 +24,6 @@ export const useBotInteractions = () => {
     hasNext: false,
     hasPrev: false
   });
-  const { isAuthenticated } = useAuth();
   const abortController = useRef<AbortController | null>(null);
 
   const handleError = useCallback((err: unknown) => {
@@ -117,7 +115,7 @@ export const useBotInteractions = () => {
   // Función para cargar más datos (infinite scroll)
   const loadMoreData = useCallback(async (filters: BotInteractionFilters) => {
     if (pagination.hasNext && !loadingMore && !loading) {
-      const nextPage = pagination.page + 1;
+      const nextPage = pagination.page + 1  ;
       await loadInteractions(filters, nextPage, true);
     }
   }, [pagination.hasNext, pagination.page, loadingMore, loading, loadInteractions]);

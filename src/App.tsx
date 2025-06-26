@@ -13,6 +13,8 @@ import BotInteractionsPage from './components/BotInteractionsPage';
 import ConsultaCuotasPage from './components/ConsultaCuotasPage';
 import { PaymentsPanel } from './components/pagos/panel-pagos';
 import CustomerConsultation from './components/customerConsultation/customerConsultation';
+import HistorialAtencionCreditos from './components/historial_de_Atencion_Creditos/historialAtencionCreditos';
+
 import NonBasicUserRoute from './components/NonBasicUserRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
@@ -92,6 +94,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <CreditRequestsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/historial-atencion-credito"
+                element={
+                  <ProtectedRoute>
+                    <HistorialAtencionCreditos  />
                   </ProtectedRoute>
                 }
               />

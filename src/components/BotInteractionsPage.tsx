@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { type BotInteraction } from '../api/botInteractionsApi';
 import { useBotInteractions } from '../hooks/useBotInteractions';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';

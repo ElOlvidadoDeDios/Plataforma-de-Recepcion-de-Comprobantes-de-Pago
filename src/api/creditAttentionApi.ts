@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { CreditAttentionResponse } from '../types/creditAttention';
+//import { get } from 'http';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -45,5 +46,43 @@ export const creditAttentionApi = {
         } catch (error) {
             throw new Error('Error al obtener el historial del usuario');
         }
-    }
+    },
+
+    getHistorialByEmail: async (
+        email: string,
+        fechaInicio?: string,
+        fechaFin?: string
+        ): Promise<CreditAttentionResponse> => {
+        try {
+            const params: any = {};
+            if (fechaInicio) params.fechaInicio = fechaInicio;
+            if (fechaFin) params.fechaFin = fechaFin;
+
+            const response = await axiosInstance.get(`/api/historial-atencion/usuario/${email}`, {
+            params
+            });
+            return response.data;
+        } catch (error) {
+            throw new Error('Error al obtener el historial del usuario');
+        }
+    },
+
+    getHistorialCompleto: async (
+        fechaInicio?: string,
+        fechaFin?: string
+        ): Promise<CreditAttentionResponse> => {
+        try {
+            const params: any = {};
+            if (fechaInicio) params.fechaInicio = fechaInicio;
+            if (fechaFin) params.fechaFin = fechaFin;
+
+            const response = await axiosInstance.get(`/api/historial-atencion`, {
+            params
+            });
+            return response.data;
+        } catch (error) {
+            throw new Error('Error al obtener el historial completo');
+        }
+    },
+
 };
