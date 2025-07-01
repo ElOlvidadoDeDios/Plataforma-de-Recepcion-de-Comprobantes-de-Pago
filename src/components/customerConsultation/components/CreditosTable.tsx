@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { DetalleCredito, ClienteResponse } from '../../../api/customerConsultationAPI';
 import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
+import { generarContrato, verificarDocumentoFirmado } from '../../../api/firmaDigitalApi';
 import { PaymentRecord } from '../../../types';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
@@ -10,9 +11,10 @@ const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 interface CreditosTableProps {
   creditos: DetalleCredito[];
   clientData: ClienteResponse;
+  onRefreshData?: () => void; // Función para refrescar los datos
 }
 
-const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
+const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTableProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPrestamo, setSelectedPrestamo] = useState<DetalleCredito | null>(null);
   const [isPagosModalOpen, setIsPagosModalOpen] = useState(false);
@@ -22,6 +24,9 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
   // Estados para el modal de notificación
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  // Estados para firma digital
+  const [loadingFirma, setLoadingFirma] = useState(false);
+  const [selectedCreditoFirma, setSelectedCreditoFirma] = useState<string>('');
 
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
@@ -85,6 +90,330 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
     }
   };
 
+  // Función para generar contrato cuando el estado es FIRMAR
+  const handleGenerarContrato = async (credito: DetalleCredito) => {
+    try {
+      setLoadingFirma(true);
+      setSelectedCreditoFirma(credito.ID_PRESTAMO);
+
+      const response = await generarContrato({
+        PAGARE: credito.ID_PRESTAMO,
+        DNI: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI
+      });
+
+      if (response.success) {
+        setNotificationMessage('Contrato generado exitosamente. El documento está listo para firmar.');
+        setShowNotificationModal(true);
+        // Refrescar los datos para obtener el estado actualizado
+        if (onRefreshData) {
+          setTimeout(() => {
+            onRefreshData();
+          }, 1000); // Esperar 1 segundo antes de refrescar
+        }
+      } else {
+        setNotificationMessage(`Error al generar el contrato: ${response.message}`);
+        setShowNotificationModal(true);
+      }
+    } catch (error) {
+      setNotificationMessage('Error al generar el contrato');
+      setShowNotificationModal(true);
+    } finally {
+      setLoadingFirma(false);
+      setSelectedCreditoFirma('');
+    }
+  };
+
+  // Función para verificar si el documento ya fue firmado
+  const handleVerificarFirma = async (credito: DetalleCredito) => {
+    if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
+      setNotificationMessage('No hay documento para verificar');
+      setShowNotificationModal(true);
+      return;
+    }
+
+    try {
+      setLoadingFirma(true);
+      setSelectedCreditoFirma(credito.ID_PRESTAMO);
+
+      const response = await verificarDocumentoFirmado({
+        ID_DOCUMENT_FIRM: credito.FIRM_DIGITAL.ID_DOCUMENT,
+        PAGARE: credito.ID_PRESTAMO
+      });
+
+      if (response.success) {
+        // Verificar el estado de la respuesta del endpoint
+        if (response.data && response.data.status === false) {
+          // El documento aún no está firmado
+          setNotificationMessage(response.data.message || 'El documento aún no ha sido firmado');
+          setShowNotificationModal(true);
+        } else {
+          // El documento ya fue firmado, refrescar datos
+          setNotificationMessage('Documento firmado exitosamente. Los datos se actualizarán automáticamente.');
+          setShowNotificationModal(true);
+          // Refrescar los datos para obtener el estado actualizado
+          if (onRefreshData) {
+            setTimeout(() => {
+              onRefreshData();
+            }, 1000); // Esperar 1 segundo antes de refrescar
+          }
+        }
+      } else {
+        setNotificationMessage(`Error al verificar el documento: ${response.message}`);
+        setShowNotificationModal(true);
+      }
+    } catch (error) {
+      setNotificationMessage('Error al verificar el estado de la firma');
+      setShowNotificationModal(true);
+    } finally {
+      setLoadingFirma(false);
+      setSelectedCreditoFirma('');
+    }
+  };
+
+  // Función para renderizar el botón de contrato según el estado de firma digital
+  const renderContratoButton = (credito: DetalleCredito) => {
+    const firmDigital = credito.FIRM_DIGITAL;
+    const isLoading = loadingFirma && selectedCreditoFirma === credito.ID_PRESTAMO;
+
+    // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
+    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
+      return (
+        <button
+          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+          title="Contrato no disponible"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
+      );
+    }
+
+    // Si está firmado, mostrar enlace al documento
+    if (firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
+      return (
+        <a
+          href={firmDigital.URL_SIGNED_FILE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors flex items-center justify-center"
+          title="Ver contrato firmado"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </a>
+      );
+    }
+
+    // Si el estado es FIRMAR, mostrar botón para generar contrato
+    if (firmDigital.ESTADO === 'FIRMAR') {
+      return (
+        <button
+          onClick={() => handleGenerarContrato(credito)}
+          disabled={isLoading}
+          className="p-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors disabled:bg-orange-300"
+          title="Generar contrato para firmar"
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M16 12l2 2 4-4" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          )}
+        </button>
+      );
+    }
+
+    // Si el estado es PENDIENTE, mostrar botón para verificar (documento generado pero no firmado)
+    if (firmDigital.ESTADO === 'PENDIENTE') {
+      return (
+        <button
+          onClick={() => handleVerificarFirma(credito)}
+          disabled={isLoading}
+          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
+          title="Verificar estado de firma - Documento pendiente de firma"
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="16" cy="8" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M14.5 9.5L16 11l3-3" stroke="currentColor" strokeWidth="1"/>
+            </svg>
+          )}
+        </button>
+      );
+    }
+
+    // Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
+    if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
+      return (
+        <button
+          onClick={() => handleVerificarFirma(credito)}
+          disabled={isLoading}
+          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
+          title="Verificar estado de firma"
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="16" cy="8" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M14.5 9.5L16 11l3-3" stroke="currentColor" strokeWidth="1"/>
+            </svg>
+          )}
+        </button>
+      );
+    }
+
+    // Estado por defecto
+    return (
+      <button
+        className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+        title="Estado desconocido"
+        disabled
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+          <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+        </svg>
+      </button>
+    );
+  };
+
+  // Función para renderizar el botón de contrato en vista móvil (solo íconos)
+  const renderContratoButtonMobile = (credito: DetalleCredito) => {
+    const firmDigital = credito.FIRM_DIGITAL;
+    const isLoading = loadingFirma && selectedCreditoFirma === credito.ID_PRESTAMO;
+
+    // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
+    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
+      return (
+        <button
+          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+          title="Contrato no disponible"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
+      );
+    }
+
+    // Si está firmado, mostrar enlace al documento
+    if (firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
+      return (
+        <a
+          href={firmDigital.URL_SIGNED_FILE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors flex items-center justify-center"
+          title="Ver contrato firmado"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </a>
+      );
+    }
+
+    // Si el estado es FIRMAR, mostrar botón para generar contrato
+    if (firmDigital.ESTADO === 'FIRMAR') {
+      return (
+        <button
+          onClick={() => handleGenerarContrato(credito)}
+          disabled={isLoading}
+          className="p-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition-colors disabled:bg-orange-300"
+          title="Generar contrato para firmar"
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M16 12l2 2 4-4" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          )}
+        </button>
+      );
+    }
+
+    // Si el estado es PENDIENTE, mostrar botón para verificar (documento generado pero no firmado)
+    if (firmDigital.ESTADO === 'PENDIENTE') {
+      return (
+        <button
+          onClick={() => handleVerificarFirma(credito)}
+          disabled={isLoading}
+          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
+          title="Verificar estado de firma - Documento pendiente de firma"
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="16" cy="8" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M14.5 9.5L16 11l3-3" stroke="currentColor" strokeWidth="1"/>
+            </svg>
+          )}
+        </button>
+      );
+    }
+
+    // Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
+    if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
+      return (
+        <button
+          onClick={() => handleVerificarFirma(credito)}
+          disabled={isLoading}
+          className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
+          title="Verificar estado de firma"
+        >
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="16" cy="8" r="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M14.5 9.5L16 11l3-3" stroke="currentColor" strokeWidth="1"/>
+            </svg>
+          )}
+        </button>
+      );
+    }
+
+    // Estado por defecto
+    return (
+      <button
+        className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+        title="Estado desconocido"
+        disabled
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+          <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+        </svg>
+      </button>
+    );
+  };
+
   if (!Array.isArray(creditos) || creditos.length === 0 || typeof creditos[0] === 'string') {
     return (
       <div className="bg-white rounded-lg shadow-lg p-3 overflow-hidden">
@@ -121,6 +450,7 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">FRECUENCIA</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">OTORGA</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">PRODUCTO</th>
+              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">FIRMA DIGITAL ESTADO</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ACCIONES</th>
             </tr>
           </thead>
@@ -151,14 +481,22 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
                 <td className="px-4 py-2 text-sm font-medium text-center border border-gray-200">{credito.FRECUENCIA}</td>
                 <td className="px-4 py-2 text-sm text-center border border-gray-200">{credito.OTORGA}</td>
                 <td className="px-4 py-2 text-sm text-center border border-gray-200">{credito.PRODUCTO || 'No especificado'}</td>
+                <td className="px-4 py-2 text-sm text-center border border-gray-200">{credito.FIRM_DIGITAL?.ESTADO || '-'}</td>
                 <td className="px-4 py-2 text-sm border border-gray-200">
                   {credito.ESTADO === 'VIGENTE' && (
-                    <button
-                      className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm"
-                      onClick={() => handleVerCronograma(credito)}
-                    >
-                      Ver Cronograma
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        className="p-2 bg-cyan-500 text-white rounded-full hover:bg-cyan-600 transition-colors"
+                        title="Ver cronograma"
+                        onClick={() => handleVerCronograma(credito)}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                          <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                      </button>
+                      {renderContratoButton(credito)}
+                    </div>
                   )}
                 </td>
               </tr>
@@ -205,13 +543,23 @@ const CreditosTable = ({ creditos, clientData }: CreditosTableProps) => {
             <div className="mt-2">
               <InfoField label="Analista" value={credito.ANALISTA} />
             </div>
+            <div className="mt-2">
+              <InfoField label="Estado Firma" value={credito.FIRM_DIGITAL?.ESTADO || '-'} />
+            </div>
             {credito.ESTADO === 'VIGENTE' && (
-              <button
-                className="mt-4 w-full bg-cyan-500 text-white py-2 rounded-lg hover:bg-cyan-600 transition-colors"
-                onClick={() => handleVerCronograma(credito)}
-              >
-                Ver Cronograma
-              </button>
+              <div className="mt-4 flex gap-2 justify-center">
+                <button
+                  className="p-2 bg-cyan-500 text-white rounded-full hover:bg-cyan-600 transition-colors"
+                  onClick={() => handleVerCronograma(credito)}
+                  title="Ver cronograma"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                </button>
+                {renderContratoButtonMobile(credito)}
+              </div>
             )}
           </div>
         ))}

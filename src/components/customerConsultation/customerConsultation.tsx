@@ -130,6 +130,20 @@ const ConsultaClientes = () => {
     }
   };
 
+  // Función para refrescar los datos del cliente actual
+  const handleRefreshClientData = async () => {
+    if (clienteSeleccionado) {
+      try {
+        const detalleCliente = await searchClientesByDNI(clienteSeleccionado.NRO_DI);
+        if (detalleCliente && detalleCliente.INFO_SOCIO) {
+          setClientData(detalleCliente);
+        }
+      } catch (error) {
+        console.error('Error al refrescar datos del cliente:', error);
+      }
+    }
+  };
+
   return (
     <Layout title="Consulta de socios">
       <div className="h-full w-full bg-gradient-to-r from-cyan-50 to-teal-50">
@@ -158,6 +172,7 @@ const ConsultaClientes = () => {
             <CreditosTable
               creditos={clientData.CREDITO_VIGENTE || []}
               clientData={clientData}
+              onRefreshData={handleRefreshClientData}
             />
           </>
         ) : (

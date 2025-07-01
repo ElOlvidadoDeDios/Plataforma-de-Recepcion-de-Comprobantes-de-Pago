@@ -52,6 +52,12 @@ export interface Otros {
   CUENTA_DILE: string;
 }
 
+export interface FirmDigital {
+  ESTADO: string;
+  ID_DOCUMENT: string | null;
+  URL_SIGNED_FILE: string | null;
+}
+
 export interface DetalleCredito {
   ID_PRESTAMO: string;
   ESTADO: string;
@@ -65,6 +71,7 @@ export interface DetalleCredito {
   PRODUCTO: string;
   OTORGA: string;
   ANALISTA: string;
+  FIRM_DIGITAL?: FirmDigital;
 }
 
 export interface InfoSocio {
