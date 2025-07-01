@@ -102,13 +102,21 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
       });
 
       if (response.success) {
-        setNotificationMessage('Contrato generado exitosamente. El documento está listo para firmar.');
-        setShowNotificationModal(true);
-        // Refrescar los datos para obtener el estado actualizado
-        if (onRefreshData) {
-          setTimeout(() => {
-            onRefreshData();
-          }, 1000); // Esperar 1 segundo antes de refrescar
+        // Verificar el estado de la respuesta del endpoint
+        if (response.data && response.data.status === false) {
+          // El endpoint devolvió un error (DNI/PAGARE incorrecto, etc.)
+          setNotificationMessage(response.data.message || 'Error al generar el contrato');
+          setShowNotificationModal(true);
+        } else {
+          // El contrato se generó exitosamente
+          setNotificationMessage('Contrato generado exitosamente. El documento está listo para firmar.');
+          setShowNotificationModal(true);
+          // Refrescar los datos para obtener el estado actualizado
+          if (onRefreshData) {
+            setTimeout(() => {
+              onRefreshData();
+            }, 1000); // Esperar 1 segundo antes de refrescar
+          }
         }
       } else {
         setNotificationMessage(`Error al generar el contrato: ${response.message}`);
@@ -175,24 +183,8 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     const firmDigital = credito.FIRM_DIGITAL;
     const isLoading = loadingFirma && selectedCreditoFirma === credito.ID_PRESTAMO;
 
-    // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
-    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
-      return (
-        <button
-          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
-          title="Contrato no disponible"
-          disabled
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </button>
-      );
-    }
-
-    // Si está firmado, mostrar enlace al documento
-    if (firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
+    // Si está firmado, mostrar enlace al documento (independientemente del estado del crédito)
+    if (firmDigital && firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
       return (
         <a
           href={firmDigital.URL_SIGNED_FILE}
@@ -206,6 +198,57 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
             <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
           </svg>
         </a>
+      );
+    }
+
+    // Si el crédito NO es vigente, solo mostrar opciones limitadas
+    if (credito.ESTADO !== 'VIGENTE') {
+      // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
+      if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
+        return (
+          <button
+            className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+            title="Contrato no disponible"
+            disabled
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </button>
+        );
+      }
+      
+      // Para créditos no vigentes con otros estados de firma, mostrar botón deshabilitado
+      return (
+        <button
+          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+          title="Crédito no vigente - No se pueden realizar acciones"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
+      );
+    }
+
+    // A partir de aquí, solo créditos VIGENTES
+
+    // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
+    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
+      return (
+        <button
+          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+          title="Contrato no disponible"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
       );
     }
 
@@ -297,24 +340,8 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     const firmDigital = credito.FIRM_DIGITAL;
     const isLoading = loadingFirma && selectedCreditoFirma === credito.ID_PRESTAMO;
 
-    // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
-    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
-      return (
-        <button
-          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
-          title="Contrato no disponible"
-          disabled
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </button>
-      );
-    }
-
-    // Si está firmado, mostrar enlace al documento
-    if (firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
+    // Si está firmado, mostrar enlace al documento (independientemente del estado del crédito)
+    if (firmDigital && firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
       return (
         <a
           href={firmDigital.URL_SIGNED_FILE}
@@ -328,6 +355,57 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
             <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
           </svg>
         </a>
+      );
+    }
+
+    // Si el crédito NO es vigente, solo mostrar opciones limitadas
+    if (credito.ESTADO !== 'VIGENTE') {
+      // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
+      if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
+        return (
+          <button
+            className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+            title="Contrato no disponible"
+            disabled
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </button>
+        );
+      }
+      
+      // Para créditos no vigentes con otros estados de firma, mostrar botón deshabilitado
+      return (
+        <button
+          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+          title="Crédito no vigente - No se pueden realizar acciones"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
+      );
+    }
+
+    // A partir de aquí, solo créditos VIGENTES
+
+    // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
+    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
+      return (
+        <button
+          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+          title="Contrato no disponible"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
       );
     }
 

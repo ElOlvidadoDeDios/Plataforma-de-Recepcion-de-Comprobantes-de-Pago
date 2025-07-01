@@ -128,6 +128,16 @@ export const searchClientes = async (
     }
 
     const data = await response.json();
+    
+    // Si el servidor devuelve status: false, es una respuesta válida (sin resultados)
+    if (data.status === false) {
+      return {
+        status: false,
+        count: data.count || 0,
+        data: []
+      };
+    }
+    
     return data;
 
   } catch (error: unknown) {
@@ -167,6 +177,12 @@ export const searchClientesByDNI = async (dni: string): Promise<ClienteResponse 
     }
 
     const data = await response.json();
+    
+    // Si el servidor devuelve status: false, significa que no se encontró el DNI
+    if (data.status === false) {
+      return null; // Retorna null para indicar que no se encontró
+    }
+    
     return data;
 
   } catch (error) {
