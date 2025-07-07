@@ -48,8 +48,9 @@ import { UserStatus } from './roles';
 export interface UserResponse {
   _id: string;
   email: string;
-  name: string;
-  lastName: string;
+  razon?: string;  // Nombre completo/razón social
+  cargo?: string;  // Cargo del usuario
+  user?: string;   // Usuario
   dni: string;
   role: string;
   lastLogin: string;
@@ -57,6 +58,8 @@ export interface UserResponse {
   status: UserStatus;
   statusText?: string;
   message?: string;  // Mensaje de respuesta del servidor
+  id_ana?: string;  // ID analista
+  id_age?: string;  // ID agencia
 }
 
 // User hereda todo de UserResponse

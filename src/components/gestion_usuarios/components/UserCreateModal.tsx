@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserRole } from '../../../types/roles';
+import { fetchUserDataByDni } from '../../../api/userApi';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -18,11 +19,12 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
   canCreateUsers,
 }) => {
   const queryClient = useQueryClient();
-  const [step, setStep] = useState(1); // 1: datos básicos, 2: verificación, 3: completar registro
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     email: '',
-    name: '',
-    lastName: '',
+    razon: '',
+    cargo: '',
+    user: '',
     dni: '',
     role: UserRole.BASIC_USER,
     password: '',
@@ -31,30 +33,15 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
   const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [token, setToken] = useState('');
+  const [autoLoading, setAutoLoading] = useState(false);
 
   if (!isOpen || !canCreateUsers) return null;
-
-//   const getAvailableRoles = (): UserRole[] => {
-//     const baseRoles = [
-//       UserRole.BASIC_USER,
-//       UserRole.CREDIT_USER,
-//       UserRole.PAYMENTS_USER,
-//       UserRole.ADMIN
-//     ];
-    
-//     // Solo SUPER_ADMIN puede crear otros SUPER_ADMIN
-//     if (isSuperAdmin) {
-//       return [UserRole.SUPER_ADMIN, ...baseRoles];
-//     }
-    
-//     return baseRoles;
-//   };
 
   const handleRegisterEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!formData.email || !formData.name || !formData.lastName || !formData.dni) {
+    if (!formData.email || !formData.razon || !formData.cargo || !formData.user || !formData.dni) {
       toast.error('Todos los campos básicos son obligatorios');
       setIsLoading(false);
       return;
@@ -143,8 +130,9 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
         },
         body: JSON.stringify({
           token,
-          name: formData.name,
-          lastName: formData.lastName,
+          razon: formData.razon,
+          cargo: formData.cargo,
+          user: formData.user,
           dni: formData.dni,
           password: formData.password
         }),
@@ -170,8 +158,9 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
     setStep(1);
     setFormData({
       email: '',
-      name: '',
-      lastName: '',
+      razon: '',
+      cargo: '',
+      user: '',
       dni: '',
       role: UserRole.BASIC_USER,
       password: '',
@@ -186,6 +175,68 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
       ...prev,
       [field]: value
     }));
+  };
+
+  // Función corregida para buscar datos por DNI
+  const handleDniBlur = async () => {
+    console.log('🔍 handleDniBlur ejecutado');
+    console.log('📝 DNI ingresado:', formData.dni);
+    console.log('📏 Longitud del DNI:', formData.dni.length);
+  
+    if (!formData.dni || formData.dni.length !== 8) {
+      console.log('❌ DNI no válido o no tiene 8 dígitos');
+      return;
+    }
+  
+    setAutoLoading(true);
+    console.log('⏳ Iniciando búsqueda...');
+  
+    try {
+      console.log('🌐 Llamando a fetchUserDataByDni con DNI:', formData.dni);
+      const userData = await fetchUserDataByDni(formData.dni);
+      console.log('📊 Datos recibidos:', userData);
+  
+      if (userData) {
+        console.log('✅ Usuario encontrado!');
+        console.log('🔄 Datos a actualizar:', {
+          razon: userData.RAZON,
+          cargo: userData.CARGO,
+          user: userData.USER,
+        });
+  
+        // Validar y actualizar los campos del formulario
+        setFormData((prev) => ({
+          ...prev,
+          razon: userData.RAZON || '',
+          cargo: userData.CARGO || '',
+          user: userData.USER || '',
+        }));
+  
+        console.log('📝 FormData actualizado:', {
+          razon: userData.RAZON || '',
+          cargo: userData.CARGO || '',
+          user: userData.USER || '',
+        });
+  
+        toast.success('✅ Datos encontrados y autocompletados');
+      } else {
+        console.log('❌ No se encontraron datos para este DNI');
+        toast.error('No se encontraron datos para este DNI. Por favor, complete los campos manualmente');
+      }
+    } catch (error) {
+      console.error('💥 Error al buscar datos por DNI:', error);
+      if (error instanceof Error) {
+        console.error('💥 Detalle del error:', error.message);
+      }
+      if (error instanceof Error) {
+        toast.error('Error al buscar datos del usuario: ' + error.message);
+      } else {
+        toast.error('Error al buscar datos del usuario');
+      }
+    } finally {
+      setAutoLoading(false);
+      console.log('✅ Búsqueda finalizada');
+    }
   };
 
   return (
@@ -219,44 +270,102 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
                 required
               />
             </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombres *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Apellidos *
-              </label>
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                DNI *
+                DNI * 
+                <span className="text-xs text-gray-500">
+                  (Prueba con: 77460920)
+                </span>
               </label>
               <input
                 type="text"
                 value={formData.dni}
-                onChange={(e) => handleInputChange('dni', e.target.value)}
+                onChange={(e) => {
+                  console.log('📝 DNI cambiado a:', e.target.value);
+                  handleInputChange('dni', e.target.value);
+                  
+                  // AUTO-BUSCAR cuando tiene 8 dígitos
+                  if (e.target.value.length === 8) {
+                    console.log('🔍 DNI completo, buscando automáticamente...');
+                    setTimeout(() => {
+                      handleDniBlur();
+                    }, 500);
+                  }
+                }}
+                onBlur={() => {
+                  console.log('👆 onBlur disparado');
+                  handleDniBlur();
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
                 required
                 maxLength={8}
                 pattern="[0-9]{8}"
+                placeholder="Ej: 77460920"
+              />
+              {autoLoading && (
+                <span className="text-xs text-blue-500 mt-1 block">
+                  🔄 Buscando datos por DNI...
+                </span>
+              )}
+              
+              {/* DEBUG INFO */}
+              <div className="text-xs text-gray-400 mt-1">
+                DNI actual: "{formData.dni}" | Longitud: {formData.dni.length}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Razón social *
+                <span className="text-xs text-green-600">
+                  {formData.razon ? ' ✅' : ' (se completará automáticamente)'}
+                </span>
+              </label>
+              <input
+                type="text"
+                value={formData.razon}
+                onChange={(e) => handleInputChange('razon', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                required
+                style={{ backgroundColor: formData.razon ? '#f0f9ff' : 'white' }}
               />
             </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cargo *
+                <span className="text-xs text-green-600">
+                  {formData.cargo ? ' ✅' : ' (se completará automáticamente)'}
+                </span>
+              </label>
+              <input
+                type="text"
+                value={formData.cargo}
+                onChange={(e) => handleInputChange('cargo', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                required
+                style={{ backgroundColor: formData.cargo ? '#f0f9ff' : 'white' }}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Usuario *
+                <span className="text-xs text-green-600">
+                  {formData.user ? ' ✅' : ' (se completará automáticamente)'}
+                </span>
+              </label>
+              <input
+                type="text"
+                value={formData.user}
+                onChange={(e) => handleInputChange('user', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                required
+                style={{ backgroundColor: formData.user ? '#f0f9ff' : 'white' }}
+              />
+            </div>
+
             <div className="flex justify-end gap-3">
               <button
                 type="button"

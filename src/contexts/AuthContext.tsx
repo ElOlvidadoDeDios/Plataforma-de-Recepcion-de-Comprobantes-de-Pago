@@ -75,13 +75,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Permisos básicos basados en roles
     switch (permission) {
       case 'canManageUsers':
-        return [UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(user.role);
+        return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL].includes(user.role); // Solo SUPER_ADMIN y GERENTE_GENERAL pueden gestionar usuarios
       case 'canAssignRoles':
-        return [UserRole.SUPER_ADMIN, UserRole.ADMIN].includes(user.role);
+        return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL].includes(user.role); // Solo SUPER_ADMIN y GERENTE_GENERAL pueden asignar roles
       case 'canAccessPayments':
-        return [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PAYMENTS_USER].includes(user.role);
+        return [UserRole.SUPER_ADMIN, UserRole.CAJERO].includes(user.role); // ADMINISTRADOR no puede acceder a pagos
       case 'canAccessCredits':
-        return [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.CREDIT_USER].includes(user.role);
+        return [UserRole.SUPER_ADMIN, UserRole.ADMINISTRADOR, UserRole.ANALISTA_CREDITOS_I].includes(user.role); // ADMINISTRADOR puede acceder a créditos
+      case 'canAccessGestionMora':
+          return [UserRole.SUPER_ADMIN, UserRole.ANALISTA_CREDITOS_I, UserRole.ADMINISTRADOR, UserRole.GERENTE_GENERAL].includes(user.role); // Roles adicionales pueden acceder a Gestión de Mora
       case 'canBlockEmails':
         return [UserRole.SUPER_ADMIN].includes(user.role);
       case 'canDeleteAccounts':
@@ -131,3 +133,4 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
+

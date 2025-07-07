@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Socket } from 'socket.io-client';
-import toast from 'react-hot-toast';
 import { fetchPayments } from '../api';
 import { PaymentCard } from './PaymentCard';
 import { PaymentRecord, AGENCIAS } from '../types';
@@ -28,7 +27,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   
   // Estado inicial de agencia con useMemo
   const defaultAgencia = React.useMemo(() => {
-    if (user?.role === UserRole.PAYMENTS_USER && user.agencias?.length === 1) {
+    if (user?.role === UserRole.CAJERO && user.agencias?.length === 1) {
       return user.agencias[0].agencia;
     }
     return '';
@@ -38,7 +37,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
 
   // Actualizar agencia cuando cambie el usuario
   useEffect(() => {
-    if (user?.role === UserRole.PAYMENTS_USER && user.agencias?.length === 1) {
+    if (user?.role === UserRole.CAJERO && user.agencias?.length === 1) {
       setSelectedAgencia(user.agencias[0].agencia);
     }
   }, [user]);
@@ -46,8 +45,8 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   // Validaciones con useMemo
   const validations = React.useMemo(() => ({
     hasPermissions: canAccessPayments(),
-    hasAgencias: user?.role === UserRole.PAYMENTS_USER ? (user.agencias?.length ?? 0) > 0 : true,
-    isPaymentsUser: user?.role === UserRole.PAYMENTS_USER
+    hasAgencias: user?.role === UserRole.CAJERO ? (user.agencias?.length ?? 0) > 0 : true,
+    isPaymentsUser: user?.role === UserRole.CAJERO
   }), [canAccessPayments, user]);
 
   // Verificar permisos básicos
@@ -152,7 +151,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
     } catch (error) {
       setDniSearchResults([]);
       setFilteredDniResults([]);
-      toast.error('Error al buscar pagos por DNI');
+      //toast.error('Error al buscar pagos por DNI');
     }
   };
 
@@ -223,7 +222,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   //     return;
   //   }
 
-  //   if (user.role === UserRole.PAYMENTS_USER && !selectedAgencia) {
+  //   if (user.role === UserRole.CAJERO && !selectedAgencia) {
   //     toast.error('Debe seleccionar una agencia antes de procesar pagos');
   //     return;
   //   }
@@ -317,9 +316,9 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
             <div className="mb-6 pb-4">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{user?.name} {user?.lastName}</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">{user?.razon} {user?.cargo}</h2>
                   <p className="text-sm text-gray-500">
-                    {user?.role === UserRole.PAYMENTS_USER ? 'Usuario de Pagos' : user?.role}
+                    {user?.role === UserRole.CAJERO ? 'Cajero' : user?.role}
                     {user?.dni && <span className="ml-2">- DNI: {user.dni}</span>}
                   </p>
                   {selectedAgencia && (
@@ -329,7 +328,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                   )}
                 </div>
 
-                {user?.role === UserRole.PAYMENTS_USER && user?.agencias && user?.agencias.length > 1 && (
+                {user?.role === UserRole.CAJERO && user?.agencias && user?.agencias.length > 1 && (
                   <button
                     onClick={() => setSelectedAgencia('')}
                     className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
@@ -478,7 +477,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                     payment={payment}
                     socket={socket}
-                    agencias={user?.role === UserRole.PAYMENTS_USER && selectedAgencia
+                    agencias={user?.role === UserRole.CAJERO && selectedAgencia
                       ? [selectedAgencia]
                       : user?.agencias?.map(ag => ag.agencia) || []}
                     userAgencias={user?.agencias || []}

@@ -14,7 +14,7 @@ import ConsultaCuotasPage from './components/ConsultaCuotasPage';
 import { PaymentsPanel } from './components/pagos/panel-pagos';
 import CustomerConsultation from './components/customerConsultation/customerConsultation';
 import HistorialAtencionCreditos from './components/historial_de_Atencion_Creditos/historialAtencionCreditos';
-
+import GestionMora from './components/gestion_mora/GestionMora';
 import NonBasicUserRoute from './components/NonBasicUserRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
@@ -116,6 +116,16 @@ function App() {
                 }
               />
               <Route
+                path="/gestion-mora"
+                element={
+                  <ProtectedRoute>
+                    <NonBasicUserRoute>
+                      <GestionMora />
+                    </NonBasicUserRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/consultas-cuotas"
                 element={
                   <ProtectedRoute>
@@ -157,3 +167,5 @@ function App() {
 }
 
 export default App;
+
+

@@ -47,7 +47,7 @@ const UserAgencyModal: React.FC<UserAgencyModalProps> = ({
         <p className="text-sm text-gray-600 mb-4">
           {currentUser?.id === user._id
             ? 'Gestiona tus agencias asignadas. Cada agencia debe tener un código único.'
-            : `Asigna agencias al usuario ${user.email}. Solo los usuarios con roles de PAYMENTS_USER, ADMIN o SUPER_ADMIN pueden tener agencias.`
+            : `Asigna agencias al usuario ${user.email}. Solo los usuarios con roles de CAJERO, ADMIN o SUPER_ADMIN pueden tener agencias.`
           }
         </p>
         

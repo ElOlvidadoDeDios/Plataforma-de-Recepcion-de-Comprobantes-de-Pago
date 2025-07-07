@@ -60,17 +60,17 @@ const UserFilter: React.FC<UserFilterProps> = ({
             <option value="">👥 Seleccionar usuario...</option>
             {usuariosDisponibles
               .filter(usuario => usuario.dni && usuario.dni.trim() !== '')
-              .sort((a, b) => (a.name + ' ' + a.lastName).localeCompare(b.name + ' ' + b.lastName))
+              .sort((a, b) => (a.razon || '').localeCompare(b.razon || ''))
               .map(usuario => (
                 <option key={usuario._id} value={usuario.dni}>
-                  {usuario.name} {usuario.lastName} ({usuario.dni}) - {usuario.email}
+                  {usuario.razon || usuario.email} ({usuario.dni}) - {usuario.email}
                   {usuario.agencias && usuario.agencias.length > 0 && ` [${usuario.agencias.length} agencias]`}
                 </option>
               ))
             }
           </select>
           <p className="text-xs text-blue-600 mt-1">
-            ✅ Solo se muestran usuarios que pueden procesar pagos (PAYMENTS_USER, ADMIN, SUPER_ADMIN)
+            ✅ Solo se muestran usuarios que pueden procesar pagos (CAJERO, ADMINISTRADOR, SUPER_ADMIN)
           </p>
           {usuariosDisponibles.length === 0 && !cargandoUsuarios && (
             <p className="text-xs text-amber-600 mt-1">
@@ -84,7 +84,7 @@ const UserFilter: React.FC<UserFilterProps> = ({
       {filtroAgencia === 'usuario_y_agencia' && usuarioSeleccionado && agenciasUsuarioSeleccionado.length > 0 && (
         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <label className="block text-sm font-medium text-blue-800 mb-2">
-            🏢 Agencias de {usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)?.name}:
+            🏢 Agencias de {usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)?.razon}:
           </label>
           <select
             value={agenciaUsuarioEspecifica}

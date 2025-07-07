@@ -343,9 +343,13 @@ const PaymentHistoryPage: React.FC = () => {
   const { records, loading, error, loadingMore, pagination, loadHistory, loadMoreData, resetData } = usePaymentHistory();
   
   // Determinar permisos según rol del usuario
-  const esAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+  const esAdmin =
+    user?.role === UserRole.ADMINISTRADOR ||
+    user?.role === UserRole.GERENTE_GENERAL ||
+    user?.role === UserRole.JEFE_OPERACIONES ||
+    user?.role === UserRole.SUPER_ADMIN;
   const esSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
-  const esUserPayment = user?.role === UserRole.PAYMENTS_USER;
+  const esUserPayment = user?.role === UserRole.CAJERO;
   
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));

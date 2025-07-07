@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { UserRole } from '../../../types/roles';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchUserDataByDni } from '../../../api/userApi';
 
 interface UserCreateSimpleModalProps {
   isOpen: boolean;
@@ -22,30 +23,34 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     email: '',
-    name: '',
-    lastName: '',
+    razon: '',
+    cargo: '',
+    user: '',
     dni: '',
     role: UserRole.BASIC_USER,
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    id_ana: '',
+    id_age: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingUserData, setIsLoadingUserData] = useState(false);
 
   if (!isOpen || !canCreateUsers) return null;
 
   const getAvailableRoles = (): UserRole[] => {
     const baseRoles = [
       UserRole.BASIC_USER,
-      UserRole.CREDIT_USER,
-      UserRole.PAYMENTS_USER,
-      UserRole.ADMIN
+      UserRole.ANALISTA_CREDITOS_I,
+      UserRole.CAJERO,
+      UserRole.ADMINISTRADOR,
+      UserRole.GERENTE_GENERAL,
+      UserRole.JEFE_OPERACIONES
     ];
-    
-    // Solo SUPER_ADMIN puede crear otros SUPER_ADMIN
+
     if (isSuperAdmin) {
       return [UserRole.SUPER_ADMIN, ...baseRoles];
     }
-    
     return baseRoles;
   };
 
@@ -54,7 +59,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
     setIsLoading(true);
 
     // Validaciones
-    if (!formData.email || !formData.name || !formData.lastName || !formData.dni || !formData.password) {
+    if (!formData.email || !formData.razon || !formData.cargo || !formData.user || !formData.dni || !formData.password) {
       toast.error('Todos los campos son obligatorios');
       setIsLoading(false);
       return;
@@ -72,40 +77,67 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
       return;
     }
 
+    // Validar que id_ana e id_age estén presentes
+    if (!formData.id_ana.trim()) {
+      toast.error('El campo ID ANA es obligatorio.');
+      setIsLoading(false);
+      return;
+    }
+    if (!formData.id_age.trim()) {
+      toast.error('El campo ID AGE es obligatorio.');
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.dni.length !== 8) {
       toast.error('El DNI debe tener 8 dígitos');
       setIsLoading(false);
       return;
     }
 
+    // Verificar que id_ana e id_age estén presentes
+    if (!formData.id_ana) {
+      toast.error('ID ANA es requerido. Verifique el DNI.');
+      setIsLoading(false);
+      return;
+    }
+
+    // Preparar datos para envío
+    const userData = {
+      email: formData.email.trim(),
+      razon: formData.razon.trim(),
+      cargo: formData.cargo.trim(),
+      user: formData.user.trim(),
+      dni: formData.dni.trim(),
+      password: formData.password,
+      role: formData.role,
+      isTemporaryPassword: true,
+      id_ana: formData.id_ana.trim(),
+      id_age: formData.id_age.trim()
+    };
+
+
     try {
-      // Llamar a la API para crear usuario directamente
       const response = await fetch(`${API_BASE_URL}/create-user-direct`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-          email: formData.email,
-          name: formData.name,
-          lastName: formData.lastName,
-          dni: formData.dni,
-          password: formData.password,
-          role: formData.role,
-          isTemporaryPassword: true // Marcar como contraseña temporal
-        }),
+        body: JSON.stringify(userData),
       });
+
+      const responseData = await response.json();
 
       if (response.ok) {
         toast.success(`Usuario ${formData.email} creado exitosamente. La contraseña es temporal y debe cambiarse en el primer login.`);
         queryClient.invalidateQueries({ queryKey: ['users'] });
         handleClose();
       } else {
-        const data = await response.json();
-        toast.error(data.message || 'Error al crear el usuario');
+        toast.error(responseData.message || 'Error al crear el usuario');
       }
     } catch (error) {
+      console.error('Error al crear usuario:', error);
       toast.error('Error de conexión');
     } finally {
       setIsLoading(false);
@@ -116,24 +148,74 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
     onClose();
     setFormData({
       email: '',
-      name: '',
-      lastName: '',
+      razon: '',
+      cargo: '',
+      user: '',
       dni: '',
       role: UserRole.BASIC_USER,
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      id_ana: '',
+      id_age: ''
     });
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = async (field: string, value: string) => {
+    // Actualizar el campo inmediatamente
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+
+    // Si es DNI y tiene 8 dígitos, buscar datos del usuario
+    if (field === 'dni' && value.length === 8 && /^\d{8}$/.test(value)) {
+      setIsLoadingUserData(true);
+      try {
+        console.log('Buscando datos para DNI:', value); // Debug
+        const userData = await fetchUserDataByDni(value);
+        console.log('Datos obtenidos:', userData); // Debug
+        
+        if (userData) {
+          setFormData(prev => ({
+            ...prev,
+            razon: userData.RAZON || '',
+            cargo: userData.CARGO || '',
+            id_ana: userData.ID_ANA || '',
+            id_age: userData.ID_AGE || '',
+            user: userData.USER || ''
+          }));
+          toast.success('Datos del usuario cargados correctamente');
+        } else {
+          toast.error('No se encontraron datos para este DNI');
+          // Limpiar campos si no hay datos
+          setFormData(prev => ({
+            ...prev,
+            razon: '',
+            cargo: '',
+            id_ana: '',
+            id_age: '',
+            user: ''
+          }));
+        }
+      } catch (error) {
+        toast.error('Error al buscar datos del usuario');
+        // Limpiar campos en caso de error
+        setFormData(prev => ({
+          ...prev,
+          razon: '',
+          cargo: '',
+          id_ana: '',
+          id_age: '',
+          user: ''
+        }));
+      } finally {
+        setIsLoadingUserData(false);
+      }
+    }
   };
 
   const generateRandomPassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
     for (let i = 0; i < 8; i++) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -161,8 +243,24 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
             </svg>
           </button>
         </div>
-
+        
         <form onSubmit={handleCreateUser} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              DNI * {isLoadingUserData && <span className="text-blue-500">(Cargando datos...)</span>}
+            </label>
+            <input
+              type="text"
+              value={formData.dni}
+              onChange={(e) => handleInputChange('dni', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+              required
+              maxLength={8}
+              pattern="[0-9]{8}"
+              placeholder="12345678"
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Correo Electrónico *
@@ -176,29 +274,45 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Razón Social *
+            </label>
+            <input
+              type="text"
+              value={formData.razon}
+              onChange={(e) => handleInputChange('razon', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50"
+              required
+              readOnly
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombres *
+                Cargo *
               </label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                value={formData.cargo}
+                onChange={(e) => handleInputChange('cargo', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50"
                 required
+                readOnly
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Apellidos *
+                Usuario *
               </label>
               <input
                 type="text"
-                value={formData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                value={formData.user}
+                onChange={(e) => handleInputChange('user', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50"
                 required
+                readOnly
               />
             </div>
           </div>
@@ -206,40 +320,51 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                DNI *
+                ID ANA *
               </label>
               <input
                 type="text"
-                value={formData.dni}
-                onChange={(e) => handleInputChange('dni', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
-                required
-                maxLength={8}
-                pattern="[0-9]{8}"
-                placeholder="12345678"
+                value={formData.id_ana}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50"
+                readOnly
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Rol *
+                ID AGENCIA
               </label>
-              <select
-                value={formData.role}
-                onChange={(e) => handleInputChange('role', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
-                required
-              >
-                {getAvailableRoles().map(role => (
-                  <option key={role} value={role}>
-                    {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
-                     role === UserRole.ADMIN ? 'Admin' :
-                     role === UserRole.PAYMENTS_USER ? 'Usuario de Pagos' :
-                     role === UserRole.CREDIT_USER ? 'Usuario de Créditos' :
-                     'Usuario Básico'}
-                  </option>
-                ))}
-              </select>
+              <input
+                type="text"
+                value={formData.id_age}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500 bg-gray-50"
+                readOnly
+              />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rol *
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => handleInputChange('role', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+              required
+            >
+              {getAvailableRoles().map(role => (
+                <option key={role} value={role}>
+                  {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
+                   role === UserRole.ADMINISTRADOR ? 'Administrador' :
+                   role === UserRole.CAJERO ? 'Cajero' :
+                   role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
+                   role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
+                   role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
+                   role === UserRole.BASIC_USER ? 'Usuario Básico' :
+                   ''}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
@@ -281,6 +406,13 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
             />
           </div>
 
+          {/* Debug info */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs">
+            <p><strong>Debug Info:</strong></p>
+            <p>ID ANA: {formData.id_ana || 'No definido'}</p>
+            <p>ID AGE: {formData.id_age || 'No definido'}</p>
+          </div>
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <p className="text-xs text-blue-600">
               <strong>Importante:</strong> Esta será una contraseña temporal. El usuario deberá cambiarla en su primer inicio de sesión.
@@ -297,7 +429,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isLoadingUserData}
               className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
             >
               {isLoading ? 'Creando...' : 'Crear Usuario'}

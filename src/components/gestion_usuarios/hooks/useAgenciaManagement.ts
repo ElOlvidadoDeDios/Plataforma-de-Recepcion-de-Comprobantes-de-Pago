@@ -88,8 +88,8 @@ export const useAgenciaManagement = ({
     if (!canManageAgenciasOf(user)) {
       if (user.status !== 1) {
         toast.error('El usuario debe estar activo para gestionar agencias');
-      } else if (user.role !== UserRole.PAYMENTS_USER &&
-                 user.role !== UserRole.ADMIN &&
+      } else if (user.role !== UserRole.CAJERO &&
+                 user.role !== UserRole.ADMINISTRADOR &&
                  user.role !== UserRole.SUPER_ADMIN) {
         toast.error('Solo se pueden gestionar agencias para usuarios de pagos, admin y super admin');
       } else {

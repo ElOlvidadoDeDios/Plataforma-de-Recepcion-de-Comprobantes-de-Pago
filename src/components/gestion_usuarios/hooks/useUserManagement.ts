@@ -48,8 +48,8 @@ export const useUserManagement = () => {
       toast.success('Rol actualizado correctamente');
       queryClient.invalidateQueries({ queryKey: ['users'] });
 
-      if (role === UserRole.PAYMENTS_USER) {
-        toast('Ahora puede gestionar las agencias del usuario usando el botón "Gestionar Agencias". Disponible para usuarios de pagos, admin y super admin', {
+      if (role === UserRole.CAJERO) {
+        toast('Ahora puede gestionar las agencias del usuario usando el botón "Gestionar Agencias". Disponible para cajeros, administradores, gerentes, jefes de operaciones y super admin', {
           duration: 5000,
           style: {
             background: '#EFF6FF',
@@ -79,24 +79,28 @@ export const useUserManagement = () => {
 
   const getAvailableRoles = (): UserRole[] => {
     const baseRoles = [
-      UserRole.ADMIN,
-      UserRole.PAYMENTS_USER,
-      UserRole.CREDIT_USER,
+      UserRole.ADMINISTRADOR,
+      UserRole.CAJERO,
+      UserRole.ANALISTA_CREDITOS_I,
+      UserRole.GERENTE_GENERAL,
+      UserRole.JEFE_OPERACIONES,
       UserRole.BASIC_USER
     ];
-    
     if (isSuperAdmin) {
       return [UserRole.SUPER_ADMIN, ...baseRoles];
     }
-    
     return baseRoles;
   };
 
   const canViewSensitiveInfo = (targetUser: User): boolean => {
     if (isSuperAdmin) return true;
     
-    if (user?.role === UserRole.ADMIN && targetUser.role !== UserRole.SUPER_ADMIN) {
-      return true;
+    if (
+      user?.role === UserRole.ADMINISTRADOR ||
+      user?.role === UserRole.GERENTE_GENERAL ||
+      user?.role === UserRole.JEFE_OPERACIONES
+    ) {
+      return targetUser.role !== UserRole.SUPER_ADMIN;
     }
     
     return false;
@@ -105,22 +109,34 @@ export const useUserManagement = () => {
   const canManageAgenciasOf = (targetUser: User): boolean => {
     if (targetUser.status !== 1) return false;
     
-    if (targetUser.role !== UserRole.PAYMENTS_USER &&
-        targetUser.role !== UserRole.ADMIN &&
-        targetUser.role !== UserRole.SUPER_ADMIN) {
+    if (
+      targetUser.role !== UserRole.CAJERO &&
+      targetUser.role !== UserRole.ADMINISTRADOR &&
+      targetUser.role !== UserRole.GERENTE_GENERAL &&
+      targetUser.role !== UserRole.JEFE_OPERACIONES &&
+      targetUser.role !== UserRole.SUPER_ADMIN
+    ) {
       return false;
     }
     
     if (user?.id === targetUser._id) {
-      return targetUser.role === UserRole.PAYMENTS_USER ||
-             targetUser.role === UserRole.ADMIN ||
-             targetUser.role === UserRole.SUPER_ADMIN;
+      return (
+        targetUser.role === UserRole.CAJERO ||
+        targetUser.role === UserRole.ADMINISTRADOR ||
+        targetUser.role === UserRole.GERENTE_GENERAL ||
+        targetUser.role === UserRole.JEFE_OPERACIONES ||
+        targetUser.role === UserRole.SUPER_ADMIN
+      );
     }
     
     if (isSuperAdmin) return true;
     
-    if (user?.role === UserRole.ADMIN && targetUser.role !== UserRole.SUPER_ADMIN) {
-      return true;
+    if (
+      user?.role === UserRole.ADMINISTRADOR ||
+      user?.role === UserRole.GERENTE_GENERAL ||
+      user?.role === UserRole.JEFE_OPERACIONES
+    ) {
+      return targetUser.role !== UserRole.SUPER_ADMIN;
     }
     
     return false;

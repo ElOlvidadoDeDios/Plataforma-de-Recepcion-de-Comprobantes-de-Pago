@@ -88,8 +88,8 @@ export const getCurrentUser = async (): Promise<UserWithRole> => {
     const userWithRole: UserWithRole = {
       id: userData._id || String(new Date().getTime()),
       email: userData.email || '',
-      name: userData.name || '',
-      lastName: userData.lastName || '',
+      name: userData.razon || '',
+      lastName: '',
       role: userData.role as UserRole,
       dni: userData.dni || '',
       status: userData.status ?? UserStatus.CREATED,
@@ -292,3 +292,92 @@ export const updateUserAgencias = async (userId: string, agencias: AgenciaCaja[]
     throw new APIError('Error interno del servidor', 500);
   }
 };
+
+
+// Función para obtener todos los usuarios de la API externa
+export async function fetchAllExternalUsers() {
+  try {
+    console.log('🔍 Obteniendo todos los usuarios externos...');
+
+    const response = await fetch(`http://192.168.3.206/api-sql/api/user`);
+    console.log('📡 Response status:', response.status);
+
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('📊 Datos completos recibidos:', data);
+
+    if (data && data.data && Array.isArray(data.data)) {
+      return data.data;
+    } else {
+      console.error('💥 Estructura de datos inesperada:', data);
+      return [];
+    }
+  } catch (error) {
+    console.error('💥 Error al consultar usuarios externos:', error);
+    throw error;
+  }
+}
+
+// Función para obtener analistas de crédito (CARGO 19) y jefes (CARGO 04)
+export async function fetchCreditAnalysts() {
+  try {
+    const allUsers = await fetchAllExternalUsers();
+    
+    // Filtrar por cargos específicos: 04 (jefes) y 19 (analistas)
+    const creditStaff = allUsers.filter((user: any) =>
+      user.CARGO === "04" || user.CARGO === "19"
+    );
+    
+    // Ordenar por agencia y luego por nombre
+    return creditStaff.sort((a: any, b: any) => {
+      if (a.ID_AGE !== b.ID_AGE) {
+        return a.ID_AGE.localeCompare(b.ID_AGE);
+      }
+      return a.RAZON.localeCompare(b.RAZON);
+    });
+  } catch (error) {
+    console.error('💥 Error al obtener analistas de crédito:', error);
+    throw error;
+  }
+}
+
+// Consulta datos de usuario externo por DNI
+export async function fetchUserDataByDni(dni: string) {
+  try {
+    console.log('🔍 Buscando datos para DNI:', dni);
+
+    const response = await fetch(`http://192.168.3.206/api-sql/api/user`);
+    console.log('📡 Response status:', response.status);
+
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('📊 Datos completos recibidos:', data);
+
+    if (data && data.data && Array.isArray(data.data)) {
+      console.log('🔍 Buscando DNI:', dni);
+
+      // Convertir ambos valores a string para garantizar la comparación
+      const filteredData = data.data.find((user: any) => String(user.DNI) === String(dni));
+
+      if (filteredData) {
+        console.log('✅ Usuario encontrado:', filteredData);
+        return filteredData;
+      } else {
+        console.log('❌ No se encontró usuario con DNI:', dni);
+        return null;
+      }
+    } else {
+      console.error('💥 Estructura de datos inesperada:', data);
+      return null;
+    }
+  } catch (error) {
+    console.error('💥 Error al consultar usuario por DNI:', error);
+    throw error;
+  }
+}

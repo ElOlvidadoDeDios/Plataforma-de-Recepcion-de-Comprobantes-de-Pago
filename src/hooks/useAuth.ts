@@ -24,6 +24,7 @@ export function usePermissions() {
     canManageUsers: () => hasPermission('canManageUsers'),
     canAccessPayments: () => hasPermission('canAccessPayments'),
     canAccessCredits: () => hasPermission('canAccessCredits'),
+    canAccessGestionMora: () => hasPermission('canAccessGestionMora'),
     canAssignRoles: () => hasPermission('canAssignRoles'),
     canDeleteAccounts: () => hasPermission('canDeleteAccounts'),
     canBlockEmails: () => hasPermission('canBlockEmails'),

@@ -121,11 +121,20 @@ const Welcome: React.FC = () => {
           )} */}
           
           {permissions.canManageUsers() && (
-            <DashboardCard 
-              title="Gestión de Usuarios" 
+            <DashboardCard
+              title="Gestión de Usuarios"
               description="Administra los usuarios del sistema"
               onClick={() => navigate('/user-management')}
               icon="👤"
+            />
+          )}
+          
+          {permissions.canAccessGestionMora() && (
+            <DashboardCard
+              title="Gestión de Mora"
+              description="Gestiona clientes en mora y seguimiento"
+              onClick={() => navigate('/gestion-mora')}
+              icon="📋"
             />
           )}
         </div>

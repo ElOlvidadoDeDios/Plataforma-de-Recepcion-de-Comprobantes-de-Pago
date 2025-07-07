@@ -63,7 +63,7 @@ const UserTable: React.FC<UserTableProps> = ({
                 <div className="text-sm text-gray-500">
                   {canViewSensitiveInfo(user) ? (
                     <>
-                      {user.name && user.lastName && `${user.name} ${user.lastName}`}
+                      {user.razon && user.razon}
                       {user.dni && ` | DNI: ${user.dni}`}
                     </>
                   ) : (
@@ -85,7 +85,13 @@ const UserTable: React.FC<UserTableProps> = ({
                   );
 
                   // Solo mostrar si hay agencias válidas
-                  return (user.role === UserRole.PAYMENTS_USER || user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) && agenciasValidas.length > 0 && (
+                  return (
+                    user.role === UserRole.CAJERO ||
+                    user.role === UserRole.ADMINISTRADOR ||
+                    user.role === UserRole.GERENTE_GENERAL ||
+                    user.role === UserRole.JEFE_OPERACIONES ||
+                    user.role === UserRole.SUPER_ADMIN
+                  ) && agenciasValidas.length > 0 && (
                     <div className="mt-1 text-xs text-gray-500">
                       Agencias: {agenciasValidas.length} asignada(s)
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -157,10 +163,13 @@ const UserTable: React.FC<UserTableProps> = ({
                       {getAvailableRoles().map(role => (
                         <option key={role} value={role}>
                           {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
-                           role === UserRole.ADMIN ? 'Admin' :
-                           role === UserRole.PAYMENTS_USER ? 'Pagos' :
-                           role === UserRole.CREDIT_USER ? 'Créditos' :
-                           'Básico'}
+                           role === UserRole.ADMINISTRADOR ? 'Administrador' :
+                           role === UserRole.CAJERO ? 'Cajero' :
+                           role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
+                           role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
+                           role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
+                           role === UserRole.BASIC_USER ? 'Usuario Básico' :
+                           ''}
                         </option>
                       ))}
                     </select>
@@ -172,7 +181,14 @@ const UserTable: React.FC<UserTableProps> = ({
                   </div>
                 ) : (
                   <span className="text-sm text-gray-900">
-                    {user.role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' : user.role}
+                    {user.role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
+                     user.role === UserRole.ADMINISTRADOR ? 'Administrador' :
+                     user.role === UserRole.CAJERO ? 'Cajero' :
+                     user.role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
+                     user.role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
+                     user.role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
+                     user.role === UserRole.BASIC_USER ? 'Usuario Básico' :
+                     user.role}
                   </span>
                 )}
               </td>

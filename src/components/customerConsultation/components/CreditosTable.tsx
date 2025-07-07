@@ -92,14 +92,20 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
 
   // Función para generar contrato cuando el estado es FIRMAR
   const handleGenerarContrato = async (credito: DetalleCredito) => {
-    try {
-      setLoadingFirma(true);
-      setSelectedCreditoFirma(credito.ID_PRESTAMO);
-
-      const response = await generarContrato({
-        PAGARE: credito.ID_PRESTAMO,
-        DNI: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI
-      });
+      if (!clientData.INFO_SOCIO.CONTACTO.EMAIL) {
+          setNotificationMessage('No se puede firmar: el campo de correo electrónico está vacío.');
+          setShowNotificationModal(true);
+          return;
+      }
+  
+      try {
+          setLoadingFirma(true);
+          setSelectedCreditoFirma(credito.ID_PRESTAMO);
+  
+          const response = await generarContrato({
+              PAGARE: credito.ID_PRESTAMO,
+              DNI: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI
+          });
 
       if (response.success) {
         // Verificar el estado de la respuesta del endpoint
@@ -237,19 +243,40 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     // A partir de aquí, solo créditos VIGENTES
 
     // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
-    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
-      return (
-        <button
-          className="p-2 bg-gray-400 text-white rounded-full cursor-default"
-          title="Contrato no disponible"
-          disabled
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </button>
-      );
+    if (!firmDigital) {
+        return (
+            <button
+                className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+                title="Contrato no disponible"
+                disabled
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+            </button>
+        );
+    }
+    
+    if (firmDigital.ESTADO === 'NO_FIRMA' || firmDigital.ESTADO === 'NO_FIRMAR') {
+        return (
+            <button
+                className={`p-2 ${
+                    firmDigital.ESTADO === 'NO_FIRMAR' ? 'bg-red-400' : 'bg-gray-400'
+                } text-white rounded-full cursor-default`}
+                title={
+                    firmDigital.ESTADO === 'NO_FIRMAR'
+                        ? 'No se puede firmar: fecha límite expirada'
+                        : 'Contrato no disponible'
+                }
+                disabled
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+            </button>
+        );
     }
 
     // Si el estado es FIRMAR, mostrar botón para generar contrato

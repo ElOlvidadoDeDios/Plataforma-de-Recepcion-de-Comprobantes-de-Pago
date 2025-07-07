@@ -132,6 +132,16 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: { isMobile: boolean, isOpen: b
             Gestión de Usuarios
           </NavButton>
         )}
+        {permissions.canAccessGestionMora() && (
+          <NavButton
+            onClick={() => navigate('/gestion-mora')}
+            icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>}
+          >
+            Gestión de Mora
+          </NavButton>
+        )}
       </div>
     </div>
   );
@@ -317,8 +327,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
         user={user ? {
           _id: user.id,
           email: user.email,
-          name: user.name || '',
-          lastName: user.lastName || '',
+          razon: user.name || '',
           dni: user.dni,
           role: user.role,
           status: 1,
@@ -334,3 +343,6 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
 };
 
 export default Layout;
+
+
+
