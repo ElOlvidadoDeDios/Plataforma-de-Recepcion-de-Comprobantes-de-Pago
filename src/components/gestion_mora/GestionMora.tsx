@@ -14,6 +14,7 @@ interface Analista {
   RAZON: string;
   CARGO: string;
   ID_AGE: string;
+  ID_AGE_ALIAS?: string; // Agregado para agencias especiales como "98"
   NOM_AGENCIA: string;
   ID_ANA: string;
 }
@@ -121,10 +122,36 @@ const GestionMora = () => {
         // Para ADMINISTRADOR: solo analistas de su misma agencia
         // Obtener la agencia del usuario actual desde el token
         const tokenData = getTokenData();
-        const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
-          analista.ID_AGE === tokenData.id_age
-        );
-        setAnalistas(analistasDeAgencia);
+        
+        if (tokenData.id_age === "98") {
+
+          
+          const adminActual = todosUsuarios.find((u: Analista) =>
+            u.ID_ANA === tokenData.id_ana && u.ID_AGE === "98"
+          );
+          
+          
+          if (adminActual && adminActual.ID_AGE_ALIAS) {
+            // Filtrar analistas por el mismo ID_AGE_ALIAS del administrador
+            const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
+              analista.ID_AGE === "98" && analista.ID_AGE_ALIAS === adminActual.ID_AGE_ALIAS
+            );
+            setAnalistas(analistasDeAgencia);
+          } else {
+            // Si no se encuentra el alias, mostrar todos los de agencia 98
+            const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
+              analista.ID_AGE === "98"
+            );
+            setAnalistas(analistasDeAgencia);
+          }
+        } else {
+          // Para otras agencias, usar el filtro normal por ID_AGE
+          const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
+            analista.ID_AGE === tokenData.id_age
+          );
+          setAnalistas(analistasDeAgencia);
+        }
+        
         setSelectedJefe('current_user');
       } else if (currentUserRole === 'ANALISTA_CREDITOS_I') {
         setAnalistas([]);
@@ -148,9 +175,17 @@ const GestionMora = () => {
     const jefe = jefes.find(j => j.ID_ANA === jefeId);
     if (!jefe) return;
 
-    const analistasDeAgencia = todosLosUsuarios.filter(u =>
-      u.CARGO === "19" && u.ID_AGE === jefe.ID_AGE
-    );
+    const analistasDeAgencia = todosLosUsuarios.filter(u => {
+      if (u.CARGO !== "19") return false;
+      
+      // Caso especial para agencia "98": filtrar por ID_AGE_ALIAS
+      if (jefe.ID_AGE === "98") {
+        return u.ID_AGE === "98" && u.ID_AGE_ALIAS === jefe.ID_AGE_ALIAS;
+      } else {
+        // Para otras agencias, usar el filtro normal por ID_AGE
+        return u.ID_AGE === jefe.ID_AGE;
+      }
+    });
     
     setAnalistas(analistasDeAgencia);
     setSelectedAnalista('');
@@ -185,13 +220,16 @@ const GestionMora = () => {
         });
       }
       
-      if (response && typeof response === 'object' && 'message' in response && !Array.isArray(response)) {
-        setShowMessage(response.message);
+      // Verificar la nueva estructura de respuesta de la API
+      if (response && response.status === false) {
+        // Cuando no hay datos en mora
+        setShowMessage(response.message || 'No hay datos de mora disponibles');
         setClientes([]);
         setFilteredClientes([]);
-      } else if (response && Array.isArray(response)) {
-        setClientes(response);
-        setFilteredClientes(response);
+      } else if (response && response.status === true && Array.isArray(response.data_mora)) {
+        // Cuando sí hay datos en mora
+        setClientes(response.data_mora);
+        setFilteredClientes(response.data_mora);
         setShowMessage('');
       } else {
         setClientes([]);
