@@ -92,7 +92,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: { isMobile: boolean, isOpen: b
             Solicitudes de Crédito
           </NavButton>
         )}
-        {!permissions.isBasicUser() && (
+        {permissions.canAccessBotInteractions() && (
           <NavButton
             onClick={() => navigate('/bot-interactions')}
             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +102,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: { isMobile: boolean, isOpen: b
            Historial de Interacciones con el Bot
           </NavButton>
         )}
-        {!permissions.isBasicUser() && (
+        {permissions.canAccessConsultaCuotas() && (
           <NavButton
             onClick={() => navigate('/consultas-cuotas')}
             icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

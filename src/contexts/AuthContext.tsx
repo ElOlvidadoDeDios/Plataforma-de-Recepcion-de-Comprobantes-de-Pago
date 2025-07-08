@@ -79,11 +79,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       case 'canAssignRoles':
         return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL].includes(user.role); // Solo SUPER_ADMIN y GERENTE_GENERAL pueden asignar roles
       case 'canAccessPayments':
-        return [UserRole.SUPER_ADMIN, UserRole.CAJERO].includes(user.role); // ADMINISTRADOR no puede acceder a pagos
+        return [UserRole.SUPER_ADMIN, UserRole.CAJERO, UserRole.GERENTE_GENERAL, UserRole.JEFE_OPERACIONES].includes(user.role); // JEFE_OPERACIONES también puede ver pagos
       case 'canAccessCredits':
-        return [UserRole.SUPER_ADMIN, UserRole.ADMINISTRADOR, UserRole.ANALISTA_CREDITOS_I].includes(user.role); // ADMINISTRADOR puede acceder a créditos
+        return [UserRole.SUPER_ADMIN, UserRole.ADMINISTRADOR, UserRole.ANALISTA_CREDITOS_I, UserRole.GERENTE_GENERAL].includes(user.role); // GERENTE_GENERAL también puede acceder a créditos
       case 'canAccessGestionMora':
           return [UserRole.SUPER_ADMIN, UserRole.ANALISTA_CREDITOS_I, UserRole.ADMINISTRADOR, UserRole.GERENTE_GENERAL].includes(user.role); // Roles adicionales pueden acceder a Gestión de Mora
+      case 'canAccessBotInteractions':
+        return [UserRole.SUPER_ADMIN].includes(user.role); // Solo SUPER_ADMIN puede ver interacciones del bot (son informativas)
+      case 'canAccessConsultaCuotas':
+        return [UserRole.SUPER_ADMIN].includes(user.role); // Solo SUPER_ADMIN puede ver consulta de cuotas (son informativas)
+      case 'canAccessReports':
+        return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL, UserRole.JEFE_OPERACIONES].includes(user.role); // JEFE_OPERACIONES puede generar reportes de pagos
       case 'canBlockEmails':
         return [UserRole.SUPER_ADMIN].includes(user.role);
       case 'canDeleteAccounts':

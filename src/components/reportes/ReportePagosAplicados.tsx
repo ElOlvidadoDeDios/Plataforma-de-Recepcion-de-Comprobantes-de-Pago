@@ -99,7 +99,7 @@ const ReportePagosAplicados: React.FC = () => {
   const { user } = useAuth();
   
   // Determinar opciones disponibles según el rol
-  const esAdmin = user?.role === UserRole.ADMINISTRADOR || user?.role === UserRole.SUPER_ADMIN;
+  const esAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GERENTE_GENERAL || user?.role === UserRole.JEFE_OPERACIONES;
   const esSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
   const esUserPayment = user?.role === UserRole.CAJERO;
   
@@ -138,7 +138,7 @@ const ReportePagosAplicados: React.FC = () => {
         // 🎯 Filtrar solo usuarios que pueden hacer pagos
         const usuariosPagos = usuarios.filter(usuario => {
           const role = usuario.role;
-          return role === UserRole.CAJERO || role === UserRole.ADMINISTRADOR || role === UserRole.SUPER_ADMIN;
+          return role === UserRole.CAJERO || role === UserRole.SUPER_ADMIN || role === UserRole.GERENTE_GENERAL || role === UserRole.JEFE_OPERACIONES;
         });
         setUsuariosDisponibles(usuariosPagos);
       } catch (error) {
@@ -205,7 +205,7 @@ const ReportePagosAplicados: React.FC = () => {
         } else if (filtroAgencia === 'mis_agencias') {
           const misAgencias = user?.agencias?.map(ag => ag.agencia) || [];
           return misAgencias.includes(registro.agencia);
-        } else if (filtroAgencia === 'todas' && (esAdmin || esSuperAdmin)) {
+        } else if (filtroAgencia === 'todas' && esAdmin) {
           return true; // Admin/SuperAdmin pueden ver todos
         }
         

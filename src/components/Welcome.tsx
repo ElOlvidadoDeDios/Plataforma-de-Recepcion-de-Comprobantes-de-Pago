@@ -84,18 +84,18 @@ const Welcome: React.FC = () => {
             />
           )}
           
-          {!permissions.isBasicUser() && (
-            <DashboardCard 
-              title="Interacciones del Bot" 
+          {permissions.canAccessBotInteractions() && (
+            <DashboardCard
+              title="Interacciones del Bot"
               description="Analiza las interacciones con el bot"
               onClick={() => navigate('/bot-interactions')}
               icon="🤖"
             />
           )}
           
-          {!permissions.isBasicUser() && (
-            <DashboardCard 
-              title="Consulta de Cuotas" 
+          {permissions.canAccessConsultaCuotas() && (
+            <DashboardCard
+              title="Consulta de Cuotas"
               description="Revisa el estado de las cuotas"
               onClick={() => navigate('/consultas-cuotas')}
               icon="📊"

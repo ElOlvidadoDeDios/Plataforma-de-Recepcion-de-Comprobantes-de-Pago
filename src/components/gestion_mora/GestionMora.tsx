@@ -124,7 +124,6 @@ const GestionMora = () => {
         const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
           analista.ID_AGE === tokenData.id_age
         );
-        console.log(`🏢 ADMINISTRADOR - Agencia: ${tokenData.id_age}, Analistas encontrados:`, analistasDeAgencia.length);
         setAnalistas(analistasDeAgencia);
         setSelectedJefe('current_user');
       } else if (currentUserRole === 'ANALISTA_CREDITOS_I') {
@@ -133,7 +132,6 @@ const GestionMora = () => {
       }
 
     } catch (err) {
-      console.error('Error al cargar usuarios:', err);
       setError('Error al cargar lista de usuarios');
     } finally {
       setLoadingData(false);
@@ -202,7 +200,6 @@ const GestionMora = () => {
       }
     } catch (err: any) {
       setError('Error al cargar clientes en mora');
-      console.error('Error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -243,39 +240,46 @@ const GestionMora = () => {
   }, [searchTerm, clientes]);
 
   // Función para determinar el estado de mora
-  const getEstadoMora = (diasAtraso: number) => {
-    if (diasAtraso <= 7) {
-      return {
-        text: 'Normal',
-        color: 'bg-green-100 text-green-800 border-green-200',
-        icon: '✅',
-        bgGradient: 'from-green-50 to-emerald-50'
-      };
-    }
-    if (diasAtraso <= 30) {
-      return { 
-        text: 'Mora Temprana', 
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        icon: '⚠️',
-        bgGradient: 'from-yellow-50 to-amber-50'
-      };
-    }
-    if (diasAtraso <= 60) {
-      return { 
-        text: 'Mora Media', 
-        color: 'bg-orange-100 text-orange-800 border-orange-200',
-        icon: '🔶',
-        bgGradient: 'from-orange-50 to-red-50'
-      };
-    }
-    return { 
-      text: 'Mora Crítica', 
+const getEstadoMora = (diasAtraso: number) => {
+  if (diasAtraso <= 8) {
+    return {
+      text: 'Normal',
+      color: 'bg-green-100 text-green-800 border-green-200',
+      icon: '✅',
+      bgGradient: 'from-green-50 to-emerald-50',
+    };
+  }
+  if (diasAtraso <= 30) {
+    return {
+      text: 'Problemas Potenciales',
+      color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      icon: '⚠️',
+      bgGradient: 'from-yellow-50 to-amber-50',
+    };
+  }
+  if (diasAtraso <= 60) {
+    return {
+      text: 'Deficiente',
+      color: 'bg-orange-100 text-orange-800 border-orange-200',
+      icon: '🔶',
+      bgGradient: 'from-orange-50 to-red-50',
+    };
+  }
+  if (diasAtraso <= 120) {
+    return {
+      text: 'Dudoso',
       color: 'bg-red-100 text-red-800 border-red-200',
       icon: '🚨',
-      bgGradient: 'from-red-50 to-pink-50'
+      bgGradient: 'from-red-50 to-pink-50',
     };
+  }
+  return {
+    text: 'Pérdida',
+    color: 'bg-red-100 text-red-800 border-red-200',
+    icon: '❌',
+    bgGradient: 'from-red-50 to-pink-50',
   };
-
+};
 
   // Función para obtener estadísticas rápidas
   const getEstadisticas = () => {
@@ -328,14 +332,7 @@ const GestionMora = () => {
     
     setIsSubmitting(true);
     try {
-      // Aquí iría la llamada a la API para guardar la gestión
-      console.log('Guardando gestión de mora:', {
-        cuenta: selectedCliente.CREDITO_MORA.CUENTA,
-        motivoRetraso,
-        compromiso,
-        fechaCompromiso
-      });
-      
+
       // Simular guardado exitoso
       alert('Gestión de mora guardada exitosamente');
       cerrarModalGestion();
@@ -343,7 +340,6 @@ const GestionMora = () => {
       // Recargar datos
       cargarClientesEnMora();
     } catch (error) {
-      console.error('Error al guardar gestión de mora:', error);
       alert('Error al guardar la gestión de mora');
     } finally {
       setIsSubmitting(false);
