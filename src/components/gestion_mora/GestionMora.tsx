@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
 import Layout from '../Layout';
-import { creditAttentionApi, ClienteMora, fetchCreditAnalysts } from '../../api';
+import { creditAttentionApi, ClienteMora, AdministradorInfo } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
 import { jwtDecode } from 'jwt-decode';
+import ModalDetailsMora from './modal_datails_mora';
 
-// Interface para analista
-interface Analista {
-  DNI: string;
-  NOMBRE: string;
-  APE_PAT: string;
-  APE_MAT: string;
-  RAZON: string;
-  CARGO: string;
-  ID_AGE: string;
-  ID_AGE_ALIAS?: string; // Agregado para agencias especiales como "98"
-  NOM_AGENCIA: string;
+// Interface para analista (nueva estructura del nuevo endpoint)
+interface AnalalistaNuevo {
   ID_ANA: string;
+  CARGO: string;
+  ANA_ACTUAL: string;
+  AGENCIA: string;
 }
+
+// Renombramos para que sea más claro
+type Analista = AnalalistaNuevo;
 
 const GestionMora = () => {
   const { hasPermission, user } = useAuth();
@@ -27,27 +24,26 @@ const GestionMora = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredClientes, setFilteredClientes] = useState<ClienteMora[]>([]);
   
-  // Estados para la estructura jerárquica
-  const [todosLosUsuarios, setTodosLosUsuarios] = useState<Analista[]>([]);
-  const [jefes, setJefes] = useState<Analista[]>([]);
+  // Estados para la nueva estructura simplificada
+  const [administradores, setAdministradores] = useState<AdministradorInfo[]>([]);
   const [analistas, setAnalistas] = useState<Analista[]>([]);
-  const [selectedJefe, setSelectedJefe] = useState<string>('');
+  const [selectedAdministrador, setSelectedAdministrador] = useState<string>('');
   const [selectedAnalista, setSelectedAnalista] = useState<string>('');
   const [loadingData, setLoadingData] = useState(false);
   const [showMessage, setShowMessage] = useState('');
   const [userRole, setUserRole] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [periodoConsulta, setPeriodoConsulta] = useState('');
+  const [userAgency, setUserAgency] = useState<string>('');
+
   
   // Estados para los modales
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showGestionModal, setShowGestionModal] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<ClienteMora | null>(null);
-  
-  // Estados para el formulario de gestión
-  const [motivoRetraso, setMotivoRetraso] = useState('');
-  const [compromiso, setCompromiso] = useState('');
-  const [fechaCompromiso, setFechaCompromiso] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showExtractModal, setShowExtractModal] = useState(false);
+  const [gestionesAnteriores, setGestionesAnteriores] = useState<any[]>([]);
+  const [loadingGestionesAnteriores, setLoadingGestionesAnteriores] = useState(false);
 
   // Verificar permisos
   if (!hasPermission('canAccessGestionMora')) {
@@ -101,59 +97,73 @@ const GestionMora = () => {
     return user.role || '';
   };
 
-  // Función para cargar todos los usuarios y filtrarlos
+  // Función para generar el período automático (AAAAMM)
+  const generarPeriodoAutomatico = () => {
+    const fecha = new Date();
+    const año = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    return `${año}${mes}`;
+  };
+
+  // Función global para obtener código de agencia por nombre
+  const obtenerCodigoAgencia = (nombreAgencia: string): string => {
+    const mapeoAgencias: { [key: string]: string } = {
+      'AGENCIA SAN JERÓNIMO': '02',
+      'AGENCIA SANTIAGO': '05',
+      'AGENCIA SICUANI': '04',
+      'AGENCIA LIMA': '98',
+      'OFICINA PRINCIPAL': '01',
+      'AGENCIA QUILLABAMBA': '03',
+      'AGENCIA TICA TICA': '08',
+      'AGENCIA JULIACA': '98'
+    };
+    return mapeoAgencias[nombreAgencia] || '01';
+  };
+
+  // Función para cargar todos los usuarios (nueva lógica simplificada)
   const cargarTodosLosUsuarios = async () => {
     setLoadingData(true);
     try {
-      const todosUsuarios = await fetchCreditAnalysts();
-      setTodosLosUsuarios(todosUsuarios);
-
-      const jefesFiltrados = todosUsuarios.filter((u: Analista) => u.CARGO === "04");
-      const analistasFiltrados = todosUsuarios.filter((u: Analista) => u.CARGO === "19");
-      
-      setJefes(jefesFiltrados);
-      
       const currentUserRole = determinarRolUsuario();
       setUserRole(currentUserRole);
 
-      if (currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'GERENTE_GENERAL') {
-        setAnalistas([]);
-      } else if (currentUserRole === 'ADMINISTRADOR') {
-        // Para ADMINISTRADOR: solo analistas de su misma agencia
-        // Obtener la agencia del usuario actual desde el token
-        const tokenData = getTokenData();
-        
-        if (tokenData.id_age === "98") {
+      // Generar período automático
+      const periodo = generarPeriodoAutomatico();
+      setPeriodoConsulta(periodo);
 
+      if (currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'GERENTE_GENERAL') {
+        // Para SUPER_ADMIN y GERENTE_GENERAL: usar nuevo endpoint de administradores
+        console.log('🔍 SUPER_ADMIN: Cargando administradores desde getAdministradores()');
+        const administradoresData = await creditAttentionApi.getAdministradores();
+        console.log('✅ SUPER_ADMIN: Administradores cargados:', administradoresData);
+        setAdministradores(administradoresData);
+        setAnalistas([]); // Los analistas se cargan al seleccionar administrador
+        
+      } else if (currentUserRole === 'ADMINISTRADOR') {
+        // Para ADMINISTRADOR: usar nuevo endpoint
+        const tokenData = getTokenData();
+        const agencia = tokenData.id_age;
+        setUserAgency(agencia);
+        
+        // Obtener analistas de la agencia usando el nuevo endpoint
+        const analistasDeAgencia = await creditAttentionApi.getAnalistasByAgencia(periodo, agencia);
+        
+        // Filtrar analistas especiales para agencia 98
+        let analistasFiltrados = analistasDeAgencia;
+        
+        if (agencia === "98") {
+          // Para agencia 98, filtrar por la agencia específica del administrador
+          const adminAgencia = analistasDeAgencia.find(a => a.ID_ANA === tokenData.id_ana)?.AGENCIA;
           
-          const adminActual = todosUsuarios.find((u: Analista) =>
-            u.ID_ANA === tokenData.id_ana && u.ID_AGE === "98"
-          );
-          
-          
-          if (adminActual && adminActual.ID_AGE_ALIAS) {
-            // Filtrar analistas por el mismo ID_AGE_ALIAS del administrador
-            const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
-              analista.ID_AGE === "98" && analista.ID_AGE_ALIAS === adminActual.ID_AGE_ALIAS
-            );
-            setAnalistas(analistasDeAgencia);
-          } else {
-            // Si no se encuentra el alias, mostrar todos los de agencia 98
-            const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
-              analista.ID_AGE === "98"
-            );
-            setAnalistas(analistasDeAgencia);
+          if (adminAgencia) {
+            analistasFiltrados = analistasDeAgencia.filter(a => a.AGENCIA === adminAgencia);
           }
-        } else {
-          // Para otras agencias, usar el filtro normal por ID_AGE
-          const analistasDeAgencia = analistasFiltrados.filter((analista: Analista) =>
-            analista.ID_AGE === tokenData.id_age
-          );
-          setAnalistas(analistasDeAgencia);
         }
         
-        setSelectedJefe('current_user');
+        setAnalistas(analistasFiltrados);
+        
       } else if (currentUserRole === 'ANALISTA_CREDITOS_I') {
+        // Para analistas, no necesitan ver otros analistas
         setAnalistas([]);
         setSelectedAnalista('current_user');
       }
@@ -165,31 +175,41 @@ const GestionMora = () => {
     }
   };
 
-  // Función para cargar analistas cuando se selecciona un jefe
-  const cargarAnalistasPorJefe = (jefeId: string) => {
-    if (!jefeId) {
+  // Función para cargar analistas cuando se selecciona un administrador (solo para SUPER_ADMIN/GERENTE_GENERAL)
+  const cargarAnalistasPorAdministrador = async (adminNombre: string) => {
+    if (!adminNombre) {
       setAnalistas([]);
       return;
     }
 
-    const jefe = jefes.find(j => j.ID_ANA === jefeId);
-    if (!jefe) return;
+    try {
+      const admin = administradores.find(a => a.NOM_ADMI === adminNombre);
+      if (!admin) return;
 
-    const analistasDeAgencia = todosLosUsuarios.filter(u => {
-      if (u.CARGO !== "19") return false;
+      // Generar período automático
+      const periodo = generarPeriodoAutomatico();
       
-      // Caso especial para agencia "98": filtrar por ID_AGE_ALIAS
-      if (jefe.ID_AGE === "98") {
-        return u.ID_AGE === "98" && u.ID_AGE_ALIAS === jefe.ID_AGE_ALIAS;
-      } else {
-        // Para otras agencias, usar el filtro normal por ID_AGE
-        return u.ID_AGE === jefe.ID_AGE;
+      // Convertir nombre de agencia a código usando la función global
+      const codigoAgencia = obtenerCodigoAgencia(admin.AGENCIA);
+      
+      // Obtener analistas de la agencia
+      const analistasDeAgencia = await creditAttentionApi.getAnalistasByAgencia(periodo, codigoAgencia);
+      
+      // Para agencia 98 (JULIACA), filtrar por la agencia específica si es necesario
+      let analistasFiltrados = analistasDeAgencia;
+      if (codigoAgencia === "98") {
+        analistasFiltrados = analistasDeAgencia.filter(a => a.AGENCIA === admin.AGENCIA);
       }
-    });
-    
-    setAnalistas(analistasDeAgencia);
-    setSelectedAnalista('');
+      
+      setAnalistas(analistasFiltrados);
+      setSelectedAnalista('');
+      
+    } catch (error) {
+      console.error('Error al cargar analistas:', error);
+      setError('Error al cargar analistas del administrador');
+    }
   };
+
 
   // Función para cargar clientes en mora
   const cargarClientesEnMora = async () => {
@@ -205,18 +225,25 @@ const GestionMora = () => {
     try {
       let response: any;
       
+      // Determinar período a consultar
+      const periodo = periodoConsulta || undefined;
+      
       if (selectedAnalista === 'current_user') {
-        response = await creditAttentionApi.getClientesEnMora();
+        response = await creditAttentionApi.getClientesEnMora(periodo);
       } else {
         const analista = analistas.find(a => a.ID_ANA === selectedAnalista);
         if (!analista) {
           throw new Error('Analista no encontrado');
         }
         
+        // Obtener código de agencia del analista usando la función global
+        const codigoAgencia = obtenerCodigoAgencia(analista.AGENCIA) || userAgency || '01';
+        
         response = await creditAttentionApi.getClientesEnMoraByAnalista({
           ID_ANA: analista.ID_ANA,
           CARGO: analista.CARGO,
-          AGENCIA: analista.ID_AGE
+          AGENCIA: codigoAgencia,
+          PERIODO: periodo
         });
       }
       
@@ -227,9 +254,12 @@ const GestionMora = () => {
         setClientes([]);
         setFilteredClientes([]);
       } else if (response && response.status === true && Array.isArray(response.data_mora)) {
-        // Cuando sí hay datos en mora
-        setClientes(response.data_mora);
-        setFilteredClientes(response.data_mora);
+        // Cuando sí hay datos en mora - Ordenar por días de atraso descendente (más moroso primero)
+        const clientesOrdenados = response.data_mora.sort((a: ClienteMora, b: ClienteMora) => {
+          return parseInt(b.CREDITO_MORA.DIAS_ATRASO) - parseInt(a.CREDITO_MORA.DIAS_ATRASO);
+        });
+        setClientes(clientesOrdenados);
+        setFilteredClientes(clientesOrdenados);
         setShowMessage('');
       } else {
         setClientes([]);
@@ -249,10 +279,10 @@ const GestionMora = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedJefe && selectedJefe !== 'current_user') {
-      cargarAnalistasPorJefe(selectedJefe);
+    if (selectedAdministrador && selectedAdministrador !== 'current_user') {
+      cargarAnalistasPorAdministrador(selectedAdministrador);
     }
-  }, [selectedJefe]);
+  }, [selectedAdministrador]);
 
   useEffect(() => {
     if (selectedAnalista) {
@@ -273,7 +303,11 @@ const GestionMora = () => {
         cliente.CREDITO_MORA.PAGARE.toLowerCase().includes(searchTerm.toLowerCase()) ||
         cliente.CREDITO_MORA.CUENTA.includes(searchTerm)
       );
-      setFilteredClientes(filtered);
+      // Mantener el orden por días de atraso incluso después del filtrado
+      const filteredOrdenados = filtered.sort((a: ClienteMora, b: ClienteMora) => {
+        return parseInt(b.CREDITO_MORA.DIAS_ATRASO) - parseInt(a.CREDITO_MORA.DIAS_ATRASO);
+      });
+      setFilteredClientes(filteredOrdenados);
     }
   }, [searchTerm, clientes]);
 
@@ -281,7 +315,7 @@ const GestionMora = () => {
 const getEstadoMora = (diasAtraso: number) => {
   if (diasAtraso <= 8) {
     return {
-      text: 'Normal',
+      text: 'Mora Temprana',
       color: 'bg-green-100 text-green-800 border-green-200',
       icon: '✅',
       bgGradient: 'from-green-50 to-emerald-50',
@@ -289,30 +323,14 @@ const getEstadoMora = (diasAtraso: number) => {
   }
   if (diasAtraso <= 30) {
     return {
-      text: 'Problemas Potenciales',
+      text: 'Mora Media',
       color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       icon: '⚠️',
       bgGradient: 'from-yellow-50 to-amber-50',
     };
   }
-  if (diasAtraso <= 60) {
-    return {
-      text: 'Deficiente',
-      color: 'bg-orange-100 text-orange-800 border-orange-200',
-      icon: '🔶',
-      bgGradient: 'from-orange-50 to-red-50',
-    };
-  }
-  if (diasAtraso <= 120) {
-    return {
-      text: 'Dudoso',
-      color: 'bg-red-100 text-red-800 border-red-200',
-      icon: '🚨',
-      bgGradient: 'from-red-50 to-pink-50',
-    };
-  }
   return {
-    text: 'Pérdida',
+    text: 'Mora Crítica',
     color: 'bg-red-100 text-red-800 border-red-200',
     icon: '❌',
     bgGradient: 'from-red-50 to-pink-50',
@@ -322,9 +340,9 @@ const getEstadoMora = (diasAtraso: number) => {
   // Función para obtener estadísticas rápidas
   const getEstadisticas = () => {
     const total = filteredClientes.length;
-    const moraTemprana = filteredClientes.filter(c => parseInt(c.CREDITO_MORA.DIAS_ATRASO) <= 30).length;
-    const moraMedia = filteredClientes.filter(c => parseInt(c.CREDITO_MORA.DIAS_ATRASO) > 30 && parseInt(c.CREDITO_MORA.DIAS_ATRASO) <= 60).length;
-    const moraCritica = filteredClientes.filter(c => parseInt(c.CREDITO_MORA.DIAS_ATRASO) > 60).length;
+    const moraTemprana = filteredClientes.filter(c => parseInt(c.CREDITO_MORA.DIAS_ATRASO) <= 8).length;
+    const moraMedia = filteredClientes.filter(c => parseInt(c.CREDITO_MORA.DIAS_ATRASO) > 8 && parseInt(c.CREDITO_MORA.DIAS_ATRASO) <= 30).length;
+    const moraCritica = filteredClientes.filter(c => parseInt(c.CREDITO_MORA.DIAS_ATRASO) > 30).length;
     const montoTotal = filteredClientes.reduce((sum, c) => sum + parseFloat(c.CREDITO_MORA.SALDO_PRESENTE), 0);
 
     return { total, moraTemprana, moraMedia, moraCritica, montoTotal };
@@ -347,10 +365,6 @@ const getEstadoMora = (diasAtraso: number) => {
   // Función para abrir modal de gestión
   const abrirModalGestion = (cliente: ClienteMora) => {
     setSelectedCliente(cliente);
-    // Pre-llenar con datos existentes si los hay
-    setMotivoRetraso(cliente.GESTION_MORA.MOTIVO_RETRASO || '');
-    setCompromiso(cliente.GESTION_MORA.COMPROMISO || '');
-    setFechaCompromiso(cliente.GESTION_MORA.FECHA_COMPROMISO || '');
     setShowGestionModal(true);
   };
 
@@ -358,37 +372,45 @@ const getEstadoMora = (diasAtraso: number) => {
   const cerrarModalGestion = () => {
     setShowGestionModal(false);
     setSelectedCliente(null);
-    setMotivoRetraso('');
-    setCompromiso('');
-    setFechaCompromiso('');
-    setIsSubmitting(false);
   };
 
-  // Función para guardar gestión de mora
-  const guardarGestionMora = async () => {
-    if (!selectedCliente) return;
-    
-    setIsSubmitting(true);
-    try {
-
-      // Simular guardado exitoso
-      alert('Gestión de mora guardada exitosamente');
-      cerrarModalGestion();
-      
-      // Recargar datos
-      cargarClientesEnMora();
-    } catch (error) {
-      alert('Error al guardar la gestión de mora');
-    } finally {
-      setIsSubmitting(false);
-    }
+  // Función para verificar si ya existe gestión de mora
+  const yaExisteGestion = (cliente: ClienteMora) => {
+    return cliente.GESTION_MORA.ID_GESTION !== null &&
+           cliente.GESTION_MORA.ID_GESTION !== undefined &&
+           cliente.GESTION_MORA.ID_GESTION !== '';
   };
+
+  // Función para cerrar modal de extracción
+  const cerrarModalExtraccion = () => {
+    setShowExtractModal(false);
+    setGestionesAnteriores([]);
+  };
+
+  // Función para abrir modal de extracción
+  const abrirModalExtraccion = () => {
+    setShowExtractModal(true);
+  };
+
+  // Función para actualizar gestiones anteriores
+  const actualizarGestionesAnteriores = (gestiones: any[]) => {
+    setGestionesAnteriores(gestiones);
+  };
+
+  // Función para actualizar estado de carga
+  const actualizarLoadingGestionesAnteriores = (loading: boolean) => {
+    setLoadingGestionesAnteriores(loading);
+  };
+
+
+
+
 
   return (
     <Layout title="Gestión de Mora">
       <div className="h-full w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white p-6 rounded-xl shadow-2xl mb-6">
+        <div className="flex-col bg-gradient-to-l from-cyan-500 via-sky-400 to-teal-500 text-white drop-shadow-md p-6 rounded-xl shadow-2xl mb-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">📊 Gestión de Mora</h1>
@@ -431,26 +453,26 @@ const getEstadoMora = (diasAtraso: number) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Selector de Jefe/Administrador */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            {/* Selector de Administrador */}
             {(userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL') && (
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  👤 Jefe/Administrador
+                  👤 Administrador
                 </label>
                 <select
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
-                  value={selectedJefe}
+                  value={selectedAdministrador}
                   onChange={(e) => {
-                    setSelectedJefe(e.target.value);
+                    setSelectedAdministrador(e.target.value);
                     setSelectedAnalista('');
                   }}
                   disabled={loadingData}
                 >
-                  <option value="">Seleccionar jefe...</option>
-                  {jefes.map((jefe) => (
-                    <option key={jefe.ID_ANA} value={jefe.ID_ANA}>
-                      {jefe.RAZON} - {jefe.NOM_AGENCIA}
+                  <option value="">Seleccionar administrador...</option>
+                  {administradores.map((admin) => (
+                    <option key={admin.NOM_ADMI} value={admin.NOM_ADMI}>
+                      {admin.NOM_ADMI} - {admin.AGENCIA}
                     </option>
                   ))}
                 </select>
@@ -466,7 +488,7 @@ const getEstadoMora = (diasAtraso: number) => {
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white"
                 value={selectedAnalista}
                 onChange={(e) => setSelectedAnalista(e.target.value)}
-                disabled={loadingData || (userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL') && !selectedJefe}
+                disabled={loadingData || (userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL') && !selectedAdministrador}
               >
                 <option value="">
                   {userRole === 'ANALISTA_CREDITOS_I' ? 'Seleccionar...' : 'Seleccionar analista...'}
@@ -476,7 +498,7 @@ const getEstadoMora = (diasAtraso: number) => {
                 )}
                 {analistas.map((analista) => (
                   <option key={analista.ID_ANA} value={analista.ID_ANA}>
-                    {analista.RAZON} - {analista.NOM_AGENCIA}
+                    {analista.ANA_ACTUAL}
                   </option>
                 ))}
               </select>
@@ -557,9 +579,9 @@ const getEstadoMora = (diasAtraso: number) => {
                 <p className="text-gray-700">
                   <strong>📋 Instrucciones:</strong> {' '}
                   {userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL'
-                    ? 'Seleccione un jefe/administrador y luego un analista. Los datos se cargarán automáticamente.'
+                    ? 'Seleccione un administrador y luego un analista. Los datos se cargarán automáticamente.'
                     : userRole === 'ADMINISTRADOR'
-                    ? 'Seleccione un analista de su agencia. Los datos se cargarán automáticamente.'
+                    ? `Seleccione un analista de su agencia (${userAgency}). Los datos se cargarán automáticamente para el período ${periodoConsulta}.`
                     : 'Seleccione "Mis datos". Los datos se cargarán automáticamente.'
                   }
                 </p>
@@ -718,9 +740,14 @@ const getEstadoMora = (diasAtraso: number) => {
                           </button>
                           <button
                             onClick={() => abrirModalGestion(cliente)}
-                            className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm font-medium"
+                            className={`flex-1 px-4 py-2 rounded-lg transition-colors duration-200 text-sm font-medium ${
+                              yaExisteGestion(cliente)
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-green-500 text-white hover:bg-green-600'
+                            }`}
+                            disabled={yaExisteGestion(cliente)}
                           >
-                            ⚡ Gestionar
+                            ⚡ {yaExisteGestion(cliente) ? 'Ya Gestionado' : 'Gestionar'}
                           </button>
                         </div>
                       </div>
@@ -844,9 +871,14 @@ const getEstadoMora = (diasAtraso: number) => {
                               </button>
                               <button
                                 onClick={() => abrirModalGestion(cliente)}
-                                className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200 text-xs font-medium"
+                                className={`px-3 py-1 rounded-lg transition-colors duration-200 text-xs font-medium ${
+                                  yaExisteGestion(cliente)
+                                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                }`}
+                                disabled={yaExisteGestion(cliente)}
                               >
-                                ⚡ Gestionar
+                                ⚡ {yaExisteGestion(cliente) ? 'Ya Gestionado' : 'Gestionar'}
                               </button>
                             </div>
                           </td>
@@ -860,278 +892,25 @@ const getEstadoMora = (diasAtraso: number) => {
           </div>
         )}
 
-        {/* Modal de Detalles */}
-        {showDetailsModal && selectedCliente && ReactDOM.createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    📋 Detalles del Cliente en Mora
-                  </h2>
-                  <button
-                    onClick={cerrarModalDetalles}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-6">
-                {/* Información del Crédito */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-5 border border-blue-200">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-                    🏦 Información del Crédito
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-blue-700">Cliente:</label>
-                      <p className="text-gray-900 font-semibold">{selectedCliente.CREDITO_MORA.SOCIO}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-blue-700">Producto:</label>
-                      <p className="text-gray-900">{selectedCliente.CREDITO_MORA.PRODUCTO}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-blue-700">Pagaré:</label>
-                      <p className="text-gray-900 font-mono">{selectedCliente.CREDITO_MORA.PAGARE}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-blue-700">Cuenta:</label>
-                      <p className="text-gray-900 font-mono">{selectedCliente.CREDITO_MORA.CUENTA}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-blue-700">Fecha Otorgado:</label>
-                      <p className="text-gray-900">{new Date(selectedCliente.CREDITO_MORA.OTORGA).toLocaleDateString('es-PE')}</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-blue-700">Días en Atraso:</label>
-                      <p className="text-red-600 font-bold text-lg">{selectedCliente.CREDITO_MORA.DIAS_ATRASO} días</p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-blue-700">Saldo Presente:</label>
-                      <p className="text-red-600 font-bold text-xl">S/ {parseFloat(selectedCliente.CREDITO_MORA.SALDO_PRESENTE).toFixed(2)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Información de Gestión de Mora */}
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-5 border border-amber-200">
-                  <h3 className="text-lg font-semibold text-amber-900 mb-4 flex items-center">
-                    📊 Gestión de Mora
-                  </h3>
-                  
-                  {selectedCliente.GESTION_MORA.ID_GESTION ? (
-                    <div className="space-y-4">
-                      <div className="bg-white rounded-lg p-4 border border-amber-200">
-                        <div className="grid grid-cols-1 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-amber-700">ID Gestión:</label>
-                            <p className="text-gray-900 font-mono">{selectedCliente.GESTION_MORA.ID_GESTION}</p>
-                          </div>
-                          
-                          {selectedCliente.GESTION_MORA.MOTIVO_RETRASO && (
-                            <div>
-                              <label className="block text-sm font-medium text-amber-700">Motivo del Retraso:</label>
-                              <p className="text-gray-900 bg-gray-50 p-3 rounded border">{selectedCliente.GESTION_MORA.MOTIVO_RETRASO}</p>
-                            </div>
-                          )}
-                          
-                          {selectedCliente.GESTION_MORA.COMPROMISO && (
-                            <div>
-                              <label className="block text-sm font-medium text-amber-700">Compromiso:</label>
-                              <p className="text-gray-900 bg-gray-50 p-3 rounded border">{selectedCliente.GESTION_MORA.COMPROMISO}</p>
-                            </div>
-                          )}
-                          
-                          {selectedCliente.GESTION_MORA.FECHA_COMPROMISO && (
-                            <div>
-                              <label className="block text-sm font-medium text-amber-700">Fecha de Compromiso:</label>
-                              <p className="text-gray-900 font-semibold">{new Date(selectedCliente.GESTION_MORA.FECHA_COMPROMISO).toLocaleDateString('es-PE')}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <div className="text-4xl mb-3">📝</div>
-                      <p className="text-amber-700 font-medium">Sin gestión registrada</p>
-                      <p className="text-amber-600 text-sm">Este cliente aún no tiene registros de gestión de mora.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Estado de Mora */}
-                <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-lg p-5 border border-red-200">
-                  <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center">
-                    ⚠️ Estado de Mora
-                  </h3>
-                  <div className="text-center">
-                    {(() => {
-                      const estado = getEstadoMora(parseInt(selectedCliente.CREDITO_MORA.DIAS_ATRASO));
-                      return (
-                        <div>
-                          <div className="text-4xl mb-2">{estado.icon}</div>
-                          <span className={`px-4 py-2 rounded-full text-lg font-semibold ${estado.color}`}>
-                            {estado.text}
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-              </div>
-
-              <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 rounded-b-xl">
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={cerrarModalDetalles}
-                    className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
-                  >
-                    Cerrar
-                  </button>
-                  <button
-                    onClick={() => {
-                      cerrarModalDetalles();
-                      abrirModalGestion(selectedCliente);
-                    }}
-                    className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
-                  >
-                    ⚡ Gestionar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
-
-        {/* Modal de Gestión de Mora */}
-        {showGestionModal && selectedCliente && ReactDOM.createPortal(
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    ⚡ Gestionar Mora - {selectedCliente.CREDITO_MORA.SOCIO}
-                  </h2>
-                  <button
-                    onClick={cerrarModalGestion}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={(e) => { e.preventDefault(); guardarGestionMora(); }} className="p-6 space-y-6">
-                {/* Información resumida del cliente */}
-                <div className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-600">Pagaré:</span>
-                      <span className="ml-2 font-mono">{selectedCliente.CREDITO_MORA.PAGARE}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Cuenta:</span>
-                      <span className="ml-2 font-mono">{selectedCliente.CREDITO_MORA.CUENTA}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Días atraso:</span>
-                      <span className="ml-2 font-bold text-red-600">{selectedCliente.CREDITO_MORA.DIAS_ATRASO} días</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-gray-600">Saldo:</span>
-                      <span className="ml-2 font-bold text-red-600">S/ {parseFloat(selectedCliente.CREDITO_MORA.SALDO_PRESENTE).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Formulario de gestión */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📝 Motivo del Retraso <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={motivoRetraso}
-                      onChange={(e) => setMotivoRetraso(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                      rows={3}
-                      placeholder="Describa el motivo del retraso en el pago..."
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      🤝 Compromiso del Cliente <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      value={compromiso}
-                      onChange={(e) => setCompromiso(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                      rows={3}
-                      placeholder="Detalle el compromiso de pago acordado con el cliente..."
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      📅 Fecha de Compromiso <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={fechaCompromiso}
-                      onChange={(e) => setFechaCompromiso(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                      min={new Date().toISOString().split('T')[0]}
-                    />
-                  </div>
-                </div>
-
-                <div className="sticky bottom-0 bg-white border-t border-gray-200 pt-6 -mb-6 -mx-6 px-6 pb-6 rounded-b-xl">
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={cerrarModalGestion}
-                      className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
-                      disabled={isSubmitting}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={isSubmitting || !motivoRetraso.trim() || !compromiso.trim() || !fechaCompromiso}
-                    >
-                      {isSubmitting ? (
-                        <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Guardando...
-                        </span>
-                      ) : (
-                        '💾 Guardar Gestión'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )}
+        {/* Componente Modal de Gestión de Mora */}
+        <ModalDetailsMora
+          showDetailsModal={showDetailsModal}
+          showGestionModal={showGestionModal}
+          showExtractModal={showExtractModal}
+          selectedCliente={selectedCliente}
+          selectedAnalista={selectedAnalista}
+          analistas={analistas}
+          gestionesAnteriores={gestionesAnteriores}
+          loadingGestionesAnteriores={loadingGestionesAnteriores}
+          onCloseDetailsModal={cerrarModalDetalles}
+          onCloseGestionModal={cerrarModalGestion}
+          onCloseExtractModal={cerrarModalExtraccion}
+          onOpenGestionModal={abrirModalGestion}
+          onReloadData={cargarClientesEnMora}
+          onSetGestionesAnteriores={actualizarGestionesAnteriores}
+          onSetLoadingGestionesAnteriores={actualizarLoadingGestionesAnteriores}
+          onOpenExtractModal={abrirModalExtraccion}
+        />
       </div>
     </Layout>
   );

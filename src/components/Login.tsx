@@ -6,13 +6,12 @@ import { useAuth } from '../hooks/useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
 
-// 🔇 Request silencioso usando XMLHttpRequest para evitar logs automáticos
+// 🔇 Request completamente silencioso usando XMLHttpRequest
 const silentRequest = (url: string, method: string, body: string): Promise<{ok: boolean, status: number, json: () => Promise<any>}> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open(method, url);
     xhr.setRequestHeader('Content-Type', 'application/json');
-    
     xhr.onload = () => {
       const response = {
         ok: xhr.status >= 200 && xhr.status < 300,
@@ -29,9 +28,25 @@ const silentRequest = (url: string, method: string, body: string): Promise<{ok: 
     };
     
     xhr.onerror = () => {
-      reject(new Error('Network error'));
+      
+      const response = {
+        ok: false,
+        status: 0,
+        json: async () => ({})
+      };
+      resolve(response);
     };
     
+    xhr.ontimeout = () => {
+      const response = {
+        ok: false,
+        status: 408,
+        json: async () => ({})
+      };
+      resolve(response);
+    };
+    
+    xhr.timeout = 10000; // 10 segundos timeout
     xhr.send(body);
   });
 };
@@ -63,19 +78,20 @@ const Login = () => {
         JSON.stringify({ email, password })
       );
 
-      // 🔇 Manejo silencioso de errores - no mostrar en consola
-      if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          setMessage(errorData.message || 'Error al iniciar sesión');
-        } catch {
-          // Si no se puede parsear la respuesta, mostrar mensaje genérico
-          setMessage('Error al iniciar sesión');
-        }
+      const data = await response.json();
+      
+      // 🔇 Verificar si el login fue exitoso usando el nuevo formato
+      if (data.success === false) {
+        // Login falló pero la respuesta HTTP es 200
+        setMessage(data.message || 'Error al iniciar sesión');
         return;
       }
-
-      const data = await response.json();
+      
+      // Si no hay campo success, asumir que es exitoso (compatibilidad)
+      if (data.success !== undefined && data.success !== true) {
+        setMessage(data.message || 'Error al iniciar sesión');
+        return;
+      }
       
       // Limpiar cualquier estado anterior
       localStorage.clear();

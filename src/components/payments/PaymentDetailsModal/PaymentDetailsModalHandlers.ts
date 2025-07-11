@@ -152,10 +152,6 @@ export const handleUpdateStatus = async (
 
     setPaymentDetails(updatedDetails);
     
-    console.log('=== RECHAZO TOTAL ===');
-    console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
-    console.log('======================');
-    
     try {
       await procesarComprobantesMasivo(requestData);
       toast.success('Comprobantes rechazados exitosamente');
@@ -297,9 +293,6 @@ export const handleUpdateStatus = async (
 
   setPaymentDetails(updatedDetails);
   
-  console.log('=== RECHAZO PARCIAL ===');
-  console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
-  console.log('========================');
   
   try {
     await procesarComprobantesMasivo(requestData);
@@ -489,9 +482,6 @@ export const handlePartialAcceptStatus = async (
 
   setPaymentDetails(updatedDetails);
   
-  console.log('=== PAGO PARCIAL ===');
-  console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
-  console.log('====================');
   
   try {
     await procesarComprobantesMasivo(requestData);
@@ -502,8 +492,7 @@ export const handlePartialAcceptStatus = async (
       window.dispatchEvent(new CustomEvent('closePaymentModal'));
     }, 1000);
   } catch (error: any) {
-    console.error('Error:', error);
-    
+  
     // Extraer mensaje específico del error
     let errorMessage = 'Error al procesar el pago parcial';
     
@@ -669,11 +658,7 @@ export const handleAcceptStatus = async (
   });
 
   setPaymentDetails(updatedDetails);
-  
-  console.log('=== ACEPTACIÓN ===');
-  console.log('Datos completos a enviar:', JSON.stringify(requestData, null, 2));
-  console.log('==================');
-  
+
   try {
     await procesarComprobantesMasivo(requestData);
     toast.success('Comprobantes aceptados exitosamente');

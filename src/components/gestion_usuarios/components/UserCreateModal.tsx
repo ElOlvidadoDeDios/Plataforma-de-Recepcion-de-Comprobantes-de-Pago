@@ -179,31 +179,17 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
 
   // Función corregida para buscar datos por DNI
   const handleDniBlur = async () => {
-    console.log('🔍 handleDniBlur ejecutado');
-    console.log('📝 DNI ingresado:', formData.dni);
-    console.log('📏 Longitud del DNI:', formData.dni.length);
+
   
     if (!formData.dni || formData.dni.length !== 8) {
-      console.log('❌ DNI no válido o no tiene 8 dígitos');
       return;
     }
   
     setAutoLoading(true);
-    console.log('⏳ Iniciando búsqueda...');
   
     try {
-      console.log('🌐 Llamando a fetchUserDataByDni con DNI:', formData.dni);
       const userData = await fetchUserDataByDni(formData.dni);
-      console.log('📊 Datos recibidos:', userData);
-  
       if (userData) {
-        console.log('✅ Usuario encontrado!');
-        console.log('🔄 Datos a actualizar:', {
-          razon: userData.RAZON,
-          cargo: userData.CARGO,
-          user: userData.USER,
-        });
-  
         // Validar y actualizar los campos del formulario
         setFormData((prev) => ({
           ...prev,
@@ -211,22 +197,11 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
           cargo: userData.CARGO || '',
           user: userData.USER || '',
         }));
-  
-        console.log('📝 FormData actualizado:', {
-          razon: userData.RAZON || '',
-          cargo: userData.CARGO || '',
-          user: userData.USER || '',
-        });
-  
-        toast.success('✅ Datos encontrados y autocompletados');
       } else {
-        console.log('❌ No se encontraron datos para este DNI');
         toast.error('No se encontraron datos para este DNI. Por favor, complete los campos manualmente');
       }
     } catch (error) {
-      console.error('💥 Error al buscar datos por DNI:', error);
       if (error instanceof Error) {
-        console.error('💥 Detalle del error:', error.message);
       }
       if (error instanceof Error) {
         toast.error('Error al buscar datos del usuario: ' + error.message);
@@ -235,7 +210,6 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
       }
     } finally {
       setAutoLoading(false);
-      console.log('✅ Búsqueda finalizada');
     }
   };
 
@@ -282,19 +256,16 @@ const UserCreateModal: React.FC<UserCreateModalProps> = ({
                 type="text"
                 value={formData.dni}
                 onChange={(e) => {
-                  console.log('📝 DNI cambiado a:', e.target.value);
                   handleInputChange('dni', e.target.value);
                   
                   // AUTO-BUSCAR cuando tiene 8 dígitos
                   if (e.target.value.length === 8) {
-                    console.log('🔍 DNI completo, buscando automáticamente...');
                     setTimeout(() => {
                       handleDniBlur();
                     }, 500);
                   }
                 }}
                 onBlur={() => {
-                  console.log('👆 onBlur disparado');
                   handleDniBlur();
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"

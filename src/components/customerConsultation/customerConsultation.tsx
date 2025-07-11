@@ -139,7 +139,6 @@ const ConsultaClientes = () => {
           setClientData(detalleCliente);
         }
       } catch (error) {
-        console.error('Error al refrescar datos del cliente:', error);
       }
     }
   };

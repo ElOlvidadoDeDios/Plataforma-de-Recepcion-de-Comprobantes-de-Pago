@@ -52,7 +52,8 @@ userApiInstance.interceptors.response.use(
     return response;
   },
   async (error) => {
-    if (import.meta.env.DEV) {
+    // Solo mostrar errores en consola si NO es un error de login (401)
+    if (import.meta.env.DEV && error.response?.status !== 401) {
       logger.error('❌ Response error:', {
         url: error.config?.url,
         status: error.response?.status,

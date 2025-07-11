@@ -148,7 +148,6 @@ export const searchClientes = async (
         data: []
       };
     }
-    // console.error('Error en searchClientes:', error);
     throw error;
   }
 
@@ -156,12 +155,10 @@ export const searchClientes = async (
 // Función para obtener detalle del cliente
 export const searchClientesByDNI = async (dni: string): Promise<ClienteResponse | null> => {
   if (!dni) {
-    // console.error('DNI es requerido');
     throw new Error('DNI es requerido');
   }
 
   try {
-    // console.log('Consultando DNI:', dni);
     
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/por-dni`, {
@@ -186,7 +183,6 @@ export const searchClientesByDNI = async (dni: string): Promise<ClienteResponse 
     return data;
 
   } catch (error) {
-    // console.error('Error en searchClientesByDNI:', error);
     throw error;
   }
 };

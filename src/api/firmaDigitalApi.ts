@@ -46,7 +46,6 @@ export const generarContrato = async (data: GenerarContratoRequest): Promise<Gen
     };
 
   } catch (error) {
-    console.error('Error en generarContrato:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Error desconocido'
@@ -75,7 +74,6 @@ export const verificarDocumentoFirmado = async (data: VerificarDocumentoRequest)
     };
 
   } catch (error) {
-    console.error('Error en verificarDocumentoFirmado:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Error desconocido'

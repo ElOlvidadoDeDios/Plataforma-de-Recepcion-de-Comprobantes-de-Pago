@@ -2,6 +2,19 @@ import axios from 'axios';
 import { CreditAttentionResponse } from '../types/creditAttention';
 
 // Interfaces para gestión de mora
+export interface AnalistaByAgencia {
+  ID_ANA: string;
+  CARGO: string;
+  ANA_ACTUAL: string;
+  AGENCIA: string;
+}
+
+export interface AdministradorInfo {
+  NOM_ADMI: string;
+  CARGO: string;
+  AGENCIA: string;
+}
+
 export interface CreditoMora {
   CUENTA: string;
   OTORGA: string;
@@ -22,6 +35,23 @@ export interface GestionMoraData {
 export interface ClienteMora {
   CREDITO_MORA: CreditoMora;
   GESTION_MORA: GestionMoraData;
+}
+
+// Interface para el registro de gestión de mora
+export interface GestionMoraRequest {
+  PAGARE: string;
+  CUENTA: string;
+  OTORGA: string;
+  MOTIVO: string;
+  COMPROMISO: string;
+  FECHA_COMPROMISO: string;
+  REGISTRADOR: string;
+}
+
+// Interface para la respuesta del registro de gestión de mora
+export interface GestionMoraResponse {
+  status: boolean;
+  message: string;
 }
 
 
@@ -109,9 +139,10 @@ export const creditAttentionApi = {
     },
 
     // Obtener clientes en mora (ahora desde el backend)
-    getClientesEnMora: async (): Promise<ClienteMora[]> => {
+    getClientesEnMora: async (periodo?: string): Promise<ClienteMora[]> => {
         try {
-            const response = await axiosInstance.get('/auth/users/mora/current-user');
+            const body = periodo ? { PERIODO: periodo } : {};
+            const response = await axiosInstance.post('/auth/users/mora/current-user', body);
             return response.data;
         } catch (error: any) {
             if (error.response) {
@@ -128,6 +159,7 @@ export const creditAttentionApi = {
         ID_ANA: string;
         CARGO: string;
         AGENCIA: string;
+        PERIODO?: string; // Parámetro opcional para período específico
     }): Promise<ClienteMora[]> => {
         try {
             const response = await axiosInstance.post('/auth/users/mora/by-analyst', analistaData);
@@ -139,6 +171,45 @@ export const creditAttentionApi = {
             }
 
             throw new Error('Error al obtener clientes en mora del analista');
+        }
+    },
+
+    // Guardar gestión de mora - Ahora usa ruta interna del backend
+    saveGestionMora: async (gestionData: GestionMoraRequest): Promise<GestionMoraResponse> => {
+        try {
+            const response = await axiosInstance.post('/api/gestion-mora/save', gestionData);
+            console.log('✅ Respuesta del servidor interno:', response.data);
+            return response.data;
+        } catch (error: any) {
+            console.error('Error al guardar gestión de mora:', error);
+            throw new Error('Error al guardar la gestión de mora');
+        }
+    },
+
+    // Obtener analistas por agencia y período - Ahora usa ruta interna del backend
+    getAnalistasByAgencia: async (periodo: string, agencia: string): Promise<AnalistaByAgencia[]> => {
+        try {
+            const response = await axiosInstance.post('/api/gestion-mora/analistas-by-agencia', {
+                PERIODO: periodo,
+                AGENCIA: agencia
+            });
+            console.log('✅ Respuesta del servidor interno (analistas):', response.data);
+            return response.data;
+        } catch (error: any) {
+            console.error('Error al obtener analistas por agencia:', error);
+            throw new Error('Error al obtener analistas por agencia');
+        }
+    },
+
+    // Obtener lista de administradores - Ahora usa ruta interna del backend
+    getAdministradores: async (): Promise<AdministradorInfo[]> => {
+        try {
+            const response = await axiosInstance.get('/api/gestion-mora/administradores');
+            console.log('✅ Respuesta del servidor interno (administradores):', response.data);
+            return response.data;
+        } catch (error: any) {
+            console.error('Error al obtener administradores:', error);
+            throw new Error('Error al obtener lista de administradores');
         }
     },
 

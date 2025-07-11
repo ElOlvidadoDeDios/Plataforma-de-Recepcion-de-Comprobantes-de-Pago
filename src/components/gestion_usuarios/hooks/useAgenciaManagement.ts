@@ -180,16 +180,7 @@ export const useAgenciaManagement = ({
                agNueva.cod_caja === agActual.cod_caja &&
                agNueva.user_caja === agActual.user_caja;
       });
-
-    // 🔍 Debug: Log de comparación
-    console.log('🔍 Comparación de agencias:', {
-      agenciasActuales: agenciasActualesNormalizadas,
-      agenciasNuevas: agenciasNuevasNormalizadas,
-      sonIguales: agenciasIguales
-    });
-
     if (agenciasIguales) {
-      console.log('ℹ️ No hay cambios en las agencias, cerrando modal');
       setShowAgenciaModal(false);
       setSelectedUser(null);
       setUserAgencias([]);
@@ -207,13 +198,6 @@ export const useAgenciaManagement = ({
         cod_caja: ag.cod_caja.trim(),
         user_caja: ag.user_caja.trim(),
       }));
-
-      // 🔍 Debug: Log de las agencias que se van a enviar
-      console.log('🔍 Agencias a enviar:', {
-        userId: selectedUser._id,
-        agenciasFormateadas,
-        agenciasOriginales: selectedUser.agencias
-      });
 
       const validaciones = {
         camposCompletos: agenciasFormateadas.every(ag => ag.agencia && ag.cod_caja && ag.user_caja),
@@ -258,13 +242,10 @@ export const useAgenciaManagement = ({
         return;
       }
 
-      // 🔍 Debug: Log antes de enviar la petición
-      console.log('🚀 Enviando petición de actualización...');
       
-      const updatedUser = await updateUserAgencias(selectedUser._id, agenciasFormateadas);
+      await updateUserAgencias(selectedUser._id, agenciasFormateadas);
       
-      // 🔍 Debug: Log de la respuesta
-      console.log('✅ Respuesta del servidor:', updatedUser);
+  
       
       toast.success('Agencias actualizadas correctamente');
 
@@ -281,12 +262,7 @@ export const useAgenciaManagement = ({
             ? { ...user, agencias: agenciasFormateadas }
             : user
         );
-        
-        // 🔍 Debug: Log del cache actualizado
-        console.log('🔄 Cache actualizado:', {
-          usuarioActualizado: updatedUsers.find((u: any) => u._id === selectedUser._id),
-          totalUsuarios: updatedUsers.length
-        });
+  
         
         return updatedUsers;
       });
@@ -297,9 +273,7 @@ export const useAgenciaManagement = ({
       
       // Invalidar queries para refrescar desde el servidor
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      
-      // 🔍 Debug: Confirmar que el proceso terminó
-      console.log('✅ Proceso de actualización completado');
+
     } catch (error: any) {
       const status = error.response?.status;
       switch (status) {

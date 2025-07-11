@@ -7,3 +7,4 @@ export * from './creditAttentionApi';
 
 // Exportaciones específicas adicionales
 export { fetchCreditAnalysts, fetchAllExternalUsers } from './userApi';
+export type { AnalistaByAgencia, AdministradorInfo } from './creditAttentionApi';

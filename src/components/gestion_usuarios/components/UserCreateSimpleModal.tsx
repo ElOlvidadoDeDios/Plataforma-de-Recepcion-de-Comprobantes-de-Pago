@@ -137,7 +137,6 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
         toast.error(responseData.message || 'Error al crear el usuario');
       }
     } catch (error) {
-      console.error('Error al crear usuario:', error);
       toast.error('Error de conexión');
     } finally {
       setIsLoading(false);
@@ -171,9 +170,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
     if (field === 'dni' && value.length === 8 && /^\d{8}$/.test(value)) {
       setIsLoadingUserData(true);
       try {
-        console.log('Buscando datos para DNI:', value); // Debug
         const userData = await fetchUserDataByDni(value);
-        console.log('Datos obtenidos:', userData); // Debug
         
         if (userData) {
           setFormData(prev => ({

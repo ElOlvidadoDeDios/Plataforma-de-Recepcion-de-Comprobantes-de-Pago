@@ -18,7 +18,7 @@ const CreditAttentionResponse: React.FC = () => {
     const [manualDni, setManualDni] = useState('');
 
     // Roles
-    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+    const isAdmin = user?.role === 'ADMINISTRADOR' || user?.role === 'SUPER_ADMIN' || user?.role === 'GERENTE_GENERAL';
     // Inicializa el rango de fechas a hoy por defecto
     const today = new Date().toISOString().slice(0, 10);
     const [dateRange, setDateRange] = useState<{ startDate: string; endDate: string }>({
@@ -39,7 +39,6 @@ const CreditAttentionResponse: React.FC = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Cargar historial automáticamente por email al montar
     // Carga automática solo por email del usuario autenticado
     useEffect(() => {
         // Si es admin o super admin, carga TODO el historial del día de hoy (por defecto)

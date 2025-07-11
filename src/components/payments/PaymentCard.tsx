@@ -201,8 +201,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
           motivo_rechazo?: string;
         }[];
       }[];
-    },
-    indice: number
+    }
   ) => {
     setIsLoading(true);
     try {
@@ -216,13 +215,6 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
           dni_usuario: user?.dni || ''
         };
       }
-
-      // Log the data being sent
-      console.log('=== ENVIANDO DATOS AL BACKEND ===');
-      console.log('Tipo:', estado);
-      console.log('Índice:', indice);
-      console.log('Datos completos:', JSON.stringify(detallesPago, null, 2));
-      console.log('===============================');
 
       // Call the backend API (uncomment and adjust as needed)
       // await onUpdateStatus(currentPayment, estado);
