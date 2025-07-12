@@ -178,10 +178,8 @@ export const creditAttentionApi = {
     saveGestionMora: async (gestionData: GestionMoraRequest): Promise<GestionMoraResponse> => {
         try {
             const response = await axiosInstance.post('/api/gestion-mora/save', gestionData);
-            console.log('✅ Respuesta del servidor interno:', response.data);
             return response.data;
         } catch (error: any) {
-            console.error('Error al guardar gestión de mora:', error);
             throw new Error('Error al guardar la gestión de mora');
         }
     },
@@ -193,10 +191,8 @@ export const creditAttentionApi = {
                 PERIODO: periodo,
                 AGENCIA: agencia
             });
-            console.log('✅ Respuesta del servidor interno (analistas):', response.data);
             return response.data;
         } catch (error: any) {
-            console.error('Error al obtener analistas por agencia:', error);
             throw new Error('Error al obtener analistas por agencia');
         }
     },
@@ -205,10 +201,8 @@ export const creditAttentionApi = {
     getAdministradores: async (): Promise<AdministradorInfo[]> => {
         try {
             const response = await axiosInstance.get('/api/gestion-mora/administradores');
-            console.log('✅ Respuesta del servidor interno (administradores):', response.data);
             return response.data;
         } catch (error: any) {
-            console.error('Error al obtener administradores:', error);
             throw new Error('Error al obtener lista de administradores');
         }
     },

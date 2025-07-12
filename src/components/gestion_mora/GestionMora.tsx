@@ -133,9 +133,7 @@ const GestionMora = () => {
 
       if (currentUserRole === 'SUPER_ADMIN' || currentUserRole === 'GERENTE_GENERAL') {
         // Para SUPER_ADMIN y GERENTE_GENERAL: usar nuevo endpoint de administradores
-        console.log('🔍 SUPER_ADMIN: Cargando administradores desde getAdministradores()');
         const administradoresData = await creditAttentionApi.getAdministradores();
-        console.log('✅ SUPER_ADMIN: Administradores cargados:', administradoresData);
         setAdministradores(administradoresData);
         setAnalistas([]); // Los analistas se cargan al seleccionar administrador
         
@@ -205,7 +203,6 @@ const GestionMora = () => {
       setSelectedAnalista('');
       
     } catch (error) {
-      console.error('Error al cargar analistas:', error);
       setError('Error al cargar analistas del administrador');
     }
   };

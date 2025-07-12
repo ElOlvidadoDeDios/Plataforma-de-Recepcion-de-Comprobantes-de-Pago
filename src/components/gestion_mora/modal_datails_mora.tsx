@@ -130,7 +130,6 @@ const ModalDetailsMora = ({
         alert('Error al guardar la gestión de mora: ' + response.message);
       }
     } catch (error: any) {
-      console.error('Error al guardar gestión de mora:', error);
       alert('Error al guardar la gestión de mora. Por favor intente nuevamente.');
     } finally {
       setIsSubmitting(false);
@@ -185,15 +184,7 @@ const ModalDetailsMora = ({
         }
         
         // Obtener código de agencia del analista
-        const codigoAgencia = obtenerCodigoAgencia(analista.AGENCIA);
-        
-        console.log('📤 Enviando datos del analista a /api/gestion_mora:', {
-          ID_ANA: analista.ID_ANA,
-          PERIODO: periodo,
-          CARGO: analista.CARGO,
-          AGENCIA: codigoAgencia
-        });
-        
+        const codigoAgencia = obtenerCodigoAgencia(analista.AGENCIA);       
         response = await creditAttentionApi.getClientesEnMoraByAnalista({
           ID_ANA: analista.ID_ANA,
           CARGO: analista.CARGO,
@@ -219,22 +210,6 @@ const ModalDetailsMora = ({
       onSetLoadingGestionesAnteriores(false);
     }
   };
-
-  // Función para usar datos de gestión anterior
-  const usarGestionAnterior = (gestion: ClienteMora) => {
-    setMotivoRetraso(gestion.GESTION_MORA.MOTIVO_RETRASO || '');
-    setCompromiso(gestion.GESTION_MORA.COMPROMISO || '');
-    // Actualizar fecha de compromiso a una fecha futura
-    const fechaFutura = new Date();
-    fechaFutura.setDate(fechaFutura.getDate() + 30);
-    setFechaCompromiso(fechaFutura.toISOString().split('T')[0]);
-    
-    onCloseExtractModal();
-    if (selectedCliente) {
-      onOpenGestionModal(selectedCliente);
-    }
-  };
-
   // Función para cerrar modal de gestión y limpiar estados
   const cerrarModalGestionCompleto = () => {
     onCloseGestionModal();
@@ -623,11 +598,7 @@ const ModalDetailsMora = ({
 
             <div className="p-6 space-y-6">
               {gestionesAnteriores.length > 0 ? (
-                <div className="space-y-4">
-                  <p className="text-gray-700 mb-4">
-                    Seleccione una gestión anterior para usar sus datos como base:
-                  </p>
-                  
+                <div className="space-y-4"> 
                   {gestionesAnteriores.map((gestion, index) => (
                     <div key={index} className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-200">
                       <div className="flex items-center justify-between mb-3">
@@ -669,12 +640,11 @@ const ModalDetailsMora = ({
                           </p>
                         </div>
                         
-                        <button
-                          onClick={() => usarGestionAnterior(gestion)}
-                          className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-medium"
-                        >
-                          ✅ Usar esta Gestión
-                        </button>
+                        <div className="bg-gray-100 px-4 py-2 rounded-lg">
+                          <span className="text-gray-600 font-medium text-sm">
+                            📋 Solo Informativo
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -683,7 +653,7 @@ const ModalDetailsMora = ({
                 <div className="text-center py-8">
                   <div className="text-4xl mb-3">📭</div>
                   <p className="text-gray-600 font-medium">No se encontraron gestiones anteriores</p>
-                  <p className="text-gray-500 text-sm">Este cliente no tiene registros de gestión de mora previos.</p>
+                  <p className="text-gray-500 text-sm">Este cliente no tiene registros de gestión de mora para el período consultado.</p>
                 </div>
               )}
             </div>

@@ -46,6 +46,15 @@ export interface Contacto {
   EMAIL: string;
 }
 
+export interface DatosBancarios {
+  TITULAR: string | null;
+  BANCO: string | null;
+  TIPO_CUENTA: string | null;
+  NUM_CUENTA: string | null;
+  CELULAR?: string | null;
+  ESTADO: string | null;
+}
+
 export interface Otros {
   FECHA_INICIO: string;
   ESTADO: string;
@@ -78,6 +87,7 @@ export interface InfoSocio {
   DATOS_PERSONALES: DatosPersonales;
   SOCIODEMOGRAFICO: Sociodemografico;
   CONTACTO: Contacto;
+  "DATOS BANCARIOS": DatosBancarios[];
   OTROS: Otros;
 }
 
@@ -180,6 +190,74 @@ export const searchClientesByDNI = async (dni: string): Promise<ClienteResponse 
       return null; // Retorna null para indicar que no se encontró
     }
     
+    return data;
+
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Función para guardar datos bancarios
+export const guardarDatosBancarios = async (
+  dni: string,
+  datosBancarios: DatosBancarios
+): Promise<{ status: boolean; message: string }> => {
+  if (!dni) {
+    throw new Error('DNI es requerido');
+  }
+
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/datos-bancarios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        dni,
+        ...datosBancarios
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al guardar datos bancarios: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Función para actualizar datos bancarios
+export const actualizarDatosBancarios = async (
+  dni: string,
+  datosBancarios: DatosBancarios
+): Promise<{ status: boolean; message: string }> => {
+  if (!dni) {
+    throw new Error('DNI es requerido');
+  }
+
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/datos-bancarios`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        dni,
+        ...datosBancarios
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al actualizar datos bancarios: ${response.status}`);
+    }
+
+    const data = await response.json();
     return data;
 
   } catch (error) {

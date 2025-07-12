@@ -167,7 +167,10 @@ const ConsultaClientes = () => {
           />
         ) : clientData ? (
           <>
-            <ClienteDetails clientData={clientData} />
+            <ClienteDetails
+              clientData={clientData}
+              onRefreshData={handleRefreshClientData}
+            />
             <CreditosTable
               creditos={clientData.CREDITO_VIGENTE || []}
               clientData={clientData}
