@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { creditAttentionApi, ClienteMora } from '../../api';
+import { creditAttentionApi, ClienteMora, GestionMora1x1Request } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
 
 interface ModalDetailsProps {
@@ -27,15 +27,14 @@ const ModalDetailsMora = ({
   showGestionModal,
   showExtractModal,
   selectedCliente,
-  selectedAnalista,
-  analistas,
+  // selectedAnalista,
+  // analistas,
   gestionesAnteriores,
   loadingGestionesAnteriores,
   onCloseDetailsModal,
   onCloseGestionModal,
   onCloseExtractModal,
   onOpenGestionModal,
-  onReloadData,
   onSetGestionesAnteriores,
   onSetLoadingGestionesAnteriores,
   onOpenExtractModal
@@ -50,6 +49,7 @@ const ModalDetailsMora = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mesConsulta, setMesConsulta] = useState('');
   const [anoConsulta, setAnoConsulta] = useState('');
+  const [gestionMoraActualizada, setGestionMoraActualizada] = useState<any>(null);
 
   // Función para determinar el estado de mora
   const getEstadoMora = (diasAtraso: number) => {
@@ -124,8 +124,17 @@ const ModalDetailsMora = ({
         setCompromiso('');
         setFechaCompromiso('');
         
-        // Recargar datos
-        onReloadData();
+        // Generar período actual para actualizar gestión
+        const fecha = new Date();
+        const año = fecha.getFullYear();
+        const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+        const periodoActual = `${año}${mes}`;
+        
+        // Actualizar gestión de mora usando el nuevo endpoint
+        await actualizarGestionMora(selectedCliente, periodoActual);
+        
+        // Solo recargar datos si es necesario (opcional)
+        // onReloadData();
       } else {
         alert('Error al guardar la gestión de mora: ' + response.message);
       }
@@ -141,22 +150,22 @@ const ModalDetailsMora = ({
     return `${ano}${mes.padStart(2, '0')}`;
   };
 
-  // Función para obtener código de agencia por nombre
-  const obtenerCodigoAgencia = (nombreAgencia: string): string => {
-    const mapeoAgencias: { [key: string]: string } = {
-      'AGENCIA SAN JERÓNIMO': '02',
-      'AGENCIA SANTIAGO': '05',
-      'AGENCIA SICUANI': '04',
-      'AGENCIA LIMA': '98',
-      'OFICINA PRINCIPAL': '01',
-      'AGENCIA QUILLABAMBA': '03',
-      'AGENCIA TICA TICA': '08',
-      'AGENCIA JULIACA': '98'
-    };
-    return mapeoAgencias[nombreAgencia] || '01';
-  };
+  // // Función para obtener código de agencia por nombre
+  // const obtenerCodigoAgencia = (nombreAgencia: string): string => {
+  //   const mapeoAgencias: { [key: string]: string } = {
+  //     'AGENCIA SAN JERÓNIMO': '02',
+  //     'AGENCIA SANTIAGO': '05',
+  //     'AGENCIA SICUANI': '04',
+  //     'AGENCIA LIMA': '98',
+  //     'OFICINA PRINCIPAL': '01',
+  //     'AGENCIA QUILLABAMBA': '03',
+  //     'AGENCIA TICA TICA': '08',
+  //     'AGENCIA JULIACA': '98'
+  //   };
+  //   return mapeoAgencias[nombreAgencia] || '01';
+  // };
 
-  // Función para extraer datos de gestión de períodos anteriores
+  // Función para extraer datos de gestión de períodos anteriores usando el nuevo endpoint
   const extraerGestionesAnteriores = async () => {
     if (!mesConsulta || !anoConsulta) {
       alert('Por favor seleccione mes y año para consultar');
@@ -171,45 +180,86 @@ const ModalDetailsMora = ({
     onSetLoadingGestionesAnteriores(true);
     try {
       const periodo = formatearPeriodo(mesConsulta, anoConsulta);
-      let response: any;
       
-      if (selectedAnalista === 'current_user') {
-        // Para el usuario actual, usamos el endpoint con período
-        response = await creditAttentionApi.getClientesEnMora(periodo);
-      } else {
-        // Para analista específico, usamos el endpoint con período
-        const analista = analistas.find(a => a.ID_ANA === selectedAnalista);
-        if (!analista) {
-          throw new Error('Analista no encontrado');
-        }
+      // Usar el nuevo endpoint para obtener gestión de mora específica
+      const gestionData: GestionMora1x1Request = {
+        PAGARE: selectedCliente.CREDITO_MORA.PAGARE,
+        OTORGA: selectedCliente.CREDITO_MORA.OTORGA,
+        CUENTA: selectedCliente.CREDITO_MORA.CUENTA,
+        PERDIO: periodo
+      };
+
+      const response = await creditAttentionApi.getGestionMora1x1(gestionData);
+      
+      // Si hay gestión de mora, crear el objeto con la estructura esperada
+      if (response.GESTION_MORA && response.GESTION_MORA.ID_GESTION) {
+        const gestionAnterior = {
+          CREDITO_MORA: {
+            SOCIO: selectedCliente.CREDITO_MORA.SOCIO,
+            PAGARE: selectedCliente.CREDITO_MORA.PAGARE,
+            CUENTA: selectedCliente.CREDITO_MORA.CUENTA,
+            PRODUCTO: selectedCliente.CREDITO_MORA.PRODUCTO
+          },
+          GESTION_MORA: response.GESTION_MORA
+        };
         
-        // Obtener código de agencia del analista
-        const codigoAgencia = obtenerCodigoAgencia(analista.AGENCIA);       
-        response = await creditAttentionApi.getClientesEnMoraByAnalista({
-          ID_ANA: analista.ID_ANA,
-          CARGO: analista.CARGO,
-          AGENCIA: codigoAgencia,
-          PERIODO: periodo
-        });
+        onSetGestionesAnteriores([gestionAnterior]);
+      } else {
+        // No hay gestión de mora para este período
+        onSetGestionesAnteriores([]);
       }
-
-      // Filtrar solo las gestiones del cliente específico que se está visualizando
-      const gestionesDelCliente = response.data_mora?.filter((cliente: ClienteMora) => {
-        // Buscar por el mismo socio y que tenga gestión de mora
-        return cliente.CREDITO_MORA.SOCIO === selectedCliente.CREDITO_MORA.SOCIO &&
-               cliente.GESTION_MORA.ID_GESTION !== null &&
-               cliente.GESTION_MORA.ID_GESTION !== undefined &&
-               cliente.GESTION_MORA.ID_GESTION !== '';
-      }) || [];
-
-      onSetGestionesAnteriores(gestionesDelCliente);
+      
       onOpenExtractModal();
     } catch (error) {
-      alert('Error al obtener gestiones anteriores');
+      console.error('Error al obtener gestión anterior:', error);
+      // Si hay error, mostrar que no se encontraron gestiones
+      onSetGestionesAnteriores([]);
+      onOpenExtractModal();
     } finally {
       onSetLoadingGestionesAnteriores(false);
     }
   };
+
+  // Función para actualizar la gestión de mora usando el nuevo endpoint
+  const actualizarGestionMora = async (cliente: ClienteMora, periodo: string) => {
+    try {
+      const gestionData: GestionMora1x1Request = {
+        PAGARE: cliente.CREDITO_MORA.PAGARE,
+        OTORGA: cliente.CREDITO_MORA.OTORGA,
+        CUENTA: cliente.CREDITO_MORA.CUENTA,
+        PERDIO: periodo
+      };
+
+      const response = await creditAttentionApi.getGestionMora1x1(gestionData);
+      setGestionMoraActualizada(response.GESTION_MORA);
+    } catch (error) {
+      console.error('Error al actualizar gestión de mora:', error);
+      // Si hay error, mantener los datos originales
+      setGestionMoraActualizada(null);
+    }
+  };
+
+  // useEffect para cargar gestión de mora automáticamente cuando se abre el modal
+  useEffect(() => {
+    if (showDetailsModal && selectedCliente) {
+      // Generar período actual
+      const fecha = new Date();
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      const periodoActual = `${año}${mes}`;
+      
+      // Cargar gestión de mora actualizada
+      actualizarGestionMora(selectedCliente, periodoActual);
+    }
+  }, [showDetailsModal, selectedCliente]);
+
+  // useEffect para limpiar estado cuando se cierra el modal
+  useEffect(() => {
+    if (!showDetailsModal) {
+      setGestionMoraActualizada(null);
+    }
+  }, [showDetailsModal]);
+
   // Función para cerrar modal de gestión y limpiar estados
   const cerrarModalGestionCompleto = () => {
     onCloseGestionModal();
@@ -309,33 +359,41 @@ const ModalDetailsMora = ({
                   📊 Gestión de Mora
                 </h3>
                 
-                {selectedCliente.GESTION_MORA.ID_GESTION ? (
+                {(gestionMoraActualizada && gestionMoraActualizada.ID_GESTION) || selectedCliente.GESTION_MORA.ID_GESTION ? (
                   <div className="space-y-4">
                     <div className="bg-white rounded-lg p-4 border border-amber-200">
                       <div className="grid grid-cols-1 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-amber-700">ID Gestión:</label>
-                          <p className="text-gray-900 font-mono">{selectedCliente.GESTION_MORA.ID_GESTION}</p>
+                          <p className="text-gray-900 font-mono">
+                            {gestionMoraActualizada?.ID_GESTION || selectedCliente.GESTION_MORA.ID_GESTION}
+                          </p>
                         </div>
                         
-                        {selectedCliente.GESTION_MORA.MOTIVO_RETRASO && (
+                        {(gestionMoraActualizada?.MOTIVO_RETRASO || selectedCliente.GESTION_MORA.MOTIVO_RETRASO) && (
                           <div>
                             <label className="block text-sm font-medium text-amber-700">Motivo del Retraso:</label>
-                            <p className="text-gray-900 bg-gray-50 p-3 rounded border">{selectedCliente.GESTION_MORA.MOTIVO_RETRASO}</p>
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded border">
+                              {gestionMoraActualizada?.MOTIVO_RETRASO || selectedCliente.GESTION_MORA.MOTIVO_RETRASO}
+                            </p>
                           </div>
                         )}
                         
-                        {selectedCliente.GESTION_MORA.COMPROMISO && (
+                        {(gestionMoraActualizada?.COMPROMISO || selectedCliente.GESTION_MORA.COMPROMISO) && (
                           <div>
                             <label className="block text-sm font-medium text-amber-700">Compromiso:</label>
-                            <p className="text-gray-900 bg-gray-50 p-3 rounded border">{selectedCliente.GESTION_MORA.COMPROMISO}</p>
+                            <p className="text-gray-900 bg-gray-50 p-3 rounded border">
+                              {gestionMoraActualizada?.COMPROMISO || selectedCliente.GESTION_MORA.COMPROMISO}
+                            </p>
                           </div>
                         )}
                         
-                        {selectedCliente.GESTION_MORA.FECHA_COMPROMISO && (
+                        {(gestionMoraActualizada?.FECHA_COMPROMISO || selectedCliente.GESTION_MORA.FECHA_COMPROMISO) && (
                           <div>
                             <label className="block text-sm font-medium text-amber-700">Fecha de Compromiso:</label>
-                            <p className="text-gray-900 font-semibold">{selectedCliente.GESTION_MORA.FECHA_COMPROMISO}</p>
+                            <p className="text-gray-900 font-semibold">
+                              {gestionMoraActualizada?.FECHA_COMPROMISO || selectedCliente.GESTION_MORA.FECHA_COMPROMISO}
+                            </p>
                           </div>
                         )}
                       </div>

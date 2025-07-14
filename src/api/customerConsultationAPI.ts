@@ -220,9 +220,7 @@ export const guardarDatosBancarios = async (
       NOMBRE_TITULAR: datosBancarios.NOMBRE_TITULAR
     };
 
-    // Console.log solo para billeteras digitales (Yape/Plin)
     if (datosBancarios.BANCO === 'Yape' || datosBancarios.BANCO === 'Plin') {
-      console.log('📱 DATOS ENVIADOS PARA BILLETERA DIGITAL:', dataToSend);
     }
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -245,7 +243,6 @@ export const guardarDatosBancarios = async (
     };
 
   } catch (error) {
-    console.error('Error al guardar datos bancarios:', error);
     return {
       status: false,
       message: 'Error al guardar los datos bancarios'
@@ -283,7 +280,6 @@ export const checkVoucherExists = async (
     };
 
   } catch (error) {
-    console.error('Error verificando voucher:', error);
     return {
       exists: false,
       url: null,
@@ -310,13 +306,6 @@ export const uploadVoucher = async (
     formData.append('ANALISTA', voucherData.ANALISTA);
     formData.append('file', file);
 
-    console.log('📄 DATOS PARA ENVIAR COMPROBANTE DE DESEMBOLSO:');
-    console.log('• DNI_SOCIO:', voucherData.DNI_SOCIO);
-    console.log('• PAGARE:', voucherData.PAGARE);
-    console.log('• AGENCIA:', voucherData.AGENCIA);
-    console.log('• ANALISTA:', voucherData.ANALISTA);
-    console.log('• Archivo:', file.name);
-
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/upload-voucher`, {
       method: 'POST',
@@ -328,7 +317,6 @@ export const uploadVoucher = async (
     }
 
     const result = await response.json();
-    console.log('✅ Comprobante de desembolso enviado exitosamente:', result);
     
     return {
       status: true,
@@ -337,7 +325,6 @@ export const uploadVoucher = async (
     };
 
   } catch (error) {
-    console.error('❌ Error al enviar el archivo:', error);
     return {
       status: false,
       message: 'Error al enviar el comprobante de desembolso'
@@ -350,7 +337,6 @@ export const actualizarDatosBancarios = async (
   dni: string,
   datosBancarios: DatosBancarios
 ): Promise<{ status: boolean; message: string }> => {
-  // Por ahora reutilizamos la misma función de guardar
-  // En el futuro se podría implementar un endpoint específico para actualizar
   return await guardarDatosBancarios(dni, datosBancarios);
 };
+

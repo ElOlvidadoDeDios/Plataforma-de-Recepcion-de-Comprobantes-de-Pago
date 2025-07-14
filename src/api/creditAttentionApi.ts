@@ -54,6 +54,24 @@ export interface GestionMoraResponse {
   message: string;
 }
 
+// Interface para la consulta de gestión de mora 1x1
+export interface GestionMora1x1Request {
+  PAGARE: string;
+  OTORGA: string;
+  CUENTA: string;
+  PERDIO: string;
+}
+
+// Interface para la respuesta de gestión de mora 1x1
+export interface GestionMora1x1Response {
+  GESTION_MORA: {
+    ID_GESTION: string;
+    MOTIVO_RETRASO: string;
+    COMPROMISO: string;
+    FECHA_COMPROMISO: string;
+  };
+}
+
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -204,6 +222,16 @@ export const creditAttentionApi = {
             return response.data;
         } catch (error: any) {
             throw new Error('Error al obtener lista de administradores');
+        }
+    },
+
+    // Obtener gestión de mora 1x1 - Consulta específica para un cliente
+    getGestionMora1x1: async (gestionData: GestionMora1x1Request): Promise<GestionMora1x1Response> => {
+        try {
+            const response = await axiosInstance.post('/api/gestion-mora/get-gestion-mora-1x1', gestionData);
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Error al obtener gestión de mora 1x1');
         }
     },
 
