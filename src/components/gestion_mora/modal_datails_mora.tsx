@@ -186,7 +186,7 @@ const ModalDetailsMora = ({
         PAGARE: selectedCliente.CREDITO_MORA.PAGARE,
         OTORGA: selectedCliente.CREDITO_MORA.OTORGA,
         CUENTA: selectedCliente.CREDITO_MORA.CUENTA,
-        PERDIO: periodo
+        PERIODO: periodo
       };
 
       const response = await creditAttentionApi.getGestionMora1x1(gestionData);
@@ -227,7 +227,7 @@ const ModalDetailsMora = ({
         PAGARE: cliente.CREDITO_MORA.PAGARE,
         OTORGA: cliente.CREDITO_MORA.OTORGA,
         CUENTA: cliente.CREDITO_MORA.CUENTA,
-        PERDIO: periodo
+        PERIODO: periodo
       };
 
       const response = await creditAttentionApi.getGestionMora1x1(gestionData);

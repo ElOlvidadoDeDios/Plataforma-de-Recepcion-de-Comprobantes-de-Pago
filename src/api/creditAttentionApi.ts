@@ -59,7 +59,7 @@ export interface GestionMora1x1Request {
   PAGARE: string;
   OTORGA: string;
   CUENTA: string;
-  PERDIO: string;
+  PERIODO: string;
 }
 
 // Interface para la respuesta de gestión de mora 1x1
