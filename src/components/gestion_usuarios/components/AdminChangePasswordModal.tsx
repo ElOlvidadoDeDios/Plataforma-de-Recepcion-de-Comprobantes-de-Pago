@@ -123,7 +123,7 @@ const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> = ({
             <p className="text-sm text-blue-700">
               {isChangingOwnPassword 
                 ? '🔑 Estás cambiando tu propia contraseña'
-                : `🔧 Cambio administrativo para ${user.name || user.email}. Esta será una contraseña temporal.`
+                : `🔧 Cambio administrativo para ${user.razon || user.email}. Esta será una contraseña temporal.`
               }
             </p>
           </div>

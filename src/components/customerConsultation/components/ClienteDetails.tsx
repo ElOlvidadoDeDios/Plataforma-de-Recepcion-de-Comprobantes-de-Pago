@@ -10,7 +10,14 @@ interface ClienteDetailsProps {
 const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
   const { INFO_SOCIO } = clientData;
   const [showDatosBancariosForm, setShowDatosBancariosForm] = useState(false);
-  
+
+  const handleAgregarCuenta = () => {
+    setShowDatosBancariosForm(true);
+  };
+
+  const cuentasBancarias = INFO_SOCIO["DATOS BANCARIOS"] || [];
+  const tieneCuentas = cuentasBancarias.length > 0 && cuentasBancarias.some(cuenta => cuenta.BANCO || cuenta.NUM_CUENTA);
+
   return (
     <div className="mb-4 bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 transform hover:shadow-xl">
       {/* Encabezado */}
@@ -94,38 +101,51 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
             <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
-            DATOS BANCARIOS
+            DATOS BANCARIOS ({cuentasBancarias.length})
           </h3>
           <button
-            onClick={() => setShowDatosBancariosForm(true)}
+            onClick={handleAgregarCuenta}
             className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-md text-sm transition-colors flex items-center"
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            {INFO_SOCIO["DATOS BANCARIOS"] && INFO_SOCIO["DATOS BANCARIOS"].length > 0 &&
-             (INFO_SOCIO["DATOS BANCARIOS"][0].TITULAR || INFO_SOCIO["DATOS BANCARIOS"][0].BANCO) ? 'Editar' : 'Agregar'}
+            Agregar Cuenta
           </button>
         </div>
         
-        {INFO_SOCIO["DATOS BANCARIOS"] && INFO_SOCIO["DATOS BANCARIOS"].length > 0 &&
-         (INFO_SOCIO["DATOS BANCARIOS"][0].TITULAR || INFO_SOCIO["DATOS BANCARIOS"][0].BANCO) ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            <DataField label="TITULAR" value={INFO_SOCIO["DATOS BANCARIOS"][0].TITULAR || 'No especificado'} />
-            <DataField label="BANCO" value={INFO_SOCIO["DATOS BANCARIOS"][0].BANCO || 'No especificado'} />
-            {(INFO_SOCIO["DATOS BANCARIOS"][0].BANCO === 'Yape' || INFO_SOCIO["DATOS BANCARIOS"][0].BANCO === 'Plin') && (
-              <DataField label="CELULAR" value={INFO_SOCIO["DATOS BANCARIOS"][0].CELULAR || 'No especificado'} />
-            )}
-            <DataField label="TIPO CUENTA" value={INFO_SOCIO["DATOS BANCARIOS"][0].TIPO_CUENTA || 'No especificado'} />
-            <DataField label="NÚMERO CUENTA" value={INFO_SOCIO["DATOS BANCARIOS"][0].NUM_CUENTA || 'No especificado'} />
-            <DataField label="ESTADO" value={INFO_SOCIO["DATOS BANCARIOS"][0].ESTADO || 'No especificado'} />
+        {tieneCuentas ? (
+          <div className="space-y-4">
+            {cuentasBancarias.map((cuenta, index) => (
+              (cuenta.BANCO || cuenta.NUM_CUENTA) && (
+                <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="mb-3">
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Cuenta #{index + 1} - {cuenta.BANCO || 'Sin especificar'}
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                    <DataField label="TITULAR" value={cuenta.NOMBRE_TITULAR || 'No especificado'} />
+                    <DataField label="DNI TITULAR" value={cuenta.DNI_TITULAR || 'No especificado'} />
+                    <DataField label="BANCO" value={cuenta.BANCO || 'No especificado'} />
+                    <DataField label="TIPO CUENTA" value={cuenta.TIPO_CUENTA || 'No especificado'} />
+                    <DataField label={
+                      (cuenta.BANCO === 'Yape' || cuenta.BANCO === 'Plin')
+                        ? 'CELULAR' : 'NÚMERO CUENTA'
+                    } value={cuenta.NUM_CUENTA || 'No especificado'} />
+                    <DataField label="ESTADO" value={cuenta.ESTADO || 'No especificado'} />
+                  </div>
+                </div>
+              )
+            ))}
           </div>
         ) : (
-          <div className="text-center py-4 text-gray-500">
+          <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
             <svg className="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
             </svg>
-            <p>No hay datos bancarios registrados</p>
+            <p className="text-sm">No hay datos bancarios registrados</p>
+            <p className="text-xs text-gray-400 mt-1">Haga clic en "Agregar Cuenta" para comenzar</p>
           </div>
         )}
       </div>
@@ -149,14 +169,17 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
       {showDatosBancariosForm && (
         <DatosBancariosForm
           dni={INFO_SOCIO.DATOS_PERSONALES.DNI}
-          datosBancarios={INFO_SOCIO["DATOS BANCARIOS"] || []}
+          nombreCompleto={INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO}
+          cuentaDile={INFO_SOCIO.OTROS.CUENTA_DILE}
           onSave={() => {
             setShowDatosBancariosForm(false);
             if (onRefreshData) {
               onRefreshData();
             }
           }}
-          onCancel={() => setShowDatosBancariosForm(false)}
+          onCancel={() => {
+            setShowDatosBancariosForm(false);
+          }}
         />
       )}
     </div>

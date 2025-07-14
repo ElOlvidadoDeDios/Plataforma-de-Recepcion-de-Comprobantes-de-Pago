@@ -47,11 +47,13 @@ export interface Contacto {
 }
 
 export interface DatosBancarios {
-  TITULAR: string | null;
   BANCO: string | null;
   TIPO_CUENTA: string | null;
   NUM_CUENTA: string | null;
-  CELULAR?: string | null;
+  DNI_SOCIO: string | null;
+  CUENTA_DILE: string | null;
+  DNI_TITULAR: string | null;
+  NOMBRE_TITULAR: string | null;
   ESTADO: string | null;
 }
 
@@ -80,6 +82,7 @@ export interface DetalleCredito {
   PRODUCTO: string;
   OTORGA: string;
   ANALISTA: string;
+  AGENCIA: string;
   FIRM_DIGITAL?: FirmDigital;
 }
 
@@ -197,7 +200,7 @@ export const searchClientesByDNI = async (dni: string): Promise<ClienteResponse 
   }
 };
 
-// Función para guardar datos bancarios
+// Función para guardar datos bancarios - Ahora usa el backend NestJS
 export const guardarDatosBancarios = async (
   dni: string,
   datosBancarios: DatosBancarios
@@ -207,16 +210,28 @@ export const guardarDatosBancarios = async (
   }
 
   try {
+    const dataToSend = {
+      BANCO: datosBancarios.BANCO,
+      TIPO_CUENTA: datosBancarios.TIPO_CUENTA,
+      NUM_CUENTA: datosBancarios.NUM_CUENTA,
+      DNI_SOCIO: datosBancarios.DNI_SOCIO,
+      CUENTA_DILE: datosBancarios.CUENTA_DILE,
+      DNI_TITULAR: datosBancarios.DNI_TITULAR,
+      NOMBRE_TITULAR: datosBancarios.NOMBRE_TITULAR
+    };
+
+    // Console.log solo para billeteras digitales (Yape/Plin)
+    if (datosBancarios.BANCO === 'Yape' || datosBancarios.BANCO === 'Plin') {
+      console.log('📱 DATOS ENVIADOS PARA BILLETERA DIGITAL:', dataToSend);
+    }
+
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-    const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/datos-bancarios`, {
+    const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/guardar-datos-bancarios`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        dni,
-        ...datosBancarios
-      })
+      body: JSON.stringify(dataToSend)
     });
 
     if (!response.ok) {
@@ -224,43 +239,118 @@ export const guardarDatosBancarios = async (
     }
 
     const data = await response.json();
-    return data;
+    return {
+      status: true,
+      message: data.message || 'Datos bancarios guardados exitosamente'
+    };
 
   } catch (error) {
-    throw error;
+    console.error('Error al guardar datos bancarios:', error);
+    return {
+      status: false,
+      message: 'Error al guardar los datos bancarios'
+    };
   }
 };
 
-// Función para actualizar datos bancarios
-export const actualizarDatosBancarios = async (
+// Función para verificar si existe voucher de desembolso - Ahora usa el backend NestJS
+export const checkVoucherExists = async (
   dni: string,
-  datosBancarios: DatosBancarios
-): Promise<{ status: boolean; message: string }> => {
-  if (!dni) {
-    throw new Error('DNI es requerido');
-  }
-
+  pagare: string
+): Promise<{ exists: boolean; url: string | null; message: string }> => {
   try {
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-    const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/datos-bancarios`, {
-      method: 'PUT',
+    const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/check-voucher`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        dni,
-        ...datosBancarios
+        DNI: dni,
+        PAGARE: pagare
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Error al actualizar datos bancarios: ${response.status}`);
+      throw new Error(`Error al verificar voucher: ${response.status}`);
     }
 
-    const data = await response.json();
-    return data;
+    const result = await response.json();
+    return {
+      exists: result.exists,
+      url: result.url,
+      message: result.message
+    };
 
   } catch (error) {
-    throw error;
+    console.error('Error verificando voucher:', error);
+    return {
+      exists: false,
+      url: null,
+      message: 'No se pudo verificar el voucher, se permite subir'
+    };
   }
+};
+
+// Función para subir comprobante de desembolso - Ahora usa el backend NestJS
+export const uploadVoucher = async (
+  voucherData: {
+    DNI_SOCIO: string;
+    PAGARE: string;
+    AGENCIA: string;
+    ANALISTA: string;
+  },
+  file: File
+): Promise<{ status: boolean; message: string; data?: any }> => {
+  try {
+    const formData = new FormData();
+    formData.append('DNI_SOCIO', voucherData.DNI_SOCIO);
+    formData.append('PAGARE', voucherData.PAGARE);
+    formData.append('AGENCIA', voucherData.AGENCIA);
+    formData.append('ANALISTA', voucherData.ANALISTA);
+    formData.append('file', file);
+
+    console.log('📄 DATOS PARA ENVIAR COMPROBANTE DE DESEMBOLSO:');
+    console.log('• DNI_SOCIO:', voucherData.DNI_SOCIO);
+    console.log('• PAGARE:', voucherData.PAGARE);
+    console.log('• AGENCIA:', voucherData.AGENCIA);
+    console.log('• ANALISTA:', voucherData.ANALISTA);
+    console.log('• Archivo:', file.name);
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/upload-voucher`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error del servidor: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ Comprobante de desembolso enviado exitosamente:', result);
+    
+    return {
+      status: true,
+      message: result.message || 'Comprobante de desembolso enviado exitosamente',
+      data: result.data
+    };
+
+  } catch (error) {
+    console.error('❌ Error al enviar el archivo:', error);
+    return {
+      status: false,
+      message: 'Error al enviar el comprobante de desembolso'
+    };
+  }
+};
+
+// Función para actualizar datos bancarios (por ahora usa el mismo endpoint de insertar)
+export const actualizarDatosBancarios = async (
+  dni: string,
+  datosBancarios: DatosBancarios
+): Promise<{ status: boolean; message: string }> => {
+  // Por ahora reutilizamos la misma función de guardar
+  // En el futuro se podría implementar un endpoint específico para actualizar
+  return await guardarDatosBancarios(dni, datosBancarios);
 };

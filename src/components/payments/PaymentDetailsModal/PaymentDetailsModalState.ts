@@ -103,6 +103,13 @@ export const usePaymentDetailsState = (
     setPaymentDetails(details);
   }, [currentPayment, setMonto]);
 
+  // 🔧 SOLUCIÓN: Función para manejar cambios de tipo de pago desde PaymentHeader
+  const handlePaymentTypeChange = (type: 'normal' | 'liquidacion', maxAmount: number) => {
+    setPaymentType(type);
+    setPaymentLimit(maxAmount); // ✅ Usar el límite correcto que viene del PaymentHeader
+    console.log('🔧 Límite actualizado:', { type, maxAmount });
+  };
+
   const removePayment = (index: number) => {
     if (index === 0) return;
     
@@ -132,6 +139,9 @@ export const usePaymentDetailsState = (
       .toFixed(2);
     setTotalAmount(total);
     setMonto(total);
+    
+    // Nota: Los límites se actualizarán automáticamente via handlePaymentTypeChange desde PaymentHeader
+    // No necesitamos recalcular aquí porque los valores vienen de procesarInfoPago API
   };
 
   return {
@@ -153,6 +163,7 @@ export const usePaymentDetailsState = (
     paymentType,
     setPaymentType,
     paymentLimit,
-    setPaymentLimit
+    setPaymentLimit,
+    handlePaymentTypeChange // ✅ Exportar la función para conectar con PaymentHeader
   };
 };

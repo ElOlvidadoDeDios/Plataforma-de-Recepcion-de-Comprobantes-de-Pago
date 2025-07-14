@@ -1,9 +1,10 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { DetalleCredito, ClienteResponse } from '../../../api/customerConsultationAPI';
+import { DetalleCredito, ClienteResponse, checkVoucherExists } from '../../../api/customerConsultationAPI';
 import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
 import { generarContrato, verificarDocumentoFirmado } from '../../../api/firmaDigitalApi';
 import { PaymentRecord } from '../../../types';
+import ComprobanteDesembolsoModal from './ComprobanteDesembolsoModal';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 // const PagosPrestamoModal = lazy(() => import('./PagosPrestamoModal'));
@@ -27,6 +28,11 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
   // Estados para firma digital
   const [loadingFirma, setLoadingFirma] = useState(false);
   const [selectedCreditoFirma, setSelectedCreditoFirma] = useState<string>('');
+  // Estados para subir comprobante de desembolso
+  const [showComprobanteModal, setShowComprobanteModal] = useState(false);
+  const [selectedCreditoDesembolso, setSelectedCreditoDesembolso] = useState<DetalleCredito | null>(null);
+  // Estado para rastrear qué vouchers existen
+  const [vouchersExistentes, setVouchersExistentes] = useState<Record<string, boolean>>({});
 
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
@@ -181,6 +187,59 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     } finally {
       setLoadingFirma(false);
       setSelectedCreditoFirma('');
+    }
+  };
+
+  // Hook para cargar el estado de vouchers al inicio
+  useEffect(() => {
+    const verificarVouchers = async () => {
+      if (!clientData?.INFO_SOCIO?.DATOS_PERSONALES?.DNI || !creditos?.length) return;
+      
+      const resultados: Record<string, boolean> = {};
+      
+      for (const credito of creditos) {
+        if (credito.ESTADO === 'VIGENTE') {
+          try {
+            const result = await checkVoucherExists(
+              clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
+              credito.ID_PRESTAMO
+            );
+            resultados[credito.ID_PRESTAMO] = result.exists;
+          } catch (error) {
+            console.error(`Error verificando voucher para ${credito.ID_PRESTAMO}:`, error);
+            resultados[credito.ID_PRESTAMO] = false;
+          }
+        }
+      }
+      
+      setVouchersExistentes(resultados);
+    };
+
+    verificarVouchers();
+  }, [clientData, creditos]);
+
+  // Función para abrir modal de subir comprobante de desembolso
+  const handleSubirComprobante = async (credito: DetalleCredito) => {
+    try {
+      // Primero verificar si ya existe el voucher
+      const result = await checkVoucherExists(
+        clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
+        credito.ID_PRESTAMO
+      );
+
+      if (result.exists && result.url) {
+        // Si existe, abrir directamente la imagen en nueva pestaña
+        window.open(result.url, '_blank');
+      } else {
+        // Si no existe, abrir el modal para subir
+        setSelectedCreditoDesembolso(credito);
+        setShowComprobanteModal(true);
+      }
+    } catch (error) {
+      console.error('Error verificando voucher:', error);
+      // En caso de error, abrir el modal por defecto
+      setSelectedCreditoDesembolso(credito);
+      setShowComprobanteModal(true);
     }
   };
 
@@ -555,7 +614,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">FRECUENCIA</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">OTORGA</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">PRODUCTO</th>
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">FIRMA DIGITAL ESTADO</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ACCIONES</th>
             </tr>
           </thead>
@@ -586,7 +644,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
                 <td className="px-4 py-2 text-sm font-medium text-center border border-gray-200">{credito.FRECUENCIA}</td>
                 <td className="px-4 py-2 text-sm text-center border border-gray-200">{credito.OTORGA}</td>
                 <td className="px-4 py-2 text-sm text-center border border-gray-200">{credito.PRODUCTO || 'No especificado'}</td>
-                <td className="px-4 py-2 text-sm text-center border border-gray-200">{credito.FIRM_DIGITAL?.ESTADO || '-'}</td>
                 <td className="px-4 py-2 text-sm border border-gray-200">
                   {credito.ESTADO === 'VIGENTE' && (
                     <div className="flex gap-2">
@@ -601,6 +658,21 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
                         </svg>
                       </button>
                       {renderContratoButton(credito)}
+                      <button
+                        className={`p-2 ${vouchersExistentes[credito.ID_PRESTAMO]
+                          ? 'bg-green-500 hover:bg-green-600'
+                          : 'bg-gray-500 hover:bg-gray-600'
+                        } text-white rounded-full transition-colors`}
+                        title={vouchersExistentes[credito.ID_PRESTAMO]
+                          ? "Ver comprobante de desembolso"
+                          : "Subir comprobante de desembolso"
+                        }
+                        onClick={() => handleSubirComprobante(credito)}
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                      </button>
                     </div>
                   )}
                 </td>
@@ -648,9 +720,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
             <div className="mt-2">
               <InfoField label="Analista" value={credito.ANALISTA} />
             </div>
-            <div className="mt-2">
-              <InfoField label="Estado Firma" value={credito.FIRM_DIGITAL?.ESTADO || '-'} />
-            </div>
             {credito.ESTADO === 'VIGENTE' && (
               <div className="mt-4 flex gap-2 justify-center">
                 <button
@@ -664,6 +733,21 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
                   </svg>
                 </button>
                 {renderContratoButtonMobile(credito)}
+                <button
+                  className={`p-2 ${vouchersExistentes[credito.ID_PRESTAMO]
+                    ? 'bg-green-500 hover:bg-green-600'
+                    : 'bg-gray-500 hover:bg-gray-600'
+                  } text-white rounded-full transition-colors`}
+                  title={vouchersExistentes[credito.ID_PRESTAMO]
+                    ? "Ver comprobante de desembolso"
+                    : "Subir comprobante de desembolso"
+                  }
+                  onClick={() => handleSubirComprobante(credito)}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </button>
               </div>
             )}
           </div>
@@ -839,6 +923,25 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Modal para subir comprobante de desembolso */}
+      {showComprobanteModal && selectedCreditoDesembolso && (
+        <ComprobanteDesembolsoModal
+          credito={selectedCreditoDesembolso}
+          clientData={clientData}
+          onClose={() => {
+            setShowComprobanteModal(false);
+            setSelectedCreditoDesembolso(null);
+            // Actualizar el estado del voucher después de cerrar el modal
+            if (selectedCreditoDesembolso) {
+              setVouchersExistentes(prev => ({
+                ...prev,
+                [selectedCreditoDesembolso.ID_PRESTAMO]: true
+              }));
+            }
+          }}
+        />
       )}
     </div>
   );

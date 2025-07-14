@@ -48,12 +48,12 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
   const currentPayment = useRef<string | null>(null);
 
   useEffect(() => {
-    if (paymentDetails && currentPayment.current !== displayedPayment.creditoId) {
-      // Solo establecer el tipo normal cuando es un nuevo pago (no resetear si ya se cambió)
+    if (paymentDetails) {
+      // Siempre establecer el tipo normal y llamar onTypeChange cuando se cargan los datos
       setPaymentType('normal');
       onTypeChange?.('normal', paymentDetails.MAXIMO_PAGO);
     }
-  }, [paymentDetails, onTypeChange, displayedPayment.creditoId]);
+  }, [paymentDetails, onTypeChange]);
 
   useEffect(() => {
     const shouldFetchData =

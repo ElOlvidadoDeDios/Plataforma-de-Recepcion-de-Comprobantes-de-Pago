@@ -48,9 +48,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     modalPayments,
     removePayment,
     paymentType,
-    setPaymentType,
     paymentLimit,
-    setPaymentLimit
+    handlePaymentTypeChange // ✅ Agregar la función
   } = usePaymentDetailsState(currentPayment, monto, setMonto);
 
   const handleNextPayment = () => {
@@ -109,10 +108,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               totalPayments={allPayments.length}
               onCloseModal={onCloseModal}
               showImage={showImage}
-              onTypeChange={(type, maxAmount) => {
-                setPaymentType(type);
-                setPaymentLimit(maxAmount);
-              }}
+              onTypeChange={handlePaymentTypeChange}
             />
           </div>
 

@@ -1,45 +1,53 @@
 import React, { useState, useEffect } from 'react';
-import { DatosBancarios, guardarDatosBancarios, actualizarDatosBancarios } from '../../../api/customerConsultationAPI';
+import { DatosBancarios, guardarDatosBancarios } from '../../../api/customerConsultationAPI';
 
 interface DatosBancariosFormProps {
   dni: string;
-  datosBancarios: DatosBancarios[];
+  nombreCompleto: string;
+  cuentaDile: string;
   onSave: () => void;
   onCancel: () => void;
 }
 
 const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
   dni,
-  datosBancarios,
+  nombreCompleto,
+  cuentaDile,
   onSave,
   onCancel
 }) => {
   const [formData, setFormData] = useState<DatosBancarios>({
-    TITULAR: '',
     BANCO: '',
     TIPO_CUENTA: '',
     NUM_CUENTA: '',
+    DNI_SOCIO: dni,
+    CUENTA_DILE: cuentaDile,
+    DNI_TITULAR: '',
+    NOMBRE_TITULAR: '',
     ESTADO: 'ACTIVO'
   });
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [esTitular, setEsTitular] = useState(true);
 
-  // Verificar si ya existen datos bancarios
+  // El formulario siempre es para agregar nuevas cuentas
+  // No cargamos datos existentes porque el endpoint es solo para insertar
+
+  // Efecto para manejar el cambio de titular
   useEffect(() => {
-    if (datosBancarios && datosBancarios.length > 0) {
-      const datoExistente = datosBancarios[0];
-      if (datoExistente.TITULAR || datoExistente.BANCO || datoExistente.NUM_CUENTA) {
-        setFormData({
-          TITULAR: datoExistente.TITULAR || '',
-          BANCO: datoExistente.BANCO || '',
-          TIPO_CUENTA: datoExistente.TIPO_CUENTA || '',
-          NUM_CUENTA: datoExistente.NUM_CUENTA || '',
-          ESTADO: datoExistente.ESTADO || 'ACTIVO'
-        });
-        setIsEditing(true);
-      }
+    if (esTitular) {
+      setFormData(prev => ({
+        ...prev,
+        DNI_TITULAR: dni,
+        NOMBRE_TITULAR: nombreCompleto
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        DNI_TITULAR: '',
+        NOMBRE_TITULAR: ''
+      }));
     }
-  }, [datosBancarios]);
+  }, [esTitular, dni, nombreCompleto]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -50,17 +58,15 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
         ...prev,
         [name]: value,
         BANCO: '',
-        NUM_CUENTA: '',
-        CELULAR: ''
+        NUM_CUENTA: ''
       }));
     } 
-    // Si cambia el banco, limpiar número de cuenta y celular
+    // Si cambia el banco, limpiar número de cuenta
     else if (name === 'BANCO') {
       setFormData(prev => ({
         ...prev,
         [name]: value,
-        NUM_CUENTA: '',
-        CELULAR: ''
+        NUM_CUENTA: ''
       }));
     } 
     else {
@@ -71,46 +77,32 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
     }
   };
 
+  const handleTitularChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEsTitular(e.target.checked);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.TITULAR || !formData.TIPO_CUENTA || !formData.BANCO) {
-      alert('Por favor, complete todos los campos obligatorios');
+    if (!formData.BANCO || !formData.NUM_CUENTA) {
       return;
     }
 
-    // Validar según el tipo de cuenta
-    if (isBilleteraDigital) {
-      if (!formData.NUM_CUENTA) {
-        alert('Por favor, ingrese el número de celular para billetera digital');
-        return;
-      }
-    } else {
-      if (!formData.NUM_CUENTA) {
-        alert('Por favor, ingrese el número de cuenta');
-        return;
-      }
+    if (!esTitular && (!formData.DNI_TITULAR || !formData.NOMBRE_TITULAR)) {
+      return;
     }
 
     setIsLoading(true);
     
     try {
-      let response;
-      if (isEditing) {
-        response = await actualizarDatosBancarios(dni, formData);
-      } else {
-        response = await guardarDatosBancarios(dni, formData);
-      }
+      // Siempre usamos guardarDatosBancarios ya que el endpoint es para insertar nuevas cuentas
+      const response = await guardarDatosBancarios(dni, formData);
 
       if (response.status) {
-        alert(response.message || 'Datos bancarios guardados exitosamente');
         onSave();
       } else {
-        alert('Error al guardar los datos bancarios');
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al guardar los datos bancarios');
     } finally {
       setIsLoading(false);
     }
@@ -201,9 +193,9 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-800">
-                {isEditing ? 'Editar Datos Bancarios' : 'Agregar Datos Bancarios'}
+                Agregar Datos Bancarios
               </h2>
-              <p className="text-sm text-gray-600">DNI: {dni}</p>
+              <p className="text-sm text-gray-600">Socio: {nombreCompleto} - DNI: {dni}</p>
             </div>
             <button
               onClick={onCancel}
@@ -217,21 +209,57 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Titular */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Titular de la cuenta *
+            {/* Checkbox - ¿Es titular de la cuenta? */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={esTitular}
+                  onChange={handleTitularChange}
+                  className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="text-sm font-medium text-blue-700">
+                  ¿Es {nombreCompleto} el titular de la cuenta bancaria?
+                </span>
               </label>
-              <input
-                type="text"
-                name="TITULAR"
-                value={formData.TITULAR || ''}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                placeholder="Nombre completo del titular"
-                required
-              />
             </div>
+
+            {/* Datos del Titular (solo si NO es titular) */}
+            {!esTitular && (
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <h3 className="text-sm font-semibold text-yellow-700 mb-3">Datos del Titular de la Cuenta</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      DNI del Titular *
+                    </label>
+                    <input
+                      type="text"
+                      name="DNI_TITULAR"
+                      value={formData.DNI_TITULAR || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      placeholder="DNI del titular"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre del Titular *
+                    </label>
+                    <input
+                      type="text"
+                      name="NOMBRE_TITULAR"
+                      value={formData.NOMBRE_TITULAR || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                      placeholder="Nombre completo del titular"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Tipo de Cuenta - PRIMERO */}
             <div>
@@ -261,7 +289,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
             {/* Banco/Entidad - SEGUNDO */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {isBilleteraDigital ? 'Billetera Digital *' : 'Banco/Entidad *'}
+                {isBilleteraDigital ? 'Billetera Digital *' : 'Banco/Entidad Financiera *'}
               </label>
               <select
                 name="BANCO"
@@ -286,38 +314,22 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
             {/* Campo condicional: Número de Celular (para billetera digital) o Número de Cuenta (para bancos) */}
             {formData.BANCO && (
               <div>
-                {isBilleteraDigital ? (
-                  // Para billeteras digitales: Número de celular
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Número de Celular *
-                    </label>
-                    <input
-                      type="text"
-                      name="CELULAR"
-                      value={formData.NUM_CUENTA || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                      placeholder="Número de celular asociado"
-                      required
-                    />
-                  </div>
-                ) : (
-                  // Para bancos: Número de cuenta
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Número de Cuenta *
-                    </label>
-                    <input
-                      type="text"
-                      name="NUM_CUENTA"
-                      value={formData.NUM_CUENTA || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                      placeholder="Número de cuenta bancaria"
-                      required
-                    />
-                  </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {isBilleteraDigital ? 'Número de Celular *' : 'Número de Cuenta *'}
+                </label>
+                <input
+                  type="text"
+                  name="NUM_CUENTA"
+                  value={formData.NUM_CUENTA || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  placeholder={isBilleteraDigital ? 'Número de celular asociado' : 'Número de cuenta bancaria'}
+                  required
+                />
+                {isBilleteraDigital && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ingrese el número de celular asociado a {formData.BANCO}
+                  </p>
                 )}
               </div>
             )}
@@ -336,7 +348,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                 className="px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 transition-colors disabled:opacity-50"
                 disabled={isLoading}
               >
-                {isLoading ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
+                {isLoading ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </form>

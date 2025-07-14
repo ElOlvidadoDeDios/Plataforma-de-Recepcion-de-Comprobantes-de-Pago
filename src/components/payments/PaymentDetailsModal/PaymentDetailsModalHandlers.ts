@@ -365,13 +365,34 @@ export const handlePartialAcceptStatus = async (
   // Validar monto individual del voucher
   const montoVoucher = parseFloat(selectedVoucher.montoPago) || 0;
   
+  // 🔍 DEBUG: Ver qué valores están llegando
+  console.log('🔍 DEBUG Aceptar Parcial - Valores completos:', {
+    paymentType,
+    paymentLimit,
+    paymentLimitType: typeof paymentLimit,
+    montoVoucher,
+    allProps: props
+  });
+
+  // 🚨 DIAGNÓSTICO: El límite está llegando como 0 cuando debería tener valor
+  if (paymentLimit === 0) {
+    console.error('⚠️ PROBLEMA: paymentLimit está llegando como 0 - revisar componente padre');
+    console.log('📊 Props completas recibidas:', props);
+  }
+
   // VALIDAR LÍMITES SEGÚN EL TIPO DE PAGO (IGUAL QUE handleAcceptStatus)
   if (!paymentType) {
     return 'Error: No se ha seleccionado el tipo de pago. Seleccione "Pago Normal" o "Liquidación Total" antes de continuar.';
   }
 
-  if (!paymentLimit || paymentLimit <= 0) {
+  // Validación más flexible - permitir paymentLimit = 0 en algunos casos
+  if (paymentLimit === undefined || paymentLimit === null) {
     return 'Error: No se pudo obtener el límite de pago. Espere a que carguen los datos del crédito o recargue la página.';
+  }
+
+  // Solo validar negativos, permitir 0
+  if (paymentLimit < 0) {
+    return 'Error: Límite de pago inválido (valor negativo).';
   }
 
   if (paymentType === 'normal') {
@@ -561,8 +582,14 @@ export const handleAcceptStatus = async (
     return 'Error: No se ha seleccionado el tipo de pago. Seleccione "Pago Normal" o "Liquidación Total" antes de continuar.';
   }
 
-  if (!paymentLimit || paymentLimit <= 0) {
+  // Validación más flexible - consistente con handlePartialAcceptStatus
+  if (paymentLimit === undefined || paymentLimit === null) {
     return 'Error: No se pudo obtener el límite de pago. Espere a que carguen los datos del crédito o recargue la página.';
+  }
+
+  // Solo validar negativos, permitir 0
+  if (paymentLimit < 0) {
+    return 'Error: Límite de pago inválido (valor negativo).';
   }
 
   if (paymentType === 'normal') {
