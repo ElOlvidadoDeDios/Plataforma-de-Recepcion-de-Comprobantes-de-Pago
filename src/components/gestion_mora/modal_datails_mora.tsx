@@ -79,6 +79,14 @@ const ModalDetailsMora = ({
 
   // Función para verificar si ya existe gestión de mora
   const yaExisteGestion = (cliente: ClienteMora) => {
+    // Verificar primero los datos actualizados del nuevo endpoint
+    if (gestionMoraActualizada && gestionMoraActualizada.ID_GESTION) {
+      return gestionMoraActualizada.ID_GESTION !== null &&
+             gestionMoraActualizada.ID_GESTION !== undefined &&
+             gestionMoraActualizada.ID_GESTION !== '';
+    }
+    
+    // Si no hay datos actualizados, verificar los datos originales
     return cliente.GESTION_MORA.ID_GESTION !== null &&
            cliente.GESTION_MORA.ID_GESTION !== undefined &&
            cliente.GESTION_MORA.ID_GESTION !== '';
@@ -271,9 +279,17 @@ const ModalDetailsMora = ({
 
   // Función para abrir modal de gestión con datos pre-llenados
   const abrirModalGestionConDatos = (cliente: ClienteMora) => {
-    setMotivoRetraso(cliente.GESTION_MORA.MOTIVO_RETRASO || '');
-    setCompromiso(cliente.GESTION_MORA.COMPROMISO || '');
-    setFechaCompromiso(cliente.GESTION_MORA.FECHA_COMPROMISO || '');
+    // Usar datos actualizados del nuevo endpoint si están disponibles
+    if (gestionMoraActualizada && gestionMoraActualizada.ID_GESTION) {
+      setMotivoRetraso(gestionMoraActualizada.MOTIVO_RETRASO || '');
+      setCompromiso(gestionMoraActualizada.COMPROMISO || '');
+      setFechaCompromiso(gestionMoraActualizada.FECHA_COMPROMISO || '');
+    } else {
+      // Si no hay datos actualizados, usar los datos originales
+      setMotivoRetraso(cliente.GESTION_MORA.MOTIVO_RETRASO || '');
+      setCompromiso(cliente.GESTION_MORA.COMPROMISO || '');
+      setFechaCompromiso(cliente.GESTION_MORA.FECHA_COMPROMISO || '');
+    }
     onOpenGestionModal(cliente);
   };
 
