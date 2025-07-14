@@ -32,17 +32,17 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
         credito.ID_PRESTAMO
       );
 
-      if (result.exists) {
+      if (result.exists && result.url) {
         setVoucherExists(true);
-        setVoucherUrl(result.url || '');
-        console.log('✅ Voucher ya existe:', result.url);
+        setVoucherUrl(result.url);
       } else {
         setVoucherExists(false);
-        console.log('ℹ️ Voucher no existe, se puede subir nuevo');
+        setVoucherUrl('');
       }
     } catch (error) {
-      console.error('❌ Error verificando voucher:', error);
+      // Si hay error, asumir que no existe
       setVoucherExists(false);
+      setVoucherUrl('');
     } finally {
       setCheckingVoucher(false);
     }
@@ -57,15 +57,12 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Primero verificar si ya existe un voucher
-      console.log('🔍 Verificando voucher antes de procesar archivo...');
+      // Verificar si ya existe un voucher antes de procesar
       await checkVoucherExistsHandler();
       
       // Si después de verificar resulta que existe, no permitir subir
       if (voucherExists) {
-        console.log('⚠️ El voucher ya existe, no se puede subir nuevo archivo');
         alert('El comprobante ya existe para este préstamo. No se puede subir un archivo nuevo.');
-        // Limpiar el input
         if (event.target) {
           event.target.value = '';
         }
@@ -74,14 +71,12 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
 
       // Validar que sea una imagen
       if (!file.type.startsWith('image/')) {
-        console.error('❌ Error: Por favor seleccione solo archivos de imagen');
         alert('Por favor seleccione solo archivos de imagen (PNG, JPG, JPEG)');
         return;
       }
 
       // Validar tamaño (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        console.error('❌ Error: El archivo no debe superar 5MB');
         alert('El archivo no debe superar 5MB');
         return;
       }
@@ -100,12 +95,12 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
   // Función para enviar el archivo - Ahora usa el backend NestJS
   const handleSubmit = async () => {
     if (!selectedFile) {
-      console.error('❌ Error: Por favor seleccione un archivo');
+      alert('Por favor seleccione un archivo');
       return;
     }
 
     if (!user) {
-      console.error('❌ Error: Usuario no autenticado');
+      alert('Usuario no autenticado');
       return;
     }
 
@@ -122,29 +117,25 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
       const result = await uploadVoucher(voucherData, selectedFile);
 
       if (result.status) {
-        console.log('✅ Comprobante de desembolso enviado exitosamente:', result);
-        
-        // Actualizar estado local para reflejar que el voucher ya existe
-        setVoucherExists(true);
-        setVoucherUrl(result.data?.url || '');
+        // Limpiar formulario pero no cambiar estado hasta verificar
         setSelectedFile(null);
         setPreviewImage('');
         
-        // Verificar nuevamente después de un breve delay
-        setTimeout(() => {
-          checkVoucherExistsHandler();
-        }, 1000);
+        // Verificar después de un breve delay para confirmar que realmente se guardó
+        setTimeout(async () => {
+          await checkVoucherExistsHandler();
+          setIsLoading(false);
+        }, 1500);
         
-        setIsLoading(false);
-        // No cerrar inmediatamente para mostrar el éxito
+        // No cerrar inmediatamente para mostrar el resultado
         // onClose();
       } else {
         throw new Error(result.message);
       }
 
     } catch (error) {
-      console.error('❌ Error al enviar el archivo:', error);
       setIsLoading(false);
+      alert('Error al enviar el archivo. Por favor intente nuevamente.');
     }
   };
 

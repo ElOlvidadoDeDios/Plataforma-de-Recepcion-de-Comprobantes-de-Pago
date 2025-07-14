@@ -930,16 +930,32 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
         <ComprobanteDesembolsoModal
           credito={selectedCreditoDesembolso}
           clientData={clientData}
-          onClose={() => {
+          onClose={async () => {
             setShowComprobanteModal(false);
-            setSelectedCreditoDesembolso(null);
-            // Actualizar el estado del voucher después de cerrar el modal
+            
+            // Verificar realmente si el voucher existe después de cerrar el modal
             if (selectedCreditoDesembolso) {
-              setVouchersExistentes(prev => ({
-                ...prev,
-                [selectedCreditoDesembolso.ID_PRESTAMO]: true
-              }));
+              try {
+                const result = await checkVoucherExists(
+                  clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
+                  selectedCreditoDesembolso.ID_PRESTAMO
+                );
+                
+                // Solo actualizar el estado si realmente existe
+                setVouchersExistentes(prev => ({
+                  ...prev,
+                  [selectedCreditoDesembolso.ID_PRESTAMO]: result.exists
+                }));
+              } catch (error) {
+                // En caso de error, mantener el estado como falso
+                setVouchersExistentes(prev => ({
+                  ...prev,
+                  [selectedCreditoDesembolso.ID_PRESTAMO]: false
+                }));
+              }
             }
+            
+            setSelectedCreditoDesembolso(null);
           }}
         />
       )}

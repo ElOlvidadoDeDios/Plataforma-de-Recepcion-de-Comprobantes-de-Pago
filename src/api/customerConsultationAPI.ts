@@ -274,9 +274,9 @@ export const checkVoucherExists = async (
 
     const result = await response.json();
     return {
-      exists: result.exists,
-      url: result.url,
-      message: result.message
+      exists: result.status === true,
+      url: result.link && result.link.trim() !== '' ? result.link : null,
+      message: result.message || 'Verificación completada'
     };
 
   } catch (error) {
