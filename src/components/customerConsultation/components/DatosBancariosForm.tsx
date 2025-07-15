@@ -24,6 +24,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
     CUENTA_DILE: cuentaDile,
     DNI_TITULAR: '',
     NOMBRE_TITULAR: '',
+    TITULAR: '',
     ESTADO: 'ACTIVO'
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -38,13 +39,15 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
       setFormData(prev => ({
         ...prev,
         DNI_TITULAR: dni,
-        NOMBRE_TITULAR: nombreCompleto
+        NOMBRE_TITULAR: nombreCompleto,
+        TITULAR: nombreCompleto
       }));
     } else {
       setFormData(prev => ({
         ...prev,
         DNI_TITULAR: '',
-        NOMBRE_TITULAR: ''
+        NOMBRE_TITULAR: '',
+        TITULAR: ''
       }));
     }
   }, [esTitular, dni, nombreCompleto]);

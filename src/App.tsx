@@ -15,6 +15,7 @@ import { PaymentsPanel } from './components/pagos/panel-pagos';
 import CustomerConsultation from './components/customerConsultation/customerConsultation';
 import HistorialAtencionCreditos from './components/historial_de_Atencion_Creditos/historialAtencionCreditos';
 import GestionMora from './components/gestion_mora/GestionMora';
+import PendientesAdesembolsar from './components/creditos_en_proceso/PendientesAdesembolsar';
 import NonBasicUserRoute from './components/NonBasicUserRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
@@ -121,6 +122,16 @@ function App() {
                   <ProtectedRoute>
                     <NonBasicUserRoute>
                       <GestionMora />
+                    </NonBasicUserRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pendientes-desembolsar"
+                element={
+                  <ProtectedRoute>
+                    <NonBasicUserRoute>
+                      <PendientesAdesembolsar />
                     </NonBasicUserRoute>
                   </ProtectedRoute>
                 }

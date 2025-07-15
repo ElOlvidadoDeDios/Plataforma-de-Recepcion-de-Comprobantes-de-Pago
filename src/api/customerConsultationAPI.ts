@@ -54,6 +54,7 @@ export interface DatosBancarios {
   CUENTA_DILE: string | null;
   DNI_TITULAR: string | null;
   NOMBRE_TITULAR: string | null;
+  TITULAR: string | null;
   ESTADO: string | null;
 }
 

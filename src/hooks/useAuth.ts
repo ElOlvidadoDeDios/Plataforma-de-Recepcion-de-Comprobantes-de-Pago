@@ -25,6 +25,7 @@ export function usePermissions() {
     canAccessPayments: () => hasPermission('canAccessPayments'),
     canAccessCredits: () => hasPermission('canAccessCredits'),
     canAccessGestionMora: () => hasPermission('canAccessGestionMora'),
+    canAccessPendientesDesembolsar: () => hasPermission('canAccessPendientesDesembolsar'),
     canAccessBotInteractions: () => hasPermission('canAccessBotInteractions'),
     canAccessConsultaCuotas: () => hasPermission('canAccessConsultaCuotas'),
     canAccessReports: () => hasPermission('canAccessReports'),

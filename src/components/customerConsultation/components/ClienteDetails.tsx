@@ -125,8 +125,7 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
                     </h4>
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                    <DataField label="TITULAR" value={cuenta.NOMBRE_TITULAR || 'No especificado'} />
-                    <DataField label="DNI TITULAR" value={cuenta.DNI_TITULAR || 'No especificado'} />
+                    <DataField label="TITULAR" value={cuenta.TITULAR || cuenta.NOMBRE_TITULAR || 'No especificado'} />
                     <DataField label="BANCO" value={cuenta.BANCO || 'No especificado'} />
                     <DataField label="TIPO CUENTA" value={cuenta.TIPO_CUENTA || 'No especificado'} />
                     <DataField label={

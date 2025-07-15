@@ -84,6 +84,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return [UserRole.SUPER_ADMIN, UserRole.ADMINISTRADOR, UserRole.ANALISTA_CREDITOS_I, UserRole.GERENTE_GENERAL].includes(user.role); // GERENTE_GENERAL también puede acceder a créditos
       case 'canAccessGestionMora':
           return [UserRole.SUPER_ADMIN, UserRole.ANALISTA_CREDITOS_I, UserRole.ADMINISTRADOR, UserRole.GERENTE_GENERAL].includes(user.role); // Roles adicionales pueden acceder a Gestión de Mora
+      case 'canAccessPendientesDesembolsar':
+          return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL, UserRole.JEFE_OPERACIONES, UserRole.CAJERO].includes(user.role); // Acceso a créditos pendientes a desembolsar
       case 'canAccessBotInteractions':
         return [UserRole.SUPER_ADMIN].includes(user.role); // Solo SUPER_ADMIN puede ver interacciones del bot (son informativas)
       case 'canAccessConsultaCuotas':
