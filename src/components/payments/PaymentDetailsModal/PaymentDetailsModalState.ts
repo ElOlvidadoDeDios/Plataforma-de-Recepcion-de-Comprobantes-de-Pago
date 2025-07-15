@@ -106,8 +106,7 @@ export const usePaymentDetailsState = (
   // 🔧 SOLUCIÓN: Función para manejar cambios de tipo de pago desde PaymentHeader
   const handlePaymentTypeChange = (type: 'normal' | 'liquidacion', maxAmount: number) => {
     setPaymentType(type);
-    setPaymentLimit(maxAmount); // ✅ Usar el límite correcto que viene del PaymentHeader
-    console.log('🔧 Límite actualizado:', { type, maxAmount });
+    setPaymentLimit(maxAmount); 
   };
 
   const removePayment = (index: number) => {

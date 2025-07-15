@@ -4,6 +4,7 @@ export * from './consultaCuotasApi';
 export * from './paymentsApi';
 export * from './creditRequestApi';
 export * from './creditAttentionApi';
+export * from './customerConsultationAPI';
 
 // Exportaciones específicas adicionales
 export { fetchCreditAnalysts, fetchAllExternalUsers } from './userApi';

@@ -206,7 +206,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
             );
             resultados[credito.ID_PRESTAMO] = result.exists;
           } catch (error) {
-            console.error(`Error verificando voucher para ${credito.ID_PRESTAMO}:`, error);
             resultados[credito.ID_PRESTAMO] = false;
           }
         }
@@ -236,7 +235,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
         setShowComprobanteModal(true);
       }
     } catch (error) {
-      console.error('Error verificando voucher:', error);
       // En caso de error, abrir el modal por defecto
       setSelectedCreditoDesembolso(credito);
       setShowComprobanteModal(true);

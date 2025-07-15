@@ -1,10 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRole } from '../../types/roles';
 import Layout from '../Layout';
+import { 
+  ClienteDesembolso, 
+  obtenerCreditosPendientesDesembolsar, 
+  formatearMonto, 
+  getEstadoDatosBancarios, 
+  tieneDatosBancariosCompletos 
+} from '../../api/desembolsosApi';
 
 const PendientesAdesembolsar: React.FC = () => {
   const { user } = useAuth();
+  const [creditos, setCreditos] = useState<ClienteDesembolso[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
 
   // Verificar si el usuario tiene permisos para acceder a este componente
   const hasAccess = (): boolean => {
@@ -20,31 +31,309 @@ const PendientesAdesembolsar: React.FC = () => {
     return allowedRoles.includes(user.role);
   };
 
+  // Cargar datos del endpoint
+  const cargarCreditos = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await obtenerCreditosPendientesDesembolsar();
+      setCreditos(data);
+    } catch (err) {
+      setError('Error al cargar los créditos pendientes');
+      console.error('Error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (hasAccess()) {
+      cargarCreditos();
+    }
+  }, [user]);
+
+  // Estadísticas para el header
+  const totalCreditos = creditos.length;
+  const creditosConDatosBancarios = creditos.filter(tieneDatosBancariosCompletos).length;
+  const creditosSinDatosBancarios = totalCreditos - creditosConDatosBancarios;
+  const montoTotal = creditos.reduce((total, credito) => {
+    const monto = parseFloat(credito.CREDITO_DESEMBOLSO.MONTO_APRO.replace(/[^\d.]/g, '')) || 0;
+    return total + monto;
+  }, 0);
+
+  const getEstadoBadge = (cliente: ClienteDesembolso) => {
+    const estado = getEstadoDatosBancarios(cliente);
+    switch (estado) {
+      case 'COMPLETO':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            Completo
+          </span>
+        );
+      case 'INCOMPLETO':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            Incompleto
+          </span>
+        );
+      case 'FALTA':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+            Falta
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Componente para renderizar como cards
+  const CreditoCard = ({ credito }: { credito: ClienteDesembolso }) => (
+    <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
+      {/* Header de la card */}
+      <div className="px-6 py-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="h-12 w-12 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
+              <span className="text-white font-medium text-sm">
+                {credito.DATOS_SOCIO.NOMBRES.charAt(0)}{credito.DATOS_SOCIO.APE_PAT.charAt(0)}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
+              </h3>
+              <p className="text-sm text-gray-500">DNI: {credito.DATOS_SOCIO.DNI}</p>
+            </div>
+          </div>
+          {getEstadoBadge(credito)}
+        </div>
+      </div>
+
+      {/* Contenido de la card */}
+      <div className="px-6 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Información del Crédito */}
+          <div className="space-y-2">
+            <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">
+              Información del Crédito
+            </h4>
+            <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Pagaré:</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {credito.CREDITO_DESEMBOLSO.PAGARE}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Producto:</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {credito.CREDITO_DESEMBOLSO.PRODUCTO}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Monto Aprobado:</span>
+                <span className="text-sm font-bold text-green-600">
+                  S/ {formatearMonto(credito.CREDITO_DESEMBOLSO.MONTO_APRO)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Monto Neto:</span>
+                <span className="text-sm font-medium text-gray-900">
+                  {credito.CREDITO_DESEMBOLSO.MONTO_NETO}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Datos Bancarios */}
+          <div className="space-y-2">
+            <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">
+              Datos Bancarios
+            </h4>
+            <div className="bg-gray-50 rounded-lg p-3">
+              {!credito.DATOS_BANCARIOS.BANCO ? (
+                <div className="text-center py-4">
+                  <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  <p className="text-sm text-gray-500 italic">Sin datos bancarios</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-gray-500">Titular:</span>
+                    <p className="text-sm font-medium text-gray-900">
+                      {credito.DATOS_BANCARIOS.TITULAR || 'Sin titular'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Banco:</span>
+                    <p className="text-sm font-medium text-gray-900">
+                      {credito.DATOS_BANCARIOS.BANCO}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Tipo de Cuenta:</span>
+                    <p className="text-sm font-medium text-gray-900">
+                      {credito.DATOS_BANCARIOS.TIPO_CUENTA}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Número de Cuenta:</span>
+                    <p className="text-sm font-medium text-gray-900">
+                      {credito.DATOS_BANCARIOS.NUM_CUENTA || 'Sin número'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Acciones */}
+      <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-between items-center">
+          <div className="flex space-x-2">
+            <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Ver Detalles
+            </button>
+          </div>
+          
+          <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Subir Imagen
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Componente para renderizar como tabla
+  const CreditoTable = () => (
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Cliente
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Crédito
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Datos Bancarios
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Estado
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {creditos.map((credito) => (
+            <tr key={`${credito.DATOS_SOCIO.DNI}-${credito.CREDITO_DESEMBOLSO.PAGARE}`} className="hover:bg-gray-50">
+              <td className="px-6 py-4">
+                <div className="flex items-center">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
+                    <span className="text-white font-medium text-sm">
+                      {credito.DATOS_SOCIO.NOMBRES.charAt(0)}{credito.DATOS_SOCIO.APE_PAT.charAt(0)}
+                    </span>
+                  </div>
+                  <div className="ml-4">
+                    <div className="text-sm font-medium text-gray-900">
+                      {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      DNI: {credito.DATOS_SOCIO.DNI}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <div className="text-sm">
+                  <div className="font-medium text-gray-900 mb-1">
+                    {credito.CREDITO_DESEMBOLSO.PAGARE}
+                  </div>
+                  <div className="text-gray-600 mb-1">
+                    {credito.CREDITO_DESEMBOLSO.PRODUCTO}
+                  </div>
+                  <div className="font-semibold text-green-600">
+                    S/ {formatearMonto(credito.CREDITO_DESEMBOLSO.MONTO_APRO)}
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                {!credito.DATOS_BANCARIOS.BANCO ? (
+                  <div className="text-sm text-gray-500 italic">Sin datos bancarios</div>
+                ) : (
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-800">
+                      {credito.DATOS_BANCARIOS.TITULAR || 'Sin titular'}
+                    </div>
+                    <div className="text-gray-600">
+                      {credito.DATOS_BANCARIOS.BANCO} - {credito.DATOS_BANCARIOS.TIPO_CUENTA}
+                    </div>
+                    <div className="text-gray-500">
+                      {credito.DATOS_BANCARIOS.NUM_CUENTA || 'Sin número'}
+                    </div>
+                  </div>
+                )}
+              </td>
+              <td className="px-6 py-4">
+                {getEstadoBadge(credito)}
+              </td>
+              <td className="px-6 py-4">
+                <div className="flex space-x-2">
+                  <button className="text-blue-600 hover:text-blue-900 transition-colors text-sm">
+                    Ver Detalles
+                  </button>
+                  {!tieneDatosBancariosCompletos(credito) && (
+                    <button className="text-green-600 hover:text-green-900 transition-colors text-sm">
+                      Completar
+                    </button>
+                  )}
+                  <button className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
+                    📤 Subir
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   // Si no tiene acceso, mostrar mensaje de error
   if (!hasAccess()) {
     return (
       <Layout title="Acceso Denegado" showBackButton={true}>
         <div className="flex flex-col items-center justify-center h-full bg-red-50 rounded-lg p-8">
           <div className="text-center">
-            <svg
-              className="w-16 h-16 text-red-500 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
+            <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
-            <h2 className="text-2xl font-bold text-red-600 mb-2">
-              Acceso Denegado
-            </h2>
-            <p className="text-red-500 mb-4">
-              No tienes permisos para acceder a esta sección.
-            </p>
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Acceso Denegado</h2>
+            <p className="text-red-500 mb-4">No tienes permisos para acceder a esta sección.</p>
             <p className="text-gray-600 text-sm">
               Este módulo está disponible solo para: Super Usuario, Gerencia, Jefa de Operaciones y Cajera.
             </p>
@@ -56,66 +345,130 @@ const PendientesAdesembolsar: React.FC = () => {
 
   return (
     <Layout title="Créditos Pendientes a Desembolsar" showBackButton={true}>
-      <div className="h-full flex flex-col">
-        {/* Header de la página */}
-        <div className="mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-lg shadow-lg">
-            <h2 className="text-white text-2xl font-bold mb-2">
-              Créditos Pendientes a Desembolsar
-            </h2>
-            <p className="text-blue-100">
-              Gestión de créditos aprobados pendientes de desembolso
-            </p>
+      <div className="h-full flex flex-col space-y-6">
+        {/* Header con estadísticas */}
+        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-lg shadow-lg text-white">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Créditos Pendientes a Desembolsar</h2>
+            <div className="flex items-center space-x-4">
+              {/* Toggle View Mode */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setViewMode('cards')}
+                  className={`p-2 rounded-md transition-colors ${
+                    viewMode === 'cards' 
+                      ? 'bg-white/30 text-white' 
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14-7H5a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM19 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`p-2 rounded-md transition-colors ${
+                    viewMode === 'table' 
+                      ? 'bg-white/30 text-white' 
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M3 6h18M3 18h18" />
+                  </svg>
+                </button>
+              </div>
+              
+              <button
+                onClick={cargarCreditos}
+                disabled={isLoading}
+                className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-md transition-colors flex items-center space-x-2 disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>{isLoading ? 'Actualizando...' : 'Actualizar'}</span>
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white/10 rounded-lg p-4">
+              <div className="text-2xl font-bold">{totalCreditos}</div>
+              <div className="text-sm opacity-90">Total Créditos</div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <div className="text-2xl font-bold text-green-200">{creditosConDatosBancarios}</div>
+              <div className="text-sm opacity-90">Con Datos Bancarios</div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <div className="text-2xl font-bold text-red-200">{creditosSinDatosBancarios}</div>
+              <div className="text-sm opacity-90">Sin Datos Bancarios</div>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <div className="text-2xl font-bold">S/ {formatearMonto(montoTotal.toString())}</div>
+              <div className="text-sm opacity-90">Monto Total</div>
+            </div>
           </div>
         </div>
 
-        {/* Contenido principal - Por ahora solo un placeholder */}
-        <div className="flex-1 bg-white rounded-lg shadow-lg p-6">
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <svg
-              className="w-16 h-16 text-blue-500 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              Módulo en Desarrollo
-            </h3>
-            <p className="text-gray-500 mb-4">
-              Este módulo está actualmente en desarrollo.
-            </p>
-            <p className="text-sm text-gray-400">
-              Funcionalidades que se incluirán:
-            </p>
-            <ul className="text-sm text-gray-400 mt-2 space-y-1">
-              <li>• Listado de créditos aprobados pendientes</li>
-              <li>• Procesamiento de desembolsos</li>
-              <li>• Generación de comprobantes</li>
-              <li>• Seguimiento de estado</li>
-            </ul>
-          </div>
-
-          {/* Información del usuario actual */}
-          <div className="mt-8 pt-4 border-t border-gray-200">
-            <div className="text-sm text-gray-600 text-center">
-              <p>
-                <strong>Usuario:</strong> {user?.name || user?.email}
-              </p>
-              <p>
-                <strong>Rol:</strong> {user?.role}
-              </p>
-              <p className="text-green-600 mt-2">
-                ✓ Tienes acceso autorizado a este módulo
-              </p>
+        {/* Contenido principal */}
+        <div className="flex-1">
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center h-64 bg-white rounded-lg shadow-lg">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+              <p className="mt-4 text-gray-600">Cargando créditos pendientes...</p>
             </div>
-          </div>
+          )}
+
+          {/* Error state */}
+          {error && (
+            <div className="text-center py-12 bg-white rounded-lg shadow-lg">
+              <svg className="mx-auto h-12 w-12 text-red-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <h3 className="text-lg font-medium text-red-600 mb-2">Error al cargar datos</h3>
+              <p className="text-gray-500 mb-4">{error}</p>
+              <button
+                onClick={cargarCreditos}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isLoading && !error && creditos.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-lg shadow-lg">
+              <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">No hay créditos pendientes</h3>
+              <p className="text-gray-500">No se encontraron créditos pendientes a desembolsar para el día de hoy.</p>
+            </div>
+          )}
+
+          {/* Contenido - Cards o Table */}
+          {!isLoading && !error && creditos.length > 0 && (
+            <>
+              {viewMode === 'cards' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {creditos.map((credito) => (
+                    <CreditoCard 
+                      key={`${credito.DATOS_SOCIO.DNI}-${credito.CREDITO_DESEMBOLSO.PAGARE}`} 
+                      credito={credito} 
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+                  <CreditoTable />
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </Layout>

@@ -13,7 +13,6 @@ interface AnalalistaNuevo {
   AGENCIA: string;
 }
 
-// Renombramos para que sea más claro
 type Analista = AnalalistaNuevo;
 
 const GestionMora = () => {
@@ -24,7 +23,6 @@ const GestionMora = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredClientes, setFilteredClientes] = useState<ClienteMora[]>([]);
   
-  // Estados para la nueva estructura simplificada
   const [administradores, setAdministradores] = useState<AdministradorInfo[]>([]);
   const [analistas, setAnalistas] = useState<Analista[]>([]);
   const [selectedAdministrador, setSelectedAdministrador] = useState<string>('');

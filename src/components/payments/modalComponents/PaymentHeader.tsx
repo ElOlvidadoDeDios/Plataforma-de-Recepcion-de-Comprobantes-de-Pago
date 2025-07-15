@@ -48,14 +48,11 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
   const currentPayment = useRef<string | null>(null);
 
   useEffect(() => {
-    console.log('🔄 useEffect ejecutándose - paymentDetails:', !!paymentDetails, 'paymentType:', paymentType);
     if (paymentDetails) {
       // Solo establecer el tipo normal en la primera carga
       if (paymentType === 'normal') {
-        console.log('🔧 Inicializando tipo de pago a normal');
         onTypeChange?.('normal', paymentDetails.MAXIMO_PAGO);
       } else {
-        console.log('🔧 Manteniendo tipo de pago actual:', paymentType);
         // Mantener el tipo actual pero actualizar el límite
         const limit = paymentType === 'liquidacion' ? paymentDetails.MONTO_LIQUIDA : paymentDetails.MAXIMO_PAGO;
         onTypeChange?.(paymentType, limit);
@@ -75,15 +72,12 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
         try {
           currentPayment.current = displayedPayment.creditoId;
           const data = await procesarInfoPago(displayedPayment.creditoId, displayedPayment.dni);
-          console.log('🔍 Datos recibidos de procesarInfoPago:', data);
           if (Array.isArray(data) && data[0]?.status === false) {
             toast.error(data[0].message);
             return;
           }
           setPaymentDetails(data);
-          console.log('✅ PaymentDetails actualizados:', data);
         } catch (error: any) {
-          console.error('❌ Error en fetchData:', error);
           toast.error(error.message || 'Error al obtener datos del pagaré');
         }
       };
@@ -98,17 +92,6 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
       currentPayment.current = null;
     }
   }, [displayedPayment.creditoId, displayedPayment.dni, showImage]);
-
-  // Debug: Mostrar estado actual
-  console.log('🔍 Estado actual del PaymentHeader:', {
-    paymentDetails: !!paymentDetails,
-    paymentType,
-    showImage,
-    creditoId: displayedPayment.creditoId,
-    dni: displayedPayment.dni,
-    MONTO_LIQUIDA: paymentDetails?.MONTO_LIQUIDA,
-    MAXIMO_PAGO: paymentDetails?.MAXIMO_PAGO
-  });
 
   return (
     <div className="p-3 lg:p-4 border-b border-gray-200">
@@ -160,12 +143,9 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                     checked={paymentType === 'liquidacion'}
                     disabled={!paymentDetails}
                     onChange={() => {
-                      console.log('🔄 Cambiando a liquidación total');
-                      console.log('📊 PaymentDetails actual:', paymentDetails);
-                      console.log('💰 MONTO_LIQUIDA:', paymentDetails?.MONTO_LIQUIDA);
+
                       setPaymentType('liquidacion');
                       const montoLiquida = paymentDetails?.MONTO_LIQUIDA || 0;
-                      console.log('📤 Enviando a onTypeChange:', { type: 'liquidacion', amount: montoLiquida });
                       onTypeChange?.('liquidacion', montoLiquida);
                     }}
                   />

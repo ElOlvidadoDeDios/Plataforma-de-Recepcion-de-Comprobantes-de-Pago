@@ -219,7 +219,6 @@ const ModalDetailsMora = ({
       
       onOpenExtractModal();
     } catch (error) {
-      console.error('Error al obtener gestión anterior:', error);
       // Si hay error, mostrar que no se encontraron gestiones
       onSetGestionesAnteriores([]);
       onOpenExtractModal();
@@ -241,7 +240,6 @@ const ModalDetailsMora = ({
       const response = await creditAttentionApi.getGestionMora1x1(gestionData);
       setGestionMoraActualizada(response.GESTION_MORA);
     } catch (error) {
-      console.error('Error al actualizar gestión de mora:', error);
       // Si hay error, mantener los datos originales
       setGestionMoraActualizada(null);
     }

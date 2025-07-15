@@ -365,19 +365,8 @@ export const handlePartialAcceptStatus = async (
   // Validar monto individual del voucher
   const montoVoucher = parseFloat(selectedVoucher.montoPago) || 0;
   
-  // 🔍 DEBUG: Ver qué valores están llegando
-  console.log('🔍 DEBUG Aceptar Parcial - Valores completos:', {
-    paymentType,
-    paymentLimit,
-    paymentLimitType: typeof paymentLimit,
-    montoVoucher,
-    allProps: props
-  });
-
   // 🚨 DIAGNÓSTICO: El límite está llegando como 0 cuando debería tener valor
   if (paymentLimit === 0) {
-    console.error('⚠️ PROBLEMA: paymentLimit está llegando como 0 - revisar componente padre');
-    console.log('📊 Props completas recibidas:', props);
   }
 
   // VALIDAR LÍMITES SEGÚN EL TIPO DE PAGO (IGUAL QUE handleAcceptStatus)
