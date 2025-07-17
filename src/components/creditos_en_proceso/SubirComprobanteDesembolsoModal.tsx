@@ -1,0 +1,211 @@
+import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { uploadVoucher } from '../../api/customerConsultationAPI';
+import { useAuth } from '../../hooks/useAuth';
+import { ClienteDesembolso } from '../../api/desembolsosApi';
+
+interface SubirComprobanteDesembolsoModalProps {
+  credito: ClienteDesembolso;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalProps> = ({
+  credito,
+  onClose,
+  onSuccess
+}) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+
+  // Manejar selección de archivo
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validar que sea una imagen
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor seleccione solo archivos de imagen (PNG, JPG, JPEG)');
+        return;
+      }
+
+      // Validar tamaño (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('El archivo no debe superar 5MB');
+        return;
+      }
+
+      setSelectedFile(file);
+      
+      // Crear preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Función para enviar el archivo
+  const handleSubmit = async () => {
+    if (!selectedFile) {
+      alert('Por favor seleccione un archivo');
+      return;
+    }
+
+    if (!user) {
+      alert('Usuario no autenticado');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const voucherData = {
+        DNI_SOCIO: credito.DATOS_SOCIO.DNI,
+        PAGARE: credito.CREDITO_DESEMBOLSO.PAGARE,
+        AGENCIA: 'PRINCIPAL',
+        ANALISTA: user.dni
+      };
+
+      const result = await uploadVoucher(voucherData, selectedFile);
+
+      if (result.status) {
+        alert('Comprobante subido exitosamente');
+        onSuccess?.();
+        onClose();
+      } else {
+        throw new Error(result.message || 'Error al subir comprobante');
+      }
+
+    } catch (error) {
+      console.error('Error al subir comprobante:', error);
+      alert('Error al enviar el archivo. Por favor intente nuevamente.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10001] p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">
+                📤 Subir Comprobante de Desembolso
+              </h2>
+              <p className="text-sm text-gray-600">
+                Pagaré: {credito.CREDITO_DESEMBOLSO.PAGARE}
+              </p>
+              <p className="text-sm text-gray-600">
+                Cliente: {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 transition-colors"
+              disabled={isLoading}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Contenido principal */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar comprobante de transferencia
+              </label>
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {previewImage ? (
+                  <div className="space-y-2">
+                    <img
+                      src={previewImage}
+                      alt="Preview"
+                      className="max-w-full max-h-40 mx-auto rounded"
+                    />
+                    <p className="text-sm text-gray-600">{selectedFile?.name}</p>
+                    <p className="text-xs text-gray-500">
+                      Tamaño: {((selectedFile?.size || 0) / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium text-cyan-600 hover:text-cyan-500">
+                        Haga clic para seleccionar
+                      </span>
+                      <p className="text-xs mt-1">PNG, JPG, JPEG hasta 5MB</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Información del envío */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-700 mb-2">Datos que se enviarán:</h3>
+              <div className="text-xs text-blue-600 space-y-1">
+                <p>• DNI Socio: {credito.DATOS_SOCIO.DNI}</p>
+                <p>• Pagaré: {credito.CREDITO_DESEMBOLSO.PAGARE}</p>
+                <p>• Agencia: PRINCIPAL</p>
+                <p>• Analista: {user?.dni || 'No disponible'}</p>
+                <p>• Monto: S/ {credito.CREDITO_DESEMBOLSO.MONTO_APRO}</p>
+                <p>• Archivo: png o jpg</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Botones */}
+          <div className="flex justify-end space-x-3 pt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+              disabled={isLoading}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSubmit}
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center"
+              disabled={!selectedFile || isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Enviando...
+                </>
+              ) : (
+                'Subir Comprobante'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export default SubirComprobanteDesembolsoModal;

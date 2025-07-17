@@ -5,10 +5,12 @@
 @layer base {
   html {
     font-family: 'Poppins', system-ui, sans-serif;
+    -text-size-adjust: none;
     -webkit-text-size-adjust: 100%;
     -moz-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    size-adjust: 100%;
   }
   
   body {

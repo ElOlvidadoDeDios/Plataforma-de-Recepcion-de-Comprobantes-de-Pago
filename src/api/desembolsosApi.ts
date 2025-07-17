@@ -67,7 +67,6 @@ export const obtenerCreditosPendientesDesembolsar = async (): Promise<ClienteDes
     return [];
 
   } catch (error) {
-    console.error('Error al obtener créditos pendientes:', error);
     throw error;
   }
 };

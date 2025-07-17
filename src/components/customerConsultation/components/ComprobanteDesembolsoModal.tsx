@@ -7,12 +7,14 @@ interface ComprobanteDesembolsoModalProps {
   credito: DetalleCredito;
   clientData: ClienteResponse;
   onClose: () => void;
+  readOnly?: boolean; // Nuevo prop para modo solo lectura
 }
 
 const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
   credito,
   clientData,
-  onClose
+  onClose,
+  readOnly = false
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string>('');
@@ -154,7 +156,10 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
           <div className="flex items-center justify-between mb-6">
             <div>
               <h2 className={`text-xl font-bold ${voucherExists ? 'text-green-800' : 'text-gray-800'}`}>
-                {voucherExists ? '✅ Comprobante de Desembolso' : '📤 Subir Comprobante de Desembolso'}
+                {readOnly
+                  ? (voucherExists ? '✅ Comprobante de Desembolso' : '📋 Estado del Comprobante')
+                  : (voucherExists ? '✅ Comprobante de Desembolso' : ' Subir Comprobante de Desembolso')
+                }
               </h2>
               <p className="text-sm text-gray-600">
                 Préstamo: {credito.ID_PRESTAMO}
@@ -206,6 +211,23 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
                   Ver Comprobante
                 </button>
               </div>
+            ) : readOnly ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                <div className="text-yellow-600 mb-4">
+                  <svg className="mx-auto h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                  Desembolso aún no realizado
+                </h3>
+                <p className="text-sm text-yellow-600 mb-4">
+                  Este préstamo aún no ha sido desembolsado, por lo que no hay comprobante disponible.
+                </p>
+                <p className="text-xs text-yellow-500">
+                  El comprobante estará disponible una vez que se realice el desembolso.
+                </p>
+              </div>
             ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -253,7 +275,7 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
             )}
 
             {/* Información del envío */}
-            {!voucherExists && (
+            {!voucherExists && !readOnly && (
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h3 className="text-sm font-semibold text-blue-700 mb-2">Datos que se enviarán:</h3>
                 <div className="text-xs text-blue-600 space-y-1">
@@ -277,7 +299,7 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
             >
               {voucherExists ? 'Cerrar' : 'Cancelar'}
             </button>
-            {!voucherExists && (
+            {!voucherExists && !readOnly && (
               <button
                 onClick={handleSubmit}
                 className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center"

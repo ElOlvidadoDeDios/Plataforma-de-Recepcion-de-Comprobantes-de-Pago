@@ -928,6 +928,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
         <ComprobanteDesembolsoModal
           credito={selectedCreditoDesembolso}
           clientData={clientData}
+          readOnly={true}
           onClose={async () => {
             setShowComprobanteModal(false);
             

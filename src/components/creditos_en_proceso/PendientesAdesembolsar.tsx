@@ -9,6 +9,7 @@ import {
   getEstadoDatosBancarios, 
   tieneDatosBancariosCompletos 
 } from '../../api/desembolsosApi';
+import SubirComprobanteDesembolsoModal from './SubirComprobanteDesembolsoModal';
 
 const PendientesAdesembolsar: React.FC = () => {
   const { user } = useAuth();
@@ -16,6 +17,8 @@ const PendientesAdesembolsar: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [selectedCredito, setSelectedCredito] = useState<ClienteDesembolso | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
   // Verificar si el usuario tiene permisos para acceder a este componente
   const hasAccess = (): boolean => {
@@ -60,6 +63,22 @@ const PendientesAdesembolsar: React.FC = () => {
     const monto = parseFloat(credito.CREDITO_DESEMBOLSO.MONTO_APRO.replace(/[^\d.]/g, '')) || 0;
     return total + monto;
   }, 0);
+
+  // Funciones para manejar el modal
+  const abrirModal = (credito: ClienteDesembolso) => {
+    setSelectedCredito(credito);
+    setShowModal(true);
+  };
+
+  const cerrarModal = () => {
+    setShowModal(false);
+    setSelectedCredito(null);
+  };
+
+  const handleUploadSuccess = () => {
+    // Opcionalmente recargar la lista de créditos
+    cargarCreditos();
+  };
 
   const getEstadoBadge = (cliente: ClienteDesembolso) => {
     const estado = getEstadoDatosBancarios(cliente);
@@ -204,21 +223,16 @@ const PendientesAdesembolsar: React.FC = () => {
       {/* Acciones */}
       <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
         <div className="flex justify-between items-center">
-          <div className="flex space-x-2">
-            <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              Ver Detalles
-            </button>
-          </div>
+
           
-          <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+          <button
+            onClick={() => abrirModal(credito)}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            Subir Imagen
+            Subir Comprobante
           </button>
         </div>
       </div>
@@ -303,16 +317,11 @@ const PendientesAdesembolsar: React.FC = () => {
               </td>
               <td className="px-6 py-4">
                 <div className="flex space-x-2">
-                  <button className="text-blue-600 hover:text-blue-900 transition-colors text-sm">
-                    Ver Detalles
-                  </button>
-                  {!tieneDatosBancariosCompletos(credito) && (
-                    <button className="text-green-600 hover:text-green-900 transition-colors text-sm">
-                      Completar
-                    </button>
-                  )}
-                  <button className="text-gray-600 hover:text-gray-900 transition-colors text-sm">
-                    📤 Subir
+                  <button
+                    onClick={() => abrirModal(credito)}
+                    className="text-gray-600 hover:text-gray-900 transition-colors text-sm"
+                  >
+                    Subir Comprobante
                   </button>
                 </div>
               </td>
@@ -471,6 +480,15 @@ const PendientesAdesembolsar: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Modal para subir comprobante */}
+      {showModal && selectedCredito && (
+        <SubirComprobanteDesembolsoModal
+          credito={selectedCredito}
+          onClose={cerrarModal}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
     </Layout>
   );
 };
