@@ -219,9 +219,6 @@ const Welcome: React.FC = () => {
     // Usar las dimensiones EXACTAS medidas del contenedor Welcome
     const containerWidth = containerSize.width;
     const containerHeight = containerSize.height;
-    
-    console.log(`Cometa ${index}: Contenedor medido = ${containerWidth}x${containerHeight}`);
-    
     // Calcular offset automático basado en el tamaño del contenedor (3% del tamaño)
     const offsetX = containerWidth ;  // 3% del ancho como offset
     const offsetY = containerHeight ; // 3% del alto como offset
@@ -238,8 +235,6 @@ const Welcome: React.FC = () => {
     const cornerIndex = index % corners.length;
     const corner = corners[cornerIndex];
     
-    console.log(`Cometa ${index} desde ${corner.name}: esquina real (${corner.x}, ${corner.y})`);
-
     // Posición inicial: Automática con offset calculado
     const startX = corner.x === 0 ? -offsetX : corner.x + offsetX;
     const startY = corner.y === 0 ? -offsetY : corner.y + offsetY;
@@ -247,9 +242,6 @@ const Welcome: React.FC = () => {
     // Explosión: CENTRO exacto del contenedor medido
     const endX = containerWidth / 2;
     const endY = containerHeight / 2;
-    
-    console.log(`Cometa ${index}: Offset auto = ±${offsetX.toFixed(1)}px`);
-    console.log(`Cometa ${index}: ${startX.toFixed(1)}, ${startY.toFixed(1)} → ${endX.toFixed(1)}, ${endY.toFixed(1)}`);
 
     // Duración para el movimiento
     const travelDuration = 6 + Math.random() * 2;
