@@ -43,7 +43,6 @@ const PendientesAdesembolsar: React.FC = () => {
       setCreditos(data);
     } catch (err) {
       setError('Error al cargar los créditos pendientes');
-      console.error('Error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -149,26 +148,26 @@ const PendientesAdesembolsar: React.FC = () => {
             <div className="bg-gray-50 rounded-lg p-3 space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Pagaré:</span>
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-normal text-gray-900">
                   {credito.CREDITO_DESEMBOLSO.PAGARE}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Producto:</span>
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-normal text-gray-900">
                   {credito.CREDITO_DESEMBOLSO.PRODUCTO}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Monto Aprobado:</span>
-                <span className="text-sm font-bold text-green-600">
+                <span className="text-sm font-normal text-gray-600">
                   S/ {formatearMonto(credito.CREDITO_DESEMBOLSO.MONTO_APRO)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Monto Neto:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {credito.CREDITO_DESEMBOLSO.MONTO_NETO}
+                <span className="text-sm text-gray-600">Monto a Desembolsar:</span>
+                <span className="text-sm font-bold text-green-600">
+                 S/ {credito.CREDITO_DESEMBOLSO.MONTO_NETO}
                 </span>
               </div>
             </div>
