@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { UserResponse } from '../../../types';
+import { SessionManager } from '../../../utils/sessionManager';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -57,7 +58,7 @@ const AdminChangePasswordModal: React.FC<AdminChangePasswordModalProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${SessionManager.getItem('token')}`
         },
         body: JSON.stringify({
           userId: user._id,

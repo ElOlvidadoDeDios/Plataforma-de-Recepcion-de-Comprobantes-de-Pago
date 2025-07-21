@@ -11,6 +11,7 @@ import { usePayments } from '../hooks/usePayments';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
 import { Navigate } from 'react-router-dom';
+import ReportePagosModal from './reportes/ReportePagosModal';
 
 interface PaymentsPageProps {
   socket: Socket | null;
@@ -24,6 +25,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   const [dniFilter, setDniFilter] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'pendiente' | 'parcial' | 'atendido' | 'todos'>('pendiente');
   const [searchMode, setSearchMode] = useState(false); // Para diferenciar búsqueda por DNI vs filtros
+  const [isReporteModalOpen, setIsReporteModalOpen] = useState(false);
   
   // Estado inicial de agencia con useMemo
   const defaultAgencia = React.useMemo(() => {
@@ -58,14 +60,14 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   if (validations.isPaymentsUser && !validations.hasAgencias) {
     return (
       <Layout title="Gestión de Pagos">
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Acceso Pendiente</h2>
-            <p className="text-gray-600 mb-4">
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 max-w-md w-full">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Acceso Pendiente</h2>
+            <p className="text-gray-600 mb-4 text-sm sm:text-base">
               Para comenzar a procesar pagos, el administrador debe asignarle una o más agencias de trabajo.
               Por favor, espere a que se complete esta configuración.
             </p>
-            <p className="text-sm text-gray-500 mt-4">
+            <p className="text-xs sm:text-sm text-gray-500 mt-4">
               Esta configuración es necesaria para garantizar la correcta gestión de los pagos.
               Si cree que esto es un error, contacte al administrador del sistema.
             </p>
@@ -211,10 +213,10 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   return (
     <Layout title="Gestión de Pagos">
       {validations.isPaymentsUser && !selectedAgencia && validations.hasAgencias ? (
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-          <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Selección de Agencia</h2>
-            <p className="text-gray-600 mb-4">
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 max-w-md w-full">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Selección de Agencia</h2>
+            <p className="text-gray-600 mb-4 text-sm sm:text-base">
               Por favor, seleccione la agencia donde procesará los pagos. Esta selección determina
               los pagos que podrá gestionar.
             </p>
@@ -223,7 +225,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 <select
                   value={selectedAgencia}
                   onChange={(e) => setSelectedAgencia(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-cyan-500 text-lg"
+                  className="w-full rounded-md border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-cyan-500 text-base sm:text-lg"
                 >
                   <option value="">Seleccione una agencia</option>
                   {user.agencias
@@ -243,18 +245,18 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
           </div>
         </div>
       ) : (
-        <div>
-          <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-6 mb-6">
+        <div className="px-2 sm:px-0">
+          <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-4 sm:p-6 mb-6">
             <div className="mb-6 pb-4">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{user?.razon} {user?.cargo}</h2>
-                  <p className="text-sm text-gray-500">
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center sm:gap-4">
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{user?.razon} {user?.cargo}</h2>
+                  <p className="text-xs sm:text-sm text-gray-500">
                     {user?.role === UserRole.CAJERO ? 'Cajero' : user?.role}
                     {user?.dni && <span className="ml-2">- DNI: {user.dni}</span>}
                   </p>
                   {selectedAgencia && (
-                    <p className="text-sm text-cyan-600 mt-1">
+                    <p className="text-xs sm:text-sm text-cyan-600 mt-1">
                       Agencia: {Object.entries(AGENCIAS).find(([_, code]) => code === selectedAgencia)?.[0]}
                     </p>
                   )}
@@ -263,7 +265,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 {user?.role === UserRole.CAJERO && user?.agencias && user?.agencias.length > 1 && (
                   <button
                     onClick={() => setSelectedAgencia('')}
-                    className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
+                    className="text-cyan-600 hover:text-cyan-700 text-xs sm:text-sm font-medium self-start sm:self-auto whitespace-nowrap"
                   >
                     Cambiar Agencia
                   </button>
@@ -272,23 +274,23 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
             </div>
               <div className="space-y-6 border-b border-gray-200 pb-6">
                 {/* Contenedor principal de filtros */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-6 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 sm:p-6 shadow-sm">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                     </svg>
-                    Filtros de Búsqueda
+                    <span>Filtros de Búsqueda</span>
                   </h3>
 
                   {/* Contenedor de filtros organizados */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     {/* Búsqueda por DNI */}
                     <div className="space-y-3">
-                      <label htmlFor="dni-input" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="dni-input" className="block text-xs sm:text-sm font-medium text-gray-700">
                         🔍 Buscar por DNI del Cliente
                       </label>
-                      <div className="flex gap-3">
-                        <div className="flex-1 max-w-xs">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="flex-1 max-w-full sm:max-w-xs">
                           <input
                             id="dni-input"
                             type="text"
@@ -302,16 +304,16 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                         <button
                           onClick={handleDNISearch}
                           disabled={!esDniValido(dniFilter)}
-                          className={`px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 shadow-sm ${
+                          className={`px-4 sm:px-6 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-sm min-h-[42px] whitespace-nowrap ${
                             !esDniValido(dniFilter)
                               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                              : 'bg-cyan-600 text-white hover:bg-cyan-700 hover:shadow-md transform hover:scale-105'
+                              : 'bg-cyan-600 text-white hover:bg-cyan-700 hover:shadow-md active:scale-95'
                           }`}
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                           </svg>
-                          Buscar
+                          <span>Buscar</span>
                         </button>
                       </div>
                       {dniFilter && !esDniValido(dniFilter) && (
@@ -321,10 +323,10 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
 
                     {/* Filtro por Estado */}
                     <div className="space-y-3">
-                      <label htmlFor="status-select" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="status-select" className="block text-xs sm:text-sm font-medium text-gray-700">
                         📊 Filtrar por Estado de Pago
                       </label>
-                      <div className="relative max-w-xs">
+                      <div className="relative max-w-full sm:max-w-xs">
                         <select
                           id="status-select"
                           value={selectedStatus}
@@ -347,43 +349,62 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 </div>
 
                 {/* Barra de resultados y acciones */}
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 px-2">
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 px-2">
+                  {/* Información de resultados */}
                   <div className="flex items-center gap-3">
-                    <div className="text-sm text-gray-600 font-medium">
+                    <div className="text-xs sm:text-sm text-gray-600 font-medium">
                       {(searchMode ? filteredDniResults : payments).length > 0 ? (
                         <span className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          Mostrando {(searchMode ? filteredDniResults : payments).length} comprobante{(searchMode ? filteredDniResults : payments).length !== 1 ? 's' : ''}
-                          {!searchMode && pagination.total > 0 && ` de ${pagination.total} total`}
-                          {searchMode && <span className="text-cyan-600 ml-1">({dniFilter}) - {selectedStatus !== 'todos' ? `Estado: ${selectedStatus}` : 'Todos los estados'}</span>}
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse flex-shrink-0"></div>
+                          <span className="break-words">
+                            Mostrando {(searchMode ? filteredDniResults : payments).length} comprobante{(searchMode ? filteredDniResults : payments).length !== 1 ? 's' : ''}
+                            {!searchMode && pagination.total > 0 && ` de ${pagination.total} total`}
+                            {searchMode && (
+                              <span className="text-cyan-600 ml-1 block sm:inline">
+                                ({dniFilter}) - {selectedStatus !== 'todos' ? `Estado: ${selectedStatus}` : 'Todos los estados'}
+                              </span>
+                            )}
+                          </span>
                         </span>
                       ) : (
                         <span className="flex items-center gap-2 text-gray-500">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
                           Sin resultados
                         </span>
                       )}
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
+                  {/* Botones de acción - Distribuidos mejor en pantallas grandes */}
+                  <div className="flex flex-col sm:flex-row lg:flex-row gap-3 lg:flex-shrink-0">
                     <button
                       onClick={() => navigate('/payments/history')}
-                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-5 py-2.5 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
+                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Ver Historial
+                      <span>Ver Historial</span>
                     </button>
+                    
+                    <button
+                      onClick={() => setIsReporteModalOpen(true)}
+                      className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
+                    >
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>Reporte de Pagos</span>
+                    </button>
+                    
                     <button
                       onClick={clearFilters}
-                      className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-5 py-2.5 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 text-sm font-medium flex items-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
+                      className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      Limpiar Filtros
+                      <span>Limpiar Filtros</span>
                     </button>
                   </div>
                 </div>
@@ -391,19 +412,19 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
           </div>
 
           {loading && !loadingMore ? (
-            <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-8 text-center">
+            <div className="bg-white/50 backdrop-blur-sm rounded-xl shadow-lg p-6 sm:p-8 text-center mx-2 sm:mx-0">
               <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4" />
-              <p className="text-gray-600 font-medium">Cargando pagos...</p>
+              <p className="text-gray-600 font-medium text-sm sm:text-base">Cargando pagos...</p>
             </div>
           ) : (searchMode ? filteredDniResults : payments).length === 0 ? (
-            <div className="rounded-xl p-8 text-center">
-              <p className="text-gray-600 font-medium">
+            <div className="rounded-xl p-6 sm:p-8 text-center mx-2 sm:mx-0">
+              <p className="text-gray-600 font-medium text-sm sm:text-base">
                 {searchMode && dniFilter ? `No se encontraron comprobantes para el DNI ${dniFilter}` : `No se encontraron comprobantes`}
               </p>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 px-2 sm:px-0">
                 {(searchMode ? filteredDniResults : payments).map((payment) => (
                   <PaymentCard
                     key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
@@ -435,6 +456,12 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
           )}
         </div>
       )}
+      
+      {/* Modal de Reporte de Pagos */}
+      <ReportePagosModal
+        isOpen={isReporteModalOpen}
+        onClose={() => setIsReporteModalOpen(false)}
+      />
     </Layout>
   );
 };

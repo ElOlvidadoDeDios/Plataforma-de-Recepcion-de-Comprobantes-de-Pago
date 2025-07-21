@@ -3,6 +3,7 @@ import Layout from '../Layout';
 import { creditAttentionApi, ClienteMora, AdministradorInfo } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
 import { jwtDecode } from 'jwt-decode';
+import { SessionManager } from '../../utils/sessionManager';
 import ModalDetailsMora from './modal_datails_mora';
 
 // Interface para analista (nueva estructura del nuevo endpoint)
@@ -72,7 +73,7 @@ const GestionMora = () => {
 
   // Función para obtener datos del token JWT
   const getTokenData = () => {
-    const token = localStorage.getItem('token');
+    const token = SessionManager.getItem('token');
     if (!token) {
       throw new Error('No hay token de autenticación');
     }

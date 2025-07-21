@@ -1,6 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../hooks/useAuth';
+import { SessionManager } from '../utils/sessionManager';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -23,7 +24,7 @@ const initializeSocket = () => {
     timeout: 20000,
     withCredentials: true,
     auth: {
-      token: localStorage.getItem('token'),
+      token: SessionManager.getItem('token'),
     },
     path: '/socket.io/',
     forceNew: true,

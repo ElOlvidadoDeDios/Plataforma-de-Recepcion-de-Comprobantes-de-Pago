@@ -1,12 +1,13 @@
 import axios, { AxiosError } from 'axios';
 import { CreditRequest } from '../types/creditRequest';
 import { APIError } from '../utils/error';
+import { SessionManager } from '../utils/sessionManager';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Función para obtener el token del localStorage
+// Función para obtener el token usando SessionManager
 const getToken = () => {
-    return localStorage.getItem('token');
+    return SessionManager.getItem('token');
 };
 
 // Configuración de Axios para incluir el token en cada solicitud

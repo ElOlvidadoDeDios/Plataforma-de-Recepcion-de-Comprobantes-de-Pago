@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
+import { SessionManager } from '../utils/sessionManager';
 
 const API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
 
@@ -93,12 +94,11 @@ const Login = () => {
         return;
       }
       
-      // Limpiar cualquier estado anterior
-      localStorage.clear();
-      localStorage.debug = '*';
+      // Limpiar solo la sesión actual (no todas las sesiones del navegador)
+      SessionManager.clearCurrentSession();
       
-      // Guardar token
-      localStorage.setItem('token', data.token);
+      // Guardar token usando SessionManager
+      SessionManager.setItem('token', data.token);
       
       // Usar los datos del usuario que vienen en la respuesta
       const userData = data.user;

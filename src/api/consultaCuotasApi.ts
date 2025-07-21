@@ -1,4 +1,5 @@
 import { ConsultaCuota } from '../types/consultaCuotas';
+import { SessionManager } from '../utils/sessionManager';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -7,7 +8,7 @@ export const fetchAllConsultas = async (): Promise<ConsultaCuota[]> => {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${SessionManager.getItem('token')}`
         },
     });
 
@@ -24,7 +25,7 @@ export const fetchConsultasByDni = async (dni: string): Promise<ConsultaCuota[]>
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${SessionManager.getItem('token')}`
         },
     });
 
@@ -42,7 +43,7 @@ export const fetchConsultasByDniAndPagare = async (dni: string, pagare: string):
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${SessionManager.getItem('token')}`
         },
     });
 
@@ -59,7 +60,7 @@ export const fetchConsultasByFecha = async (fechas: { fechaInicio: string, fecha
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${SessionManager.getItem('token')}`
         },
         body: JSON.stringify(fechas)
     });

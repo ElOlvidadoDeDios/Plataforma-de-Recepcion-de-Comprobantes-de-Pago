@@ -3,6 +3,7 @@ import { creditRequestApi } from '../api';
 import { CreditRequest, CreditRequestStatus, AttentionStatus } from '../types/creditRequest';
 import { useAuth } from './useAuth';
 import { APIError } from '../utils/error';
+import { SessionManager } from '../utils/sessionManager';
 import toast from 'react-hot-toast';
 
 export const useCreditRequests = () => {
@@ -25,7 +26,7 @@ export const useCreditRequests = () => {
         if (err instanceof APIError) {
             if (err.statusCode === 401) {
                 toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
-                localStorage.removeItem('token');
+                SessionManager.removeItem('token');
                 window.location.href = '/login';
                 return;
             }

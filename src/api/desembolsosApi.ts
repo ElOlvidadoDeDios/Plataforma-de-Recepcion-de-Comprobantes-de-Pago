@@ -1,3 +1,5 @@
+import { SessionManager } from '../utils/sessionManager';
+
 // Interfaces para los datos del endpoint de desembolsos
 export interface DatosSocio {
   DNI: string;
@@ -43,7 +45,7 @@ export const obtenerCreditosPendientesDesembolsar = async (): Promise<ClienteDes
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${SessionManager.getItem('token')}`,
       },
     });
 

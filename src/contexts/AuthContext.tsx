@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { UserRole, UserWithRole } from '../types/roles';
+import { SessionManager } from '../utils/sessionManager';
 
 // Interfaz que define la estructura del contexto de autenticación
 export interface AuthContextType {
@@ -24,11 +25,11 @@ export const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem('token');
+    return !!SessionManager.getItem('token');
   });
   
   const [user, setUser] = useState<UserWithRole | null>(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = SessionManager.getItem('user');
     if (storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
@@ -65,7 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     
     setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    SessionManager.setItem('user', JSON.stringify(newUser));
   };
 
   // Ahora la verificación de permisos se delega al backend
@@ -113,16 +114,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Verificar expiración del token periódicamente
   useEffect(() => {
     const checkTokenExpiration = () => {
-      const token = localStorage.getItem('token');
+      const token = SessionManager.getItem('token');
       if (token) {
         try {
           const decoded: any = jwtDecode(token);
           if (decoded.exp * 1000 < Date.now()) {
-            // Token expirado
+            // Token expirado - solo limpiar la sesión actual
             setIsAuthenticated(false);
             setUser(null);
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            SessionManager.removeItem('token');
+            SessionManager.removeItem('user');
             window.location.href = '/login';
           }
         } catch (error) {

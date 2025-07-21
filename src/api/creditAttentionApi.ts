@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { CreditAttentionResponse } from '../types/creditAttention';
+import { SessionManager } from '../utils/sessionManager';
 
 // Interfaces para gestión de mora
 export interface AnalistaByAgencia {
@@ -87,7 +88,7 @@ const axiosInstance = axios.create({
 // Interceptor para incluir el token en cada solicitud
 axiosInstance.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = SessionManager.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }

@@ -1,638 +1,441 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useAnimation } from 'framer-motion';
-import Layout from './Layout';
+import { motion } from 'framer-motion';
 import { usePermissions } from '../hooks/useAuth';
+import Layout from './Layout';
+
+const isMobile = () => window.innerWidth <= 768;
+const isTablet = () => window.innerWidth > 768 && window.innerWidth <= 1024;
+const isSmallDesktop = () => window.innerWidth > 1024 && window.innerWidth <= 1280;
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
   const permissions = usePermissions();
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const controls = useAnimation();
-  const cometIntervalRef = useRef<NodeJS.Timeout>();
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Estado para forzar re-render cuando cambie el tamaño de pantalla
+  const [, setWindowSize] = React.useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+  
+  // Detectar cambios de tamaño de pantalla
+  React.useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Measure container size correctly
+  // Comet and stars animation
   useEffect(() => {
-    const measureContainer = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setContainerSize({
-          width: rect.width,
-          height: rect.height,
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    const stars = Array.from({ length: isMobile() ? 100 : 200 }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      radius: Math.random() * 1.5 + 0.5,
+      opacity: Math.random() * 0.4 + 0.4,
+    }));
+
+    let comet = {
+      x: -20,
+      y: Math.random() * window.innerHeight * 0.5,
+      vx: 8,
+      vy: Math.random() * 2 - 1,
+      active: true,
+      explode: false,
+      explodeTime: 0,
+      explodeScale: 0,
+      particles: [] as Array<{x: number, y: number, vx: number, vy: number, color: string, life: number}>,
+    };
+
+    const resetComet = () => {
+      comet = {
+        x: -20,
+        y: Math.random() * window.innerHeight * 0.5,
+        vx: 8,
+        vy: Math.random() * 2 - 1,
+        active: true,
+        explode: false,
+        explodeTime: 0,
+        explodeScale: 0,
+        particles: [],
+      };
+    };
+
+    const createExplosionParticles = (x: number, y: number) => {
+      const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#FFD700', '#FFA500'];
+      for (let i = 0; i < 30; i++) {
+        comet.particles.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 12,
+          vy: (Math.random() - 0.5) * 12,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          life: 1.2,
         });
       }
     };
 
-    const handleResize = () => {
-      // Usar requestAnimationFrame para mejor rendimiento
-      requestAnimationFrame(measureContainer);
+    const animate = () => {
+      if (!ctx || !canvas) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw stars with glow
+      stars.forEach((star) => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+        ctx.shadowBlur = 5;
+        ctx.fill();
+      });
+      ctx.shadowBlur = 0; // Reset shadow
+
+      // Animate comet
+      if (comet.active) {
+        comet.x += comet.vx;
+        comet.y += comet.vy;
+
+        // Draw comet
+        ctx.beginPath();
+        ctx.arc(comet.x, comet.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 200, 100, 1)';
+        ctx.shadowColor = 'rgba(255, 200, 100, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.fill();
+
+        // Draw comet tail
+        const gradient = ctx.createLinearGradient(
+          comet.x,
+          comet.y,
+          comet.x - comet.vx * 15,
+          comet.y - comet.vy * 15
+        );
+        gradient.addColorStop(0, 'rgba(255, 200, 100, 1)');
+        gradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+        ctx.beginPath();
+        ctx.moveTo(comet.x, comet.y);
+        ctx.lineTo(comet.x - comet.vx * 15, comet.y - comet.vy * 15);
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Trigger explosion
+        if (comet.x > canvas.width * 0.3 && Math.random() < 0.02) {
+          comet.explode = true;
+          comet.active = false;
+          comet.explodeTime = Date.now();
+          createExplosionParticles(comet.x, comet.y);
+        }
+
+        // Keep comet in bounds
+        if (comet.x > canvas.width || comet.y > canvas.height || comet.y < 0) {
+          resetComet();
+        }
+      }
+
+      // Draw explosion with particles and text "DILE"
+      if (comet.explode) {
+        const elapsed = (Date.now() - comet.explodeTime) / 1000;
+        comet.explodeScale = Math.min(elapsed * 3, 1.5);
+        const opacity = Math.max(1 - elapsed / 2.5, 0);
+
+        // Update and draw particles
+        comet.particles.forEach((particle, ) => {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.vy += 0.2;
+          particle.life -= 0.015;
+
+          if (particle.life > 0) {
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = particle.color + Math.floor(particle.life * 255).toString(16).padStart(2, '0');
+            ctx.shadowColor = particle.color;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+          }
+        });
+
+        // Remove dead particles
+        comet.particles = comet.particles.filter(p => p.life > 0);
+
+        // Draw explosion text "DILE" con colores dorado/amarillo
+        ctx.save();
+        ctx.translate(comet.x, comet.y);
+        ctx.scale(comet.explodeScale, comet.explodeScale);
+        ctx.font = 'bold 60px Arial';
+        ctx.textAlign = 'center';
+        
+        // Sombra exterior dorada
+        ctx.shadowColor = 'rgba(255, 215, 0, 0.9)';
+        ctx.shadowBlur = 25;
+        ctx.strokeStyle = `rgba(255, 140, 0, ${opacity})`;
+        ctx.lineWidth = 4;
+        ctx.strokeText('DILE', 0, 0);
+        
+        // Texto principal dorado brillante
+        const gradient = ctx.createLinearGradient(0, -30, 0, 30);
+        gradient.addColorStop(0, `rgba(255, 223, 0, ${opacity})`); // Amarillo dorado claro
+        gradient.addColorStop(0.5, `rgba(255, 215, 0, ${opacity})`); // Dorado
+        gradient.addColorStop(1, `rgba(255, 165, 0, ${opacity})`); // Naranja dorado
+        ctx.fillStyle = gradient;
+        ctx.fillText('DILE', 0, 0);
+        
+        ctx.restore();
+
+        // Trigger vibration effect on cards
+        if (elapsed < 0.5) {
+          const cards = document.querySelectorAll('[data-card]');
+          cards.forEach(card => {
+            if (!card.classList.contains('animate-shake')) {
+              card.classList.add('animate-shake');
+              setTimeout(() => {
+                card.classList.remove('animate-shake');
+              }, 500);
+            }
+          });
+        }
+
+        // Reset comet after 2.5 seconds
+        if (elapsed > 2.5) {
+          resetComet();
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
     };
 
-    // Observar cambios en el tamaño del contenedor
-    const resizeObserver = new ResizeObserver(handleResize);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
+    // Set canvas size
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      stars.forEach((star) => {
+        star.x = Math.random() * canvas.width;
+        star.y = Math.random() * canvas.height;
+      });
+      resetComet();
+    };
 
-    window.addEventListener('resize', handleResize);
-    
-    // Medir inicialmente con un pequeño delay para asegurar que el layout esté listo
-    setTimeout(measureContainer, 100);
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    animate();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      resizeObserver.disconnect();
+      window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
-  // Enhanced comet animations - cometas cada 8 segundos con inicio inmediato
-  useEffect(() => {
-    if (!permissions.isBasicUser() && containerSize.width > 0 && containerSize.height > 0) {
-      const startGalaxyAnimation = () => {
-        clearInterval(cometIntervalRef.current);
-        
-        // Lanzar el primer cometa inmediatamente
-        setTimeout(() => {
-          controls.start('cometBurst');
-        }, 1000);
-        
-        // Luego lanzar cometas cada 8 segundos
-        cometIntervalRef.current = setInterval(() => {
-          controls.start('cometBurst');
-        }, 8000);
-      };
-      
-      startGalaxyAnimation();
-    }
-
-    return () => {
-      clearInterval(cometIntervalRef.current);
-    };
-  }, [permissions, controls, containerSize]);
-
-  // Generate dynamic stars
-  const generateDynamicStars = () => {
-    return Array.from({ length: 120 }).map((_, i) => {
-      const size = Math.random() * 3 + 1;
-      const duration = Math.random() * 4 + 2;
-      const delay = Math.random() * 5;
-      
-      return (
-        <motion.div
-          key={`star-${i}`}
-          className="absolute bg-white rounded-full"
-          style={{
-            width: `${size}px`,
-            height: `${size}px`,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            opacity: [0.2, 1, 0.2],
-            scale: [0.8, 1.2, 0.8],
-            boxShadow: [
-              '0 0 0px rgba(255,255,255,0.5)',
-              '0 0 20px rgba(255,255,255,0.8)',
-              '0 0 0px rgba(255,255,255,0.5)'
-            ]
-          }}
-          transition={{
-            duration: duration,
-            delay: delay,
-            repeat: Infinity,
-            ease: 'easeInOut'
-          }}
-        />
-      );
-    });
-  };
-
-  // Basic user content with responsive design
-  const BasicUserContent = () => (
-    <div 
-      ref={containerRef}
-      className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center p-2 sm:p-4 overflow-hidden"
-    >
-      <div className="absolute inset-0 pointer-events-none">{generateDynamicStars()}</div>
-      
-      {/* Floating geometric shapes */}
-      <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <motion.div
-            key={`geo-${i}`}
-            className="absolute border-2 border-white/20"
-            style={{
-              width: `${Math.random() * 100 + 50}px`,
-              height: `${Math.random() * 100 + 50}px`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              borderRadius: Math.random() > 0.5 ? '50%' : '0%',
-            }}
-            animate={{
-              rotate: [0, 360],
-              scale: [1, 1.2, 1],
-              opacity: [0.1, 0.3, 0.1],
-            }}
-            transition={{
-              duration: Math.random() * 15 + 10,
-              repeat: Infinity,
-              ease: 'linear'
-            }}
-          />
-        ))}
-      </div>
-      
-      <motion.div
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="relative z-10 w-full max-w-sm sm:max-w-md"
-      >
-        <div className="bg-white/20 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl border border-white/30">
-          <motion.div
-            className="text-center"
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.3 }}
-          >
-            <motion.div
-              animate={{ 
-                rotate: [0, 5, -5, 0],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-              className="text-4xl sm:text-5xl md:text-6xl mb-4 sm:mb-6"
-            >
-              🚀
-            </motion.div>
-            
-            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-white mb-3 sm:mb-4">
-              ¡Bienvenido a la Plataforma!
-            </h2>
-            
-            <motion.div
-              className="h-0.5 bg-gradient-to-r from-transparent via-white/60 to-transparent mb-3 sm:mb-4"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 1, delay: 0.5 }}
-            />
-            
-            <p className="text-white/90 text-sm sm:text-base leading-relaxed">
-              Actualmente tienes acceso básico al sistema. Para obtener acceso a más funcionalidades,
-              por favor contacta al administrador del sistema.
-            </p>
-          </motion.div>
-        </div>
-      </motion.div>
-    </div>
-  );
-
-  // Enhanced Galaxy Comet with explosion effect and DILE text
-  const GalaxyComet = ({ index }: { index: number }) => {
-    // Solo renderizar si tenemos las dimensiones del contenedor
-    if (containerSize.width === 0 || containerSize.height === 0) {
-      return null;
-    }
-
-    // Colores más variados y brillantes
-    const cometColors = [
-      'from-red-400 via-pink-300 to-transparent',
-      'from-blue-400 via-cyan-300 to-transparent',
-      'from-green-400 via-lime-300 to-transparent',
-      'from-purple-400 via-violet-300 to-transparent',
-      'from-yellow-400 via-orange-300 to-transparent',
-      'from-pink-400 via-rose-300 to-transparent',
-      'from-orange-400 via-amber-300 to-transparent',
-      'from-cyan-400 via-teal-300 to-transparent',
-      'from-emerald-400 via-green-300 to-transparent',
-      'from-indigo-400 via-blue-300 to-transparent',
-      'from-fuchsia-400 via-purple-300 to-transparent',
-      'from-rose-400 via-pink-300 to-transparent',
-      'from-lime-400 via-green-300 to-transparent',
-      'from-sky-400 via-blue-300 to-transparent',
-      'from-violet-400 via-purple-300 to-transparent',
-      'from-amber-400 via-yellow-300 to-transparent',
-    ];
-
-    const randomColor = cometColors[Math.floor(Math.random() * cometColors.length)];
-
-    // Usar las dimensiones EXACTAS medidas del contenedor Welcome
-    const containerWidth = containerSize.width;
-    const containerHeight = containerSize.height;
-    // Calcular offset automático basado en el tamaño del contenedor (3% del tamaño)
-    const offsetX = containerWidth ;  // 3% del ancho como offset
-    const offsetY = containerHeight ; // 3% del alto como offset
-    
-    // ESQUINAS EXACTAS basadas en las dimensiones reales
-    const corners = [
-      { x: 0, y: 0, name: "Superior-Izquierda" },
-      { x: containerWidth, y: 0, name: "Superior-Derecha" },
-      { x: containerWidth, y: containerHeight, name: "Inferior-Derecha" },
-      { x: 0, y: containerHeight, name: "Inferior-Izquierda" }
-    ];
-
-    // Cada cometa usa una esquina específica (NO ALEATORIA)
-    const cornerIndex = index % corners.length;
-    const corner = corners[cornerIndex];
-    
-    // Posición inicial: Automática con offset calculado
-    const startX = corner.x === 0 ? -offsetX : corner.x + offsetX;
-    const startY = corner.y === 0 ? -offsetY : corner.y + offsetY;
-
-    // Explosión: CENTRO exacto del contenedor medido
-    const endX = containerWidth / 2;
-    const endY = containerHeight / 2;
-
-    // Duración para el movimiento
-    const travelDuration = 6 + Math.random() * 2;
-    const delay = Math.random() * 0.5;
-
-    return (
-      <motion.div
-        key={`galaxy-comet-${index}-${Date.now()}`}
-        variants={{
-          cometBurst: {
-            x: [startX, endX],
-            y: [startY, endY],
-            opacity: [0, 1, 1, 0],
-            scale: [0.5, 1, 1, 0],
-            transition: {
-              duration: travelDuration,
-              delay: delay,
-              ease: 'easeInOut',
-            },
-          },
-        }}
-        initial={{ x: startX, y: startY, opacity: 0, scale: 0.5 }}
-        animate={controls}
-        className="absolute pointer-events-none z-[9999]"
-      >
-        <div className="relative">
-          {/* Cola del cometa */}
-          <motion.div
-            className={`w-40 sm:w-48 md:w-64 h-4 bg-gradient-to-r ${randomColor} rounded-full shadow-2xl`}
-            animate={{
-              width: [40, 64, 40],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-
-          {/* Núcleo del cometa */}
-          <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-8 sm:w-10 h-8 sm:h-10 bg-white rounded-full shadow-xl shadow-white/80">
-            <div className="absolute inset-0 bg-white rounded-full animate-pulse"></div>
-          </div>
-        </div>
-
-        {/* Explosión mejorada tipo cohete */}
-        <motion.div
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{
-            opacity: [0, 0, 1, 1, 1, 0],
-            scale: [0, 0, 3, 5, 7, 0],
-          }}
-          transition={{
-            duration: travelDuration,
-            delay: delay,
-            times: [0, 0.6, 0.7, 0.8, 0.9, 1],
-            ease: 'easeOut',
-          }}
-        >
-          <div className="relative">
-            {/* Círculo principal de explosión */}
-            <motion.div
-              className="absolute inset-0 w-48 h-48 bg-gradient-to-r from-white via-yellow-400 to-orange-500 rounded-full blur-2xl"
-              animate={{
-                scale: [0, 4, 6],
-                opacity: [1, 0.8, 0],
-              }}
-              transition={{
-                duration: 2,
-                delay: travelDuration * 0.7 + delay,
-                ease: 'easeOut',
-              }}
-            />
-
-            {/* Círculo secundario para brillo */}
-            <motion.div
-              className="absolute inset-0 w-36 h-36 bg-white rounded-full blur-xl"
-              animate={{
-                scale: [0, 3, 5],
-                opacity: [1, 0.6, 0],
-              }}
-              transition={{
-                duration: 1.8,
-                delay: travelDuration * 0.7 + delay,
-                ease: 'easeOut',
-              }}
-            />
-
-            {/* Círculo terciario para destello */}
-            <motion.div
-              className="absolute inset-0 w-24 h-24 bg-yellow-200 rounded-full blur-lg"
-              animate={{
-                scale: [0, 2, 4],
-                opacity: [1, 0.4, 0],
-              }}
-              transition={{
-                duration: 1.5,
-                delay: travelDuration * 0.7 + delay,
-                ease: 'easeOut',
-              }}
-            />
-
-            {/* Partículas de explosión */}
-            {Array.from({ length: 16 }).map((_, i) => {
-              const particleSize = Math.random() * 8 + 6;
-              const angle = (i * 360) / 16 * Math.PI / 180;
-              const distance = 100 + Math.random() * 80;
-              
-              return (
-                <motion.div
-                  key={`particle-${i}`}
-                  className="absolute bg-yellow-100 rounded-full shadow-md"
-                  style={{
-                    width: `${particleSize}px`,
-                    height: `${particleSize}px`,
-                    left: '50%',
-                    top: '50%',
-                  }}
-                  animate={{
-                    x: [0, Math.cos(angle) * distance],
-                    y: [0, Math.sin(angle) * distance],
-                    opacity: [1, 0.7, 0],
-                    scale: [1, 1.5, 0],
-                  }}
-                  transition={{
-                    duration: 2.5,
-                    delay: travelDuration * 0.7 + delay,
-                    ease: 'easeOut',
-                  }}
-                />
-              );
-            })}
-
-            {/* Texto DILE */}
-            <motion.div
-              className="absolute inset-0 flex items-center justify-center"
-              animate={{
-                opacity: [0, 1, 1, 1, 0],
-                scale: [0, 1.5, 2, 2.5, 0],
-                rotate: [0, 5, -5, 0, 0],
-              }}
-              transition={{
-                duration: 3,
-                delay: travelDuration * 0.7 + delay,
-                ease: 'easeOut',
-              }}
-            >
-              <span className="text-white font-extrabold text-3xl sm:text-4xl md:text-6xl drop-shadow-2xl">
-                DILE
-              </span>
-            </motion.div>
-          </div>
-        </motion.div>
-      </motion.div>
-    );
-  };
-
-  // Morphing card component
-  const MorphingCard = ({
+  // Tarjeta reutilizable optimizada
+  const Card = ({
     title,
     description,
     onClick,
     icon,
     index,
-    colorFrom,
-    colorTo,
   }: {
     title: string;
     description: string;
     onClick: () => void;
     icon: React.ReactNode;
     index: number;
-    colorFrom: string;
-    colorTo: string;
-  }) => {
-    const [isHovered, setIsHovered] = useState(false);
-    
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 50, rotateX: -90 }}
-        animate={{ opacity: 1, y: 0, rotateX: 0 }}
-        transition={{
-          duration: 0.6,
-          delay: index * 0.1,
-          type: 'spring',
-          stiffness: 100,
-        }}
-        className="w-full h-full perspective-1000"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        onClick={onClick}
+  }) => (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      className="w-full"
+      onClick={onClick}
+    >
+      <div className={`relative w-full bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col ${
+        isMobile()
+          ? 'p-3 min-h-[300px]'
+          : isTablet()
+          ? 'p-4 min-h-[160px]'
+          : isSmallDesktop()
+          ? 'p-5 min-h-[180px]'
+          : 'p-6 lg:p-8 min-h-[200px] lg:min-h-[220px] xl:min-h-[240px]'
+      }`}
+      data-card
       >
-        <motion.div
-          className="relative w-full h-full cursor-pointer transform-gpu"
-          whileHover={{ 
-            scale: 1.05,
-            rotateY: 10,
-            rotateX: 5,
-          }}
-          whileTap={{ scale: 0.95 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className={`relative w-full h-full min-h-[140px] sm:min-h-[160px] md:min-h-[180px] bg-gradient-to-br ${colorFrom} ${colorTo} rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-xl overflow-hidden`}>
-            
-            {/* Animated background pattern */}
-            <div className="absolute inset-0 opacity-20">
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/30 to-transparent"></div>
-              <motion.div
-                className="absolute -top-4 -right-4 w-16 sm:w-20 h-16 sm:h-20 rounded-full bg-white/20"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.3, 0.6, 0.3],
-                }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </div>
-            
-            {/* Glowing border effect */}
-            <motion.div
-              className="absolute inset-0 rounded-xl sm:rounded-2xl"
-              animate={{
-                boxShadow: isHovered 
-                  ? ['0 0 0px rgba(255,255,255,0.5)', '0 0 30px rgba(255,255,255,0.8)', '0 0 0px rgba(255,255,255,0.5)']
-                  : '0 0 0px rgba(255,255,255,0)'
-              }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-            
-            {/* Content */}
-            <div className="relative z-10 h-full flex flex-col items-center justify-center text-center">
-              <motion.div
-                animate={{
-                  scale: isHovered ? [1, 1.2, 1] : 1,
-                  rotate: isHovered ? [0, 360] : 0,
-                }}
-                transition={{ duration: 0.8, ease: 'easeInOut' }}
-                className="text-3xl sm:text-4xl md:text-5xl mb-2 sm:mb-3 filter drop-shadow-lg"
-              >
-                {icon}
-              </motion.div>
-              
-              <h3 className="font-extrabold text-white text-sm sm:text-base md:text-lg mb-2 sm:mb-3 leading-tight px-1 drop-shadow-lg">
-                {title}
-              </h3>
-              
-              <motion.div
-                className="h-1 bg-white/80 mb-2 sm:mb-3 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: isHovered ? '90%' : '50%' }}
-                transition={{ duration: 0.3 }}
-              />
-              
-              <p className="text-white/95 text-xs sm:text-sm md:text-base leading-relaxed px-1 font-medium drop-shadow-md">
-                {description}
-              </p>
-            </div>
-            
-            {/* Hover glow effect */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-xl sm:rounded-2xl"
-              animate={{
-                opacity: isHovered ? [0, 0.3, 0] : 0,
-              }}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          </div>
-        </motion.div>
-      </motion.div>
-    );
-  };
+        <div className="flex-1 flex flex-col items-center justify-center text-center">
+          <div className={`mb-2 ${
+            isMobile()
+              ? 'text-xl'
+              : isTablet()
+              ? 'text-2xl'
+              : isSmallDesktop()
+              ? 'text-3xl'
+              : 'text-4xl lg:text-5xl xl:text-6xl'
+          }`}>{icon}</div>
+          <h3 className={`font-bold text-white mb-2 leading-tight px-1 ${
+            isMobile()
+              ? 'text-xs'
+              : isTablet()
+              ? 'text-sm'
+              : isSmallDesktop()
+              ? 'text-base'
+              : 'text-lg lg:text-xl xl:text-2xl'
+          }`}>{title}</h3>
+          <div className="h-0.5 bg-white/60 mb-2 rounded-full w-full max-w-[80%]" />
+          <p className={`text-white/90 leading-relaxed px-1 flex-1 ${
+            isMobile()
+              ? 'text-xs line-clamp-2'
+              : isTablet()
+              ? 'text-xs line-clamp-3'
+              : isSmallDesktop()
+              ? 'text-sm line-clamp-3'
+              : 'text-sm lg:text-base xl:text-lg line-clamp-4'
+          }`}>{description}</p>
+        </div>
+      </div>
+    </motion.div>
+  );
 
-  // Privileged user content with responsive grid
+  // Contenido para usuarios con privilegios
   const PrivilegedUserContent = () => {
-    const availableOptions = [];
-    if (permissions.canAccessPayments()) {
-      availableOptions.push({
-        title: 'Ver Pagos',
-        description: 'Gestiona los pagos de los clientes',
-        onClick: () => navigate('/payments'),
-        icon: '💰',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
-    if (permissions.canAccessCredits()) {
-      availableOptions.push({
-        title: 'Solicitudes de Crédito',
-        description: 'Revisa y aprueba solicitudes de crédito',
-        onClick: () => navigate('/credit-requests'),
-        icon: '📝',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
-    if (permissions.canAccessBotInteractions()) {
-      availableOptions.push({
-        title: 'Interacciones del Bot',
-        description: 'Analiza las interacciones con el bot',
-        onClick: () => navigate('/bot-interactions'),
-        icon: '🤖',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
-    if (permissions.canAccessConsultaCuotas()) {
-      availableOptions.push({
-        title: 'Consulta de Cuotas',
-        description: 'Revisa el estado de las cuotas',
-        onClick: () => navigate('/consultas-cuotas'),
-        icon: '📊',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
-    if (!permissions.isBasicUser()) {
-      availableOptions.push({
-        title: 'Consultar socios',
-        description: 'Gestiona tu base de clientes',
-        onClick: () => navigate('/consulta-clientes'),
-        icon: '👥',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
-    if (permissions.canManageUsers()) {
-      availableOptions.push({
-        title: 'Gestión de Usuarios',
-        description: 'Administra los usuarios del sistema',
-        onClick: () => navigate('/user-management'),
-        icon: '👤',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
-    if (permissions.canAccessGestionMora()) {
-      availableOptions.push({
-        title: 'Gestión de Mora',
-        description: 'Gestiona clientes en mora y seguimiento',
-        onClick: () => navigate('/gestion-mora'),
-        icon: '📋',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
-    if (permissions.canAccessPendientesDesembolsar()) {
-      availableOptions.push({
-        title: 'Pendientes a Desembolsar',
-        description: 'Gestiona créditos pendientes de desembolso',
-        onClick: () => navigate('/pendientes-desembolsar'),
-        icon: '💳',
-        colorFrom: 'from-teal-500',
-        colorTo: 'to-blue-600',
-      });
-    }
+    const availableOptions = [
+      ...(permissions.canAccessPayments()
+        ? [{
+            title: 'Ver Pagos',
+            description: 'Gestiona los pagos de los clientes',
+            onClick: () => navigate('/payments'),
+            icon: '💰',
+          }]
+        : []),
+      ...(permissions.canAccessCredits()
+        ? [{
+            title: 'Solicitudes de Crédito',
+            description: 'Revisa y aprueba solicitudes de crédito',
+            onClick: () => navigate('/credit-requests'),
+            icon: '📝',
+          }]
+        : []),
+      ...(permissions.canAccessBotInteractions()
+        ? [{
+            title: 'Interacciones del Bot',
+            description: 'Analiza las interacciones con el bot',
+            onClick: () => navigate('/bot-interactions'),
+            icon: '🤖',
+          }]
+        : []),
+      ...(permissions.canAccessConsultaCuotas()
+        ? [{
+            title: 'Consulta de Cuotas',
+            description: 'Revisa el estado de las cuotas',
+            onClick: () => navigate('/consultas-cuotas'),
+            icon: '📊',
+          }]
+        : []),
+      ...(!permissions.isBasicUser()
+        ? [{
+            title: 'Consultar socios',
+            description: 'Gestiona tu base de clientes',
+            onClick: () => navigate('/consulta-clientes'),
+            icon: '👥',
+          }]
+        : []),
+      ...(permissions.canManageUsers()
+        ? [{
+            title: 'Gestión de Usuarios',
+            description: 'Administra los usuarios del sistema',
+            onClick: () => navigate('/user-management'),
+            icon: '👤',
+          }]
+        : []),
+      ...(permissions.canAccessGestionMora()
+        ? [{
+            title: 'Gestión de Mora',
+            description: 'Gestiona clientes en mora y seguimiento',
+            onClick: () => navigate('/gestion-mora'),
+            icon: '📋',
+          }]
+        : []),
+      ...(permissions.canAccessPendientesDesembolsar()
+        ? [{
+            title: 'Pendientes a Desembolsar',
+            description: 'Gestiona créditos pendientes de desembolso',
+            onClick: () => navigate('/pendientes-desembolsar'),
+            icon: '💳',
+          }]
+        : []),
+    ];
+
+    // Grid responsivo mejorado para adaptarse a diferentes tamaños de pantalla
+    const getGridClass = () => {
+      const optionsCount = availableOptions.length;
+      
+      if (isMobile()) {
+        // Móvil: 1 columna para pantallas muy pequeñas, 2 para pantallas móviles más grandes
+        return window.innerWidth <= 480 ? 'grid-cols-1' : 'grid-cols-2';
+      }
+      
+      if (isTablet()) {
+        // Tablet: 2-3 columnas dependiendo del número de opciones
+        if (optionsCount <= 3) return 'grid-cols-2';
+        return 'grid-cols-3';
+      }
+      
+      if (isSmallDesktop()) {
+        // Desktop pequeño: 2-4 columnas
+        if (optionsCount <= 2) return 'grid-cols-2';
+        if (optionsCount <= 4) return 'grid-cols-3';
+        return 'grid-cols-4';
+      }
+      
+      // Desktop grande: tarjetas más grandes, distribución optimizada
+      if (optionsCount <= 2) return 'grid-cols-1 lg:grid-cols-2';
+      if (optionsCount <= 4) return 'grid-cols-2 lg:grid-cols-2 xl:grid-cols-3';
+      if (optionsCount <= 6) return 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-3';
+      return 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+    };
 
     return (
-      <div
-        ref={containerRef}
-        className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-500 overflow-x-hidden lg:overflow-hidden lg:flex lg:flex-col lg:items-center lg:justify-center overflow-y-auto"
-      >
-        <div className="min-h-full flex flex-col items-center justify-center p-3 sm:p-4 md:p-6 lg:min-h-0 lg:h-full" style={{ minHeight: window.innerWidth >= 1024 ? 'auto' : 'max(100vh, 800px)' }}>
-          <div className="absolute inset-0 pointer-events-none">{generateDynamicStars()}</div>
+      <div className={`${isMobile() ? 'min-h-screen' : 'fixed inset-0'} bg-gradient-to-br from-cyan-500 to-blue-500 ${isMobile() ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 pointer-events-none"
+          style={{ zIndex: 50 }}
+        />
+        
+        {/* Contenido principal */}
+        <div className={`relative z-10 ${isMobile() ? 'min-h-screen' : 'h-full'} flex flex-col`}>
+          {/* Header para móvil */}
+          {isMobile() && (
+            <div className="flex-shrink-0 p-4 text-center">
+              <h1 className="text-white text-lg font-bold">Panel de Control</h1>
+            </div>
+          )}
           
-          {/* Floating nebula effects */}
-          <div className="absolute inset-0 overflow-hidden opacity-20">
-            <div className="absolute top-1/4 left-1/4 w-32 sm:w-48 md:w-64 h-32 sm:h-48 md:h-64 bg-cyan-400 rounded-full mix-blend-screen filter blur-3xl animate-pulse"></div>
-            <div className="absolute bottom-1/3 right-1/3 w-40 sm:w-56 md:w-72 h-40 sm:h-56 md:h-72 bg-blue-400 rounded-full mix-blend-screen filter blur-3xl animate-pulse"></div>
-            <div className="absolute top-1/2 right-1/4 w-24 sm:w-32 md:w-48 h-24 sm:h-32 md:h-48 bg-cyan-300 rounded-full mix-blend-screen filter blur-2xl animate-pulse"></div>
-          </div>
-          
-          {/* Enhanced Galaxy Comets */}
-          {Array.from({ length: 3 }).map((_, i) => (
-            <GalaxyComet key={`galaxy-comet-${i}`} index={i} />
-          ))}
-          
-          {/* Responsive grid */}
-          <div className="relative z-10 w-full max-w-6xl">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-              {availableOptions.map((option, index) => (
-                <MorphingCard
-                  key={`${option.title}-${index}`}
-                  title={option.title}
-                  description={option.description}
-                  onClick={option.onClick}
-                  icon={option.icon}
-                  index={index}
-                  colorFrom={option.colorFrom}
-                  colorTo={option.colorTo}
-                />
-              ))}
+          {/* Grid de opciones */}
+          <div className={`${isMobile() ? 'flex-1 pb-8' : 'flex-1 flex items-center justify-center'} p-4 sm:p-6 lg:p-8 relative z-10`}>
+            <div className="w-full ">
+              <div className={`grid ${getGridClass()} gap-4 sm:gap-6 lg:gap-8`}>
+                {availableOptions.map((option, index) => (
+                  <Card
+                    key={`${option.title}-${index}`}
+                    title={option.title}
+                    description={option.description}
+                    onClick={option.onClick}
+                    icon={option.icon}
+                    index={index}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -640,61 +443,124 @@ const Welcome: React.FC = () => {
     );
   };
 
+  // Contenido para usuarios básicos optimizado
+  const BasicUserContent = () => (
+    <div className="fixed inset-0 bg-gradient-to-br from-cyan-500 to-blue-500 overflow-hidden flex items-center justify-center p-4">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 pointer-events-none"
+        style={{ zIndex: 1 }}
+      />
+      
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-xl border border-white/30">
+          <div className="text-center">
+            <div className="text-4xl sm:text-5xl mb-4 sm:mb-6">🚀</div>
+            <h2 className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
+              ¡Bienvenido a la Plataforma!
+            </h2>
+            <div className="h-0.5 bg-gradient-to-r from-transparent via-white/60 to-transparent mb-4 sm:mb-6" />
+            <p className="text-white/90 text-sm leading-relaxed">
+              Actualmente tienes acceso básico al sistema. Para obtener acceso a más funcionalidades,
+              por favor contacta al administrador del sistema.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <Layout title="Bienvenido a la Plataforma DILE" showBackButton={false}>
+    <Layout title="Bienvenido a la Plataforma de DILE" showBackButton={false}>
       <style>{`
-        .perspective-1000 {
-          perspective: 1000px;
+        .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
         
-        .transform-gpu {
-          transform-style: preserve-3d;
+        .line-clamp-4 {
+          display: -webkit-box;
+          -webkit-line-clamp: 4;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
         
-        .backdrop-blur-lg {
-          backdrop-filter: blur(16px);
-        }
-        
-        .mix-blend-screen {
-          mix-blend-mode: screen;
-        }
-        
-        .filter {
-          filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
-        }
-        
-        .blur-2xl {
-          --tw-blur: blur(40px);
-        }
-        
-        .blur-3xl {
-          --tw-blur: blur(64px);
-        }
-        
-        .blur-xl {
-          --tw-blur: blur(24px);
-        }
-        
-        .blur-lg {
-          --tw-blur: blur(16px);
-        }
-        
-        .drop-shadow-lg {
-          --tw-drop-shadow: drop-shadow(0 10px 8px rgb(0 0 0 / 0.04)) drop-shadow(0 4px 3px rgb(0 0 0 / 0.1));
-        }
-        
-        .drop-shadow-2xl {
-          --tw-drop-shadow: drop-shadow(0 25px 25px rgb(0 0 0 / 0.15));
-        }
-        
-        @media (max-width: 640px) {
-          .perspective-1000 {
-            perspective: 500px;
+        /* Solo prevenir scroll en desktop */
+        @media (min-width: 769px) {
+          body, html {
+            overflow: hidden !important;
+            height: 100vh !important;
+          }
+          
+          #root {
+            height: 100vh !important;
+            overflow: hidden !important;
           }
         }
+        
+        /* Permitir scroll en móvil */
+        @media (max-width: 768px) {
+          body, html {
+            overflow-x: hidden;
+            overflow-y: auto;
+          }
+        }
+        
+        /* Animación de vibración para las tarjetas */
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+          20%, 40%, 60%, 80% { transform: translateX(2px); }
+        }
+        
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+        
+        /* Clase para remover padding del Layout solo en Welcome */
+        .welcome-full-width {
+          margin: -1.5rem !important;
+          width: calc(100% + 3rem) !important;
+          height: calc(100% + 3rem) !important;
+        }
+        
+        /* Mejoras responsivas adicionales */
+        @media (max-width: 480px) {
+          .welcome-full-width .grid {
+            gap: 0.75rem !important;
+          }
+        }
+        
+        @media (min-width: 481px) and (max-width: 768px) {
+          .welcome-full-width .grid {
+            gap: 1rem !important;
+          }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .welcome-full-width .grid {
+            gap: 1.25rem !important;
+          }
+        }
+        
+        /* Transiciones suaves para cambios de tamaño */
+        .welcome-full-width .grid > * {
+          transition: all 0.3s ease-in-out;
+        }
+        
+        /* Clase adicional para line-clamp-2 */
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
       `}</style>
-      
-      {permissions.isBasicUser() ? <BasicUserContent /> : <PrivilegedUserContent />}
+      <div className="welcome-full-width">
+        {permissions.isBasicUser() ? <BasicUserContent /> : <PrivilegedUserContent />}
+      </div>
     </Layout>
   );
 };

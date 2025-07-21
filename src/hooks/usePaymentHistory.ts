@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { fetchPaymentHistory, PaymentHistoryRecord } from '../api/paymentsApi';
 import { APIError } from '../utils/error';
+import { SessionManager } from '../utils/sessionManager';
 import toast from 'react-hot-toast';
 
 // Tipos de pago válidos por defecto (solo pagos aplicados)
@@ -35,7 +36,7 @@ export const usePaymentHistory = () => {
     if (err instanceof APIError) {
       if (err.statusCode === 401) {
         toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
-        localStorage.removeItem('token');
+        SessionManager.removeItem('token');
         window.location.href = '/login';
         return;
       }

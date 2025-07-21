@@ -10,6 +10,7 @@ import logoDile from '../../logo_dile.webp';
 import { CronogramaTable, DataRow } from './components/CronogramaTable';
 import { formatNumber } from './components/cronogramaUtils';
 import { sendWhatsAppMessage } from './components/WhatsAppService.tsx';
+import DetallePagosContent from './components/DetallePagosContent';
 
 interface CronogramaModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
   const [cronograma, setCronograma] = useState<CuotaCronograma[]>([]);
   const [loading, setLoading] = useState(true);
   const [cronogramaPages, setCronogramaPages] = useState<CuotaCronograma[][]>([]);
+  const [activeTab, setActiveTab] = useState<'cronograma' | 'detalle-pagos'>('cronograma');
   const printRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
 
@@ -250,25 +252,66 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
     <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh'}}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-auto">
         <div className="sticky top-0 bg-white z-10 px-6 py-4 border-b border-gray-200">
-          <button onClick={onClose} className="ml-auto block p-2 hover:bg-gray-100 rounded-full">
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-cyan-800">
+              {activeTab === 'cronograma' ? 'Cronograma de Pagos' : 'Detalle de Pagos'} - Préstamo: {prestamo.ID_PRESTAMO}
+            </h2>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Botones de navegación */}
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+            <button
+              onClick={() => setActiveTab('cronograma')}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === 'cronograma'
+                  ? 'bg-white text-cyan-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+              Ver Cronograma
+            </button>
+            <button
+              onClick={() => setActiveTab('detalle-pagos')}
+              className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === 'detalle-pagos'
+                  ? 'bg-white text-cyan-700 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <svg className="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Detalle de Pagos
+            </button>
+          </div>
         </div>
 
         <div className="p-6">
-          <div ref={measureRef} className="invisible absolute -top-full">
-            <div style={{ width: '210mm', fontSize: '10px' }}>
-              <div className="h-20">Header</div>
-              <div className="h-35">Client Info</div>
-              <div className="h-30">Loan Info</div>
-              <div className="h-8">Table Header</div>
-              <div className="h-6">Table Row</div>
-            </div>
-          </div>
+          {/* Renderizar contenido según la pestaña activa */}
+          {activeTab === 'detalle-pagos' ? (
+            <DetallePagosContent prestamo={prestamo} clientData={clientData} />
+          ) : (
+            <>
+              <div ref={measureRef} className="invisible absolute -top-full">
+                <div style={{ width: '210mm', fontSize: '10px' }}>
+                  <div className="h-20">Header</div>
+                  <div className="h-35">Client Info</div>
+                  <div className="h-30">Loan Info</div>
+                  <div className="h-8">Table Header</div>
+                  <div className="h-6">Table Row</div>
+                </div>
+              </div>
 
-          <div ref={printRef} className="bg-white">
+              <div ref={printRef} className="bg-white">
             <div className="pdf-page bg-white" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', fontSize: '10px' }}>
               <div className="flex items-center justify-between mb-6 no-page-break">
                 <img src={logoDile} alt="Logo DILE" className="h-10 w-auto" />
@@ -404,38 +447,41 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
                 </div>
               </div>
             )}
-          </div>
+              </div>
 
-          <div className="flex justify-end space-x-4 mt-6">
-            <button
-              onClick={handlePrint}
-              className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
-              disabled={loading}
-            >
-              Imprimir {cronogramaPages.length > 0 && `(${cronogramaPages.length} páginas)`}
-            </button>
-            <button
-              onClick={handleDownloadPDF}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              disabled={loading}
-            >
-              Descargar PDF
-            </button>
-            <button
-              onClick={handleExportExcel}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              disabled={loading}
-            >
-              Exportar Excel
-            </button>
-            <button
-              onClick={handleWhatsApp}
-              className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-              disabled={loading}
-            >
-              Enviar WhatsApp
-            </button>
-          </div>
+              {/* Botones de acción solo para cronograma */}
+              <div className="flex justify-end space-x-4 mt-6">
+                <button
+                  onClick={handlePrint}
+                  className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+                  disabled={loading}
+                >
+                  Imprimir {cronogramaPages.length > 0 && `(${cronogramaPages.length} páginas)`}
+                </button>
+                <button
+                  onClick={handleDownloadPDF}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  disabled={loading}
+                >
+                  Descargar PDF
+                </button>
+                <button
+                  onClick={handleExportExcel}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                  disabled={loading}
+                >
+                  Exportar Excel
+                </button>
+                <button
+                  onClick={handleWhatsApp}
+                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                  disabled={loading}
+                >
+                  Enviar WhatsApp
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>,

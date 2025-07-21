@@ -4,11 +4,12 @@ import { User, AgenciaCaja, UserResponse } from '../types';
 import { UserRole, UserWithRole, UserStatus, UserStatusText } from '../types/roles';
 import { APIError } from '../utils/error';
 import { withCache, clearCache } from '../utils/cache';
+import { SessionManager } from '../utils/sessionManager';
 
 const LOGIN_API_BASE_URL = import.meta.env.VITE_LOGIN_API_BASE_URL;
 
 const getToken = () => {
-  return localStorage.getItem('token');
+  return SessionManager.getItem('token');
 };
 
 const userApiInstance = axios.create({
@@ -62,8 +63,8 @@ userApiInstance.interceptors.response.use(
     }
 
     if (error.response?.status === 403) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      SessionManager.removeItem('token');
+      SessionManager.removeItem('user');
       clearCache(); // Limpiar caché cuando el token expire
       window.location.href = '/login';
     }

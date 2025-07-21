@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { UserRole } from '../../../types/roles';
+import { SessionManager } from '../../../utils/sessionManager';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchUserDataByDni } from '../../../api/userApi';
@@ -122,7 +123,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${SessionManager.getItem('token')}`
         },
         body: JSON.stringify(userData),
       });

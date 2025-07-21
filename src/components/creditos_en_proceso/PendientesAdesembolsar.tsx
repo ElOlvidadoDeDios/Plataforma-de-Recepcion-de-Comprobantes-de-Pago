@@ -355,67 +355,72 @@ const PendientesAdesembolsar: React.FC = () => {
     <Layout title="Créditos Pendientes a Desembolsar" showBackButton={true}>
       <div className="h-full flex flex-col space-y-6">
         {/* Header con estadísticas */}
-        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-lg shadow-lg text-white">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Créditos Pendientes a Desembolsar</h2>
-            <div className="flex items-center space-x-4">
+        <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 sm:p-6 rounded-lg shadow-lg text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
+            <h2 className="text-xl sm:text-2xl font-bold">Créditos Pendientes a Desembolsar</h2>
+            
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               {/* Toggle View Mode */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-center space-x-1 bg-white/10 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('cards')}
-                  className={`p-2 rounded-md transition-colors ${
+                  className={`flex-1 sm:flex-none p-2 sm:p-2 rounded-md transition-colors flex items-center justify-center ${
                     viewMode === 'cards' 
-                      ? 'bg-white/30 text-white' 
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      ? 'bg-white/30 text-white shadow-sm' 
+                      : 'bg-transparent text-white/70 hover:bg-white/20'
                   }`}
+                  title="Vista de tarjetas"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14-7H5a2 2 0 00-2 2v6a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zM19 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2z" />
                   </svg>
+                  <span className="ml-1 text-xs sm:hidden">Cards</span>
                 </button>
                 <button
                   onClick={() => setViewMode('table')}
-                  className={`p-2 rounded-md transition-colors ${
+                  className={`flex-1 sm:flex-none p-2 sm:p-2 rounded-md transition-colors flex items-center justify-center ${
                     viewMode === 'table' 
-                      ? 'bg-white/30 text-white' 
-                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      ? 'bg-white/30 text-white shadow-sm' 
+                      : 'bg-transparent text-white/70 hover:bg-white/20'
                   }`}
+                  title="Vista de tabla"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18M3 6h18M3 18h18" />
                   </svg>
+                  <span className="ml-1 text-xs sm:hidden">Tabla</span>
                 </button>
               </div>
               
               <button
                 onClick={cargarCreditos}
                 disabled={isLoading}
-                className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-md transition-colors flex items-center space-x-2 disabled:opacity-50"
+                className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 sm:px-4 sm:py-2 rounded-md transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 min-h-[40px]"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>{isLoading ? 'Actualizando...' : 'Actualizar'}</span>
+                <span className="text-sm sm:text-base">{isLoading ? 'Actualizando...' : 'Actualizar'}</span>
               </button>
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold">{totalCreditos}</div>
-              <div className="text-sm opacity-90">Total Créditos</div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+            <div className="bg-white/10 rounded-lg p-3 sm:p-4">
+              <div className="text-lg sm:text-2xl font-bold">{totalCreditos}</div>
+              <div className="text-xs sm:text-sm opacity-90">Total Créditos</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-green-200">{creditosConDatosBancarios}</div>
-              <div className="text-sm opacity-90">Con Datos Bancarios</div>
+            <div className="bg-white/10 rounded-lg p-3 sm:p-4">
+              <div className="text-lg sm:text-2xl font-bold text-green-200">{creditosConDatosBancarios}</div>
+              <div className="text-xs sm:text-sm opacity-90">Con Datos Bancarios</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold text-red-200">{creditosSinDatosBancarios}</div>
-              <div className="text-sm opacity-90">Sin Datos Bancarios</div>
+            <div className="bg-white/10 rounded-lg p-3 sm:p-4">
+              <div className="text-lg sm:text-2xl font-bold text-red-200">{creditosSinDatosBancarios}</div>
+              <div className="text-xs sm:text-sm opacity-90">Sin Datos Bancarios</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold">S/ {formatearMonto(montoTotal.toString())}</div>
-              <div className="text-sm opacity-90">Monto Total</div>
+            <div className="bg-white/10 rounded-lg p-3 sm:p-4">
+              <div className="text-lg sm:text-2xl font-bold">S/ {formatearMonto(montoTotal.toString())}</div>
+              <div className="text-xs sm:text-sm opacity-90">Monto Total</div>
             </div>
           </div>
         </div>

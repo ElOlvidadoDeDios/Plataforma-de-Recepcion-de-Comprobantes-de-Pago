@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { fetchPayments, fetchPaymentsByStatus } from '../api/paymentsApi';
 import { PaymentRecord } from '../types';
 import { APIError } from '../utils/error';
+import { SessionManager } from '../utils/sessionManager';
 import toast from 'react-hot-toast';
 
 interface PaymentFilters {
@@ -30,7 +31,7 @@ export const usePayments = () => {
     if (err instanceof APIError) {
       if (err.statusCode === 401) {
         toast.error('Sesión expirada. Por favor, inicie sesión nuevamente.');
-        localStorage.removeItem('token');
+        SessionManager.removeItem('token');
         window.location.href = '/login';
         return;
       }

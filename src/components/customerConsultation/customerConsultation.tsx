@@ -6,6 +6,7 @@ import {
   TipoDocumento,
   ClienteBasico,
 } from '../../api/customerConsultationAPI';
+import { SessionManager } from '../../utils/sessionManager';
 import Layout from '../Layout';
 import SearchBar from './components/SearchBar';
 import ClienteList from './components/ClienteList';
@@ -18,36 +19,36 @@ const ConsultaClientes = () => {
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>(TipoDocumento.DNI);
   const [resultadosBusqueda, setResultadosBusqueda] = useState<ClienteBasico[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteBasico | null>(() => {
-    const saved = localStorage.getItem('clienteSeleccionado');
+    const saved = SessionManager.getItem('clienteSeleccionado');
     return saved ? JSON.parse(saved) : null;
   });
   const [clientData, setClientData] = useState<ClienteResponse | null>(() => {
-    const saved = localStorage.getItem('clientData');
+    const saved = SessionManager.getItem('clientData');
     return saved ? JSON.parse(saved) : null;
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Guardar en localStorage cuando cambian los datos
+  // Guardar en SessionManager cuando cambian los datos
   useEffect(() => {
     if (clienteSeleccionado) {
-      localStorage.setItem('clienteSeleccionado', JSON.stringify(clienteSeleccionado));
+      SessionManager.setItem('clienteSeleccionado', JSON.stringify(clienteSeleccionado));
     } else {
-      localStorage.removeItem('clienteSeleccionado');
+      SessionManager.removeItem('clienteSeleccionado');
     }
   }, [clienteSeleccionado]);
 
   useEffect(() => {
     if (clientData) {
-      localStorage.setItem('clientData', JSON.stringify(clientData));
+      SessionManager.setItem('clientData', JSON.stringify(clientData));
     } else {
-      localStorage.removeItem('clientData');
+      SessionManager.removeItem('clientData');
     }
   }, [clientData]);
 
   // Recuperar datos automáticamente al cargar
   useEffect(() => {
     const loadSavedData = async () => {
-      const savedCliente = localStorage.getItem('clienteSeleccionado');
+      const savedCliente = SessionManager.getItem('clienteSeleccionado');
       if (savedCliente) {
         const cliente = JSON.parse(savedCliente);
         try {
@@ -107,7 +108,7 @@ const ConsultaClientes = () => {
       setIsLoading(true);
       setClienteSeleccionado(cliente);
       setClientData(null);
-      localStorage.removeItem('clientData'); // Limpiar datos anteriores
+      SessionManager.removeItem('clientData'); // Limpiar datos anteriores
 
       const detalleCliente = await searchClientesByDNI(cliente.NRO_DI);
 
@@ -117,13 +118,13 @@ const ConsultaClientes = () => {
         setSearchQuery('');
       } else {
         setClienteSeleccionado(null);
-        localStorage.removeItem('clienteSeleccionado');
+        SessionManager.removeItem('clienteSeleccionado');
         alert('No se pudieron obtener los detalles del cliente. Por favor intente nuevamente.');
       }
     } catch (error) {
       setClienteSeleccionado(null);
-      localStorage.removeItem('clienteSeleccionado');
-      localStorage.removeItem('clientData');
+      SessionManager.removeItem('clienteSeleccionado');
+      SessionManager.removeItem('clientData');
       alert('Ocurrió un error al consultar los detalles del cliente. Por favor intente nuevamente.');
     } finally {
       setIsLoading(false);

@@ -12,6 +12,7 @@ interface LayoutProps {
   children: React.ReactNode;
   title: string;
   showBackButton?: boolean;
+  fullWidth?: boolean; // Nueva prop opcional para ancho completo - solo se usa cuando es true
 }
 
 // Sidebar component
@@ -157,7 +158,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }: { isMobile: boolean, isOpen: b
   );
 };
 
-const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true }) => {
+const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true, fullWidth = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const permissions = usePermissions();
@@ -319,9 +320,17 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true 
           
           {/* Contenido principal */}
           <div className="flex-grow overflow-hidden transition-all duration-300 ease-in-out">
-            <div className="bg-white/90 backdrop-blur-sm p-6 h-full overflow-y-auto">
-              {children}
-            </div>
+            {fullWidth ? (
+              // Para componentes que requieren ancho completo (como Welcome)
+              <div className="h-full overflow-y-auto">
+                {children}
+              </div>
+            ) : (
+              // Para otros componentes normales
+              <div className="bg-white/90 backdrop-blur-sm p-6 h-full overflow-y-auto">
+                {children}
+              </div>
+            )}
           </div>
         </div>
       </div>
