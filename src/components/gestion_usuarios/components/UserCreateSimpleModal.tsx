@@ -79,8 +79,8 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
     }
 
     // Validar que id_ana e id_age estén presentes
-    if (!formData.id_ana.trim()) {
-      toast.error('El campo ID ANA es obligatorio.');
+    if (!formData.cargo.trim()) {
+      toast.error('El campo cargo es obligatorio.');
       setIsLoading(false);
       return;
     }
@@ -97,8 +97,8 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
     }
 
     // Verificar que id_ana e id_age estén presentes
-    if (!formData.id_ana) {
-      toast.error('ID ANA es requerido. Verifique el DNI.');
+    if (!formData.user) {
+      toast.error('el campo usuario es requerido. Verifique el DNI.');
       setIsLoading(false);
       return;
     }
@@ -131,11 +131,18 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
       const responseData = await response.json();
 
       if (response.ok) {
-        toast.success(`Usuario ${formData.email} creado exitosamente. La contraseña es temporal y debe cambiarse en el primer login.`);
-        queryClient.invalidateQueries({ queryKey: ['users'] });
-        handleClose();
+        // Verificar si la operación fue exitosa
+        if (responseData.success) {
+          toast.success(`Usuario ${formData.email} creado exitosamente. La contraseña es temporal y debe cambiarse en el primer login.`);
+          queryClient.invalidateQueries({ queryKey: ['users'] });
+          handleClose();
+        } else {
+          // Error de negocio (usuario ya existe, etc.) - NO es un error técnico
+          toast.error(responseData.message || 'No se pudo crear el usuario');
+        }
       } else {
-        toast.error(responseData.message || 'Error al crear el usuario');
+        // Error técnico del servidor
+        toast.error(responseData.message || 'Error técnico al crear el usuario');
       }
     } catch (error) {
       toast.error('Error de conexión');
@@ -274,7 +281,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Razón Social *
+              Razón Social 
             </label>
             <input
               type="text"
@@ -289,7 +296,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cargo *
+                Cargo 
               </label>
               <input
                 type="text"
@@ -302,7 +309,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Usuario *
+                Usuario
               </label>
               <input
                 type="text"

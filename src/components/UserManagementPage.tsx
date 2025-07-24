@@ -83,77 +83,94 @@ const UserManagementPage: React.FC = () => {
 
   return (
     <Layout title="Gestión de Usuarios">
-      <div className="px-4 sm:px-6 py-6 sm:py-8">
-        {isError && (
-          <div className="mb-6 bg-red-50 p-4 rounded-md border-l-4 border-red-500">
-            <div className="flex items-center">
-              <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="ml-3 text-sm text-red-700">Error al cargar los usuarios.</p>
-            </div>
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full" />
-          </div>
-        )}
-
-        {!isLoading && !isError && (
-          <>
-            {/* Botón para crear usuario */}
-            {canManageUsers() && (
-              <div className="mb-6 flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header mejorado */}
+        <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">
+          <div className="px-4 sm:px-6 py-6">
+            <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+              <div>
+                <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
+                <p className="mt-1 text-cyan-100">Administra usuarios del sistema</p>
+              </div>
+              
+              {/* Botón crear usuario mejorado para móvil */}
+              {canManageUsers() && (
                 <button
                   onClick={() => setShowCreateUserModal(true)}
-                  className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors flex items-center gap-2"
+                  className="w-full sm:w-auto bg-white text-cyan-600 px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
-                  Crear Nuevo Usuario
+                  <span>Crear Nuevo Usuario</span>
                 </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido principal */}
+        <div className="px-4 sm:px-6 py-6">
+          {isError && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="ml-3 text-sm text-red-700">Error al cargar los usuarios.</p>
               </div>
-            )}
+            </div>
+          )}
 
-            <UserTable
-              users={users}
-              currentUser={user}
-              isSuperAdmin={isSuperAdmin}
-              canViewSensitiveInfo={canViewSensitiveInfo}
-              canAssignRoles={canAssignRoles}
-              canAssignRole={canAssignRole}
-              canManageAgenciasOf={canManageAgenciasOf}
-              getAvailableRoles={getAvailableRoles}
-              handleStatusChange={handleStatusChange}
-              handleRoleChange={handleRoleChange}
-              handleOpenAgenciaModal={handleOpenAgenciaModalWrapper}
-              setSelectedUser={setSelectedUser}
-              setShowActivateModal={setShowActivateModal}
-              setShowChangePasswordModal={setShowChangePasswordModal}
-            />
+          {isLoading && (
+            <div className="flex justify-center items-center h-32 bg-white rounded-lg shadow-sm">
+              <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full" />
+            </div>
+          )}
 
-            <UserCardList
-              users={users}
-              currentUser={user}
-              isSuperAdmin={isSuperAdmin}
-              canViewSensitiveInfo={canViewSensitiveInfo}
-              canAssignRoles={canAssignRoles}
-              canAssignRole={canAssignRole}
-              canManageAgenciasOf={canManageAgenciasOf}
-              getAvailableRoles={getAvailableRoles}
-              handleStatusChange={handleStatusChange}
-              handleRoleChange={handleRoleChange}
-              handleOpenAgenciaModal={handleOpenAgenciaModalWrapper}
-              setSelectedUser={setSelectedUser}
-              setShowActivateModal={setShowActivateModal}
-              setShowChangePasswordModal={setShowChangePasswordModal}
-            />
-          </>
-        )}
+          {!isLoading && !isError && (
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {/* Mostrar tabla en desktop, cards en móvil */}
+              <div className="hidden md:block">
+                <UserTable
+                  users={users}
+                  currentUser={user}
+                  isSuperAdmin={isSuperAdmin}
+                  canViewSensitiveInfo={canViewSensitiveInfo}
+                  canAssignRoles={canAssignRoles}
+                  canAssignRole={canAssignRole}
+                  canManageAgenciasOf={canManageAgenciasOf}
+                  getAvailableRoles={getAvailableRoles}
+                  handleStatusChange={handleStatusChange}
+                  handleRoleChange={handleRoleChange}
+                  handleOpenAgenciaModal={handleOpenAgenciaModalWrapper}
+                  setSelectedUser={setSelectedUser}
+                  setShowActivateModal={setShowActivateModal}
+                  setShowChangePasswordModal={setShowChangePasswordModal}
+                />
+              </div>
+
+              <div className="md:hidden p-4">
+                <UserCardList
+                  users={users}
+                  currentUser={user}
+                  isSuperAdmin={isSuperAdmin}
+                  canViewSensitiveInfo={canViewSensitiveInfo}
+                  canAssignRoles={canAssignRoles}
+                  canAssignRole={canAssignRole}
+                  canManageAgenciasOf={canManageAgenciasOf}
+                  getAvailableRoles={getAvailableRoles}
+                  handleStatusChange={handleStatusChange}
+                  handleRoleChange={handleRoleChange}
+                  handleOpenAgenciaModal={handleOpenAgenciaModalWrapper}
+                  setSelectedUser={setSelectedUser}
+                  setShowActivateModal={setShowActivateModal}
+                  setShowChangePasswordModal={setShowChangePasswordModal}
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <UserActivateModal

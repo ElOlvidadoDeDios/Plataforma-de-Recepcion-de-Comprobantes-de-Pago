@@ -1,68 +1,79 @@
 import React from 'react';
 import { DetalleCredito, ClienteResponse } from '../../../api/customerConsultationAPI';
+import { getMovimientosPrestamo } from '../../../api/cronogramaApi';
 
 interface DetallePagosContentProps {
-  prestamo: DetalleCredito;
+  prestamo: DetalleCredito & { CUENTA: string; OTORGA: string };
   clientData: ClienteResponse;
 }
 
 interface DetallePago {
   id: string;
-  fecha: string;
-  monto: number;
-  concepto: string;
-  estado: string;
-  metodoPago: string;
-  referencia: string;
+  FECHA_MOV: string;
+  COD_AGENCIA: string;
+  COD_CAJA: string;
+  MONEDA: string;
+  NRO_DOC: string;
   cuotaNumero: number;
+  GLOSA: string;
+  TIPO_PAGO: string;
+  TOTAL: number;
+  CAPITAL: number;
+  INTERES: number;
+  MORA: number;
+  SEGURO: number;
+  PORTES: number;
+  DESGRAV: number;
+  APORTE: number;
 }
 
-const DetallePagosContent: React.FC<DetallePagosContentProps> = ({
-  prestamo,
-}) => {
-  // Datos de desarrollo - aquí se conectará con la API real
-  const detallesPagos: DetallePago[] = [
-    {
-      id: "1",
-      fecha: "2024-01-15",
-      monto: 250.00,
-      concepto: "Cuota mensual",
-      estado: "Pagado",
-      metodoPago: "Transferencia bancaria",
-      referencia: "TRF001234",
-      cuotaNumero: 1
-    },
-    {
-      id: "2",
-      fecha: "2024-02-15",
-      monto: 250.00,
-      concepto: "Cuota mensual",
-      estado: "Pagado",
-      metodoPago: "Depósito en cuenta",
-      referencia: "DEP005678",
-      cuotaNumero: 2
-    },
-    {
-      id: "3",
-      fecha: "2024-03-15",
-      monto: 250.00,
-      concepto: "Cuota mensual",
-      estado: "Pendiente",
-      metodoPago: "-",
-      referencia: "-",
-      cuotaNumero: 3
-    },
-    {
-      id: "4",
-      fecha: "2024-04-15",
-      monto: 250.00,
-      concepto: "Cuota mensual",
-      estado: "Vencido",
-      metodoPago: "-",
-      referencia: "-",
-      cuotaNumero: 4
-    }
-  ];
+const DetallePagosContent: React.FC<DetallePagosContentProps> = ({ prestamo }) => {
+  const [detallesPagos, setDetallesPagos] = React.useState<DetallePago[]>([]);
+
+  React.useEffect(() => {
+    const fetchMovimientos = async () => {
+      try {
+        const movimientos = await getMovimientosPrestamo(prestamo.ID_PRESTAMO, prestamo.CUENTA, prestamo.OTORGA);
+        // Mapear y ordenar por fecha ascendente
+        const pagosOrdenados = movimientos
+          .map((mov: any) => ({
+            id: mov.NRO_DOC,
+            FECHA_MOV: mov.FECHA_MOV,
+            COD_AGENCIA: mov.COD_AGENCIA,
+            COD_CAJA: mov.COD_CAJA,
+            MONEDA: mov.MONEDA,
+            NRO_DOC: mov.NRO_DOC,
+            GLOSA: mov.GLOSA,
+            TIPO_PAGO: mov.TIPO_PAGO,
+            TOTAL: parseFloat(mov.TOTAL),
+            CAPITAL: parseFloat(mov.CAPITAL),
+            INTERES: parseFloat(mov.INTERES),
+            MORA: parseFloat(mov.MORA),
+            SEGURO: parseFloat(mov.SEGURO),
+            PORTES: parseFloat(mov.PORTES),
+            DESGRAV: parseFloat(mov.DESGRAV),
+            APORTE: parseFloat(mov.APORTE),
+          }))
+          .sort((a, b) => {
+            // Asume formato DD/MM/YYYY
+            const [da, ma, ya] = a.FECHA_MOV.split('/');
+            const [db, mb, yb] = b.FECHA_MOV.split('/');
+            const fechaA = new Date(`${ya}-${ma}-${da}`);
+            const fechaB = new Date(`${yb}-${mb}-${db}`);
+            return fechaA.getTime() - fechaB.getTime();
+          })
+          .map((pago, idx) => ({
+            ...pago,
+            cuotaNumero: idx + 1,
+          }));
+        setDetallesPagos(pagosOrdenados);
+      } catch (error) {
+        console.error("Error al obtener los movimientos del préstamo:", error);
+      }
+    };
+
+    fetchMovimientos();
+  }, [prestamo]);
 
   const formatearMonto = (monto: number) => {
     return new Intl.NumberFormat('es-PE', {
@@ -71,173 +82,122 @@ const DetallePagosContent: React.FC<DetallePagosContentProps> = ({
     }).format(monto);
   };
 
-  const getEstadoColor = (estado: string) => {
-    switch (estado.toLowerCase()) {
-      case 'pagado':
-        return 'text-green-600 bg-green-100';
-      case 'pendiente':
-        return 'text-yellow-600 bg-yellow-100';
-      case 'vencido':
-        return 'text-red-600 bg-red-100';
-      default:
-        return 'text-gray-600 bg-gray-100';
-    }
-  };
+  // Función para filtrar movimientos que no sean desembolsos
+  const movimientosNonDesembolso = detallesPagos.filter(p => 
+    !p.GLOSA.toLowerCase().includes('desembolso') && 
+    !p.GLOSA.toLowerCase().includes('desemb')
+  );
 
   return (
-    <div className="bg-white p-6 space-y-6">
-      {/* Información del crédito */}
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-blue-800 mb-3">Información del Crédito</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+    <div className="w-full h-full bg-white  md:p-0 space-y-1">
+      <div className="bg-blue-50 p-2 md:p-3 rounded-lg">
+        <h3 className="font-semibold text-blue-800 mb-2 text-sm md:text-base">Información del Crédito</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs md:text-sm">
           <div>
-            <span className="font-medium text-gray-600">ID Préstamo:</span>
-            <div className="font-bold text-cyan-700">{prestamo.ID_PRESTAMO}</div>
+            <span className="font-medium text-gray-600 text-xs">ID Préstamo:</span>
+            <div className="font-bold text-cyan-700 text-xs md:text-sm">{prestamo.ID_PRESTAMO}</div>
           </div>
           <div>
-            <span className="font-medium text-gray-600">Monto:</span>
-            <div className="font-bold text-cyan-700">S/ {prestamo.MONTO}</div>
+            <span className="font-medium text-gray-600 text-xs">Monto:</span>
+            <div className="font-bold text-cyan-700 text-xs md:text-sm">S/ {prestamo.MONTO}</div>
           </div>
           <div>
-            <span className="font-medium text-gray-600">Estado:</span>
-            <div className="font-bold text-cyan-700">{prestamo.ESTADO}</div>
+            <span className="font-medium text-gray-600 text-xs">Estado:</span>
+            <div className="font-bold text-cyan-700 text-xs md:text-sm">{prestamo.ESTADO}</div>
           </div>
           <div>
-            <span className="font-medium text-gray-600">Saldo Capital:</span>
-            <div className="font-bold text-cyan-700">S/ {prestamo.SALDO_CAPITAL || '0'}</div>
+            <span className="font-medium text-gray-600 text-xs">Saldo Capital:</span>
+            <div className="font-bold text-cyan-700 text-xs md:text-sm">S/ {prestamo.SALDO_CAPITAL || '0'}</div>
           </div>
           <div>
-            <span className="font-medium text-gray-600">Frecuencia:</span>
-            <div className="font-bold text-cyan-700">{prestamo.FRECUENCIA}</div>
+            <span className="font-medium text-gray-600 text-xs">Frecuencia:</span>
+            <div className="font-bold text-cyan-700 text-xs md:text-sm">{prestamo.FRECUENCIA}</div>
           </div>
           <div>
-            <span className="font-medium text-gray-600">Producto:</span>
-            <div className="font-bold text-cyan-700">{prestamo.PRODUCTO || 'No especificado'}</div>
+            <span className="font-medium text-gray-600 text-xs">Producto:</span>
+            <div className="font-bold text-cyan-700 text-xs md:text-sm">{prestamo.PRODUCTO || 'No especificado'}</div>
           </div>
         </div>
       </div>
 
-      {/* Resumen de pagos */}
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <h3 className="font-semibold text-gray-800 mb-3">Resumen de Pagos</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
-          <div className="text-center bg-white p-3 rounded border">
-            <div className="font-semibold text-green-600 text-lg">
-              {formatearMonto(detallesPagos.filter(p => p.estado === 'Pagado').reduce((sum, p) => sum + p.monto, 0))}
+      <div className="bg-gray-50 p-2 md:p-3 rounded-lg">
+        <h3 className="font-semibold text-gray-800 mb-2 text-sm md:text-base">Resumen de Pagos</h3>
+        <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+          <div className="text-center bg-white p-2 rounded border">
+            <div className="font-semibold text-green-600 text-xs md:text-sm">
+              {formatearMonto(movimientosNonDesembolso.reduce((sum, p) => sum + p.TOTAL, 0))}
             </div>
-            <div className="text-gray-600">Total Pagado</div>
+            <div className="text-gray-600 text-xs">Total Pagado</div>
           </div>
-          <div className="text-center bg-white p-3 rounded border">
-            <div className="font-semibold text-yellow-600 text-lg">
-              {formatearMonto(detallesPagos.filter(p => p.estado === 'Pendiente').reduce((sum, p) => sum + p.monto, 0))}
+          <div className="text-center bg-white p-2 rounded border">
+            <div className="font-semibold text-blue-600 text-xs md:text-sm">
+              {formatearMonto(detallesPagos.reduce((sum, p) => sum + p.TOTAL, 0))}
             </div>
-            <div className="text-gray-600">Pendiente</div>
-          </div>
-          <div className="text-center bg-white p-3 rounded border">
-            <div className="font-semibold text-red-600 text-lg">
-              {formatearMonto(detallesPagos.filter(p => p.estado === 'Vencido').reduce((sum, p) => sum + p.monto, 0))}
-            </div>
-            <div className="text-gray-600">Vencido</div>
-          </div>
-          <div className="text-center bg-white p-3 rounded border">
-            <div className="font-semibold text-blue-600 text-lg">
-              {formatearMonto(detallesPagos.reduce((sum, p) => sum + p.monto, 0))}
-            </div>
-            <div className="text-gray-600">Total</div>
+            <div className="text-gray-600 text-xs">Total Movimientos</div>
           </div>
         </div>
       </div>
 
-      {/* Tabla de detalles de pago */}
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-3 border-b">
-          <h3 className="font-semibold text-lg">Historial Detallado de Pagos</h3>
+      <div className="border rounded-lg overflow-hidden flex-1 flex flex-col">
+        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-2 md:px-3 py-2 border-b">
+          <h3 className="font-semibold text-sm md:text-base">Movimiento de Pagos</h3>
         </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cuota N°
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Fecha
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Concepto
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Monto
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Método de Pago
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Referencia
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {detallesPagos.map((pago) => (
-                <tr key={pago.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {pago.cuotaNumero}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(pago.fecha).toLocaleDateString('es-PE')}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                    {pago.concepto}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {formatearMonto(pago.monto)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEstadoColor(pago.estado)}`}>
-                      {pago.estado}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                    {pago.metodoPago}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                    {pago.referencia}
-                  </td>
+          <div className="flex-1 overflow-auto">
+            <table className="w-full divide-y divide-gray-200 text-[10px] md:text-xs h-full">
+              <thead className="bg-gray-100 sticky top-0 z-10">
+                <tr>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase">N°</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase">Fecha</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden sm:table-cell">Agencia</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden sm:table-cell">Caja</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase">Concepto</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase">Capital</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase">Interés</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden md:table-cell">Mora</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden md:table-cell">Seguro</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden lg:table-cell">Portes</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden lg:table-cell">Desgrav</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden lg:table-cell">Aporte</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase">Total</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden sm:table-cell">Tipo</th>
+                  <th className="px-1 md:px-2 py-1 text-left text-[9px] md:text-[10px] font-medium text-gray-500 uppercase hidden md:table-cell">Doc</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Nota de desarrollo */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {detallesPagos.map((pago) => (
+                  <tr
+                    key={pago.id}
+                    className={`transition-colors hover:bg-gray-50 ${
+                      pago.cuotaNumero === 1 && pago.GLOSA === 'DESEMBOLSO PRESTAMO'
+                        ? 'bg-blue-100 font-semibold'
+                        : ''
+                    }`}
+                  >
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap font-medium text-gray-900 text-[10px] md:text-xs">{pago.cuotaNumero}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 text-[10px] md:text-xs">{pago.FECHA_MOV}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden sm:table-cell text-[8px] md:text-xs">{pago.COD_AGENCIA}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden sm:table-cell text-[8px] md:text-xs">{pago.COD_CAJA}</td>
+                    <td className="px-1 md:px-2 py-1 text-gray-900 max-w-[130px] truncate text-[4px] md:text-xs">{pago.GLOSA}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 text-[10px] md:text-xs">{formatearMonto(pago.CAPITAL)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 text-[10px] md:text-xs">{formatearMonto(pago.INTERES)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden md:table-cell text-[8px] md:text-xs">{formatearMonto(pago.MORA)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden md:table-cell text-[8px] md:text-xs">{formatearMonto(pago.SEGURO)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden lg:table-cell text-[8px] md:text-xs">{formatearMonto(pago.PORTES)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden lg:table-cell text-[8px] md:text-xs">{formatearMonto(pago.DESGRAV)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden lg:table-cell text-[8px] md:text-xs">{formatearMonto(pago.APORTE)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap font-medium text-gray-900 text-[10px] md:text-xs">{formatearMonto(pago.TOTAL)}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden sm:table-cell text-[8px] md:text-[10px]">{pago.TIPO_PAGO}</td>
+                    <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden md:table-cell text-[8px] md:text-xs">{pago.NRO_DOC}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">
-              Nota de Desarrollo
-            </h3>
-            <div className="mt-2 text-sm text-yellow-700">
-              <p>
-                Este componente muestra datos de prueba. Se conectará con la API real para obtener 
-                el detalle de pagos del crédito. Los datos incluirán información real de pagos, 
-                estados de cuotas, y métodos de pago utilizados.
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
 };
 
 export default DetallePagosContent;
+
+

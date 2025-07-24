@@ -124,7 +124,6 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
       
       setReporteData(datosFiltrados);
     } catch (error) {
-      console.error('Error al cargar reporte:', error);
       setReporteData([]);
     } finally {
       setLoading(false);

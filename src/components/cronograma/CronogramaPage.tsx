@@ -249,8 +249,8 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4" style={{position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh'}}>
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[85vh] flex flex-col">
         <div className="sticky top-0 bg-white z-10 px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-cyan-800">
@@ -262,7 +262,6 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
               </svg>
             </button>
           </div>
-          
           {/* Botones de navegación */}
           <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
             <button
@@ -294,11 +293,17 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
             </button>
           </div>
         </div>
-
-        <div className="p-6">
+        <div className="flex-1 overflow-auto p-6">
           {/* Renderizar contenido según la pestaña activa */}
           {activeTab === 'detalle-pagos' ? (
-            <DetallePagosContent prestamo={prestamo} clientData={clientData} />
+            <DetallePagosContent
+              prestamo={{
+                ...prestamo,
+                CUENTA: clientData.INFO_SOCIO.OTROS.CUENTA_DILE ?? '',
+                OTORGA: prestamo.OTORGA ?? ''
+              }}
+              clientData={clientData}
+            />
           ) : (
             <>
               <div ref={measureRef} className="invisible absolute -top-full">
@@ -310,183 +315,240 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
                   <div className="h-6">Table Row</div>
                 </div>
               </div>
-
               <div ref={printRef} className="bg-white">
-            <div className="pdf-page bg-white" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', fontSize: '10px' }}>
-              <div className="flex items-center justify-between mb-6 no-page-break">
-                <img src={logoDile} alt="Logo DILE" className="h-10 w-auto" />
-                <div className="text-center flex-1">
-                  <h2 className="text-xl font-bold text-cyan-800 mb-2">Cronograma de Pagos</h2>
-                  <hr className="border-t-2 border-cyan-600 w-1/2 mx-auto" />
-                </div>
-                <div className="w-10"></div>
-              </div>
-
-              {/* Header con cuenta DILE y nombre del cliente */}
-              <div className="mb-4 border-b-2 border-cyan-600 pb-3 no-page-break">
-                <div className="flex items-center gap-8">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-medium text-gray-600">Cuenta DILE:</span>
-                    <span className="font-bold text-cyan-700">{clientData.INFO_SOCIO.OTROS.CUENTA_DILE || '-'}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 ml-4">
-                    <span className="font-medium text-gray-600">Cliente:</span>
-                    <span className="font-bold text-cyan-700">{clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-6 mb-6 no-page-break">
-                <div className="bg-white p-3 border-b-2 border-cyan-600">
-                  <div className="space-y-3">
-                    < div className="grid grid-cols-3 gap-4">
-                      <DataRow
-                      label="ID Préstamo"
-                      value={prestamo.ID_PRESTAMO}
-                      boldValue={true}
-                    />
-                    <DataRow
-                      label="DNI"
-                      value={clientData.INFO_SOCIO.DATOS_PERSONALES.DNI}
-                    />
-                      <DataRow
-                      label="estado"
-                      value={clientData.INFO_SOCIO.OTROS.ESTADO || '-'}
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                     <DataRow
-                      label="Celular"
-                      value={clientData.INFO_SOCIO.CONTACTO.CELULAR}
-                    />
-                    <DataRow
-                      label="Email"
-                      value={clientData.INFO_SOCIO.CONTACTO.EMAIL}
-                    />                   
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <DataRow
-                      label="fecha inicio"
-                      value={clientData.INFO_SOCIO.OTROS.FECHA_INICIO || '-'}
-                    />
-                    <DataRow
-                      label="Monto"
-                      value={`S/ ${formatNumber(prestamo.MONTO)}`}
-                      highlight={true}
-                    />
-                    <DataRow
-                        label="Saldo Capital"
-                        value={`S/ ${formatNumber(prestamo.SALDO_CAPITAL || '0')}`}
-                        highlight={true}
-                      />
-                  </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <DataRow
-                        label="Plazo"
-                        value={prestamo.PLAZO}
-                      />
-                      <DataRow
-                        label="Tasa"
-                        value={`${prestamo.TASA}%`}
-                      />
-                      <DataRow
-                        label="Frecuencia"
-                        value={prestamo.FRECUENCIA}
-                      />
+                <div className="pdf-page bg-white" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', fontSize: '10px' }}>
+                  <div className="flex items-center justify-between mb-6 no-page-break">
+                    <img src={logoDile} alt="Logo DILE" className="h-10 w-auto" />
+                    <div className="text-center flex-1">
+                      <h2 className="text-xl font-bold text-cyan-800 mb-2">Cronograma de Pagos</h2>
+                      <hr className="border-t-2 border-cyan-600 w-1/2 mx-auto" />
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <DataRow
-                        label="Producto"
-                        value={prestamo.PRODUCTO || 'No especificado'}
-                      />
-                      <DataRow
-                        label="Estado Prestamo"
-                        value={prestamo.ESTADO}
-                        status={true}
-                      />
-                      <DataRow
-                        label="Analista"
-                        value={prestamo.ANALISTA || '-'}
-                      />
+                    <div className="w-10"></div>
+                  </div>
+                  {/* Header con cuenta DILE y nombre del cliente */}
+                  <div className="mb-4 border-b-2 border-cyan-600 pb-3 no-page-break">
+                    <div className="flex items-center gap-8">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-gray-600">Cuenta DILE:</span>
+                        <span className="font-bold text-cyan-700">{clientData.INFO_SOCIO.OTROS.CUENTA_DILE || '-'}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 ml-4">
+                        <span className="font-medium text-gray-600">Cliente:</span>
+                        <span className="font-bold text-cyan-700">{clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-
-              {!loading && cronogramaPages.length > 0 && (
-                <div>
-                  <h3 className="text-base font-semibold text-cyan-700 mb-3 pb-2 border-b border-cyan-200">
-                    Cronograma de Pagos
-                  </h3>
-                  <CronogramaTable cuotas={cronogramaPages[0]} />
-                </div>
-              )}
-
-            </div>
-
-            {!loading && cronogramaPages.slice(1).map((pageData, pageIndex) => (
-              <div key={pageIndex + 1} className="pdf-page page-break bg-white" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', fontSize: '10px' }}>
-                <div className="flex items-center justify-between mb-4 no-page-break">
-                  <img src={logoDile} alt="Logo DILE" className="h-8 w-auto" />
-                  <div className="text-center flex-1">
-                    <h3 className="text-lg font-bold text-cyan-800">Cronograma de Pagos - Página {pageIndex + 2}</h3>
-                    <p className="text-sm text-gray-600">Préstamo: {prestamo.ID_PRESTAMO}</p>
+                  <div className="grid gap-6 mb-6 no-page-break">
+                    <div className="bg-white p-3 border-b-2 border-cyan-600">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-4">
+                          <DataRow
+                            label="ID Préstamo"
+                            value={prestamo.ID_PRESTAMO}
+                            boldValue={true}
+                          />
+                          <DataRow
+                            label="DNI"
+                            value={clientData.INFO_SOCIO.DATOS_PERSONALES.DNI}
+                          />
+                          <DataRow
+                            label="estado"
+                            value={clientData.INFO_SOCIO.OTROS.ESTADO || '-'}
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <DataRow
+                            label="Celular"
+                            value={clientData.INFO_SOCIO.CONTACTO.CELULAR}
+                          />
+                          <DataRow
+                            label="Email"
+                            value={clientData.INFO_SOCIO.CONTACTO.EMAIL}
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <DataRow
+                            label="fecha inicio"
+                            value={clientData.INFO_SOCIO.OTROS.FECHA_INICIO || '-'}
+                          />
+                          <DataRow
+                            label="Monto"
+                            value={`S/ ${formatNumber(prestamo.MONTO)}`}
+                            highlight={true}
+                          />
+                          <DataRow
+                            label="Saldo Capital"
+                            value={`S/ ${formatNumber(prestamo.SALDO_CAPITAL || '0')}`}
+                            highlight={true}
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <DataRow
+                            label="Plazo"
+                            value={prestamo.PLAZO}
+                          />
+                          <DataRow
+                            label="Tasa"
+                            value={`${prestamo.TASA}%`}
+                          />
+                          <DataRow
+                            label="Frecuencia"
+                            value={prestamo.FRECUENCIA}
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <DataRow
+                            label="Producto"
+                            value={prestamo.PRODUCTO || 'No especificado'}
+                          />
+                          <DataRow
+                            label="Estado Prestamo"
+                            value={prestamo.ESTADO}
+                            status={true}
+                          />
+                          <DataRow
+                            label="Analista"
+                            value={prestamo.ANALISTA || '-'}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-8"></div>
+                  {!loading && cronogramaPages.length > 0 && (
+                    <div>
+                      <h3 className="text-base font-semibold text-cyan-700 mb-3 pb-2 border-b border-cyan-200">
+                        Cronograma de Pagos
+                      </h3>
+                      <CronogramaTable cuotas={cronogramaPages[0]} />
+                    </div>
+                  )}
                 </div>
-
-                <CronogramaTable cuotas={pageData} />
-
-              </div>
-            ))}
-
-            {loading && (
-              <div className="pdf-page bg-white" style={{ width: '210mm', minHeight: '297mm', padding: '15mm' }}>
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-                </div>
-              </div>
-            )}
-              </div>
-
-              {/* Botones de acción solo para cronograma */}
-              <div className="flex justify-end space-x-4 mt-6">
-                <button
-                  onClick={handlePrint}
-                  className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
-                  disabled={loading}
-                >
-                  Imprimir {cronogramaPages.length > 0 && `(${cronogramaPages.length} páginas)`}
-                </button>
-                <button
-                  onClick={handleDownloadPDF}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  disabled={loading}
-                >
-                  Descargar PDF
-                </button>
-                <button
-                  onClick={handleExportExcel}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                  disabled={loading}
-                >
-                  Exportar Excel
-                </button>
-                <button
-                  onClick={handleWhatsApp}
-                  className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
-                  disabled={loading}
-                >
-                  Enviar WhatsApp
-                </button>
+                {!loading && cronogramaPages.slice(1).map((pageData, pageIndex) => (
+                  <div key={pageIndex + 1} className="pdf-page page-break bg-white" style={{ width: '210mm', minHeight: '297mm', padding: '15mm', fontSize: '10px' }}>
+                    <div className="flex items-center justify-between mb-4 no-page-break">
+                      <img src={logoDile} alt="Logo DILE" className="h-8 w-auto" />
+                      <div className="text-center flex-1">
+                        <h3 className="text-lg font-bold text-cyan-800">Cronograma de Pagos - Página {pageIndex + 2}</h3>
+                        <p className="text-sm text-gray-600">Préstamo: {prestamo.ID_PRESTAMO}</p>
+                      </div>
+                      <div className="w-8"></div>
+                    </div>
+                    <CronogramaTable cuotas={pageData} />
+                  </div>
+                ))}
+                {loading && (
+                  <div className="pdf-page bg-white" style={{ width: '210mm', minHeight: '297mm', padding: '15mm' }}>
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
         </div>
+        {/* Botones de acción solo para cronograma */}
+        {activeTab === 'cronograma' && (
+          <div className="sticky bottom-0 bg-white p-3 sm:p-4 border-t border-gray-200">
+            {/* Diseño para móvil: botones en grid 2x2 */}
+            <div className="grid grid-cols-2 gap-2 sm:hidden">
+              <button
+                onClick={handlePrint}
+                className="px-2 py-2 text-xs bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors flex items-center justify-center"
+                disabled={loading}
+              >
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Imprimir
+              </button>
+              
+              <button
+                onClick={handleDownloadPDF}
+                className="px-2 py-2 text-xs bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
+                disabled={loading}
+              >
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                PDF
+              </button>
+              
+              <button
+                onClick={handleExportExcel}
+                className="px-2 py-2 text-xs bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center"
+                disabled={loading}
+              >
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Excel
+              </button>
+              
+              <button
+                onClick={handleWhatsApp}
+                className="px-2 py-2 text-xs bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center justify-center"
+                disabled={loading}
+              >
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                WhatsApp
+              </button>
+            </div>
+
+            {/* Diseño para tablet y desktop: botones en fila */}
+            <div className="hidden sm:flex justify-end space-x-3 md:space-x-4">
+              <button
+                onClick={handlePrint}
+                className="px-3 py-2 text-sm md:px-4 md:text-base bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors flex items-center"
+                disabled={loading}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Imprimir {cronogramaPages.length > 0 && `(${cronogramaPages.length} páginas)`}
+              </button>
+              
+              <button
+                onClick={handleDownloadPDF}
+                className="px-3 py-2 text-sm md:px-4 md:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+                disabled={loading}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Descargar PDF
+              </button>
+              
+              <button
+                onClick={handleExportExcel}
+                className="px-3 py-2 text-sm md:px-4 md:text-base bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center"
+                disabled={loading}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Exportar Excel
+              </button>
+              
+              <button
+                onClick={handleWhatsApp}
+                className="px-3 py-2 text-sm md:px-4 md:text-base bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors flex items-center"
+                disabled={loading}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Enviar WhatsApp
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>,
     document.body
   );
-};
+}
 
 export default CronogramaModal;

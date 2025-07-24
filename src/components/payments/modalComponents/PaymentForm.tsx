@@ -175,18 +175,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               <label className="text-sm text-center font-medium text-gray-700">
                 Tipo de operación:
               </label>
-              <input
-                type="text"
-                className={`w-48 mx-auto rounded-md border px-3 py-2 text-sm text-center transition-colors ${
+              <select
+                className={`w-48 mx-auto rounded-md border px-3 py-2 text-sm text-center transition-colors outline-none focus:outline-none ${
                   !isEditable || voucher.estado === 'rechazado'
                     ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
                     : 'border-gray-300 focus:ring-2 focus:ring-cyan-500'
                 }`}
-                maxLength={25}
                 value={voucher.tipoOperacion}
                 onChange={(e) => onUpdateVoucher(index, 'tipoOperacion', e.target.value)}
-                readOnly={!isEditable || voucher.estado === 'rechazado'}
-              />
+                disabled={!isEditable || voucher.estado === 'rechazado'}
+              >
+                <option value="">Seleccionar tipo...</option>
+                <option value="PLIN">PLIN</option>
+                <option value="YAPE">YAPE</option>
+                <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+              </select>
             </div>
           </div>
           

@@ -81,7 +81,6 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
       }
 
     } catch (error) {
-      console.error('Error al subir comprobante:', error);
       alert('Error al enviar el archivo. Por favor intente nuevamente.');
     } finally {
       setIsLoading(false);
