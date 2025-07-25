@@ -68,7 +68,6 @@ const DetallePagosContent: React.FC<DetallePagosContentProps> = ({ prestamo }) =
           }));
         setDetallesPagos(pagosOrdenados);
       } catch (error) {
-        console.error("Error al obtener los movimientos del préstamo:", error);
       }
     };
 
@@ -177,7 +176,7 @@ const DetallePagosContent: React.FC<DetallePagosContentProps> = ({ prestamo }) =
                     <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 text-[10px] md:text-xs">{pago.FECHA_MOV}</td>
                     <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden sm:table-cell text-[8px] md:text-xs">{pago.COD_AGENCIA}</td>
                     <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden sm:table-cell text-[8px] md:text-xs">{pago.COD_CAJA}</td>
-                    <td className="px-1 md:px-2 py-1 text-gray-900 max-w-[130px] truncate text-[4px] md:text-xs">{pago.GLOSA}</td>
+                    <td className="px-1 md:px-2 py-1 text-gray-900 max-w-[130px] truncate text-[10px] md:text-xs">{pago.GLOSA}</td>
                     <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 text-[10px] md:text-xs">{formatearMonto(pago.CAPITAL)}</td>
                     <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 text-[10px] md:text-xs">{formatearMonto(pago.INTERES)}</td>
                     <td className="px-1 md:px-2 py-1 whitespace-nowrap text-gray-900 hidden md:table-cell text-[8px] md:text-xs">{formatearMonto(pago.MORA)}</td>

@@ -57,6 +57,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       id: userData.id || '',
       email: userData.email,
       dni: userData.dni,
+      razon: userData.razon,
+      cargo: userData.cargo ,
       role: userData.role || UserRole.BASIC_USER,
       name: userData.name || '',
       status: 0, // CREATED - Sin permisos hasta que un admin lo active

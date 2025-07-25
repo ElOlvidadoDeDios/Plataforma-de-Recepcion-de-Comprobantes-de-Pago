@@ -10,11 +10,12 @@ export interface SocketContextType {
   socket: Socket | null;
 }
 
-// Crea y exporta el contexto
-const SocketContextValue = createContext<SocketContextType>({ socket: null });
-export { SocketContextValue as SocketContext };
+// Crea el contexto con exportación directa
+export const SocketContext = createContext<SocketContextType>({ 
+  socket: null 
+});
 
-// Función para inicializar el socket
+// Función para inicializar el socket (no necesita exportarse)
 const initializeSocket = () => {
   const socket = io(API_BASE_URL, {
     transports: ['polling', 'websocket'],
@@ -27,48 +28,74 @@ const initializeSocket = () => {
       token: SessionManager.getItem('token'),
     },
     path: '/socket.io/',
-    forceNew: true,
     autoConnect: true
   });
 
-  socket.io.on("error", (_error: Error) => {
+  socket.io.on("error", (error: Error) => {
+    console.error('Socket.IO Manager Error:', error);
   });
 
-  socket.on('connect_error', (_error: Error) => {
+  socket.on('connect_error', (error: Error) => {
+    console.error('Socket Connection Error:', error);
   });
 
   socket.on('connect', () => {
+    console.log('Socket connected successfully');
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason: string) => {
+    console.log('Socket disconnected:', reason);
+  });
+
+  socket.on('auth_error', () => {
+    console.warn('Authentication error - token might be expired');
   });
 
   return socket;
 };
 
-// Componente proveedor del contexto
-export function SocketProvider({ children }: { children: React.ReactNode }) {
+// Componente proveedor del contexto con exportación nombrada
+export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    let newSocket: Socket | null = null;
-    if (user && !socket) {
-      newSocket = initializeSocket();
-      setSocket(newSocket);
-    }
-
-    return () => {
-      if (newSocket) {
-        newSocket.disconnect();
-        newSocket.removeAllListeners();
+    if (user) {
+      if (socket) {
+        socket.disconnect();
+        socket.removeAllListeners();
       }
-    };
+
+      const newSocket = initializeSocket();
+      setSocket(newSocket);
+
+      return () => {
+        if (newSocket && newSocket.connected) {
+          newSocket.disconnect();
+        }
+        newSocket?.removeAllListeners();
+      };
+    } else {
+      if (socket) {
+        socket.disconnect();
+        socket.removeAllListeners();
+        setSocket(null);
+      }
+    }
   }, [user]);
 
+  useEffect(() => {
+    return () => {
+      if (socket) {
+        socket.disconnect();
+        socket.removeAllListeners();
+      }
+    };
+  }, []);
+
   return (
-    <SocketContextValue.Provider value={{ socket }}>
+    <SocketContext.Provider value={{ socket }}>
       {children}
-    </SocketContextValue.Provider>
+    </SocketContext.Provider>
   );
-}
+};

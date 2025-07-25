@@ -189,26 +189,15 @@ const Welcome: React.FC = () => {
         
         // Texto principal dorado brillante
         const gradient = ctx.createLinearGradient(0, -30, 0, 30);
-        gradient.addColorStop(0, `rgba(255, 223, 0, ${opacity})`); // Amarillo dorado claro
-        gradient.addColorStop(0.5, `rgba(255, 215, 0, ${opacity})`); // Dorado
-        gradient.addColorStop(1, `rgba(255, 165, 0, ${opacity})`); // Naranja dorado
+        gradient.addColorStop(0, `rgba(255, 223, 0, ${opacity})`);
+        gradient.addColorStop(0.5, `rgba(255, 215, 0, ${opacity})`);
+        gradient.addColorStop(1, `rgba(255, 165, 0, ${opacity})`);
         ctx.fillStyle = gradient;
         ctx.fillText('DILE', 0, 0);
         
         ctx.restore();
 
-        // Trigger vibration effect on cards
-        if (elapsed < 0.5) {
-          const cards = document.querySelectorAll('[data-card]');
-          cards.forEach(card => {
-            if (!card.classList.contains('animate-shake')) {
-              card.classList.add('animate-shake');
-              setTimeout(() => {
-                card.classList.remove('animate-shake');
-              }, 500);
-            }
-          });
-        }
+        // REMOVIDO: Efecto de vibración en las tarjetas
 
         // Reset comet after 2.5 seconds
         if (elapsed > 2.5) {
@@ -240,7 +229,7 @@ const Welcome: React.FC = () => {
     };
   }, []);
 
-  // Tarjeta reutilizable optimizada
+  // Tarjeta reutilizable optimizada para móviles
   const Card = ({
     title,
     description,
@@ -263,7 +252,7 @@ const Welcome: React.FC = () => {
     >
       <div className={`relative w-full bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col ${
         isMobile()
-          ? 'p-3 min-h-[300px]'
+          ? 'p-4 min-h-[200px] aspect-square' // Mejores proporciones para móvil
           : isTablet()
           ? 'p-4 min-h-[160px]'
           : isSmallDesktop()
@@ -273,28 +262,28 @@ const Welcome: React.FC = () => {
       data-card
       >
         <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <div className={`mb-2 ${
+          <div className={`mb-3 ${
             isMobile()
-              ? 'text-xl'
+              ? 'text-3xl' // Icono más grande en móvil
               : isTablet()
               ? 'text-2xl'
               : isSmallDesktop()
               ? 'text-3xl'
               : 'text-4xl lg:text-5xl xl:text-6xl'
           }`}>{icon}</div>
-          <h3 className={`font-bold text-white mb-2 leading-tight px-1 ${
+          <h3 className={`font-bold text-white mb-3 leading-tight px-1 ${
             isMobile()
-              ? 'text-xs'
+              ? 'text-sm' // Texto más grande en móvil
               : isTablet()
               ? 'text-sm'
               : isSmallDesktop()
               ? 'text-base'
               : 'text-lg lg:text-xl xl:text-2xl'
           }`}>{title}</h3>
-          <div className="h-0.5 bg-white/60 mb-2 rounded-full w-full max-w-[80%]" />
+          <div className="h-0.5 bg-white/60 mb-3 rounded-full w-full max-w-[80%]" />
           <p className={`text-white/90 leading-relaxed px-1 flex-1 ${
             isMobile()
-              ? 'text-xs line-clamp-2'
+              ? 'text-xs leading-tight' // Mejor legibilidad en móvil
               : isTablet()
               ? 'text-xs line-clamp-3'
               : isSmallDesktop()
@@ -375,13 +364,13 @@ const Welcome: React.FC = () => {
         : []),
     ];
 
-    // Grid responsivo mejorado para adaptarse a diferentes tamaños de pantalla
+    // Grid responsivo mejorado especialmente para móviles
     const getGridClass = () => {
       const optionsCount = availableOptions.length;
       
       if (isMobile()) {
-        // Móvil: 1 columna para pantallas muy pequeñas, 2 para pantallas móviles más grandes
-        return window.innerWidth <= 480 ? 'grid-cols-1' : 'grid-cols-2';
+        // Móvil: siempre 2 columnas para mejor aprovechamiento del espacio
+        return 'grid-cols-2';
       }
       
       if (isTablet()) {
@@ -422,9 +411,13 @@ const Welcome: React.FC = () => {
           )}
           
           {/* Grid de opciones */}
-          <div className={`${isMobile() ? 'flex-1 pb-8' : 'flex-1 flex items-center justify-center'} p-4 sm:p-6 lg:p-8 relative z-10`}>
-            <div className="w-full ">
-              <div className={`grid ${getGridClass()} gap-4 sm:gap-6 lg:gap-8`}>
+          <div className={`${isMobile() ? 'flex-1 pb-8' : 'flex-1 flex items-center justify-center'} ${
+            isMobile() ? 'p-3' : 'p-4 sm:p-6 lg:p-8'
+          } relative z-10`}>
+            <div className="w-full">
+              <div className={`grid ${getGridClass()} ${
+                isMobile() ? 'gap-3' : 'gap-4 sm:gap-6 lg:gap-8'
+              }`}>
                 {availableOptions.map((option, index) => (
                   <Card
                     key={`${option.title}-${index}`}
@@ -508,16 +501,7 @@ const Welcome: React.FC = () => {
           }
         }
         
-        /* Animación de vibración para las tarjetas */
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-          20%, 40%, 60%, 80% { transform: translateX(2px); }
-        }
-        
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
-        }
+        /* REMOVIDO: Animación de vibración y clase animate-shake */
         
         /* Clase para remover padding del Layout solo en Welcome */
         .welcome-full-width {
@@ -526,10 +510,18 @@ const Welcome: React.FC = () => {
           height: calc(100% + 3rem) !important;
         }
         
-        /* Mejoras responsivas adicionales */
-        @media (max-width: 480px) {
+        /* Mejoras responsivas para móviles */
+        @media (max-width: 768px) {
           .welcome-full-width .grid {
             gap: 0.75rem !important;
+          }
+          
+          /* Tarjetas cuadradas para mejor proporción en móvil */
+          .welcome-full-width [data-card] {
+            aspect-ratio: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
           }
         }
         
@@ -556,6 +548,19 @@ const Welcome: React.FC = () => {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+        
+        /* Mejoras específicas para texto en móvil */
+        @media (max-width: 768px) {
+          .welcome-full-width h3 {
+            line-height: 1.2 !important;
+            margin-bottom: 0.5rem !important;
+          }
+          
+          .welcome-full-width p {
+            line-height: 1.3 !important;
+            font-size: 0.75rem !important;
+          }
         }
       `}</style>
       <div className="welcome-full-width">

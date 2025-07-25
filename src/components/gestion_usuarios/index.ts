@@ -8,6 +8,6 @@ export { default as UserCardList } from './components/UserCardList';
 export { default as UserActivateModal } from './components/UserActivateModal';
 export { default as UserAgencyModal } from './components/UserAgencyModal';
 export { default as UserChangePasswordModal } from './components/UserChangePasswordModal';
-export { default as UserCreateModal } from './components/UserCreateModal';
+//export { default as UserCreateModal } from './components/UserCreateModal';
 export { default as UserCreateSimpleModal } from './components/UserCreateSimpleModal';
 export { default as AdminChangePasswordModal } from './components/AdminChangePasswordModal';
