@@ -1,415 +1,550 @@
 import React, { useState, useEffect } from 'react';
+import UserFilter from './components/UserFilter';
 import { createPortal } from 'react-dom';
 import ExcelJS from 'exceljs';
 import { jsPDF } from 'jspdf';
-import { AGENCIAS } from '../../types';
+import { AGENCIAS, UserResponse, AgenciaCaja } from '../../types';
 import { UserRole } from '../../types/roles';
 import { useAuth } from '../../hooks/useAuth';
+import { getMovimientosDiarios, MovimientoPrestamoDiario } from '../../api/paymentsApi';
+import { fetchAllUsers } from '../../api/userApi';
 
 interface ReportePagosModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface ReportePago {
-  cuenta: string;
-  razonSocial: string;
-  total: number;
-  fecha: string;
-  agencia: string;
-}
-
-// Datos de desarrollo - se reemplazarán con la API externa
-const getFechaDevelopment = () => new Date().toISOString().split('T')[0]; // Fecha de hoy
-
-const datosDesarrollo: ReportePago[] = [
-  {
-    cuenta: "001234567",
-    razonSocial: "JUAN PÉREZ GARCÍA",
-    total: 1250.50,
-    fecha: getFechaDevelopment(),
-    agencia: "LIMA_CENTRO"
-  },
-  {
-    cuenta: "001234568",
-    razonSocial: "MARÍA RODRÍGUEZ LÓPEZ",
-    total: 850.00,
-    fecha: getFechaDevelopment(),
-    agencia: "LIMA_CENTRO"
-  },
-  {
-    cuenta: "001234569",
-    razonSocial: "CARLOS MENDOZA SILVA",
-    total: 2100.75,
-    fecha: getFechaDevelopment(),
-    agencia: "LIMA_NORTE"
-  },
-  {
-    cuenta: "001234570",
-    razonSocial: "ANA TORRES VEGA",
-    total: 675.25,
-    fecha: '2025-07-17',
-    agencia: "LIMA_CENTRO"
-  },
-  {
-    cuenta: "001234571",
-    razonSocial: "LUIS GARCÍA MORALES",
-    total: 1500.00,
-    fecha: "2025-07-17",
-    agencia: "LIMA_SUR"
-  },
-  {
-    cuenta: "001234572",
-    razonSocial: "MARIA MARTINEZ",
-    total: 1000.00,
-    fecha: "2025-07-17",
-    agencia: "LIMA_SUR"
-  },
-  
-];
-
 const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date().toISOString().split('T')[0]); // Fecha de hoy por defecto
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date().toISOString().split('T')[0]);
   const [agenciaSeleccionada, setAgenciaSeleccionada] = useState('');
-  const [reporteData, setReporteData] = useState<ReportePago[]>([]);
+  const [reporteData, setReporteData] = useState<MovimientoPrestamoDiario[]>([]);
+  const [agenciasUsuarioSeleccionado, setAgenciasUsuarioSeleccionado] = useState<AgenciaCaja[]>([]);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [usuariosDisponibles, setUsuariosDisponibles] = useState<UserResponse[]>([]);
 
-  // Configurar agencia según el rol del usuario
+  // Determinar si el usuario es admin (puede ver todos los usuarios y agencias)
+  const esAdmin = user?.role === UserRole.GERENTE_GENERAL || 
+                  user?.role === UserRole.SUPER_ADMIN || 
+                  user?.role === UserRole.JEFE_OPERACIONES;
+
+  const esCajero = user?.role === UserRole.CAJERO;
+
+  // Cargar usuarios disponibles solo para admins
   useEffect(() => {
-    if (user?.role === UserRole.CAJERO && user?.agencias && user.agencias.length >= 1) {
-      // Para cajero: solo su agencia (no puede cambiarla)
-      setAgenciaSeleccionada(user.agencias[0].agencia);
+    const cargarUsuarios = async () => {
+      try {
+        const usuarios = await fetchAllUsers();
+        const usuariosFiltrados = usuarios.filter(
+          (usuario) =>
+            usuario.role === UserRole.CAJERO ||
+            usuario.role === UserRole.ADMINISTRADOR ||
+            usuario.role === UserRole.SUPER_ADMIN
+        );
+        setUsuariosDisponibles(usuariosFiltrados);
+      } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+      }
+    };
+
+    if (esAdmin) {
+      cargarUsuarios();
+    }
+  }, [esAdmin]);
+
+  // Inicializar datos según el rol del usuario
+  useEffect(() => {
+    if (!user) return;
+
+    if (esCajero) {
+      // Para cajeros: usar su propia agencia y cargar automáticamente
+      if (user.agencias && user.agencias.length > 0) {
+        setAgenciaSeleccionada(user.agencias[0].agencia);
+        setUsuarioSeleccionado(user.dni || '');
+        setAgenciasUsuarioSeleccionado(user.agencias);
+      }
+    } else if (esAdmin) {
+      // Para admins: inicializar con sus propios datos
+      setUsuarioSeleccionado(user.dni || '');
+      if (user.agencias && user.agencias.length > 0) {
+        setAgenciasUsuarioSeleccionado(user.agencias);
+        if (user.agencias.length === 1) {
+          setAgenciaSeleccionada(user.agencias[0].agencia);
+        }
+      }
+    }
+  }, [user, esCajero, esAdmin]);
+
+  // Manejar cambio de usuario seleccionado (solo para admins)
+  useEffect(() => {
+    if (!esAdmin || !usuarioSeleccionado) return;
+
+    const selectedUser = usuariosDisponibles.find(u => u.dni === usuarioSeleccionado);
+    if (selectedUser?.agencias) {
+      const agencias = selectedUser.agencias;
+      setAgenciasUsuarioSeleccionado(agencias);
+
+      // Si el usuario tiene una sola agencia, seleccionarla automáticamente
+      if (agencias.length === 1) {
+        setAgenciaSeleccionada(agencias[0].agencia);
+      } else {
+        // Si tiene múltiples agencias, resetear para que seleccione una
+        setAgenciaSeleccionada('');
+      }
     } else {
-      // Para otros roles: pueden ver todas las agencias
+      setAgenciasUsuarioSeleccionado([]);
       setAgenciaSeleccionada('');
     }
-  }, [user]);
+  }, [usuarioSeleccionado, usuariosDisponibles, esAdmin]);
 
-  // Verificar si el usuario puede cambiar agencia (solo cajeros NO pueden)
-  const puedeEditarAgencia = user?.role !== UserRole.CAJERO;
-
-  // Obtener agencias disponibles según el rol
+  // Obtener agencias disponibles para mostrar en el select
   const agenciasDisponibles = React.useMemo(() => {
-    if (user?.role === UserRole.CAJERO) {
-      return user.agencias || [];
+    if (esCajero) {
+      // Cajeros: solo sus agencias
+      return user?.agencias || [];
+    } else if (esAdmin) {
+      // Admins: agencias del usuario seleccionado
+      return agenciasUsuarioSeleccionado;
     }
-    // Jefa de operaciones, gerente y super admin pueden ver todas
-    return Object.entries(AGENCIAS).map(([nombre, codigo]) => ({
-      agencia: codigo,
-      nombre
-    }));
-  }, [user]);
+    return [];
+  }, [esCajero, esAdmin, user?.agencias, agenciasUsuarioSeleccionado]);
 
-  // Cargar datos del reporte
+  // Determinar si debe mostrar el select de agencias
+  const mostrarSelectAgencia = () => {
+    if (esCajero) {
+      // Mostrar solo si el cajero tiene más de una agencia
+      return (user?.agencias?.length || 0) > 1;
+    } else if (esAdmin) {
+      // Mostrar si el usuario seleccionado tiene más de una agencia
+      return agenciasUsuarioSeleccionado.length > 1;
+    }
+    return false;
+  };
+
   const cargarReporte = async () => {
+    if (!usuarioSeleccionado || !agenciaSeleccionada) {
+      setError('Debe seleccionar usuario y agencia');
+      return;
+    }
+
     setLoading(true);
+    setError(null);
+    
     try {
-      // Simular llamada a API externa
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const fecha = new Date(fechaSeleccionada).toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).replace(/\//g, '/');
+
+      // Obtener los datos del usuario seleccionado para obtener cod_caja
+      let cod_caja = '';
       
-      let datosFiltrados = datosDesarrollo;
-      
-      // Filtrar por agencia
-      if (user?.role === UserRole.CAJERO) {
-        // Cajero solo ve su agencia
-        datosFiltrados = datosDesarrollo.filter(item => item.agencia === agenciaSeleccionada);
-      } else if (agenciaSeleccionada) {
-        // Otros roles pueden filtrar por agencia específica
-        datosFiltrados = datosDesarrollo.filter(item => item.agencia === agenciaSeleccionada);
+      if (esCajero) {
+        // Para cajeros, usar su propio cod_caja
+        cod_caja = user?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
+      } else if (esAdmin) {
+        // Para admins, obtener cod_caja del usuario seleccionado
+        const selectedUser = usuariosDisponibles.find(u => u.dni === usuarioSeleccionado);
+        cod_caja = selectedUser?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
       }
-      
-      // Filtrar por fecha
-      datosFiltrados = datosFiltrados.filter(item => item.fecha === fechaSeleccionada);
-      
-      setReporteData(datosFiltrados);
+
+      console.log('Cargando reporte con:', { fecha, cod_caja, agencia: agenciaSeleccionada, usuario: usuarioSeleccionado });
+
+      const response = await getMovimientosDiarios(fecha, cod_caja, agenciaSeleccionada);
+      setReporteData(Array.isArray(response) ? response : []);
     } catch (error) {
+      console.error('Error cargando reporte:', error);
+      setError('Error al cargar los datos del reporte');
       setReporteData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Cargar datos automáticamente al abrir el modal o cambiar filtros
+  // Cargar reporte automáticamente cuando se tienen todos los datos necesarios
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && usuarioSeleccionado && agenciaSeleccionada && fechaSeleccionada) {
       cargarReporte();
     }
-  }, [isOpen, fechaSeleccionada, agenciaSeleccionada]);
+  }, [isOpen, usuarioSeleccionado, agenciaSeleccionada, fechaSeleccionada]);
 
-  // Calcular total general
-  const totalGeneral = reporteData.reduce((sum, item) => sum + item.total, 0);
+  const totalGeneral = Array.isArray(reporteData) ? reporteData.reduce((sum, item) => {
+    const total = parseFloat(item.TOTAL) || 0;
+    return sum + total;
+  }, 0) : 0;
 
-  // Función para exportar a Excel (similar al cronograma)
   const exportarExcel = async () => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reporte de Pagos');
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Reporte de Pagos');
+      
+      // Información del encabezado
+      worksheet.addRow(['REPORTE DE PAGOS - CUADRE DE CAJA']);
+      worksheet.addRow([]);
+      worksheet.addRow(['Fecha:', fechaSeleccionada]);
 
-    // Configurar encabezados
-    worksheet.addRow(['REPORTE DE PAGOS - CUADRE DE CAJA']);
-    worksheet.addRow([]);
-    worksheet.addRow(['Fecha:', fechaSeleccionada]);
-    if (agenciaSeleccionada) {
-      const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
-      worksheet.addRow(['Agencia:', nombreAgencia]);
-    }
-    worksheet.addRow(['Generado por:', `${user?.razon} - ${user?.cargo || user?.role}`]);
-    worksheet.addRow(['Generado el:', new Date().toLocaleString('es-PE')]);
-    worksheet.addRow([]);
+      if (agenciaSeleccionada) {
+        const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
+        worksheet.addRow(['Agencia:', nombreAgencia]);
+      }
 
-    // Encabezados de tabla
-    const headerRow = worksheet.addRow(['Cuenta', 'Razón Social', 'Total', 'Fecha', 'Agencia']);
-    headerRow.font = { bold: true };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF0ea5e9' }
-    };
+      // Información del usuario que genera el reporte
+      const usuarioGenerador = esAdmin && usuarioSeleccionado !== user?.dni 
+        ? usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)
+        : user;
 
-    // Datos
-    reporteData.forEach(item => {
-      const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === item.agencia)?.[0];
-      worksheet.addRow([
-        item.cuenta,
-        item.razonSocial,
-        item.total,
-        item.fecha,
-        nombreAgencia
+      worksheet.addRow(['Usuario del reporte:', `${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`]);
+      worksheet.addRow(['Generado por:', `${user?.razon} - ${user?.cargo || user?.role}`]);
+      worksheet.addRow(['Generado el:', new Date().toLocaleString('es-PE')]);
+      worksheet.addRow([]);
+
+      // Headers de la tabla
+      const headerRow = worksheet.addRow([
+        'FECHA_MOV', 'COD_AGENCIA', 'COD_CAJA', 'NRO_DOC', 'CAPITAL',
+        'INTERES', 'MORA', 'SEGURO', 'PORTES', 'DESGRAV', 'APORTE',
+        'TOTAL', 'MONEDA', 'TIPO_PAGO', 'GLOSA'
       ]);
-    });
 
-    // Fila de total
-    worksheet.addRow([]);
-    const totalRow = worksheet.addRow(['', '', 'TOTAL GENERAL:', totalGeneral, '']);
-    totalRow.font = { bold: true };
-    totalRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FFffeb3b' }
-    };
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF0ea5e9' }
+      };
 
-    // Ajustar ancho de columnas
-    worksheet.columns.forEach(column => {
-      column.width = 20;
-    });
+      // Datos
+      reporteData.forEach(item => {
+        worksheet.addRow([
+          item.FECHA_MOV,
+          item.COD_AGENCIA,
+          item.COD_CAJA,
+          item.NRO_DOC,
+          item.CAPITAL,
+          item.INTERES,
+          item.MORA,
+          item.SEGURO,
+          item.PORTES,
+          item.DESGRAV,
+          item.APORTE,
+          item.TOTAL,
+          item.MONEDA,
+          item.TIPO_PAGO,
+          item.GLOSA
+        ]);
+      });
 
-    // Generar y descargar
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const nombreArchivo = `Cuadre_Caja_${fechaSeleccionada}${agenciaSeleccionada ? `_${Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0]}` : ''}.xlsx`;
-    a.download = nombreArchivo;
-    a.click();
-    window.URL.revokeObjectURL(url);
+      // Total
+      worksheet.addRow([]);
+      const totalRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', `TOTAL: ${totalGeneral.toFixed(2)}`, '', '', '']);
+      totalRow.font = { bold: true };
+      totalRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFffeb3b' }
+      };
+
+      worksheet.columns.forEach(column => {
+        column.width = 15;
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
+      const nombreArchivo = `Cuadre_Caja_${fechaSeleccionada}${nombreAgencia ? `_${nombreAgencia}` : ''}.xlsx`;
+      a.download = nombreArchivo;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exportando Excel:', error);
+      alert('Error al exportar a Excel');
+    }
   };
 
-  // Función para exportar a PDF (manual sin autotable)
   const exportarPDF = () => {
-    const doc = new jsPDF();
-    
-    // Título
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('REPORTE DE PAGOS - CUADRE DE CAJA', 20, 20);
-    
-    // Información del reporte
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha: ${fechaSeleccionada}`, 20, 35);
-    if (agenciaSeleccionada) {
-      const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
-      doc.text(`Agencia: ${nombreAgencia}`, 20, 45);
-    }
-    doc.text(`Generado por: ${user?.razon} - ${user?.cargo || user?.role}`, 20, 55);
-    doc.text(`Generado el: ${new Date().toLocaleString('es-PE')}`, 20, 65);
+    try {
+      const doc = new jsPDF('portrait');
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('REPORTE DE PAGOS - CUADRE DE CAJA', 10, 10);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${fechaSeleccionada}`, 10, 18);
 
-    // Tabla manual
-    let yPosition = 80;
-    
-    // Encabezados de tabla
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cuenta', 20, yPosition);
-    doc.text('Razón Social', 60, yPosition);
-    doc.text('Total', 120, yPosition);
-    doc.text('Fecha', 150, yPosition);
-    doc.text('Agencia', 180, yPosition);
-    
-    // Línea debajo de encabezados
-    doc.line(20, yPosition + 2, 200, yPosition + 2);
-    yPosition += 10;
-    
-    // Datos de la tabla
-    doc.setFont('helvetica', 'normal');
-    reporteData.forEach((item) => {
-      const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === item.agencia)?.[0];
-      
-      doc.text(item.cuenta, 20, yPosition);
-      doc.text(item.razonSocial.substring(0, 25), 60, yPosition); // Truncar si es muy largo
-      doc.text(`S/ ${item.total.toFixed(2)}`, 120, yPosition);
-      doc.text(item.fecha, 150, yPosition);
-      doc.text((nombreAgencia || item.agencia).substring(0, 15), 180, yPosition);
-      
-      yPosition += 8;
-      
-      // Si llegamos al final de la página, crear nueva página
-      if (yPosition > 270) {
-        doc.addPage();
-        yPosition = 20;
+      if (agenciaSeleccionada) {
+        const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
+        doc.text(`Agencia: ${nombreAgencia}`, 10, 26);
       }
-    });
 
-    // Total general
-    yPosition += 10;
-    doc.line(20, yPosition, 200, yPosition);
-    yPosition += 10;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`TOTAL GENERAL: S/ ${totalGeneral.toFixed(2)}`, 20, yPosition);
+      // Información del usuario del reporte
+      const usuarioGenerador = esAdmin && usuarioSeleccionado !== user?.dni 
+        ? usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)
+        : user;
 
-    // Descargar
-    const nombreArchivo = `Cuadre_Caja_${fechaSeleccionada}${agenciaSeleccionada ? `_${Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0]}` : ''}.pdf`;
-    doc.save(nombreArchivo);
+      doc.text(`Usuario del reporte: ${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`, 10, 34);
+      doc.text(`Generado por: ${user?.razon} - ${user?.cargo || user?.role}`, 10, 42);
+      doc.text(`Generado el: ${new Date().toLocaleString('es-PE')}`, 10, 50);
+
+      let yPosition = 65;
+      const headers = ['FECHA', 'AGENCIA', 'CAJA', 'DOC', 'CAPITAL', 'INTERES', 'MORA', 'SEGURO', 'PORTES', 'DESGRAV', 'APORTE', 'TOTAL', 'MONEDA', 'TIPO', 'GLOSA'];
+      const columnWidths = [14, 12, 10, 12, 11, 11, 9, 11, 9, 11, 11, 12, 10, 14, 22];
+
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'bold');
+
+      let xPosition = 10;
+      headers.forEach((header, index) => {
+        doc.text(header, xPosition, yPosition);
+        xPosition += columnWidths[index];
+      });
+
+      doc.line(10, yPosition + 2, 200, yPosition + 2);
+      yPosition += 8;
+      doc.setFont('helvetica', 'normal');
+
+      reporteData.forEach((item) => {
+        xPosition = 10;
+        const values = [
+          item.FECHA_MOV?.substring(0, 10) || '',
+          item.COD_AGENCIA || '',
+          item.COD_CAJA || '',
+          item.NRO_DOC || '',
+          item.CAPITAL || '0',
+          item.INTERES || '0',
+          item.MORA || '0',
+          item.SEGURO || '0',
+          item.PORTES || '0',
+          item.DESGRAV || '0',
+          item.APORTE || '0',
+          item.TOTAL || '0',
+          item.MONEDA || '',
+          item.TIPO_PAGO || '',
+          (item.GLOSA || '').substring(0, 22) + (item.GLOSA?.length > 22 ? '...' : '')
+        ];
+
+        values.forEach((value, index) => {
+          doc.text(String(value), xPosition, yPosition);
+          xPosition += columnWidths[index];
+        });
+
+        yPosition += 6;
+        if (yPosition > 270) {
+          doc.addPage();
+          yPosition = 10;
+          xPosition = 10;
+          doc.setFont('helvetica', 'bold');
+          headers.forEach((header, index) => {
+            doc.text(header, xPosition, yPosition);
+            xPosition += columnWidths[index];
+          });
+          doc.line(10, yPosition + 2, 200, yPosition + 2);
+          yPosition += 8;
+          doc.setFont('helvetica', 'normal');
+        }
+      });
+
+      yPosition += 10;
+      doc.line(10, yPosition, 200, yPosition);
+      yPosition += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`TOTAL GENERAL: S/ ${totalGeneral.toFixed(2)}`, 10, yPosition);
+
+      const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
+      const nombreArchivo = `Cuadre_Caja_${fechaSeleccionada}${nombreAgencia ? `_${nombreAgencia}` : ''}.pdf`;
+      doc.save(nombreArchivo);
+    } catch (error) {
+      console.error('Error exportando PDF:', error);
+      alert('Error al exportar a PDF');
+    }
   };
 
   if (!isOpen) return null;
 
   return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-6 py-4 flex justify-between items-center">
+        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 py-3 flex justify-between items-center">
           <div>
-            <h2 className="text-xl font-bold">Reporte de Pagos - Cuadre de Caja</h2>
-            <p className="text-cyan-100 text-sm">Sistema de reportes externos</p>
+            <h2 className="text-lg font-bold">Reporte de Pagos</h2>
+            <p className="text-cyan-100 text-xs">Sistema de reportes externos</p>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200 transition-colors p-1"
-          >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+          <button onClick={onClose} className="text-white hover:text-gray-200 transition-colors p-1">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        {/* Content */}
+        <div className="p-4 overflow-y-auto">
           {/* Filtros */}
-          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 className="font-semibold text-gray-800 mb-4">Filtros de Reporte</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Filtro de fecha */}
+          <div className="bg-gray-50 p-3 rounded-lg mb-4">
+            <h3 className="font-semibold text-gray-800 mb-3">Filtros de Reporte</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              
+              {/* Fecha */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  📅 Fecha del Reporte
-                </label>
-                <input
-                  type="date"
-                  value={fechaSeleccionada}
-                  onChange={(e) => setFechaSeleccionada(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                <label className="block text-sm font-medium text-gray-700 mb-1">📅 Fecha del Reporte</label>
+                <input 
+                  type="date" 
+                  value={fechaSeleccionada} 
+                  onChange={(e) => setFechaSeleccionada(e.target.value)} 
+                  className="w-full rounded-lg border border-gray-300 px-2 py-1 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" 
+                  aria-label="Seleccionar fecha del reporte" 
                 />
               </div>
 
-              {/* Filtro de agencia */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  🏢 Agencia
-                </label>
-                <select
-                  value={agenciaSeleccionada}
-                  onChange={(e) => setAgenciaSeleccionada(e.target.value)}
-                  disabled={!puedeEditarAgencia}
-                  className={`w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 ${
-                    !puedeEditarAgencia ? 'bg-gray-100 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {puedeEditarAgencia && <option value="">Todas las agencias</option>}
-                  {agenciasDisponibles.map((agencia) => (
-                    <option key={agencia.agencia} value={agencia.agencia}>
-                      {'nombre' in agencia ? agencia.nombre : Object.entries(AGENCIAS).find(([_, code]) => code === agencia.agencia)?.[0]}
-                    </option>
-                  ))}
-                </select>
-                {!puedeEditarAgencia && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    🔒 Agencia bloqueada para usuarios de caja
-                  </p>
-                )}
-              </div>
+              {/* Selector de Usuario - Solo para admins */}
+              {esAdmin && (
+                <div>
+                  <UserFilter
+                    filtroAgencia="por_usuario"
+                    usuariosDisponibles={usuariosDisponibles}
+                    cargandoUsuarios={loading}
+                    usuarioSeleccionado={usuarioSeleccionado}
+                    setUsuarioSeleccionado={setUsuarioSeleccionado}
+                    setFiltroUsuario={(value) => console.log('Filtro usuario:', value)}
+                    agenciasUsuarioSeleccionado={agenciasUsuarioSeleccionado}
+                    setAgenciasUsuarioSeleccionado={setAgenciasUsuarioSeleccionado}
+                    agenciaUsuarioEspecifica={agenciaSeleccionada}
+                    setAgenciaUsuarioEspecifica={setAgenciaSeleccionada}
+                    esAdmin={esAdmin}
+                    esSuperAdmin={user?.role === UserRole.SUPER_ADMIN}
+                  />
+                </div>
+              )}
+
+              {/* Selector de Agencia - Solo si tiene múltiples agencias */}
+              {mostrarSelectAgencia() && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">🏢 Agencia</label>
+                  <select 
+                    value={agenciaSeleccionada} 
+                    onChange={(e) => setAgenciaSeleccionada(e.target.value)} 
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" 
+                    aria-label="Seleccionar agencia"
+                  >
+                    <option value="">Seleccionar agencia</option>
+                    {agenciasDisponibles.map((agencia) => (
+                      <option key={agencia.agencia} value={agencia.agencia}>
+                        {Object.entries(AGENCIAS).find(([_, code]) => code === agencia.agencia)?.[0] || agencia.agencia}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
+
+            {/* Información del usuario actual para cajeros */}
+            {esCajero && (
+              <div className="mt-3 p-2 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  👤 Usuario: <strong>{user?.razon}</strong> | 
+                  🏢 Agencia: <strong>{Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0]}</strong>
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Área de resultados */}
+          {/* Error */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg mb-4">
+              {error}
+            </div>
+          )}
+
+          {/* Loading */}
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <div className="text-center py-6">
+              <div className="animate-spin w-6 h-6 border-3 border-cyan-500 border-t-transparent rounded-full mx-auto mb-3"></div>
               <p className="text-gray-600">Cargando reporte...</p>
             </div>
           ) : (
             <>
               {/* Resumen */}
-              <div className="bg-blue-50 p-4 rounded-lg mb-6">
+              <div className="bg-blue-50 p-3 rounded-lg mb-4">
                 <h3 className="font-semibold text-blue-800 mb-2">Resumen del Reporte</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <p className="text-sm text-blue-600">Total de registros</p>
-                    <p className="text-2xl font-bold text-blue-800">{reporteData.length}</p>
+                    <p className="text-xs text-blue-600">Total de registros</p>
+                    <p className="text-lg font-bold text-blue-800">{reporteData.length}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-blue-600">Fecha consultada</p>
-                    <p className="text-lg font-semibold text-blue-800">{fechaSeleccionada}</p>
+                    <p className="text-xs text-blue-600">Fecha consultada</p>
+                    <p className="text-base font-semibold text-blue-800">{fechaSeleccionada}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-blue-600">Agencia</p>
-                    <p className="text-lg font-semibold text-blue-800">
-                      {agenciaSeleccionada 
-                        ? Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0] 
-                        : 'Todas'}
+                    <p className="text-xs text-blue-600">Agencia</p>
+                    <p className="text-base font-semibold text-blue-800">
+                      {agenciaSeleccionada ? Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0] : 'No seleccionada'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-blue-600">Total general</p>
-                    <p className="text-2xl font-bold text-green-600">S/ {totalGeneral.toFixed(2)}</p>
+                    <p className="text-xs text-blue-600">Total general</p>
+                    <p className="text-lg font-bold text-green-600">S/ {totalGeneral.toFixed(2)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Tabla de datos */}
               <div className="border rounded-lg overflow-hidden">
-                <div className="bg-gray-100 px-4 py-2">
-                  <h3 className="font-semibold">Detalle de Pagos</h3>
+                <div className="px-4 py-2 border-b">
+                  <h3 className="text-sm font-semibold text-gray-700">Detalle de Pagos</h3>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cuenta</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Razón Social</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Agencia</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">FECHA_MOV</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">COD_AGENCIA</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">COD_CAJA</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">NRO_DOC</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">CAPITAL</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">INTERES</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">MORA</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">SEGURO</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">PORTES</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">DESGRAV</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">APORTE</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">TOTAL</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">MONEDA</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">TIPO_PAGO</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">GLOSA</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {reporteData.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
-                            No se encontraron registros para la fecha seleccionada
+                          <td colSpan={15} className="px-3 py-6 text-center text-gray-500 text-sm">
+                            No se encontraron registros para los filtros seleccionados
                           </td>
                         </tr>
                       ) : (
                         reporteData.map((item, index) => (
                           <tr key={index} className="hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.cuenta}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900">{item.razonSocial}</td>
-                            <td className="px-4 py-3 text-sm font-semibold text-green-600">S/ {item.total.toFixed(2)}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900">{item.fecha}</td>
-                            <td className="px-4 py-3 text-sm text-gray-900">
-                              {Object.entries(AGENCIAS).find(([_, code]) => code === item.agencia)?.[0]}
-                            </td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.FECHA_MOV}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.COD_AGENCIA}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.COD_CAJA}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.NRO_DOC}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.CAPITAL}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.INTERES}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.MORA}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.SEGURO}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.PORTES}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.DESGRAV}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.APORTE}</td>
+                            <td className="px-2 py-1 text-xs font-semibold text-green-600">{item.TOTAL}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.MONEDA}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.TIPO_PAGO}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.GLOSA}</td>
                           </tr>
                         ))
                       )}
@@ -420,63 +555,55 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
 
               {/* Total */}
               {reporteData.length > 0 && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-4">
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mt-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold text-yellow-800">TOTAL GENERAL:</span>
-                    <span className="text-2xl font-bold text-green-600">S/ {totalGeneral.toFixed(2)}</span>
+                    <span className="font-semibold text-yellow-800 text-sm">TOTAL GENERAL:</span>
+                    <span className="text-lg font-bold text-green-600">S/ {totalGeneral.toFixed(2)}</span>
                   </div>
                 </div>
               )}
-
-              {/* Nota de desarrollo */}
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mt-6">
-                <div className="flex items-start">
-                  <svg className="w-5 h-5 text-orange-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <div>
-                    <h4 className="text-sm font-medium text-orange-800">Datos de Desarrollo</h4>
-                    <p className="text-sm text-orange-700 mt-1">
-                      Este reporte muestra datos de prueba.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </>
           )}
         </div>
 
-        {/* Footer con botones de acción */}
-        <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-t">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+        {/* Footer */}
+        <div className="bg-gray-50 px-4 py-3 flex flex-col sm:flex-row justify-between items-center border-t">
+          <button 
+            onClick={onClose} 
+            className="px-3 py-1 text-gray-600 hover:text-gray-800 transition-colors mb-2 sm:mb-0"
           >
             Cerrar
           </button>
-          
-          {reporteData.length > 0 && (
-            <div className="flex space-x-3">
-              <button
-                onClick={exportarExcel}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                Exportar Excel
-              </button>
-              <button
-                onClick={exportarPDF}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-                Exportar PDF
-              </button>
-            </div>
-          )}
+          <div className="flex space-x-2">
+            <button 
+              onClick={exportarExcel} 
+              disabled={reporteData.length === 0 || loading} 
+              className={`px-3 py-1 rounded-lg transition-colors flex items-center gap-1 ${
+                reporteData.length > 0 && !loading 
+                  ? 'bg-green-500 text-white hover:bg-green-600' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs">Excel</span>
+            </button>
+            <button 
+              onClick={exportarPDF} 
+              disabled={reporteData.length === 0 || loading} 
+              className={`px-3 py-1 rounded-lg transition-colors flex items-center gap-1 ${
+                reporteData.length > 0 && !loading 
+                  ? 'bg-red-500 text-white hover:bg-red-600' 
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs">PDF</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>,

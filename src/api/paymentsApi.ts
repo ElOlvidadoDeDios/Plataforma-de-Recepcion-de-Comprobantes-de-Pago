@@ -521,3 +521,46 @@ export const getPaymentsByCreditoId = async (creditoId: string) => {
     throw new APIError('Error al obtener los pagos del préstamo');
   }
 };
+
+
+
+// reporte de movimientos diarios
+export interface MovimientoPrestamoDiario   {
+    FECHA_MOV: string;
+    COD_AGENCIA: string;
+    COD_CAJA: string;
+    NRO_DOC: string;
+    CAPITAL: string;
+    INTERES: string;
+    MORA: string;
+    SEGURO: string;
+    PORTES: string;
+    DESGRAV: string;
+    APORTE: string;
+    TOTAL: string;
+    MONEDA: string;
+    TIPO_PAGO: string;
+    GLOSA: string
+  };
+export const getMovimientosDiarios = async (
+  fecha: string,
+  caja: string,
+  agencia: string
+  ): Promise<MovimientoPrestamoDiario[]> => {
+    try {
+      const response = await axiosInstance.post('/api/diario_caja_x_dia', {
+        fecha,
+        caja,
+        agencia
+      });
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new APIError(
+          'Error al obtener los movimientos diarios de caja',
+          error.response?.status
+        );
+      }
+      throw new APIError('Error al obtener los movimientos diarios de caja ');
+    }
+  };

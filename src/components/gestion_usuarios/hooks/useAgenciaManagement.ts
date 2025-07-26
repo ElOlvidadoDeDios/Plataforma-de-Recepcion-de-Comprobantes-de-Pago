@@ -213,7 +213,7 @@ export const useAgenciaManagement = ({
           ag.cod_caja.length <= 20 && ag.user_caja.length <= 20
         ),
         sinCaracteresEspeciales: agenciasFormateadas.every(ag =>
-          !ag.cod_caja.includes(' ') && !ag.user_caja.includes(' ')
+          !ag.cod_caja.includes(' ') && !ag.user_caja.includes(' ') && /^[A-Z0-9_-]+$/i.test(ag.cod_caja) && /^[A-Z0-9_-]+$/i.test(ag.user_caja)
         )
       };
 
@@ -222,7 +222,7 @@ export const useAgenciaManagement = ({
         return;
       }
       if (!validaciones.formatoValido) {
-        toast.error('Los códigos solo pueden contener letras, números, guiones y guiones bajos');
+        toast.error('Los códigos deben contener solo letras, números, guiones o guiones bajos y no tener espacios');
         return;
       }
       if (!validaciones.longitudMaxima) {

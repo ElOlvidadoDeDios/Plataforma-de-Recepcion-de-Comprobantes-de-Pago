@@ -40,7 +40,6 @@ const initializeSocket = () => {
   });
 
   socket.on('connect', () => {
-    console.log('Socket connected successfully');
   });
 
   socket.on('disconnect', (reason: string) => {

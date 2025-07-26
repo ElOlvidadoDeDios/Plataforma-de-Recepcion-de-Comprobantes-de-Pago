@@ -63,7 +63,7 @@ const UserFilter: React.FC<UserFilterProps> = ({
               .sort((a, b) => (a.razon || '').localeCompare(b.razon || ''))
               .map(usuario => (
                 <option key={usuario._id} value={usuario.dni}>
-                  {usuario.razon || usuario.email} ({usuario.dni}) - {usuario.email}
+                  {usuario.razon || usuario.email} ({usuario.dni}) 
                   {usuario.agencias && usuario.agencias.length > 0 && ` [${usuario.agencias.length} agencias]`}
                 </option>
               ))
