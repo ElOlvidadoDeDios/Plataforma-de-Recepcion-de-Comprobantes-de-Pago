@@ -69,9 +69,6 @@ const UserFilter: React.FC<UserFilterProps> = ({
               ))
             }
           </select>
-          <p className="text-xs text-blue-600 mt-1">
-            ✅ Solo se muestran usuarios que pueden procesar pagos (CAJERO, ADMINISTRADOR, SUPER_ADMIN)
-          </p>
           {usuariosDisponibles.length === 0 && !cargandoUsuarios && (
             <p className="text-xs text-amber-600 mt-1">
               ⚠️ No se encontraron usuarios que puedan hacer pagos

@@ -110,3 +110,6 @@ export const formatearMonto = (monto: string): string => {
     maximumFractionDigits: 2
   });
 };
+
+
+

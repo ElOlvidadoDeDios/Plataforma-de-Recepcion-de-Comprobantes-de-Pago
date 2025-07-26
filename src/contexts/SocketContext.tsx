@@ -31,23 +31,24 @@ const initializeSocket = () => {
     autoConnect: true
   });
 
-  socket.io.on("error", (error: Error) => {
-    console.error('Socket.IO Manager Error:', error);
+  socket.io.on("error", () => {
+    // Error handling sin console log
   });
 
-  socket.on('connect_error', (error: Error) => {
-    console.error('Socket Connection Error:', error);
+  socket.on('connect_error', () => {
+    // Error handling sin console log
   });
 
   socket.on('connect', () => {
+    // Conexión establecida
   });
 
-  socket.on('disconnect', (reason: string) => {
-    console.log('Socket disconnected:', reason);
+  socket.on('disconnect', () => {
+    // Desconexión manejada silenciosamente
   });
 
   socket.on('auth_error', () => {
-    console.warn('Authentication error - token might be expired');
+    // Error de autenticación manejado silenciosamente
   });
 
   return socket;
