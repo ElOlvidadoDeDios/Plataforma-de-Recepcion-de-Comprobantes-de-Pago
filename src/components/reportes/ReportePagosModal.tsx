@@ -30,51 +30,41 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
                   user?.role === UserRole.JEFE_OPERACIONES;
   const esCajero = user?.role === UserRole.CAJERO;
 
-useEffect(() => {
-  const cargarUsuarios = async () => {
-    try {
-      const usuarios = await fetchAllUsers();
-
-      // Primero, filtra los usuarios para incluir solo aquellos con roles que pueden realizar pagos
-      const rolesPermitidos = [
-        UserRole.SUPER_ADMIN,
-        UserRole.GERENTE_GENERAL,
-        UserRole.JEFE_OPERACIONES,
-        UserRole.CAJERO
-      ];
-
-      let usuariosFiltrados = usuarios.filter(usuario =>
-        rolesPermitidos.includes(usuario.role as UserRole)
-      );
-
-      // Luego, aplica la lógica de jerarquía
-      if (user?.role === UserRole.SUPER_ADMIN) {
-        // Super Admin puede ver todos los usuarios con roles permitidos
-        usuariosFiltrados = usuariosFiltrados;
-      } else if (user?.role === UserRole.GERENTE_GENERAL) {
-        // Gerente General puede ver todos los usuarios con roles permitidos excepto Super Admin
-        usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.role !== UserRole.SUPER_ADMIN);
-      } else if (user?.role === UserRole.JEFE_OPERACIONES) {
-        // Jefe de Operaciones puede ver todos los usuarios con roles permitidos excepto Super Admin y Gerente General
-        usuariosFiltrados = usuariosFiltrados.filter(usuario =>
-          usuario.role !== UserRole.SUPER_ADMIN && usuario.role !== UserRole.GERENTE_GENERAL
+  useEffect(() => {
+    const cargarUsuarios = async () => {
+      try {
+        const usuarios = await fetchAllUsers();
+        const rolesPermitidos = [
+          UserRole.SUPER_ADMIN,
+          UserRole.GERENTE_GENERAL,
+          UserRole.JEFE_OPERACIONES,
+          UserRole.CAJERO
+        ];
+        let usuariosFiltrados = usuarios.filter(usuario =>
+          rolesPermitidos.includes(usuario.role as UserRole)
         );
-      } else if (user?.role === UserRole.CAJERO) {
-        // Cajero solo puede ver sus propios datos
-        usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.dni === user.dni);
+
+        if (user?.role === UserRole.SUPER_ADMIN) {
+          usuariosFiltrados = usuariosFiltrados;
+        } else if (user?.role === UserRole.GERENTE_GENERAL) {
+          usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.role !== UserRole.SUPER_ADMIN);
+        } else if (user?.role === UserRole.JEFE_OPERACIONES) {
+          usuariosFiltrados = usuariosFiltrados.filter(usuario =>
+            usuario.role !== UserRole.SUPER_ADMIN && usuario.role !== UserRole.GERENTE_GENERAL
+          );
+        } else if (user?.role === UserRole.CAJERO) {
+          usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.dni === user.dni);
+        }
+        setUsuariosDisponibles(usuariosFiltrados);
+      } catch (error) {
+        console.error("Error al cargar usuarios:", error);
       }
+    };
 
-      setUsuariosDisponibles(usuariosFiltrados);
-    } catch (error) {
-      console.error("Error al cargar usuarios:", error);
+    if (esAdmin) {
+      cargarUsuarios();
     }
-  };
-
-  if (esAdmin) {
-    cargarUsuarios();
-  }
-}, [esAdmin, user?.role, user?.dni]);
-
+  }, [esAdmin, user?.role, user?.dni]);
 
   useEffect(() => {
     if (!user) return;
@@ -137,23 +127,15 @@ useEffect(() => {
     }
     setLoading(true);
     setError(null);
-
     try {
-      const fecha = new Date(fechaSeleccionada).toLocaleDateString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }).replace(/\//g, '/');
-
+      const fecha = `${new Date().getDate().toString().padStart(2, '0')}/${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
       let cod_caja = '';
-
       if (esCajero) {
         cod_caja = user?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
       } else if (esAdmin) {
         const selectedUser = usuariosDisponibles.find(u => u.dni === usuarioSeleccionado);
         cod_caja = selectedUser?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
       }
-
       const response = await getMovimientosDiarios(fecha, cod_caja, agenciaSeleccionada);
       setReporteData(Array.isArray(response) ? response : []);
     } catch (error) {
@@ -165,7 +147,7 @@ useEffect(() => {
   };
 
   useEffect(() => {
-    if (isOpen && usuarioSeleccionado && agenciaSeleccionada && fechaSeleccionada) {
+    if (isOpen && usuarioSeleccionado && agenciaSeleccionada) {
       cargarReporte();
     }
   }, [isOpen, usuarioSeleccionado, agenciaSeleccionada, fechaSeleccionada]);
@@ -179,7 +161,6 @@ useEffect(() => {
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Reporte de Pagos');
-
       worksheet.addRow(['REPORTE DE PAGOS - CUADRE DE CAJA']);
       worksheet.addRow([]);
       worksheet.addRow(['Fecha:', fechaSeleccionada]);
@@ -187,7 +168,6 @@ useEffect(() => {
         const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
         worksheet.addRow(['Agencia:', nombreAgencia]);
       }
-
       const usuarioGenerador = esAdmin && usuarioSeleccionado !== user?.dni
         ? usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)
         : user;
@@ -195,7 +175,6 @@ useEffect(() => {
       worksheet.addRow(['Generado por:', `${user?.razon} - ${user?.cargo || user?.role}`]);
       worksheet.addRow(['Generado el:', new Date().toLocaleString('es-PE')]);
       worksheet.addRow([]);
-
       const headerRow = worksheet.addRow([
         'FECHA_MOV', 'COD_AGENCIA', 'COD_CAJA', 'NRO_DOC', 'CAPITAL',
         'INTERES', 'MORA', 'SEGURO', 'PORTES', 'DESGRAV', 'APORTE',
@@ -207,7 +186,6 @@ useEffect(() => {
         pattern: 'solid',
         fgColor: { argb: 'FF0ea5e9' }
       };
-
       reporteData.forEach(item => {
         worksheet.addRow([
           item.FECHA_MOV,
@@ -227,7 +205,6 @@ useEffect(() => {
           item.GLOSA
         ]);
       });
-
       worksheet.addRow([]);
       const totalRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', `TOTAL: ${totalGeneral.toFixed(2)}`, '', '', '']);
       totalRow.font = { bold: true };
@@ -239,13 +216,11 @@ useEffect(() => {
       worksheet.columns.forEach(column => {
         column.width = 15;
       });
-
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-
       const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
       const nombreArchivo = `Cuadre_Caja_${fechaSeleccionada}${nombreAgencia ? `_${nombreAgencia}` : ''}.xlsx`;
       a.download = nombreArchivo;
@@ -269,7 +244,6 @@ useEffect(() => {
         const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
         doc.text(`Agencia: ${nombreAgencia}`, 10, 26);
       }
-
       const usuarioGenerador = esAdmin && usuarioSeleccionado !== user?.dni
         ? usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)
         : user;
