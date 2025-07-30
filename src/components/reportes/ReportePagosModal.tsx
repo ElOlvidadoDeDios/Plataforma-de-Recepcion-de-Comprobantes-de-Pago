@@ -128,7 +128,8 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
     setLoading(true);
     setError(null);
     try {
-      const fecha = `${new Date().getDate().toString().padStart(2, '0')}/${(new Date().getMonth() + 1).toString().padStart(2, '0')}/${new Date().getFullYear()}`;
+      const [year, month, day] = fechaSeleccionada.split('-');
+      const fecha = `${day}/${month}/${year}`;
       let cod_caja = '';
       if (esCajero) {
         cod_caja = user?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
