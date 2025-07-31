@@ -46,7 +46,8 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
       UserRole.CAJERO,
       UserRole.ADMINISTRADOR,
       UserRole.GERENTE_GENERAL,
-      UserRole.JEFE_OPERACIONES
+      UserRole.JEFE_OPERACIONES,
+      UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
     ];
 
     if (isSuperAdmin) {
@@ -360,12 +361,13 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
               {getAvailableRoles().map(role => (
                 <option key={role} value={role}>
                   {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
-                   role === UserRole.ADMINISTRADOR ? 'Administrador' :
+                   role === UserRole.ADMINISTRADOR ? 'Administrador de agencia' :
                    role === UserRole.CAJERO ? 'Cajero' :
                    role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
                    role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
                    role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
                    role === UserRole.BASIC_USER ? 'Usuario Básico' :
+                   role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? 'Analista de Créditos PagoDíario' :
                    ''}
                 </option>
               ))}

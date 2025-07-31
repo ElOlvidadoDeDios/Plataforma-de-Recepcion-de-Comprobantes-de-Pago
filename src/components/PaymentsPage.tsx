@@ -29,7 +29,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   
   // Estado inicial de agencia con useMemo
   const defaultAgencia = React.useMemo(() => {
-    if (user?.role === UserRole.CAJERO && user.agencias?.length === 1) {
+    if ((user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && user.agencias?.length === 1) {
       return user.agencias[0].agencia;
     }
     return '';
@@ -39,7 +39,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
 
   // Actualizar agencia cuando cambie el usuario
   useEffect(() => {
-    if (user?.role === UserRole.CAJERO && user.agencias?.length === 1) {
+    if ((user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && user.agencias?.length === 1) {
       setSelectedAgencia(user.agencias[0].agencia);
     }
   }, [user]);
@@ -47,8 +47,8 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   // Validaciones con useMemo
   const validations = React.useMemo(() => ({
     hasPermissions: canAccessPayments(),
-    hasAgencias: user?.role === UserRole.CAJERO ? (user.agencias?.length ?? 0) > 0 : true,
-    isPaymentsUser: user?.role === UserRole.CAJERO
+    hasAgencias: (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) ? (user.agencias?.length ?? 0) > 0 : true,
+    isPaymentsUser: user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
   }), [canAccessPayments, user]);
 
   // Verificar permisos básicos
@@ -252,7 +252,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                 <div className="min-w-0">
                   <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{user?.razon} {user?.cargo}</h2>
                   <p className="text-xs sm:text-sm text-gray-500">
-                    {user?.role === UserRole.CAJERO ? 'Cajero' : user?.role}
+                    {user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? 'Cajero/Analista' : user?.role}
                     {user?.dni && <span className="ml-2">- DNI: {user.dni}</span>}
                   </p>
                   {selectedAgencia && (
@@ -262,7 +262,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                   )}
                 </div>
 
-                {user?.role === UserRole.CAJERO && user?.agencias && user?.agencias.length > 1 && (
+                {(user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && user?.agencias && user?.agencias.length > 1 && (
                   <button
                     onClick={() => setSelectedAgencia('')}
                     className="text-cyan-600 hover:text-cyan-700 text-xs sm:text-sm font-medium self-start sm:self-auto whitespace-nowrap"
@@ -430,7 +430,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                     payment={payment}
                     socket={socket}
-                    agencias={user?.role === UserRole.CAJERO && selectedAgencia
+                    agencias={(user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && selectedAgencia
                       ? [selectedAgencia]
                       : user?.agencias?.map(ag => ag.agencia) || []}
                     userAgencias={user?.agencias || []}

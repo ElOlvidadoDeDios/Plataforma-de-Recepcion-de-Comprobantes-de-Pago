@@ -59,17 +59,19 @@ const UserTable: React.FC<UserTableProps> = ({
       [UserRole.ANALISTA_CREDITOS_I]: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: '📊' },
       [UserRole.GERENTE_GENERAL]: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: '🎯' },
       [UserRole.JEFE_OPERACIONES]: { color: 'bg-teal-100 text-teal-700 border-teal-200', icon: '⚡' },
-      [UserRole.BASIC_USER]: { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: '👤' }
+      [UserRole.BASIC_USER]: { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: '👤' },
+      [UserRole.ANALISTA_CREDITOS_PAGO_DIARIO]: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: '📊' }
     };
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig[UserRole.BASIC_USER];
     const roleName = {
       [UserRole.SUPER_ADMIN]: 'Super Admin',
-      [UserRole.ADMINISTRADOR]: 'Administrador',
+      [UserRole.ADMINISTRADOR]: 'Administrador de agencia',
       [UserRole.CAJERO]: 'Cajero',
       [UserRole.ANALISTA_CREDITOS_I]: 'Analista de Créditos I',
       [UserRole.GERENTE_GENERAL]: 'Gerente General',
       [UserRole.JEFE_OPERACIONES]: 'Jefe de Operaciones',
-      [UserRole.BASIC_USER]: 'Usuario Básico'
+      [UserRole.BASIC_USER]: 'Usuario Básico',
+      [UserRole.ANALISTA_CREDITOS_PAGO_DIARIO]: 'Analista de Créditos PagoDíario'
     }[role] || role;
 
     return (
@@ -182,6 +184,7 @@ const UserTable: React.FC<UserTableProps> = ({
                           user.role === UserRole.ADMINISTRADOR ||
                           user.role === UserRole.GERENTE_GENERAL ||
                           user.role === UserRole.JEFE_OPERACIONES ||
+                          user.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ||
                           user.role === UserRole.SUPER_ADMIN
                         ) && agenciasValidas.length > 0 && (
                           <div className="mt-2">
@@ -275,12 +278,13 @@ const UserTable: React.FC<UserTableProps> = ({
                           {getAvailableRoles().map(role => (
                             <option key={role} value={role}>
                               {role === UserRole.SUPER_ADMIN ? '👑 Super Admin' :
-                               role === UserRole.ADMINISTRADOR ? '🛡️ Administrador' :
+                               role === UserRole.ADMINISTRADOR ? '🛡️ Administrador de agencia' :
                                role === UserRole.CAJERO ? '💰 Cajero' :
                                role === UserRole.ANALISTA_CREDITOS_I ? '📊 Analista de Créditos I' :
                                role === UserRole.GERENTE_GENERAL ? '👑 Gerente General' :
                                role === UserRole.JEFE_OPERACIONES ? '⚡ Jefe de Operaciones' :
                                role === UserRole.BASIC_USER ? '👤 Usuario Básico' :
+                               role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? '📊 Analista de Créditos PagoDíario' :
                                ''}
                             </option>
                           ))}

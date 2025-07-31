@@ -48,7 +48,7 @@ export const useUserManagement = () => {
       toast.success('Rol actualizado correctamente');
       queryClient.invalidateQueries({ queryKey: ['users'] });
 
-      if (role === UserRole.CAJERO) {
+      if (role === UserRole.CAJERO || role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) {
         toast('Ahora puede gestionar las agencias del usuario usando el botón "Gestionar Agencias". Disponible para cajeros, administradores, gerentes, jefes de operaciones y super admin', {
           duration: 5000,
           style: {
@@ -84,7 +84,8 @@ export const useUserManagement = () => {
       UserRole.ANALISTA_CREDITOS_I,
       UserRole.GERENTE_GENERAL,
       UserRole.JEFE_OPERACIONES,
-      UserRole.BASIC_USER
+      UserRole.BASIC_USER,
+      UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
     ];
     if (isSuperAdmin) {
       return [UserRole.SUPER_ADMIN, ...baseRoles];
@@ -114,7 +115,8 @@ export const useUserManagement = () => {
       targetUser.role !== UserRole.ADMINISTRADOR &&
       targetUser.role !== UserRole.GERENTE_GENERAL &&
       targetUser.role !== UserRole.JEFE_OPERACIONES &&
-      targetUser.role !== UserRole.SUPER_ADMIN
+      targetUser.role !== UserRole.SUPER_ADMIN && 
+      targetUser.role !== UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
     ) {
       return false;
     }
@@ -125,7 +127,8 @@ export const useUserManagement = () => {
         targetUser.role === UserRole.ADMINISTRADOR ||
         targetUser.role === UserRole.GERENTE_GENERAL ||
         targetUser.role === UserRole.JEFE_OPERACIONES ||
-        targetUser.role === UserRole.SUPER_ADMIN
+        targetUser.role === UserRole.SUPER_ADMIN ||
+        targetUser.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
       );
     }
     

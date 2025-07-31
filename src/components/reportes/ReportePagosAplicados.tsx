@@ -101,7 +101,8 @@ const ReportePagosAplicados: React.FC = () => {
   // Determinar opciones disponibles según el rol
   const esAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GERENTE_GENERAL || user?.role === UserRole.JEFE_OPERACIONES;
   const esSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
-  const esUserPayment = user?.role === UserRole.CAJERO;
+  const esUserPayment = user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO;
+
   
   const [loading, setLoading] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -138,7 +139,7 @@ const ReportePagosAplicados: React.FC = () => {
         // 🎯 Filtrar solo usuarios que pueden hacer pagos
         const usuariosPagos = usuarios.filter(usuario => {
           const role = usuario.role;
-          return role === UserRole.CAJERO || role === UserRole.SUPER_ADMIN || role === UserRole.GERENTE_GENERAL || role === UserRole.JEFE_OPERACIONES;
+          return role === UserRole.CAJERO || role === UserRole.SUPER_ADMIN || role === UserRole.GERENTE_GENERAL || role === UserRole.JEFE_OPERACIONES || role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO;
         });
         setUsuariosDisponibles(usuariosPagos);
       } catch (error) {

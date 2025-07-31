@@ -114,7 +114,8 @@ const UserCardList: React.FC<UserCardListProps> = ({
                     user.role === UserRole.ADMINISTRADOR ||
                     user.role === UserRole.GERENTE_GENERAL ||
                     user.role === UserRole.JEFE_OPERACIONES ||
-                    user.role === UserRole.SUPER_ADMIN
+                    user.role === UserRole.SUPER_ADMIN ||
+                    user.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
                   ) && agenciasValidas.length > 0 && (
                     <div className="w-full bg-gray-50 rounded-lg p-3 border border-gray-200 mb-4">
                       <div className="text-xs font-medium text-gray-700 mb-2">
@@ -174,12 +175,13 @@ const UserCardList: React.FC<UserCardListProps> = ({
                           {getAvailableRoles().map(role => (
                             <option key={role} value={role}>
                               {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
-                               role === UserRole.ADMINISTRADOR ? 'Administrador' :
+                               role === UserRole.ADMINISTRADOR ? 'Administrador de agencia' :
                                role === UserRole.CAJERO ? 'Cajero' :
                                role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
                                role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
                                role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
                                role === UserRole.BASIC_USER ? 'Usuario Básico' :
+                               role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? 'Analista de Créditos PagoDíario' :
                                ''}
                             </option>
                           ))}
@@ -199,6 +201,7 @@ const UserCardList: React.FC<UserCardListProps> = ({
                          user.role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
                          user.role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
                          user.role === UserRole.BASIC_USER ? 'Usuario Básico' :
+                         user.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? 'Analista de Créditos PagoDíario' :
                          user.role}
                       </div>
                     )}

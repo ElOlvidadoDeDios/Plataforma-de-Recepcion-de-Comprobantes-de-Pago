@@ -28,7 +28,8 @@ const PendientesAdesembolsar: React.FC = () => {
       UserRole.SUPER_ADMIN,
       UserRole.GERENTE_GENERAL,
       UserRole.JEFE_OPERACIONES,
-      UserRole.CAJERO
+      UserRole.CAJERO,
+      UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
     ];
     
     return allowedRoles.includes(user.role);

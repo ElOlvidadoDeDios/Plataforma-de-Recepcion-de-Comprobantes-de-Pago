@@ -159,7 +159,7 @@ const GestionMora = () => {
         
         setAnalistas(analistasFiltrados);
         
-      } else if (currentUserRole === 'ANALISTA_CREDITOS_I') {
+      } else if (currentUserRole === 'ANALISTA_CREDITOS_I' || currentUserRole === 'ANALISTA_CREDITOS_PAGO_DIARIO') {
         // Para analistas, no necesitan ver otros analistas
         setAnalistas([]);
         setSelectedAnalista('current_user');
@@ -489,7 +489,7 @@ const getEstadoMora = (diasAtraso: number) => {
                 <option value="">
                   {userRole === 'ANALISTA_CREDITOS_I' ? 'Seleccionar...' : 'Seleccionar analista...'}
                 </option>
-                {userRole === 'ANALISTA_CREDITOS_I' && (
+                {(userRole === 'ANALISTA_CREDITOS_I' || userRole === 'ANALISTA_CREDITOS_PAGO_DIARIO') && (
                   <option value="current_user">📋 Mis datos de mora</option>
                 )}
                 {analistas.map((analista) => (

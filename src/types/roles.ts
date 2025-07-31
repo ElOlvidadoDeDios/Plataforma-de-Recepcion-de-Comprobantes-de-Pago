@@ -8,7 +8,8 @@ export enum UserRole {
   ANALISTA_CREDITOS_I = 'ANALISTA_CREDITOS_I', // Analista de créditos I
   GERENTE_GENERAL = 'GERENTE_GENERAL',   // Gerente general
   JEFE_OPERACIONES = 'JEFE_OPERACIONES', // Jefe de operaciones
-  BASIC_USER = 'BASIC_USER'              // Usuario básico
+  BASIC_USER = 'BASIC_USER',              // Usuario básico
+  ANALISTA_CREDITOS_PAGO_DIARIO = 'ANALISTA_CREDITOS_PAGO_DIARIO' // Analista de créditos pago diario
 }
 
 // Estados de usuario

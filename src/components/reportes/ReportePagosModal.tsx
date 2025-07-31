@@ -28,7 +28,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
   const esAdmin = user?.role === UserRole.GERENTE_GENERAL ||
                   user?.role === UserRole.SUPER_ADMIN ||
                   user?.role === UserRole.JEFE_OPERACIONES;
-  const esCajero = user?.role === UserRole.CAJERO;
+  const esCajero = user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO;
 
   useEffect(() => {
     const cargarUsuarios = async () => {
@@ -38,7 +38,8 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
           UserRole.SUPER_ADMIN,
           UserRole.GERENTE_GENERAL,
           UserRole.JEFE_OPERACIONES,
-          UserRole.CAJERO
+          UserRole.CAJERO,
+          UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
         ];
         let usuariosFiltrados = usuarios.filter(usuario =>
           rolesPermitidos.includes(usuario.role as UserRole)
@@ -52,12 +53,11 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
           usuariosFiltrados = usuariosFiltrados.filter(usuario =>
             usuario.role !== UserRole.SUPER_ADMIN && usuario.role !== UserRole.GERENTE_GENERAL
           );
-        } else if (user?.role === UserRole.CAJERO) {
+        } else if (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) {
           usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.dni === user.dni);
         }
         setUsuariosDisponibles(usuariosFiltrados);
       } catch (error) {
-        console.error("Error al cargar usuarios:", error);
       }
     };
 

@@ -343,11 +343,14 @@ const PaymentHistoryPage: React.FC = () => {
   const { records, loading, error, loadingMore, pagination, loadHistory, loadMoreData, resetData } = usePaymentHistory();
   
   // Determinar permisos según rol del usuario
+  const esAnalistaCreditosPagoDiario = user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO;
+  
   const esAdmin =
     user?.role === UserRole.ADMINISTRADOR ||
     user?.role === UserRole.GERENTE_GENERAL ||
     user?.role === UserRole.JEFE_OPERACIONES ||
-    user?.role === UserRole.SUPER_ADMIN;
+    user?.role === UserRole.SUPER_ADMIN ||
+    esAnalistaCreditosPagoDiario;
   const esSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
   const esUserPayment = user?.role === UserRole.CAJERO;
   
@@ -412,7 +415,7 @@ const PaymentHistoryPage: React.FC = () => {
       tipoPago: tipoPagoFiltro,
       mostrarSoloPagosAplicados,
       // 🔒 Si es usuario de pago, filtrar automáticamente por su DNI o email
-      usuarioFiltro: esUserPayment ? (user?.dni || user?.email) : undefined
+      usuarioFiltro: (esUserPayment || esAnalistaCreditosPagoDiario) ? (user?.dni || user?.email) : undefined
     };
 
     if (resetPage) {
@@ -520,9 +523,14 @@ const PaymentHistoryPage: React.FC = () => {
                 👤 Mostrando solo tus pagos procesados
               </div>
             )}
+            {esAnalistaCreditosPagoDiario && (
+              <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium">
+                📊 Mostrando pagos y créditos diarios
+              </div>
+            )}
             {(esAdmin || esSuperAdmin) && (
               <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">
-                🌐 Viendo todos los pagos {esSuperAdmin ? '(Super Admin)' : '(Admin)'}
+                🌐 Viendo todos los pagos {esSuperAdmin ? '(Super Admin)' : '(Admin/Analista)'}
               </div>
             )}
           </div>
