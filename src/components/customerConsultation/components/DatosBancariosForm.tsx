@@ -111,12 +111,13 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
     }
   };
 
+  // Tipos de cuenta disponibles
   const tiposCuenta = [
     'AHORRO',
     'CORRIENTE', 
     'CTS',
     'PLAZO_FIJO',
-    'BILLETERA_DIGITAL'
+    'BILLETERA_DIGITAL' // Aparece pero estará deshabilitada
   ];
 
   const bancosPorTipo = {
@@ -133,8 +134,12 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
       'Banco Santander',
       'Banco Citibank',
       'Banco GNB',
-      'Banco Azteca',
-      'Banco Cencosud',
+      'Caja Cusco',
+      'Caja Arequipa',
+      'Caja Piura',
+      'Caja Huancayo',
+      'Caja Trujillo',
+      'Caja Tacna',
       'Otro'
     ],
     'CORRIENTE': [
@@ -148,6 +153,12 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
       'Banco Santander',
       'Banco Citibank',
       'Banco GNB',
+      'Caja Cusco',
+      'Caja Arequipa',
+      'Caja Piura',
+      'Caja Huancayo',
+      'Caja Trujillo',
+      'Caja Tacna',
       'Otro'
     ],
     'CTS': [
@@ -160,6 +171,12 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
       'Banco Pichincha',
       'Banco Santander',
       'Banco Citibank',
+      'Caja Cusco',
+      'Caja Arequipa',
+      'Caja Piura',
+      'Caja Huancayo',
+      'Caja Trujillo',
+      'Caja Tacna',
       'Otro'
     ],
     'PLAZO_FIJO': [
@@ -171,6 +188,12 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
       'Banco Financiero',
       'Banco Pichincha',
       'Banco Santander',
+      'Caja Cusco',
+      'Caja Arequipa',
+      'Caja Piura',
+      'Caja Huancayo',
+      'Caja Trujillo',
+      'Caja Tacna',
       'Otro'
     ],
     'BILLETERA_DIGITAL': [
@@ -182,8 +205,8 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
     ]
   };
 
-  // Verificar si es billetera digital
-  const isBilleteraDigital = formData.TIPO_CUENTA === 'BILLETERA_DIGITAL';
+  // Función para determinar si es BBVA
+  const esBBVA = formData.BANCO === 'BBVA - Banco Continental';
   
   // Obtener bancos disponibles según el tipo de cuenta
   const bancosDisponibles = formData.TIPO_CUENTA ? bancosPorTipo[formData.TIPO_CUENTA as keyof typeof bancosPorTipo] || [] : [];
@@ -278,8 +301,12 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
               >
                 <option value="">Seleccione tipo de cuenta</option>
                 {tiposCuenta.map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {tipo === 'BILLETERA_DIGITAL' ? 'Billetera Digital' : 
+                  <option 
+                    key={tipo} 
+                    value={tipo}
+                    disabled={tipo === 'BILLETERA_DIGITAL'} // Deshabilitar solo billetera digital
+                  >
+                    {tipo === 'BILLETERA_DIGITAL' ? 'Billetera Digital (Temporalmente no disponible)' : 
                      tipo === 'PLAZO_FIJO' ? 'Cuenta a Plazo Fijo' :
                      tipo === 'AHORRO' ? 'Cuenta de Ahorro' :
                      tipo === 'CORRIENTE' ? 'Cuenta Corriente' :
@@ -292,7 +319,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
             {/* Banco/Entidad - SEGUNDO */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {isBilleteraDigital ? 'Billetera Digital *' : 'Banco/Entidad Financiera *'}
+                Banco/Entidad Financiera *
               </label>
               <select
                 name="BANCO"
@@ -303,8 +330,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                 disabled={!formData.TIPO_CUENTA}
               >
                 <option value="">
-                  {!formData.TIPO_CUENTA ? 'Primero seleccione el tipo de cuenta' : 
-                   isBilleteraDigital ? 'Seleccione billetera digital' : 'Seleccione banco/entidad'}
+                  {!formData.TIPO_CUENTA ? 'Primero seleccione el tipo de cuenta' : 'Seleccione banco/entidad'}
                 </option>
                 {bancosDisponibles.map((banco) => (
                   <option key={banco} value={banco}>
@@ -314,11 +340,11 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
               </select>
             </div>
 
-            {/* Campo condicional: Número de Celular (para billetera digital) o Número de Cuenta (para bancos) */}
+            {/* Campo: CCI o Número de Cuenta según el banco */}
             {formData.BANCO && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {isBilleteraDigital ? 'Número de Celular *' : 'Número de Cuenta *'}
+                  {esBBVA ? 'Número de Cuenta *' : 'CCI (Código de Cuenta Interbancario) *'}
                 </label>
                 <input
                   type="text"
@@ -326,16 +352,22 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                   value={formData.NUM_CUENTA || ''}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                  placeholder={isBilleteraDigital ? 'Número de celular asociado' : 'Número de cuenta bancaria'}
+                  placeholder={esBBVA ? 'Número de cuenta BBVA' : 'Ingrese el CCI por favor'}
                   required
                 />
-                {isBilleteraDigital && (
+                {!esBBVA && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Ingrese el número de celular asociado a {formData.BANCO}
+                    El CCI es un código de 20 dígitos que identifica de manera única su cuenta bancaria
+                  </p>
+                )}
+                {esBBVA && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ingrese el número de cuenta de BBVA Continental
                   </p>
                 )}
               </div>
             )}
+
             {/* Buttons */}
             <div className="flex justify-end space-x-3 pt-4">
               <button

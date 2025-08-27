@@ -77,11 +77,14 @@ export const useAgenciaManagement = ({
   const handleRemoveAgencia = (index: number) => {
     const newAgencias = userAgencias.filter((_, i) => i !== index);
     
-    if (newAgencias.length === 0) {
-      newAgencias.push({ agencia: '', cod_caja: '', user_caja: '' });
-    }
-    
+    // 🔧 No agregar agencia vacía automáticamente - permitir cero agencias
     setUserAgencias(newAgencias);
+    
+    // 🔧 Marcar que hubo una eliminación para forzar guardado
+    if (selectedUser) {
+      // Agregar una propiedad temporal para indicar que hubo eliminación
+      (selectedUser as any).__agenciaRemoved = true;
+    }
   };
 
   const handleOpenAgenciaModal = (user: User, canManageAgenciasOf: (user: User) => boolean) => {
@@ -114,19 +117,25 @@ export const useAgenciaManagement = ({
       ag.user_caja.trim() !== ''
     ) || [];
     
+    // 🔧 Permitir que no haya agencias inicialmente
     const agenciasIniciales = agenciasValidas.length > 0
       ? [...agenciasValidas]
-      : [{ agencia: '', cod_caja: '', user_caja: '' }];
+      : [];
     
-    // 🔧 Validación segura para verificar si están llenas
-    const todasLlenas = agenciasIniciales.every(ag =>
-      ag &&
-      typeof ag.agencia === 'string' && ag.agencia.trim() &&
-      typeof ag.cod_caja === 'string' && ag.cod_caja.trim() &&
-      typeof ag.user_caja === 'string' && ag.user_caja.trim()
-    );
-    
-    if (todasLlenas) {
+    // 🔧 Solo agregar fila vacía si hay agencias y todas están completas
+    if (agenciasIniciales.length > 0) {
+      const todasLlenas = agenciasIniciales.every(ag =>
+        ag &&
+        typeof ag.agencia === 'string' && ag.agencia.trim() &&
+        typeof ag.cod_caja === 'string' && ag.cod_caja.trim() &&
+        typeof ag.user_caja === 'string' && ag.user_caja.trim()
+      );
+      
+      if (todasLlenas) {
+        agenciasIniciales.push({ agencia: '', cod_caja: '', user_caja: '' });
+      }
+    } else {
+      // Si no hay agencias, agregar una fila vacía para empezar
       agenciasIniciales.push({ agencia: '', cod_caja: '', user_caja: '' });
     }
     
@@ -140,7 +149,22 @@ export const useAgenciaManagement = ({
       return;
     }
 
-    // 🔧 Filtro seguro para agencias no vacías
+    // 🔧 Primero verificar si hay filas con datos incompletos
+    const filasIncompletas = userAgencias.filter(ag =>
+      ag && (
+        // Tiene al menos un campo lleno pero no todos
+        (ag.agencia.trim() || ag.cod_caja.trim() || ag.user_caja.trim()) &&
+        (!ag.agencia.trim() || !ag.cod_caja.trim() || !ag.user_caja.trim())
+      )
+    );
+
+    // Si hay filas incompletas, mostrar error específico
+    if (filasIncompletas.length > 0) {
+      toast.error('Complete todos los campos de las agencias o elimine las filas vacías');
+      return;
+    }
+
+    // 🔧 Filtro para agencias completamente llenas
     const agenciasNoVacias = userAgencias.filter(ag =>
       ag &&
       typeof ag.agencia === 'string' && ag.agencia.trim() !== '' &&
@@ -174,81 +198,104 @@ export const useAgenciaManagement = ({
       user_caja: ag.user_caja.trim()
     })).sort((a, b) => a.cod_caja.localeCompare(b.cod_caja));
 
-    const agenciasIguales = agenciasNuevasNormalizadas.length === agenciasActualesNormalizadas.length &&
+    // 🔧 Verificar si hubo eliminación de agencia
+    const huboEliminacion = (selectedUser as any).__agenciaRemoved;
+    
+    const agenciasIguales = !huboEliminacion &&
+      agenciasNuevasNormalizadas.length === agenciasActualesNormalizadas.length &&
       agenciasNuevasNormalizadas.every((agNueva, idx) => {
         const agActual = agenciasActualesNormalizadas[idx];
         return agNueva.agencia === agActual.agencia &&
                agNueva.cod_caja === agActual.cod_caja &&
                agNueva.user_caja === agActual.user_caja;
       });
+    
     if (agenciasIguales) {
       setShowAgenciaModal(false);
       setSelectedUser(null);
       setUserAgencias([]);
       return;
     }
-
-    if (agenciasNoVacias.length === 0) {
-      toast.error('Debe proporcionar al menos una agencia válida');
-      return;
+    
+    // 🔧 Limpiar el flag de eliminación antes de guardar
+    if (huboEliminacion) {
+      delete (selectedUser as any).__agenciaRemoved;
     }
 
+    // 🔧 Permitir cero agencias - eliminar validación restrictiva
+    // Los usuarios pueden no tener agencias asignadas
+
     try {
-      const agenciasFormateadas = agenciasNoVacias.map(ag => ({
-        agencia: ag.agencia.trim(),
-        cod_caja: ag.cod_caja.trim(),
-        user_caja: ag.user_caja.trim(),
-      }));
+      // 🔧 Permitir array vacío de agencias
+      const agenciasFormateadas = agenciasNoVacias.length > 0
+        ? agenciasNoVacias.map(ag => ({
+            agencia: ag.agencia.trim(),
+            cod_caja: ag.cod_caja.trim(),
+            user_caja: ag.user_caja.trim(),
+          }))
+        : []; // Permitir array vacío
 
-      const validaciones = {
-        camposCompletos: agenciasFormateadas.every(ag => ag.agencia && ag.cod_caja && ag.user_caja),
-        formatoValido: agenciasFormateadas.every(ag =>
-          ag.cod_caja.length >= 3 &&
-          ag.user_caja.length >= 3 &&
-          /^[A-Z0-9_-]+$/i.test(ag.cod_caja) &&
-          /^[A-Z0-9_-]+$/i.test(ag.user_caja)
-        ),
-        codigosUnicos: new Set(agenciasFormateadas.map(ag => ag.cod_caja)).size === agenciasFormateadas.length,
-        usuariosUnicos: new Set(agenciasFormateadas.map(ag => ag.user_caja)).size === agenciasFormateadas.length,
-        longitudMaxima: agenciasFormateadas.every(ag =>
-          ag.cod_caja.length <= 20 && ag.user_caja.length <= 20
-        ),
-        sinCaracteresEspeciales: agenciasFormateadas.every(ag =>
-          !ag.cod_caja.includes(' ') && !ag.user_caja.includes(' ') && /^[A-Z0-9_-]+$/i.test(ag.cod_caja) && /^[A-Z0-9_-]+$/i.test(ag.user_caja)
-        )
-      };
+      // 🔧 Solo validar si hay agencias para validar
+      if (agenciasFormateadas.length > 0) {
+        const validaciones = {
+          camposCompletos: agenciasFormateadas.every(ag => ag.agencia && ag.cod_caja && ag.user_caja),
+          formatoValido: agenciasFormateadas.every(ag =>
+            ag.cod_caja.length >= 3 &&
+            ag.user_caja.length >= 3 &&
+            /^[A-Z0-9_-]+$/i.test(ag.cod_caja) &&
+            /^[A-Z0-9_-]+$/i.test(ag.user_caja)
+          ),
+          codigosUnicos: new Set(agenciasFormateadas.map(ag => ag.cod_caja)).size === agenciasFormateadas.length,
+          usuariosUnicos: new Set(agenciasFormateadas.map(ag => ag.user_caja)).size === agenciasFormateadas.length,
+          longitudMaxima: agenciasFormateadas.every(ag =>
+            ag.cod_caja.length <= 20 && ag.user_caja.length <= 20
+          ),
+          sinCaracteresEspeciales: agenciasFormateadas.every(ag =>
+            !ag.cod_caja.includes(' ') && !ag.user_caja.includes(' ') && /^[A-Z0-9_-]+$/i.test(ag.cod_caja) && /^[A-Z0-9_-]+$/i.test(ag.user_caja)
+          )
+        };
 
-      if (!validaciones.camposCompletos) {
-        toast.error('Todos los campos son obligatorios');
-        return;
-      }
-      if (!validaciones.formatoValido) {
-        toast.error('Los códigos deben contener solo letras, números, guiones o guiones bajos y no tener espacios');
-        return;
-      }
-      if (!validaciones.longitudMaxima) {
-        toast.error('Los códigos no pueden exceder 20 caracteres');
-        return;
-      }
-      if (!validaciones.sinCaracteresEspeciales) {
-        toast.error('Los códigos no pueden contener espacios');
-        return;
-      }
-      if (!validaciones.codigosUnicos) {
-        toast.error('No puede haber códigos de caja duplicados');
-        return;
-      }
-      if (!validaciones.usuariosUnicos) {
-        toast.error('No puede haber usuarios de caja duplicados');
-        return;
+        if (!validaciones.camposCompletos) {
+          toast.error('Todos los campos son obligatorios');
+          return;
+        }
+        if (!validaciones.formatoValido) {
+          toast.error('Los códigos deben contener solo letras, números, guiones o guiones bajos y no tener espacios');
+          return;
+        }
+        if (!validaciones.longitudMaxima) {
+          toast.error('Los códigos no pueden exceder 20 caracteres');
+          return;
+        }
+        if (!validaciones.sinCaracteresEspeciales) {
+          toast.error('Los códigos no pueden contener espacios');
+          return;
+        }
+        if (!validaciones.codigosUnicos) {
+          toast.error('No puede haber códigos de caja duplicados');
+          return;
+        }
+        if (!validaciones.usuariosUnicos) {
+          toast.error('No puede haber usuarios de caja duplicados');
+          return;
+        }
       }
 
+      
+      // 🔍 Log simple para ver si se está enviando al crear agencia
+      if (agenciasFormateadas.length > 0) {
+
+      }
       
       await updateUserAgencias(selectedUser._id, agenciasFormateadas);
       
-  
       
-      toast.success('Agencias actualizadas correctamente');
+      // 🔧 Mensaje más descriptivo según el caso
+      if (agenciasFormateadas.length === 0) {
+        toast.success('Agencias eliminadas correctamente');
+      } else {
+        toast.success('Agencias actualizadas correctamente');
+      }
 
       if (pendingRoleChange) {
         await updateUserRole(pendingRoleChange.userId, pendingRoleChange.role);
@@ -271,6 +318,11 @@ export const useAgenciaManagement = ({
       setShowAgenciaModal(false);
       setSelectedUser(null);
       setUserAgencias([]);
+      
+      // 🔧 Limpiar cualquier estado temporal del usuario seleccionado
+      if (selectedUser && (selectedUser as any).__agenciaRemoved) {
+        delete (selectedUser as any).__agenciaRemoved;
+      }
       
       // Invalidar queries para refrescar desde el servidor
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -306,6 +358,11 @@ export const useAgenciaManagement = ({
   };
 
   const handleCloseAgenciaModal = () => {
+    // 🔧 Limpiar cualquier estado temporal antes de cerrar
+    if (selectedUser && (selectedUser as any).__agenciaRemoved) {
+      delete (selectedUser as any).__agenciaRemoved;
+    }
+    
     setShowAgenciaModal(false);
     setSelectedUser(null);
     setUserAgencias([]);

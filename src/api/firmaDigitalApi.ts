@@ -36,10 +36,11 @@ export const generarContrato = async (data: GenerarContratoRequest): Promise<Gen
     });
 
     if (!response.ok) {
-      throw new Error(`Error en la generación del contrato: ${response.status}`);
+      throw new Error(`Error en el servidor: ${response.status}`);
     }
 
     const result = await response.json();
+
     return {
       success: true,
       data: result
@@ -64,10 +65,11 @@ export const verificarDocumentoFirmado = async (data: VerificarDocumentoRequest)
     });
 
     if (!response.ok) {
-      throw new Error(`Error en la verificación del documento: ${response.status}`);
+      throw new Error(`Error en el servidor: ${response.status}`);
     }
 
     const result = await response.json();
+
     return {
       success: true,
       data: result

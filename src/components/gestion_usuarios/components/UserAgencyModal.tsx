@@ -68,11 +68,19 @@ const UserAgencyModal: React.FC<UserAgencyModalProps> = ({
             </button>
           </div>
 
-          {userAgencias.map((agencia, index) => (
-            <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-4 hover:border-cyan-300 transition-colors">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium text-gray-900">Agencia {index + 1}</span>
-                {userAgencias.length > 1 && (
+          {userAgencias.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <p className="text-sm">No hay agencias asignadas</p>
+              <p className="text-xs text-gray-400 mt-1">Haz clic en "Nueva Agencia" para agregar una</p>
+            </div>
+          ) : (
+            userAgencias.map((agencia, index) => (
+              <div key={index} className="p-4 border border-gray-200 rounded-lg space-y-4 hover:border-cyan-300 transition-colors">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-900">Agencia {index + 1}</span>
                   <button
                     onClick={() => onRemoveAgencia(index)}
                     className="text-red-500 hover:text-red-700 flex items-center gap-2 px-3 py-1 rounded-md hover:bg-red-50"
@@ -82,8 +90,7 @@ const UserAgencyModal: React.FC<UserAgencyModalProps> = ({
                     </svg>
                     Eliminar
                   </button>
-                )}
-              </div>
+                </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
@@ -123,9 +130,10 @@ const UserAgencyModal: React.FC<UserAgencyModalProps> = ({
                     className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
                   />
                 </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
           
           <div className="flex justify-end gap-3 mt-6">
             <button

@@ -120,7 +120,7 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4"
           onClick={() => setShowFullImage(false)}
         >
-          <div className="relative w-full h-full max-w-[45vw] max-h-[75vh] sm:max-w-[50vw] sm:max-h-[80vh] md:max-w-[55vw] md:max-h-[85vh] flex items-center justify-center bg-white rounded-lg overflow-hidden">
+          <div className="relative w-full h-full max-w-[95vw] max-h-[90vh] sm:max-w-[90vw] sm:max-h-[85vh] md:max-w-[80vw] md:max-h-[85vh] lg:max-w-[70vw] lg:max-h-[85vh] flex items-center justify-center bg-white rounded-lg overflow-hidden">
             <img
               src={getImageSrc(images[currentImageIndex])}
               alt={`${alt} ${currentImageIndex + 1}/${images.length}`}

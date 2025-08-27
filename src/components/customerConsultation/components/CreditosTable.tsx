@@ -1,10 +1,12 @@
-import { useState, lazy, Suspense, useEffect } from 'react';
+import { useState, lazy, Suspense, useEffect, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { DetalleCredito, ClienteResponse, checkVoucherExists } from '../../../api/customerConsultationAPI';
 import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
 import { generarContrato, verificarDocumentoFirmado } from '../../../api/firmaDigitalApi';
 import { PaymentRecord } from '../../../types';
 import ComprobanteDesembolsoModal from './ComprobanteDesembolsoModal';
+import { AuthContext } from '../../../contexts/AuthContext';
+import { Permission, UserRole } from '../../../types/permissions';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 // const PagosPrestamoModal = lazy(() => import('./PagosPrestamoModal'));
@@ -16,6 +18,9 @@ interface CreditosTableProps {
 }
 
 const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTableProps) => {
+  const authContext = useContext(AuthContext);
+  const { user } = authContext || {};
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPrestamo, setSelectedPrestamo] = useState<DetalleCredito | null>(null);
   const [isPagosModalOpen, setIsPagosModalOpen] = useState(false);
@@ -33,6 +38,30 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
   const [selectedCreditoDesembolso, setSelectedCreditoDesembolso] = useState<DetalleCredito | null>(null);
   // Estado para rastrear qué vouchers existen
   const [vouchersExistentes, setVouchersExistentes] = useState<Record<string, boolean>>({});
+
+  // FUNCIONES DE VALIDACIÓN DE PERMISOS
+  const hasPermission = (permission: Permission): boolean => {
+    if (!user) return false;
+    
+    // Super Admin tiene todos los permisos
+    if (user.role === UserRole.SUPER_ADMIN) return true;
+    
+    // Verificar si el usuario tiene el permiso específico
+    return user.permissions?.includes(permission) || false;
+  };
+
+  const canGenerateContracts = (): boolean => {
+    return hasPermission(Permission.PARTNERS_EDIT);
+  };
+
+  const canViewContracts = (): boolean => {
+    return hasPermission(Permission.PARTNERS_VIEW) || hasPermission(Permission.PARTNERS_EDIT);
+  };
+
+  const canViewSignedContracts = (): boolean => {
+    // Cualquier usuario con permisos de ver socios puede ver contratos YA FIRMADOS
+    return canViewContracts();
+  };
 
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
@@ -246,8 +275,25 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     const firmDigital = credito.FIRM_DIGITAL;
     const isLoading = loadingFirma && selectedCreditoFirma === credito.ID_PRESTAMO;
 
-    // Si está firmado, mostrar enlace al documento (independientemente del estado del crédito)
+    // VALIDACIÓN DE PERMISOS PRIMERO
+    // Si está firmado, verificar permisos para ver contratos firmados
     if (firmDigital && firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
+      if (!canViewSignedContracts()) {
+        return (
+          <button
+            className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+            title="Sin permisos para ver contratos"
+            disabled
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 9v6m3-3H9" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </button>
+        );
+      }
+      
       return (
         <a
           href={firmDigital.URL_SIGNED_FILE}
@@ -261,6 +307,29 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
             <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
           </svg>
         </a>
+      );
+    }
+
+    // Para acciones que requieren generar contratos, verificar permisos de edición
+    const requiresGeneratePermission = firmDigital && (
+      firmDigital.ESTADO === 'FIRMAR' ||
+      firmDigital.ESTADO === 'PENDIENTE' ||
+      (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE)
+    );
+
+    if (requiresGeneratePermission && !canGenerateContracts()) {
+      return (
+        <button
+          className="p-2 bg-red-400 text-white rounded-full cursor-default"
+          title="Sin permisos para generar contratos - Solo lectura"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M12 9v6m3-3H9" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
       );
     }
 
@@ -315,17 +384,26 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
         );
     }
     
-    if (firmDigital.ESTADO === 'NO_FIRMA' || firmDigital.ESTADO === 'NO_FIRMAR') {
+    if (firmDigital.ESTADO === 'NO_FIRMA') {
         return (
             <button
-                className={`p-2 ${
-                    firmDigital.ESTADO === 'NO_FIRMAR' ? 'bg-red-400' : 'bg-gray-400'
-                } text-white rounded-full cursor-default`}
-                title={
-                    firmDigital.ESTADO === 'NO_FIRMAR'
-                        ? 'No se puede firmar: fecha límite expirada'
-                        : 'Contrato no disponible'
-                }
+                className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+                title="Contrato no disponible"
+                disabled
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                    <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+            </button>
+        );
+    }
+
+    if (firmDigital.ESTADO === 'NO_FIRMAR') {
+        return (
+            <button
+                className="p-2 bg-red-400 text-white rounded-full cursor-default"
+                title="No se puede firmar: fecha límite expirada"
                 disabled
             >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -424,8 +502,25 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     const firmDigital = credito.FIRM_DIGITAL;
     const isLoading = loadingFirma && selectedCreditoFirma === credito.ID_PRESTAMO;
 
-    // Si está firmado, mostrar enlace al documento (independientemente del estado del crédito)
+    // VALIDACIÓN DE PERMISOS PRIMERO
+    // Si está firmado, verificar permisos para ver contratos firmados
     if (firmDigital && firmDigital.ESTADO === 'FIRMADO' && firmDigital.URL_SIGNED_FILE) {
+      if (!canViewSignedContracts()) {
+        return (
+          <button
+            className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+            title="Sin permisos para ver contratos"
+            disabled
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 9v6m3-3H9" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </button>
+        );
+      }
+      
       return (
         <a
           href={firmDigital.URL_SIGNED_FILE}
@@ -439,6 +534,29 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
             <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
           </svg>
         </a>
+      );
+    }
+
+    // Para acciones que requieren generar contratos, verificar permisos de edición
+    const requiresGeneratePermission = firmDigital && (
+      firmDigital.ESTADO === 'FIRMAR' ||
+      firmDigital.ESTADO === 'PENDIENTE' ||
+      (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE)
+    );
+
+    if (requiresGeneratePermission && !canGenerateContracts()) {
+      return (
+        <button
+          className="p-2 bg-red-400 text-white rounded-full cursor-default"
+          title="Sin permisos para generar contratos - Solo lectura"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+            <path d="M12 9v6m3-3H9" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
       );
     }
 
@@ -477,8 +595,24 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
 
     // A partir de aquí, solo créditos VIGENTES
 
-    // Si no hay firma digital o estado es NO_FIRMA, no mostrar botón
-    if (!firmDigital || firmDigital.ESTADO === 'NO_FIRMA') {
+    // Si no hay firma digital, no mostrar botón
+    if (!firmDigital) {
+        return (
+          <button
+            className="p-2 bg-gray-400 text-white rounded-full cursor-default"
+            title="Contrato no disponible"
+            disabled
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          </button>
+        );
+    }
+
+    // Si el estado es NO_FIRMA o NO_FIRMAR, no mostrar botón
+    if (firmDigital.ESTADO === 'NO_FIRMA' || firmDigital.ESTADO === 'NO_FIRMAR') {
       return (
         <button
           className="p-2 bg-gray-400 text-white rounded-full cursor-default"
@@ -663,7 +797,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
                         } text-white rounded-full transition-colors`}
                         title={vouchersExistentes[credito.ID_PRESTAMO]
                           ? "Ver comprobante de desembolso"
-                          : "Subir comprobante de desembolso"
+                          : "Falta subir comprobante de desembolso"
                         }
                         onClick={() => handleSubirComprobante(credito)}
                       >
@@ -738,7 +872,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
                   } text-white rounded-full transition-colors`}
                   title={vouchersExistentes[credito.ID_PRESTAMO]
                     ? "Ver comprobante de desembolso"
-                    : "Subir comprobante de desembolso"
+                    : "Falta subir comprobante de desembolso"
                   }
                   onClick={() => handleSubirComprobante(credito)}
                 >
@@ -764,7 +898,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
       )}
 
       {/* Modal simple de pagos del préstamo */}
-      {isPagosModalOpen && createPortal(
+      {isPagosModalOpen && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4"
           onClick={(e) => {
@@ -900,7 +1034,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
       )}
 
       {/* Modal de Notificación */}
-      {showNotificationModal && createPortal(
+      {showNotificationModal && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="p-6 text-center">

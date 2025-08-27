@@ -17,9 +17,13 @@ import HistorialAtencionCreditos from './components/historial_de_Atencion_Credit
 import GestionMora from './components/gestion_mora/GestionMora';
 import PendientesAdesembolsar from './components/creditos_en_proceso/PendientesAdesembolsar';
 import NonBasicUserRoute from './components/NonBasicUserRoute';
+import PermissionProtectedRoute from './components/PermissionProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { useSocket } from './hooks/useSocket';
+import RegistroClientes from './components/registro_clientes/registro_clientes';
+import CalculadoraCreditos from './components/Calculadora_creditos/cal_creditos';
+import GeodilePage from './components/Geodile/GeodilePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -150,9 +154,9 @@ function App() {
                 path="/consulta-clientes"
                 element={
                   <ProtectedRoute>
-                    <NonBasicUserRoute>
+                    <PermissionProtectedRoute permission="canAccessConsultaSocios">
                       <CustomerConsultation />
-                    </NonBasicUserRoute>
+                    </PermissionProtectedRoute>
                   </ProtectedRoute>
                 }
               />
@@ -164,6 +168,36 @@ function App() {
                       <Suspense fallback={<div>Cargando...</div>}>
                         {React.createElement(lazy(() => import('./components/cronograma/CronogramaPage')))}
                       </Suspense>
+                    </NonBasicUserRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/registro-clientes"
+                element={
+                  <ProtectedRoute>
+                    <PermissionProtectedRoute permission="canAccessRegistroClientes">
+                      <RegistroClientes />
+                    </PermissionProtectedRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/calculadora-creditos"
+                element={
+                  <ProtectedRoute>
+                    <PermissionProtectedRoute permission="canAccessCalculadoraCreditos">
+                      <CalculadoraCreditos />
+                    </PermissionProtectedRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/geodile"
+                element={
+                  <ProtectedRoute>
+                    <NonBasicUserRoute>
+                      <GeodilePage />
                     </NonBasicUserRoute>
                   </ProtectedRoute>
                 }

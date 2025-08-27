@@ -34,14 +34,20 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
         credito.ID_PRESTAMO
       );
 
-      if (result.exists && result.url) {
+
+
+      // Si la API devuelve exists: true, significa que el voucher existe
+      if (result.exists) {
         setVoucherExists(true);
-        setVoucherUrl(result.url);
+        setVoucherUrl(result.url || ''); // Usar el URL si está disponible
+
       } else {
         setVoucherExists(false);
         setVoucherUrl('');
+
       }
     } catch (error) {
+
       // Si hay error, asumir que no existe
       setVoucherExists(false);
       setVoucherUrl('');
@@ -143,8 +149,10 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
 
   // Función para ver el comprobante existente
   const handleViewVoucher = () => {
-    if (voucherUrl) {
+    if (voucherUrl && voucherUrl.trim() !== '') {
       window.open(voucherUrl, '_blank');
+    } else {
+      alert('La URL del comprobante no está disponible en este momento. Por favor, contacte al administrador.');
     }
   };
 

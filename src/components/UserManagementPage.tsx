@@ -12,10 +12,12 @@ import {
 } from './gestion_usuarios';
 import UserCreateSimpleModal from './gestion_usuarios/components/UserCreateSimpleModal';
 import AdminChangePasswordModal from './gestion_usuarios/components/AdminChangePasswordModal';
+import UserPermissionsModal from './gestion_usuarios/components/UserPermissionsModal';
 
 const UserManagementPage: React.FC = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
 
   const {
     user,
@@ -147,6 +149,7 @@ const UserManagementPage: React.FC = () => {
                   setSelectedUser={setSelectedUser}
                   setShowActivateModal={setShowActivateModal}
                   setShowChangePasswordModal={setShowChangePasswordModal}
+                  setShowPermissionsModal={setShowPermissionsModal}
                 />
               </div>
 
@@ -166,6 +169,7 @@ const UserManagementPage: React.FC = () => {
                   setSelectedUser={setSelectedUser}
                   setShowActivateModal={setShowActivateModal}
                   setShowChangePasswordModal={setShowChangePasswordModal}
+                  setShowPermissionsModal={setShowPermissionsModal}
                 />
               </div>
             </div>
@@ -209,6 +213,15 @@ const UserManagementPage: React.FC = () => {
         onClose={() => setShowCreateUserModal(false)}
         canCreateUsers={canManageUsers()}
         isSuperAdmin={isSuperAdmin}
+      />
+
+      <UserPermissionsModal
+        isOpen={showPermissionsModal}
+        user={selectedUser}
+        onClose={() => {
+          setShowPermissionsModal(false);
+          setSelectedUser(null);
+        }}
       />
     </Layout>
   );

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { usePermissions } from '../hooks/useAuth';
+import { useCombinedPermissions } from '../hooks/useCombinedPermissions';
 import Layout from './Layout';
 
 const isMobile = () => window.innerWidth <= 768;
@@ -10,8 +10,17 @@ const isSmallDesktop = () => window.innerWidth > 1024 && window.innerWidth <= 12
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
-  const permissions = usePermissions();
+  const permissions = useCombinedPermissions();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Componente del icono SVG de Geodile
+  const GeodileIcon = ({ className = "w-8 h-8" }: { className?: string }) => (
+    <svg className={className} viewBox="0 0 141 153" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M82.4004 84.2898H58.5996C57.1667 84.2879 55.7931 83.7174 54.7806 82.7035C53.768 81.6897 53.1993 80.3153 53.1993 78.8824V56.4493C53.1993 55.0171 53.7683 53.6435 54.781 52.6308C55.7938 51.618 57.1673 51.049 58.5996 51.049H82.4004C83.8326 51.049 85.2062 51.618 86.219 52.6308C87.2317 53.6435 87.8007 55.0171 87.8007 56.4493V78.8824C87.8007 80.3153 87.232 81.6897 86.2194 82.7035C85.2069 83.7174 83.8333 84.2879 82.4004 84.2898Z" fill="currentColor"/>
+      <path d="M101.323 30.5406C84.2968 13.5219 56.7031 13.5219 39.6774 30.5406C23.6527 46.5723 22.5811 72.2132 37.231 89.5209L63.3724 120.414C67.1019 124.82 73.8981 124.82 77.6275 120.414L103.769 89.5209C118.419 72.2132 117.347 46.5723 101.323 30.5406ZM70.5 94.1105C51.4015 94.1105 35.9127 78.6287 35.9127 59.5232C35.9127 40.4177 51.4015 24.9429 70.5 24.9429C89.5984 24.9429 105.087 40.4247 105.087 59.5232C105.087 78.6216 89.5984 94.1105 70.5 94.1105Z" fill="currentColor"/>
+      <path d="M70.5 70.4013C71.9622 70.4013 73.3645 70.9822 74.3984 72.0161C75.4323 73.05 76.0131 74.4522 76.0131 75.9144V83.2746H64.9869V75.9144C64.9869 74.4522 65.5677 73.05 66.6017 72.0161C67.6356 70.9822 69.0378 70.4013 70.5 70.4013Z" fill="white"/>
+    </svg>
+  );
   
   // Estado para forzar re-render cuando cambie el tamaño de pantalla
   const [, setWindowSize] = React.useState({
@@ -197,8 +206,6 @@ const Welcome: React.FC = () => {
         
         ctx.restore();
 
-        // REMOVIDO: Efecto de vibración en las tarjetas
-
         // Reset comet after 2.5 seconds
         if (elapsed > 2.5) {
           resetComet();
@@ -252,11 +259,11 @@ const Welcome: React.FC = () => {
     >
       <div className={`relative w-full bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col ${
         isMobile()
-          ? 'p-4 min-h-[200px] aspect-square' // Mejores proporciones para móvil
+          ? 'p-4 min-h-[200px] aspect-square'
           : isTablet()
-          ? 'p-4 min-h-[160px]'
+          ? 'p-4 min-h-[140px]' // Reducido de 160 a 140
           : isSmallDesktop()
-          ? 'p-5 min-h-[180px]'
+          ? 'p-4 min-h-[150px]' // Reducido de 180 a 150
           : 'p-6 lg:p-8 min-h-[200px] lg:min-h-[220px] xl:min-h-[240px]'
       }`}
       data-card
@@ -264,30 +271,30 @@ const Welcome: React.FC = () => {
         <div className="flex-1 flex flex-col items-center justify-center text-center">
           <div className={`mb-3 ${
             isMobile()
-              ? 'text-3xl' // Icono más grande en móvil
-              : isTablet()
-              ? 'text-2xl'
-              : isSmallDesktop()
               ? 'text-3xl'
+              : isTablet()
+              ? 'text-2xl' // Reducido un poco
+              : isSmallDesktop()
+              ? 'text-2xl' // Reducido de text-3xl a text-2xl
               : 'text-4xl lg:text-5xl xl:text-6xl'
           }`}>{icon}</div>
           <h3 className={`font-bold text-white mb-3 leading-tight px-1 ${
             isMobile()
-              ? 'text-sm' // Texto más grande en móvil
-              : isTablet()
               ? 'text-sm'
+              : isTablet()
+              ? 'text-xs' // Reducido de text-sm a text-xs
               : isSmallDesktop()
-              ? 'text-base'
+              ? 'text-sm' // Reducido de text-base a text-sm
               : 'text-lg lg:text-xl xl:text-2xl'
           }`}>{title}</h3>
           <div className="h-0.5 bg-white/60 mb-3 rounded-full w-full max-w-[80%]" />
           <p className={`text-white/90 leading-relaxed px-1 flex-1 ${
             isMobile()
-              ? 'text-xs leading-tight' // Mejor legibilidad en móvil
+              ? 'text-xs leading-tight'
               : isTablet()
-              ? 'text-xs line-clamp-3'
+              ? 'text-xs line-clamp-2' // Cambiado a line-clamp-2 para mostrar menos líneas
               : isSmallDesktop()
-              ? 'text-sm line-clamp-3'
+              ? 'text-xs line-clamp-2' // Cambiado a text-xs y line-clamp-2
               : 'text-sm lg:text-base xl:text-lg line-clamp-4'
           }`}>{description}</p>
         </div>
@@ -330,12 +337,20 @@ const Welcome: React.FC = () => {
             icon: '📊',
           }]
         : []),
-      ...(!permissions.isBasicUser()
+      ...(permissions.canAccessConsultaSocios()
         ? [{
             title: 'Consultar socios',
             description: 'Gestiona tu base de clientes',
             onClick: () => navigate('/consulta-clientes'),
             icon: '👥',
+          }]
+        : []),
+      ...(permissions.canAccessRegistroClientes()
+        ? [{
+            title: 'Registro de Clientes',
+            description: 'Registra y gestiona información de clientes',
+            onClick: () => navigate('/registro-clientes'),
+            icon: '👤',
           }]
         : []),
       ...(permissions.canManageUsers()
@@ -362,31 +377,55 @@ const Welcome: React.FC = () => {
             icon: '💳',
           }]
         : []),
+        ...(permissions.canAccessCalculadoraCreditos()
+        ? [{
+            title: 'Calculadora de Créditos',
+            description: 'Calcula el monto de crédito para un cliente',
+            onClick: () => navigate('/calculadora-creditos'),
+            icon: '📊'
+          }]
+        : []),
+        ...(permissions.canAccessGeodile()
+        ? [{
+            title: 'Geodile',
+            description: 'Sistema de geolocalización y mapas para verificación de ubicaciones',
+            onClick: () => navigate('/geodile'),
+            icon: <GeodileIcon className={
+              isMobile()
+                ? 'w-8 h-8 text-white'
+                : isTablet()
+                ? 'w-8 h-8 text-white' // Reducido de w-10 h-10
+                : isSmallDesktop()
+                ? 'w-8 h-8 text-white' // Reducido de w-12 h-12
+                : 'w-16 h-16 lg:w-20 lg:h-20 xl:w-24 xl:h-24 text-white'
+            } />
+          }]
+        : []),
     ];
 
-    // Grid responsivo mejorado especialmente para móviles
+    // Grid responsivo mejorado especialmente para desktop pequeño
     const getGridClass = () => {
       const optionsCount = availableOptions.length;
       
       if (isMobile()) {
-        // Móvil: siempre 2 columnas para mejor aprovechamiento del espacio
         return 'grid-cols-2';
       }
       
       if (isTablet()) {
-        // Tablet: 2-3 columnas dependiendo del número de opciones
-        if (optionsCount <= 3) return 'grid-cols-2';
-        return 'grid-cols-3';
-      }
-      
-      if (isSmallDesktop()) {
-        // Desktop pequeño: 2-4 columnas
-        if (optionsCount <= 2) return 'grid-cols-2';
-        if (optionsCount <= 4) return 'grid-cols-3';
+        if (optionsCount <= 4) return 'grid-cols-2';
+        if (optionsCount <= 6) return 'grid-cols-3';
         return 'grid-cols-4';
       }
       
-      // Desktop grande: tarjetas más grandes, distribución optimizada
+      if (isSmallDesktop()) {
+        // Mejorado para desktop pequeño - más columnas para mejor aprovechamiento
+        if (optionsCount <= 4) return 'grid-cols-4';
+        if (optionsCount <= 6) return 'grid-cols-3';
+        if (optionsCount <= 8) return 'grid-cols-4';
+        return 'grid-cols-4';
+      }
+      
+      // Desktop grande
       if (optionsCount <= 2) return 'grid-cols-1 lg:grid-cols-2';
       if (optionsCount <= 4) return 'grid-cols-2 lg:grid-cols-2 xl:grid-cols-3';
       if (optionsCount <= 6) return 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-3';
@@ -403,20 +442,20 @@ const Welcome: React.FC = () => {
         
         {/* Contenido principal */}
         <div className={`relative z-10 ${isMobile() ? 'min-h-screen' : 'h-full'} flex flex-col`}>
-          {/* Header para móvil */}
+          {/* Header para móvil - más pequeño */}
           {isMobile() && (
-            <div className="flex-shrink-0 p-4 text-center">
-              <h1 className="text-white text-lg font-bold">Panel de Control</h1>
+            <div className="flex-shrink-0 p-3 text-center">
+              <h1 className="text-white text-base font-bold">Panel de Control</h1>
             </div>
           )}
           
-          {/* Grid de opciones */}
+          {/* Grid de opciones con mejor espaciado para desktop pequeño */}
           <div className={`${isMobile() ? 'flex-1 pb-8' : 'flex-1 flex items-center justify-center'} ${
-            isMobile() ? 'p-3' : 'p-4 sm:p-6 lg:p-8'
+            isMobile() ? 'p-3' : 'p-3 sm:p-4 lg:p-8'
           } relative z-10`}>
             <div className="w-full">
               <div className={`grid ${getGridClass()} ${
-                isMobile() ? 'gap-3' : 'gap-4 sm:gap-6 lg:gap-8'
+                isMobile() ? 'gap-3' : isTablet() ? 'gap-3' : isSmallDesktop() ? 'gap-3' : 'gap-4 sm:gap-6 lg:gap-8'
               }`}>
                 {availableOptions.map((option, index) => (
                   <Card
@@ -466,6 +505,13 @@ const Welcome: React.FC = () => {
   return (
     <Layout title="Bienvenido a la Plataforma de DILE" showBackButton={false}>
       <style>{`
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        
         .line-clamp-3 {
           display: -webkit-box;
           -webkit-line-clamp: 3;
@@ -501,13 +547,25 @@ const Welcome: React.FC = () => {
           }
         }
         
-        /* REMOVIDO: Animación de vibración y clase animate-shake */
-        
         /* Clase para remover padding del Layout solo en Welcome */
         .welcome-full-width {
           margin: -1.5rem !important;
           width: calc(100% + 3rem) !important;
           height: calc(100% + 3rem) !important;
+        }
+        
+        /* Mejoras específicas para desktop pequeño */
+        @media (min-width: 1025px) and (max-width: 1280px) {
+          .welcome-full-width .grid {
+            gap: 0.75rem !important;
+            max-height: calc(100vh - 6rem);
+            overflow-y: auto;
+            padding: 1rem;
+          }
+          
+          .welcome-full-width [data-card] {
+            min-height: 140px !important;
+          }
         }
         
         /* Mejoras responsivas para móviles */
@@ -516,7 +574,6 @@ const Welcome: React.FC = () => {
             gap: 0.75rem !important;
           }
           
-          /* Tarjetas cuadradas para mejor proporción en móvil */
           .welcome-full-width [data-card] {
             aspect-ratio: 1 !important;
             display: flex !important;
@@ -533,21 +590,13 @@ const Welcome: React.FC = () => {
         
         @media (min-width: 769px) and (max-width: 1024px) {
           .welcome-full-width .grid {
-            gap: 1.25rem !important;
+            gap: 0.75rem !important;
           }
         }
         
         /* Transiciones suaves para cambios de tamaño */
         .welcome-full-width .grid > * {
           transition: all 0.3s ease-in-out;
-        }
-        
-        /* Clase adicional para line-clamp-2 */
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
         }
         
         /* Mejoras específicas para texto en móvil */
@@ -560,6 +609,31 @@ const Welcome: React.FC = () => {
           .welcome-full-width p {
             line-height: 1.3 !important;
             font-size: 0.75rem !important;
+          }
+        }
+        
+        /* Scroll suave para desktop pequeño cuando hay muchas tarjetas */
+        @media (min-width: 1025px) and (max-width: 1280px) {
+          .welcome-full-width .grid {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+          }
+          
+          .welcome-full-width .grid::-webkit-scrollbar {
+            width: 6px;
+          }
+          
+          .welcome-full-width .grid::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          
+          .welcome-full-width .grid::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+          }
+          
+          .welcome-full-width .grid::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
           }
         }
       `}</style>

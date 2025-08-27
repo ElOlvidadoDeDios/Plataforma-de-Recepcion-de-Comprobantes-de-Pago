@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Layout from '../Layout';
 import { creditAttentionApi, ClienteMora, AdministradorInfo } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
+import { useCombinedPermissions } from '../../hooks/useCombinedPermissions';
 import { jwtDecode } from 'jwt-decode';
 import { SessionManager } from '../../utils/sessionManager';
 import ModalDetailsMora from './modal_datails_mora';
@@ -17,7 +18,8 @@ interface AnalalistaNuevo {
 type Analista = AnalalistaNuevo;
 
 const GestionMora = () => {
-  const { hasPermission, user } = useAuth();
+  const { user } = useAuth();
+  const { canAccessGestionMora } = useCombinedPermissions();
   const [isLoading, setIsLoading] = useState(false);
   const [clientes, setClientes] = useState<ClienteMora[]>([]);
   const [error, setError] = useState('');
@@ -45,7 +47,7 @@ const GestionMora = () => {
   const [loadingGestionesAnteriores, setLoadingGestionesAnteriores] = useState(false);
 
   // Verificar permisos
-  if (!hasPermission('canAccessGestionMora')) {
+  if (!canAccessGestionMora()) {
     return (
       <Layout title="Gestión de Mora">
         <div className="h-full w-full bg-gradient-to-br from-slate-50 to-gray-100">

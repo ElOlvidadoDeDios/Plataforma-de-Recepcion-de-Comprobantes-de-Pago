@@ -17,6 +17,7 @@ interface UserTableProps {
   setSelectedUser: (user: User) => void;
   setShowActivateModal: (show: boolean) => void;
   setShowChangePasswordModal: (show: boolean) => void;
+  setShowPermissionsModal: (show: boolean) => void;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
@@ -33,7 +34,8 @@ const UserTable: React.FC<UserTableProps> = ({
   handleOpenAgenciaModal,
   setSelectedUser,
   setShowActivateModal,
-  setShowChangePasswordModal
+  setShowChangePasswordModal,
+  setShowPermissionsModal
 }) => {
   const getStatusBadge = (status: number) => {
     const statusConfig = {
@@ -342,6 +344,18 @@ const UserTable: React.FC<UserTableProps> = ({
                       >
                         <span className="mr-1">🏪</span>
                         {currentUser?.id === user._id ? 'Mis Agencias' : 'Agencias'}
+                      </button>
+                    )}
+                    {(isSuperAdmin || currentUser?.role === 'GERENTE_GENERAL') && user.status === 1 && (
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowPermissionsModal(true);
+                        }}
+                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
+                      >
+                        <span className="mr-1">🛡️</span>
+                        Permisos Extra
                       </button>
                     )}
                   </div>

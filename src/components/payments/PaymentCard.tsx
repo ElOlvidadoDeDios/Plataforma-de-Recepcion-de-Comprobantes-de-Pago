@@ -13,12 +13,14 @@ interface PaymentCardProps {
   agencias?: string[];
   userAgencias?: AgenciaCaja[];
   onUpdateStatus?: (payment: PaymentRecord, estado: 'pendiente' | 'aceptado' | 'rechazado') => Promise<void>;
+  isReadOnlyMode?: boolean;
 }
 
 export const PaymentCard: React.FC<PaymentCardProps> = ({
   payment,
   socket,
   agencias = [],
+  isReadOnlyMode = false,
 }) => {
   const { user } = useContext(AuthContext);
   const [showImage, setShowImage] = useState(false);
@@ -259,6 +261,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
         currentPayment={currentPayment}
         isLoading={isLoading}
         onOpenModal={handleOpenModal}
+        isReadOnlyMode={isReadOnlyMode}
       />
       
       <PaymentDetailsModal
@@ -278,6 +281,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
         onReject={handleReject}
         onConfirmReject={handleConfirmReject}
         onUpdateStatus={updateStatus}
+        isReadOnlyMode={isReadOnlyMode}
       />
     </>
   );

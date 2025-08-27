@@ -94,8 +94,8 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
   }, [displayedPayment.creditoId, displayedPayment.dni, showImage]);
 
   return (
-    <div className="p-3 lg:p-4 border-b border-gray-200">
-      <div className="flex justify-between items-start gap-2">
+    <div className="p-1 lg:p-1 border-b border-gray-200 text-xs lg:text-sm leading-tight">
+      <div className="flex justify-between items-start gap-1">
         <div className="flex-1 min-w-0 max-w-[90%]">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 truncate">{paymentDetails?.SOCIO || 'Cargando...'}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs sm:text-sm">
@@ -106,7 +106,8 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
             <p className="text-gray-600 text-xs sm:text-sm">Fecha Otorgamiento: {paymentDetails?.OTORGA}</p>
             <p className="text-gray-600 text-xs sm:text-sm">Número de Cuotas: {paymentDetails?.NUM_CUOTAS}</p>
             <p className="text-gray-600 text-xs sm:text-sm font-medium mb-2">Monto Adeudado: S/ {paymentDetails?.DEBE?.toFixed(2)}</p>
-            
+            <div className="inline-flex items-center text-gray-600 text-xs sm:text-sm font-medium mb-2">Estado: <StatusBadge estado={displayedPayment.estadoGeneral} /></div>
+
             <div className="col-span-2 border-t border-gray-200 pt-4 mt-3">
               {paymentDetails?.DETALLE && (
                 <div className="mb-4 text-sm text-red-600 font-medium text-center bg-red-50 p-2 rounded-md">
@@ -154,12 +155,6 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                     <span className="text-[9px] sm:text-xs text-gray-500 ml-1 block sm:inline">(Monto: S/ {paymentDetails?.MONTO_LIQUIDA?.toFixed(2) || '0.00'})</span>
                   </span>
                 </label>
-              </div>
-            </div>
-            <div className="col-span-2 flex items-center flex-wrap gap-2 border-t border-gray-200 pt-3 mt-3">
-              <div className="flex items-center flex-shrink-0">
-                <span className="text-xs sm:text-sm font-medium text-gray-700 mr-2">Estado:</span>
-                <StatusBadge estado={displayedPayment.estadoGeneral} />
               </div>
             </div>
           </div>

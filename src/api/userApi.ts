@@ -88,10 +88,9 @@ export const getCurrentUser = async (): Promise<UserWithRole> => {
     }
 
     const userWithRole: UserWithRole = {
-      id: userData._id || String(new Date().getTime()),
+      _id: userData._id || String(new Date().getTime()),
       email: userData.email || '',
-      name: userData.razon || '',
-      lastName: '',
+      razon: userData.razon || '',
       role: userData.role as UserRole,
       dni: userData.dni || '',
       status: userData.status ?? UserStatus.CREATED,
@@ -215,19 +214,22 @@ export const updateUserAgencias = async (userId: string, agencias: AgenciaCaja[]
       user_caja: String(ag.user_caja || '').trim()
     }));
 
-    const camposIncompletos = agenciasFormateadas.some(ag => !ag.agencia || !ag.cod_caja || !ag.user_caja);
-    if (camposIncompletos) {
-      throw new APIError('Todos los campos son requeridos', 400);
-    }
+    // 🔧 Solo validar si hay agencias para validar
+    if (agenciasFormateadas.length > 0) {
+      const camposIncompletos = agenciasFormateadas.some(ag => !ag.agencia || !ag.cod_caja || !ag.user_caja);
+      if (camposIncompletos) {
+        throw new APIError('Todos los campos son requeridos', 400);
+      }
 
-    const formatoInvalido = agenciasFormateadas.some(ag => ag.cod_caja.length < 3 || ag.user_caja.length < 3);
-    if (formatoInvalido) {
-      throw new APIError('Los códigos deben tener al menos 3 caracteres', 400);
-    }
+      const formatoInvalido = agenciasFormateadas.some(ag => ag.cod_caja.length < 3 || ag.user_caja.length < 3);
+      if (formatoInvalido) {
+        throw new APIError('Los códigos deben tener al menos 3 caracteres', 400);
+      }
 
-    const codigos = agenciasFormateadas.map(ag => ag.cod_caja);
-    if (new Set(codigos).size !== codigos.length) {
-      throw new APIError('Los códigos de caja deben ser únicos', 400);
+      const codigos = agenciasFormateadas.map(ag => ag.cod_caja);
+      if (new Set(codigos).size !== codigos.length) {
+        throw new APIError('Los códigos de caja deben ser únicos', 400);
+      }
     }
 
     const requestPayload = { agencias: agenciasFormateadas };

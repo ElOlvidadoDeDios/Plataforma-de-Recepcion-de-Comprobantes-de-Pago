@@ -29,7 +29,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   setCustomReason,
   onCloseModal,
   onReject,
-  onConfirmReject
+  onConfirmReject,
+  isReadOnlyMode = false
 }) => {
   const { user } = useContext(AuthContext);
   const {
@@ -49,7 +50,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     removePayment,
     paymentType,
     paymentLimit,
-    handlePaymentTypeChange // ✅ Agregar la función
+    handlePaymentTypeChange
   } = usePaymentDetailsState(currentPayment, monto, setMonto);
 
   const handleNextPayment = () => {
@@ -96,11 +97,12 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           className={`bg-white shadow-2xl border border-gray-200 z-[10000] flex flex-col ${
             modalPosition.isMobile
               ? 'fixed inset-0 overflow-y-auto'
-              : 'relative w-[90vw] max-w-[1200px] min-w-[320px] rounded-lg h-[90vh] max-h-[900px] min-h-[500px]'
+              : 'relative w-[95vw] max-w-[1400px] min-w-[360px] rounded-lg h-[98vh] max-h-[1200px] min-h-[700px]'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={modalPosition.isMobile ? 'flex-shrink-0' : ''}>
+          {/* Header - 30% del espacio vertical */}
+          <div className={`${modalPosition.isMobile ? 'flex-shrink-0' : 'flex-shrink-0'} border-b border-gray-200 overflow-auto`}>
             <PaymentHeader
               displayedPayment={displayedPayment}
               totalAmount={totalAmount}
@@ -112,31 +114,34 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             />
           </div>
 
-          <div className={`${modalPosition.isMobile ? 'min-h-[80vh]' : 'flex-1'} flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} gap-2 sm:gap-3 p-2 sm:p-4 text-sm ${modalPosition.isMobile ? '' : 'overflow-hidden'} relative min-h-0`}>
+          {/* Contenido de imagen - 70% del espacio vertical */}
+          <div className={`${modalPosition.isMobile ? 'min-h-[85vh]' : 'flex-1'} flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} ${modalPosition.isMobile ? '' : 'overflow-hidden'} relative min-h-0`}>
+            {/* Navegación entre pagos */}
             {allPayments.length > 1 && (
               <div className={`absolute ${modalPosition.isMobile ? 'top-1/2 -translate-y-1/2' : 'inset-y-0'} left-0 right-0 flex items-center justify-between px-4 z-50 pointer-events-none`}>
                 <button
                   onClick={handlePrevPayment}
-                  className={`p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all ${modalPosition.isMobile ? 'relative' : ''}`}
+                  className={`p-3 bg-white/95 rounded-full shadow-xl hover:bg-white hover:shadow-2xl pointer-events-auto transition-all border border-gray-200 ${modalPosition.isMobile ? 'relative' : ''}`}
                   style={modalPosition.isMobile ? { transform: 'translateY(-50%)' } : {}}
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-6 h-6 text-gray-700" />
                 </button>
                 <button
                   onClick={handleNextPayment}
-                  className={`p-2 bg-white/90 rounded-full shadow-lg hover:bg-white pointer-events-auto transition-all ${modalPosition.isMobile ? 'relative' : ''}`}
+                  className={`p-3 bg-white/95 rounded-full shadow-xl hover:bg-white hover:shadow-2xl pointer-events-auto transition-all border border-gray-200 ${modalPosition.isMobile ? 'relative' : ''}`}
                   style={modalPosition.isMobile ? { transform: 'translateY(-50%)' } : {}}
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-6 h-6 text-gray-700" />
                 </button>
               </div>
             )}
             
-            <div className="absolute top-2 right-2 z-30">
+            {/* Botón quitar comprobante */}
+            <div className="absolute top-3 right-3 z-30">
               {paymentIndex > 0 && (
                 <button
                   onClick={() => removePayment(paymentIndex)}
-                  className="text-gray-500 hover:text-red-500 transition-colors bg-white/90 rounded-full shadow-md p-1"
+                  className="text-gray-500 hover:text-red-500 transition-colors bg-white/95 rounded-full shadow-lg border border-gray-200 p-2"
                   title="Quitar comprobante"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -146,189 +151,222 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
               )}
             </div>
 
+            {/* Tabs móviles */}
             {modalPosition.isMobile && (
-              <div className="flex border-b border-gray-200 mb-2">
+              <div className="flex border-b border-gray-200 bg-gray-50">
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${
-                    activeTab === 'image' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'
+                  className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                    activeTab === 'image' 
+                      ? 'border-b-2 border-blue-500 text-blue-600 bg-white' 
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                   onClick={() => setActiveTab('image')}
                 >
-                  Imagen
+                  📷 Imagen
                 </button>
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${
-                    activeTab === 'form' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'
+                  className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                    activeTab === 'form' 
+                      ? 'border-b-2 border-blue-500 text-blue-600 bg-white' 
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                   onClick={() => setActiveTab('form')}
                 >
-                  Formulario
+                  📝 Formulario
                 </button>
               </div>
             )}
 
+            {/* SECCIÓN DE IMAGEN - Ocupa todo el espacio disponible */}
             <div className={`${
               modalPosition.isMobile
-                ? activeTab === 'image' ? 'h-[60vh]' : 'hidden'
+                ? activeTab === 'image' ? 'h-[70vh]' : 'hidden'
                 : 'w-1/2 lg:w-3/5 xl:w-1/2'
-            } flex-shrink-0 ${modalPosition.isMobile ? '' : 'h-full overflow-hidden'} relative min-h-0`}>
-              <p className="mb-1 px-2 text-xs text-gray-500">
-                {paymentIndex === 0 ? 'Comprobante principal' : `Comprobante adicional ${paymentIndex}`}
-              </p>
-              <PaymentImageViewer
-                imageSource={displayedPayment.comprobantebase_64.map(c => c.ruta)}
-                altText={`Comprobante de ${displayedPayment.nombreSocio}`}
-                isLoading={isLoading || loadingRelated}
-                currentIndex={imageIndex}
-                onChangeIndex={setImageIndex}
-              />
+            } flex-shrink-0 ${modalPosition.isMobile ? '' : 'h-full overflow-hidden'} relative min-h-0 bg-gray-50`}>
+              <div className="p-2 h-full flex flex-col">
+                <p className="mb-2 text-sm text-gray-600 font-medium bg-white px-3 py-1 rounded-md shadow-sm border border-gray-200 inline-block">
+                  {paymentIndex === 0 ? '📄 Comprobante principal' : `📄 Comprobante adicional ${paymentIndex}`}
+                </p>
+                {/* Contenedor de imagen con más espacio */}
+                <div className="flex-1 min-h-0">
+                  <PaymentImageViewer
+                    imageSource={displayedPayment.comprobantebase_64.map(c => c.ruta)}
+                    altText={`Comprobante de ${displayedPayment.nombreSocio}`}
+                    isLoading={isLoading || loadingRelated}
+                    currentIndex={imageIndex}
+                    onChangeIndex={setImageIndex}
+                  />
+                </div>
+              </div>
             </div>
 
+            {/* SECCIÓN DE FORMULARIO - Mantiene tamaño original */}
             <div className={`${
               modalPosition.isMobile
-                ? activeTab === 'form' ? 'h-[60vh] overflow-y-auto' : 'hidden'
+                ? activeTab === 'form' ? 'h-[70vh] overflow-y-auto' : 'hidden'
                 : 'w-1/2 lg:w-2/5 xl:w-1/2'
-            } ${modalPosition.isMobile ? '' : 'overflow-auto'} relative z-20 min-h-0`}>
-              <PaymentForm
-                vouchers={[paymentDetails.find(detail =>
-                  detail.imageIndex === imageIndex &&
-                  displayedPayment.comprobantebase_64[imageIndex]?.ruta === detail.ruta
-                )].filter((detail): detail is NonNullable<typeof detail> => detail !== undefined)}
-                onUpdateVoucher={(_, field, value) => {
-                  const currentVoucher = paymentDetails.find(detail =>
+            } ${modalPosition.isMobile ? '' : 'overflow-auto'} relative z-20 min-h-0 bg-white`}>
+              <div className="p-2 h-full">
+                <PaymentForm
+                  vouchers={[paymentDetails.find(detail =>
                     detail.imageIndex === imageIndex &&
                     displayedPayment.comprobantebase_64[imageIndex]?.ruta === detail.ruta
-                  );
+                  )].filter((detail): detail is NonNullable<typeof detail> => detail !== undefined)}
+                  onUpdateVoucher={(_, field, value) => {
+                    const currentVoucher = paymentDetails.find(detail =>
+                      detail.imageIndex === imageIndex &&
+                      displayedPayment.comprobantebase_64[imageIndex]?.ruta === detail.ruta
+                    );
 
-                  if (!currentVoucher) return;
+                    if (!currentVoucher) return;
 
-                  const newDetails = paymentDetails.map(detail => {
-                    if (detail === currentVoucher) {
-                      return {
-                        ...detail,
-                        [field]: value
-                      };
+                    const newDetails = paymentDetails.map(detail => {
+                      if (detail === currentVoucher) {
+                        return {
+                          ...detail,
+                          [field]: value
+                        };
+                      }
+                      return detail;
+                    });
+
+                    setPaymentDetails(newDetails);
+
+                    if (field === 'montoPago') {
+                      const total = newDetails
+                        .filter(detail => detail.estado !== 'rechazado')
+                        .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0)
+                        .toFixed(2);
+                      setMonto(total);
                     }
-                    return detail;
-                  });
-
-                  setPaymentDetails(newDetails);
-
-                  if (field === 'montoPago') {
-                    const total = newDetails
-                      .filter(detail => detail.estado !== 'rechazado')
-                      .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0)
-                      .toFixed(2);
-                    setMonto(total);
+                  }}
+                  onRejectVoucher={() => {
+                    setRejectType('partial');
+                    onReject();
+                  }}
+                  onAcceptVoucher={async () => {
+                    const error = await handlePartialAcceptStatus({
+                      displayedPayment,
+                      modalPayments,
+                      paymentDetails,
+                      setPaymentDetails,
+                      imageIndex,
+                      paymentIndex,
+                      agenciaCode,
+                      userData: user,
+                      paymentType,
+                      paymentLimit,
+                      rejectType: 'partial',
+                      selectedRejectReason: '',
+                      customReason: '',
+                      totalAmount
+                    });
+                    
+                    if (error) {
+                      throw new Error(error);
+                    }
+                  }}
+                  agenciaName={agenciaSeleccionada}
+                  isEditable={
+                    !isReadOnlyMode &&
+                    ['pendiente', 'parcial'].includes(displayedPayment.estadoGeneral) &&
+                    displayedPayment.comprobantebase_64[imageIndex]?.estado === 'pendiente'
                   }
-                }}
-                onRejectVoucher={() => {
-                  setRejectType('partial');
-                  onReject();
-                }}
-                onAcceptVoucher={async () => {
-                  const error = await handlePartialAcceptStatus({
+                  userData={user}
+                  agenciaCode={agenciaCode}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Footer de acciones - Mostrar solo en modo edición */}
+          <div className={`border-t border-gray-200 bg-gray-50 shadow-lg ${modalPosition.isMobile ? 'flex-shrink-0' : ''}`}>
+            {isReadOnlyMode ? (
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center gap-2 text-blue-600">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span className="font-medium">Modo Solo Lectura</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-1">Puede ver los detalles pero no procesar pagos</p>
+                <button
+                  onClick={onCloseModal}
+                  className="mt-3 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <PaymentActions
+                isPending={displayedPayment.comprobantebase_64[imageIndex]?.estado === 'pendiente'}
+                isLoading={isLoading}
+                isMobile={modalPosition.isMobile}
+                totalPayments={allPayments.length}
+                showRejectModal={showRejectModal}
+                selectedRejectReason={selectedRejectReason}
+                customReason={customReason}
+                rejectType={rejectType}
+                onUpdateStatus={async () => {
+                  const error = await handleUpdateStatus({
                     displayedPayment,
                     modalPayments,
                     paymentDetails,
                     setPaymentDetails,
                     imageIndex,
                     paymentIndex,
+                    rejectType,
+                    selectedRejectReason,
+                    customReason,
                     agenciaCode,
-                    userData: user,
-                    paymentType,
-                    paymentLimit,
-                    rejectType: 'partial',
-                    selectedRejectReason: '',
-                    customReason: '',
-                    totalAmount
+                    totalAmount,
+                    userData: user
                   });
                   
                   if (error) {
                     throw new Error(error);
                   }
                 }}
-                agenciaName={agenciaSeleccionada}
-                isEditable={
-                  ['pendiente', 'parcial'].includes(displayedPayment.estadoGeneral) &&
-                  displayedPayment.comprobantebase_64[imageIndex]?.estado === 'pendiente'
-                }
+                onAcceptStatus={async () => {
+                  const error = await handleAcceptStatus({
+                    displayedPayment,
+                    modalPayments,
+                    paymentDetails,
+                    setPaymentDetails,
+                    imageIndex,
+                    paymentIndex,
+                    rejectType,
+                    selectedRejectReason,
+                    customReason,
+                    agenciaCode,
+                    totalAmount,
+                    userData: user,
+                    paymentType,
+                    paymentLimit
+                  });
+                  
+                  if (error) {
+                    throw new Error(error);
+                  }
+                }}
+                onReject={() => {
+                  setRejectType('partial');
+                  onReject();
+                }}
+                onCloseModal={onCloseModal}
+                onConfirmReject={(type) => {
+                  setRejectType(type);
+                  onConfirmReject(type);
+                }}
+                setSelectedRejectReason={setSelectedRejectReason}
+                setCustomReason={setCustomReason}
+                totalMonto={monto}
+                paymentDetails={paymentDetails}
                 userData={user}
                 agenciaCode={agenciaCode}
               />
-            </div>
-          </div>
-
-          <div className={`border-t border-gray-200 bg-white shadow-lg ${modalPosition.isMobile ? 'flex-shrink-0' : ''}`}>
-            <PaymentActions
-              isPending={displayedPayment.comprobantebase_64[imageIndex]?.estado === 'pendiente'}
-              isLoading={isLoading}
-              isMobile={modalPosition.isMobile}
-              totalPayments={allPayments.length}
-              showRejectModal={showRejectModal}
-              selectedRejectReason={selectedRejectReason}
-              customReason={customReason}
-              rejectType={rejectType}
-              onUpdateStatus={async () => {
-                const error = await handleUpdateStatus({
-                  displayedPayment,
-                  modalPayments,
-                  paymentDetails,
-                  setPaymentDetails,
-                  imageIndex,
-                  paymentIndex,
-                  rejectType,
-                  selectedRejectReason,
-                  customReason,
-                  agenciaCode,
-                  totalAmount,
-                  userData: user
-                });
-                
-                if (error) {
-                  // El error se manejará en PaymentActions
-                  throw new Error(error);
-                }
-              }}
-              onAcceptStatus={async () => {
-                const error = await handleAcceptStatus({
-                  displayedPayment,
-                  modalPayments,
-                  paymentDetails,
-                  setPaymentDetails,
-                  imageIndex,
-                  paymentIndex,
-                  rejectType,
-                  selectedRejectReason,
-                  customReason,
-                  agenciaCode,
-                  totalAmount,
-                  userData: user,
-                  paymentType,
-                  paymentLimit
-                });
-                
-                if (error) {
-                  // El error se manejará en PaymentActions
-                  throw new Error(error);
-                }
-              }}
-              onReject={() => {
-                setRejectType('partial');
-                onReject();
-              }}
-              onCloseModal={onCloseModal}
-              onConfirmReject={(type) => {
-                setRejectType(type);
-                onConfirmReject(type);
-              }}
-              setSelectedRejectReason={setSelectedRejectReason}
-              setCustomReason={setCustomReason}
-              totalMonto={monto}
-              paymentDetails={paymentDetails}
-              userData={user}
-              agenciaCode={agenciaCode}
-            />
+            )}
           </div>
         </motion.div>
       </div>

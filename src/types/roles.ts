@@ -1,16 +1,8 @@
 import { AgenciaCaja } from './index';
+import { Permission, UserRole } from './permissions';
 
-// Solo definiciones de tipos necesarias para el frontend
-export enum UserRole {
-  SUPER_ADMIN = 'SUPER_ADMIN',           // Super administrador
-  ADMINISTRADOR = 'ADMINISTRADOR',       // Administrador
-  CAJERO = 'CAJERO',                     // Cajero
-  ANALISTA_CREDITOS_I = 'ANALISTA_CREDITOS_I', // Analista de créditos I
-  GERENTE_GENERAL = 'GERENTE_GENERAL',   // Gerente general
-  JEFE_OPERACIONES = 'JEFE_OPERACIONES', // Jefe de operaciones
-  BASIC_USER = 'BASIC_USER',              // Usuario básico
-  ANALISTA_CREDITOS_PAGO_DIARIO = 'ANALISTA_CREDITOS_PAGO_DIARIO' // Analista de créditos pago diario
-}
+// Re-exportar UserRole para compatibilidad
+export { UserRole } from './permissions';
 
 // Estados de usuario
 export enum UserStatus {
@@ -30,11 +22,9 @@ export const UserStatusText: Record<UserStatus, string> = {
 
 // Interfaz que define la estructura de un usuario con su rol
 export interface UserWithRole {
-  id: string;
+  _id?: string;         // ID de MongoDB
   email: string;
   role: UserRole;
-  name?: string;        // Mantenemos para compatibilidad (mapea desde razon)
-  lastName?: string;    // Mantenemos para compatibilidad (siempre vacío)
   razon?: string;       // Nombre completo/razón social (campo real del backend)
   cargo?: string;       // Cargo del usuario
   user?: string;        // Usuario
@@ -46,4 +36,5 @@ export interface UserWithRole {
   agencias?: AgenciaCaja[];  // Array de agencias para usuarios de pagos
   id_ana?: string;      // ID analista
   id_age?: string;      // ID agencia
+  permissions?: Permission[];   // Permisos asignados al usuario
 }

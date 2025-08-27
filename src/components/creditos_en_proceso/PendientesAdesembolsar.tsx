@@ -115,38 +115,31 @@ const PendientesAdesembolsar: React.FC = () => {
     }
   };
 
-  // Componente para renderizar como cards
+  // Componente para renderizar como cards - LAYOUT VERTICAL MEJORADO
   const CreditoCard = ({ credito }: { credito: ClienteDesembolso }) => (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
       {/* Header de la card */}
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-              <span className="text-white font-medium text-sm">
-                {credito.DATOS_SOCIO.NOMBRES.charAt(0)}{credito.DATOS_SOCIO.APE_PAT.charAt(0)}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
-              </h3>
-              <p className="text-sm text-gray-500">DNI: {credito.DATOS_SOCIO.DNI}</p>
-            </div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-gray-900">
+              {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
+            </h3>
+            <p className="text-sm text-gray-500">DNI: {credito.DATOS_SOCIO.DNI}</p>
           </div>
           {getEstadoBadge(credito)}
         </div>
       </div>
 
-      {/* Contenido de la card */}
+      {/* Contenido de la card - LAYOUT VERTICAL */}
       <div className="px-6 py-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-6">
           {/* Información del Crédito */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">
               Información del Crédito
             </h4>
-            <div className="bg-gray-50 rounded-lg p-3 space-y-1">
+            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Pagaré:</span>
                 <span className="text-sm font-normal text-gray-900">
@@ -174,12 +167,12 @@ const PendientesAdesembolsar: React.FC = () => {
             </div>
           </div>
 
-          {/* Datos Bancarios */}
-          <div className="space-y-2">
+          {/* Datos Bancarios - AHORA DEBAJO DE LA INFORMACIÓN DEL CRÉDITO */}
+          <div className="space-y-3">
             <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">
               Datos Bancarios
             </h4>
-            <div className="bg-gray-50 rounded-lg p-3">
+            <div className="bg-gray-50 rounded-lg p-4">
               {!credito.DATOS_BANCARIOS.BANCO ? (
                 <div className="text-center py-4">
                   <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +181,7 @@ const PendientesAdesembolsar: React.FC = () => {
                   <p className="text-sm text-gray-500 italic">Sin datos bancarios</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div>
                     <span className="text-xs text-gray-500">Titular:</span>
                     <p className="text-sm font-medium text-gray-900">
@@ -223,8 +216,6 @@ const PendientesAdesembolsar: React.FC = () => {
       {/* Acciones */}
       <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
         <div className="flex justify-between items-center">
-
-          
           <button
             onClick={() => abrirModal(credito)}
             className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
@@ -353,12 +344,12 @@ const PendientesAdesembolsar: React.FC = () => {
   }
 
   return (
-    <Layout title="Créditos Pendientes a Desembolsar" showBackButton={true}>
+    <Layout title="CRÉDITOS PENDIENTES A DESEMBOLSO - PAGOS" showBackButton={true}>
       <div className="h-full flex flex-col space-y-6">
         {/* Header con estadísticas */}
         <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 sm:p-6 rounded-lg shadow-lg text-white">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
-            <h2 className="text-xl sm:text-2xl font-bold">Créditos Pendientes a Desembolsar</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">CRÉDITOS PENDIENTES A DESEMBOLSO - PAGOS</h2>
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               {/* Toggle View Mode */}

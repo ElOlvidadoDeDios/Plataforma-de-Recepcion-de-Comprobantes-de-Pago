@@ -1,3 +1,5 @@
+import { SessionManager } from '../utils/sessionManager';
+
 // Tipo de documento
 export enum TipoDocumento {
   DNI = "01",
@@ -109,6 +111,20 @@ export interface ApiResponse {
   };
 }
 
+// Helper function para obtener headers con autenticación
+const getAuthHeaders = (): HeadersInit => {
+  const token = SessionManager.getItem('token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+};
+
 // Función para búsqueda inicial de clientes que maneja 404 silenciosamente
 export const searchClientes = async (
   tipo_doc: TipoDocumento,
@@ -127,9 +143,7 @@ export const searchClientes = async (
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/buscar`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         tipo_doc,
         razon: valor.trim()
@@ -177,9 +191,7 @@ export const searchClientesByDNI = async (dni: string): Promise<ClienteResponse 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/por-dni`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ dni })
     });
 
@@ -227,9 +239,7 @@ export const guardarDatosBancarios = async (
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/guardar-datos-bancarios`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(dataToSend)
     });
 
@@ -260,9 +270,7 @@ export const checkVoucherExists = async (
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/check-voucher`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         DNI: dni,
         PAGARE: pagare
@@ -274,9 +282,11 @@ export const checkVoucherExists = async (
     }
 
     const result = await response.json();
+    
+    // La API devuelve { exists: boolean, url: string, message: string }
     return {
-      exists: result.status === true,
-      url: result.link && result.link.trim() !== '' ? result.link : null,
+      exists: result.exists === true,
+      url: result.url && result.url.trim() !== '' ? result.url : null,
       message: result.message || 'Verificación completada'
     };
 
@@ -308,8 +318,16 @@ export const uploadVoucher = async (
     formData.append('file', file);
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+    const token = SessionManager.getItem('token');
+    const headers: HeadersInit = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/upload-voucher`, {
       method: 'POST',
+      headers,
       body: formData
     });
 

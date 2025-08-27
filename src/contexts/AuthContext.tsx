@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { UserRole, UserWithRole } from '../types/roles';
+import { UserWithRole } from '../types/roles';
+import { UserRole } from '../types/permissions';
 import { SessionManager } from '../utils/sessionManager';
 
 // Interfaz que define la estructura del contexto de autenticación
@@ -38,6 +39,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           parsedUser.role = UserRole.BASIC_USER;
         }
 
+        // Asegurar que los permisos estén sincronizados con el token
+        try {
+          const token = SessionManager.getItem('token');
+          if (token) {
+            const payload = jwtDecode(token) as any;
+            // Usar solo el sistema unificado de permissions
+            parsedUser.permissions = payload.permissions || [];
+            // Sincronizar también id_age e id_ana desde el token
+            parsedUser.id_age = payload.id_age;
+            parsedUser.id_ana = payload.id_ana;
+          }
+        } catch (error) {
+          console.warn('No se pudieron sincronizar permisos:', error);
+          parsedUser.permissions = parsedUser.permissions || [];
+        }
+
         return parsedUser;
       } catch (error) {
 
@@ -53,53 +70,61 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error('El DNI y email son requeridos para inicializar el usuario');
     }
 
+    // Intentar obtener datos del token JWT si existe
+    let permissions: any[] = [];
+    let tokenData: any = {};
+    try {
+      const token = SessionManager.getItem('token');
+      if (token) {
+        const payload = jwtDecode(token) as any;
+        permissions = payload.permissions || [];
+        tokenData = {
+          id_age: payload.id_age,
+          id_ana: payload.id_ana,
+          cargo: payload.cargo,
+          // Incluir otros campos que podrían venir del token
+        };
+      }
+    } catch (error) {
+    }
+
     const newUser: UserWithRole = {
-      id: userData.id || '',
+      _id: userData._id || '',
       email: userData.email,
       dni: userData.dni,
       razon: userData.razon,
-      cargo: userData.cargo ,
+      cargo: userData.cargo || tokenData.cargo,
       role: userData.role || UserRole.BASIC_USER,
-      name: userData.name || '',
       status: 0, // CREATED - Sin permisos hasta que un admin lo active
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       agencias: userData.agencias || [],
+      permissions: userData.permissions || permissions,
+      id_age: userData.id_age || tokenData.id_age, // Priorizar userData, fallback a token
+      id_ana: userData.id_ana || tokenData.id_ana, // Priorizar userData, fallback a token
     };
     
     setUser(newUser);
     SessionManager.setItem('user', JSON.stringify(newUser));
   };
 
-  // Ahora la verificación de permisos se delega al backend
+  // MÉTODO BÁSICO DE COMPATIBILIDAD - NO USA LÓGICA DE NEGOCIO
+  // La verificación REAL de permisos se hace en useCombinedPermissions
   const hasPermission = (permission: string): boolean => {
-    if (!user || !user.role) return false;
+    if (!user) return false;
 
-    // Permisos básicos basados en roles
+    // Solo retorna true para casos básicos de autenticación
+    // TODO: Este método es legacy, usar useCombinedPermissions para lógica real
     switch (permission) {
-      case 'canManageUsers':
-        return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL].includes(user.role); // Solo SUPER_ADMIN y GERENTE_GENERAL pueden gestionar usuarios
-      case 'canAssignRoles':
-        return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL].includes(user.role); // Solo SUPER_ADMIN y GERENTE_GENERAL pueden asignar roles
-      case 'canAccessPayments':
-        return [UserRole.SUPER_ADMIN, UserRole.CAJERO, UserRole.GERENTE_GENERAL, UserRole.JEFE_OPERACIONES, UserRole.ANALISTA_CREDITOS_PAGO_DIARIO].includes(user.role); // JEFE_OPERACIONES también puede ver pagos
-      case 'canAccessCredits':
-        return [UserRole.SUPER_ADMIN, UserRole.ADMINISTRADOR, UserRole.ANALISTA_CREDITOS_I, UserRole.GERENTE_GENERAL, UserRole.ANALISTA_CREDITOS_PAGO_DIARIO].includes(user.role); // GERENTE_GENERAL también puede acceder a créditos
-      case 'canAccessGestionMora':
-          return [UserRole.SUPER_ADMIN, UserRole.ANALISTA_CREDITOS_I, UserRole.ADMINISTRADOR, UserRole.GERENTE_GENERAL, UserRole.ANALISTA_CREDITOS_PAGO_DIARIO].includes(user.role); // Roles adicionales pueden acceder a Gestión de Mora
-      case 'canAccessPendientesDesembolsar':
-          return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL, UserRole.JEFE_OPERACIONES, UserRole.CAJERO, UserRole.ANALISTA_CREDITOS_PAGO_DIARIO].includes(user.role); // Acceso a créditos pendientes a desembolsar
-      case 'canAccessBotInteractions':
-        return [UserRole.SUPER_ADMIN].includes(user.role); // Solo SUPER_ADMIN puede ver interacciones del bot (son informativas)
-      case 'canAccessConsultaCuotas':
-        return [UserRole.SUPER_ADMIN].includes(user.role); // Solo SUPER_ADMIN puede ver consulta de cuotas (son informativas)
-      case 'canAccessReports':
-        return [UserRole.SUPER_ADMIN, UserRole.GERENTE_GENERAL, UserRole.JEFE_OPERACIONES].includes(user.role); // JEFE_OPERACIONES puede generar reportes de pagos
-      case 'canBlockEmails':
-        return [UserRole.SUPER_ADMIN].includes(user.role);
-      case 'canDeleteAccounts':
-        return [UserRole.SUPER_ADMIN].includes(user.role);
+      case 'isAuthenticated':
+        return true; // Si hay usuario, está autenticado
+      case 'isBasicUser':
+        return user.role === UserRole.BASIC_USER;
+      case 'isSuperAdmin':
+        return user.role === UserRole.SUPER_ADMIN;
       default:
+        // Para cualquier otro permiso, retorna false
+        // Los componentes deben usar useCombinedPermissions para lógica real
         return false;
     }
   };
@@ -129,7 +154,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             window.location.href = '/login';
           }
         } catch (error) {
-          // console.error('Error decodificando token:', error);
         }
       }
     };

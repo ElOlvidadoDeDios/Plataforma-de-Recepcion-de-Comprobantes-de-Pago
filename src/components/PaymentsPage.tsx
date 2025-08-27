@@ -6,7 +6,8 @@ import { PaymentCard } from './PaymentCard';
 import { PaymentRecord, AGENCIAS } from '../types';
 import { UserRole } from '../types/roles';
 import Layout from './Layout';
-import { usePermissions, useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth';
+import { useCombinedPermissions } from '../hooks/useCombinedPermissions';
 import { usePayments } from '../hooks/usePayments';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import InfiniteScrollIndicator from './shared/InfiniteScrollIndicator';
@@ -19,8 +20,8 @@ interface PaymentsPageProps {
 
 const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   const navigate = useNavigate();
-  const { canAccessPayments } = usePermissions();
   const { user } = useAuth();
+  const { canViewPayments, canEditPayments } = useCombinedPermissions();
   const { payments, loading, loadingMore, pagination, loadPayments, loadMoreData, resetData, updatePayment } = usePayments();
   const [dniFilter, setDniFilter] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<'pendiente' | 'parcial' | 'atendido' | 'todos'>('pendiente');
@@ -44,27 +45,49 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
     }
   }, [user]);
 
-  // Validaciones con useMemo
-  const validations = React.useMemo(() => ({
-    hasPermissions: canAccessPayments(),
-    hasAgencias: (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) ? (user.agencias?.length ?? 0) > 0 : true,
-    isPaymentsUser: user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
-  }), [canAccessPayments, user]);
+  // 🔧 Validaciones mejoradas con distinción VER vs EDITAR
+  const validations = React.useMemo(() => {
+    const hasViewPermission = canViewPayments();
+    const hasEditPermission = canEditPayments();
+    const isRoleBasedPaymentsUser = user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO;
+    const hasAgencias = isRoleBasedPaymentsUser ? (user.agencias?.length ?? 0) > 0 : true;
+    
+    return {
+      // Permisos básicos
+      hasViewPermission,
+      hasEditPermission,
+      hasAnyPaymentPermission: hasViewPermission || hasEditPermission,
+      
+      // Validaciones de agencias - SOLO para usuarios con EDIT
+      hasAgencias,
+      isRoleBasedPaymentsUser,
+      
+      // 🔧 Lógica corregida:
+      // - Con solo VIEW: NUNCA requiere agencias (acceso directo)
+      // - Con EDIT: SÍ requiere agencias para procesar
+      needsAgencySelection: hasEditPermission && isRoleBasedPaymentsUser && !hasAgencias,
+      canAccessWithoutAgency: hasViewPermission,
+      
+      // Estados de modo
+      isReadOnlyMode: hasViewPermission && !hasEditPermission,
+      isFullEditMode: hasEditPermission
+    };
+  }, [canViewPayments, canEditPayments, user]);
 
-  // Verificar permisos básicos
-  if (!validations.hasPermissions) {
+  // 🔧 Verificar permisos básicos
+  if (!validations.hasAnyPaymentPermission) {
     return <Navigate to="/" replace />;
   }
 
-  // Si es usuario de pagos sin agencias, mostrar pantalla de espera
-  if (validations.isPaymentsUser && !validations.hasAgencias) {
+  // 🔧 Solo mostrar pantalla de espera si necesita agencias para EDITAR
+  if (validations.needsAgencySelection) {
     return (
       <Layout title="Gestión de Pagos">
         <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
           <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 max-w-md w-full">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Acceso Pendiente</h2>
             <p className="text-gray-600 mb-4 text-sm sm:text-base">
-              Para comenzar a procesar pagos, el administrador debe asignarle una o más agencias de trabajo.
+              Para comenzar a <strong>procesar pagos</strong>, el administrador debe asignarle una o más agencias de trabajo.
               Por favor, espere a que se complete esta configuración.
             </p>
             <p className="text-xs sm:text-sm text-gray-500 mt-4">
@@ -212,7 +235,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
 
   return (
     <Layout title="Gestión de Pagos">
-      {validations.isPaymentsUser && !selectedAgencia && validations.hasAgencias ? (
+      {validations.isFullEditMode && validations.isRoleBasedPaymentsUser && !selectedAgencia && validations.hasAgencias && validations.hasEditPermission ? (
         <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
           <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 max-w-md w-full">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Selección de Agencia</h2>
@@ -260,9 +283,22 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                       Agencia: {Object.entries(AGENCIAS).find(([_, code]) => code === selectedAgencia)?.[0]}
                     </p>
                   )}
+                  {/* 🔧 Indicador de modo solo lectura */}
+                  {validations.isReadOnlyMode && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Modo Solo Lectura
+                      </span>
+                      <span className="text-xs text-gray-500">Puede ver pagos pero no procesarlos</span>
+                    </div>
+                  )}
                 </div>
 
-                {(user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && user?.agencias && user?.agencias.length > 1 && (
+                {validations.isFullEditMode && (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && user?.agencias && user?.agencias.length > 1 && (
                   <button
                     onClick={() => setSelectedAgencia('')}
                     className="text-cyan-600 hover:text-cyan-700 text-xs sm:text-sm font-medium self-start sm:self-auto whitespace-nowrap"
@@ -377,26 +413,33 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                   
                   {/* Botones de acción - Distribuidos mejor en pantallas grandes */}
                   <div className="flex flex-col sm:flex-row lg:flex-row gap-3 lg:flex-shrink-0">
-                    <button
-                      onClick={() => navigate('/payments/history')}
-                      className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>Ver Historial</span>
-                    </button>
+                    {/* 🔧 Botón Historial: Solo mostrar si puede EDITAR (usuarios con EDIT pueden ver historial procesado) */}
+                    {validations.isFullEditMode && (
+                      <button
+                        onClick={() => navigate('/payments/history')}
+                        className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
+                      >
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Ver Historial</span>
+                      </button>
+                    )}
                     
-                    <button
-                      onClick={() => setIsReporteModalOpen(true)}
-                      className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <span>Reporte de Pagos</span>
-                    </button>
+                    {/* 🔧 Reportes: Solo mostrar si puede EDITAR (análisis avanzado) */}
+                    {validations.isFullEditMode && (
+                      <button
+                        onClick={() => setIsReporteModalOpen(true)}
+                        className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
+                      >
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Reporte de Pagos</span>
+                      </button>
+                    )}
                     
+                    {/* 🔧 Limpiar Filtros: Disponible para todos (funcionalidad básica) */}
                     <button
                       onClick={clearFilters}
                       className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
@@ -430,10 +473,11 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
                     payment={payment}
                     socket={socket}
-                    agencias={(user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && selectedAgencia
+                    agencias={validations.isFullEditMode && (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && selectedAgencia
                       ? [selectedAgencia]
-                      : user?.agencias?.map(ag => ag.agencia) || []}
+                      : validations.isFullEditMode ? (user?.agencias?.map(ag => ag.agencia) || []) : []}
                     userAgencias={user?.agencias || []}
+                    isReadOnlyMode={validations.isReadOnlyMode}
                   />
                 ))}
               </div>

@@ -187,7 +187,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
             razon: userData.RAZON || '',
             cargo: userData.CARGO || '',
             id_ana: userData.ID_ANA || '',
-            id_age: userData.ID_AGE || '',
+            id_age: userData.ID_AGE_ALIAS || '',
             user: userData.USER || ''
           }));
           toast.success('Datos del usuario cargados correctamente');
@@ -232,6 +232,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
       confirmPassword: password
     }));
   };
+
 
   return ReactDOM.createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
@@ -373,6 +374,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
               ))}
             </select>
           </div>
+
 
           <div>
             <div className="flex justify-between items-center mb-1">

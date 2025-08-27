@@ -48,6 +48,7 @@ export interface PaymentDetailsModalProps {
     }[];
     motivo_rechazo?: string;
   }, indice: number) => void;
+  isReadOnlyMode?: boolean;
 }
 
 export interface VoucherDetail {

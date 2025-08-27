@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../types/roles';
+import { useCombinedPermissions } from './useCombinedPermissions';
 
 export function useAuth() {
   const context = useContext(AuthContext);
@@ -11,7 +12,8 @@ export function useAuth() {
 }
 
 export function usePermissions() {
-  const { hasPermission, user } = useAuth();
+  const { user } = useAuth();
+  const combinedPermissions = useCombinedPermissions();
   
   const isBasicUser = () => {
     if (!user || !user.role) return true;
@@ -19,18 +21,27 @@ export function usePermissions() {
   };
   
   return {
-    hasPermission,
+    // Método legacy para compatibilidad - siempre devuelve false para strings legacy
+    hasPermission: (permission: string) => {
+      console.warn(`⚠️ Método legacy hasPermission("${permission}") usado. Migrar a useCombinedPermissions`);
+      return false; // Los strings legacy ya no se soportan
+    },
     isBasicUser,
-    canManageUsers: () => hasPermission('canManageUsers'),
-    canAccessPayments: () => hasPermission('canAccessPayments'),
-    canAccessCredits: () => hasPermission('canAccessCredits'),
-    canAccessGestionMora: () => hasPermission('canAccessGestionMora'),
-    canAccessPendientesDesembolsar: () => hasPermission('canAccessPendientesDesembolsar'),
-    canAccessBotInteractions: () => hasPermission('canAccessBotInteractions'),
-    canAccessConsultaCuotas: () => hasPermission('canAccessConsultaCuotas'),
-    canAccessReports: () => hasPermission('canAccessReports'),
-    canAssignRoles: () => hasPermission('canAssignRoles'),
-    canDeleteAccounts: () => hasPermission('canDeleteAccounts'),
-    canBlockEmails: () => hasPermission('canBlockEmails'),
+    // Métodos legacy que usan el nuevo sistema
+    canManageUsers: () => combinedPermissions.canManageUsers(),
+    canAccessPayments: () => combinedPermissions.canAccessPayments(),
+    canAccessCredits: () => combinedPermissions.canAccessCredits(),
+    canAccessGestionMora: () => combinedPermissions.canAccessGestionMora(),
+    canAccessPendientesDesembolsar: () => combinedPermissions.canAccessPendientesDesembolsar(),
+    canAccessBotInteractions: () => combinedPermissions.canAccessBotInteractions(),
+    canAccessConsultaCuotas: () => combinedPermissions.canAccessConsultaCuotas(),
+    canAccessConsultaSocios: () => combinedPermissions.canAccessConsultaSocios(),
+    canAccessRegistroClientes: () => combinedPermissions.canAccessRegistroClientes(),
+    canAccessCalculadoraCreditos: () => combinedPermissions.canAccessCalculadoraCreditos(),
+    canAccessReports: () => combinedPermissions.canAccessReports(),
+    canAssignRoles: () => combinedPermissions.canAssignRoles(),
+    canDeleteAccounts: () => combinedPermissions.canDeleteAccounts(),
+    canBlockEmails: () => combinedPermissions.canBlockEmails(),
+    canAccessGeodile: () => combinedPermissions.canAccessGeodile(),
   };
 }
