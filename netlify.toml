@@ -9,7 +9,7 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Content-Security-Policy = "default-src 'self'; connect-src 'self' http://localhost:3032 http://localhost:3050 https://*.devtunnels.ms https://*.ngrok-free.app https://*.netlify.app https://*.netlify.com ws://localhost:3032 ws://localhost:3050 wss://*.devtunnels.ms; font-src 'self' https://fonts.gstatic.com https://www.gstatic.com; img-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; manifest-src 'self';"
+    Content-Security-Policy = "default-src 'self'; connect-src 'self' http://localhost:3032 http://localhost:3050 https://*.devtunnels.ms https://*.ngrok-free.app https://*.netlify.app https://*.netlify.com https://api.factiliza.com ws://localhost:3032 ws://localhost:3050 wss://*.devtunnels.ms; font-src 'self' https://fonts.gstatic.com https://www.gstatic.com; img-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://www.gstatic.com; manifest-src 'self';"
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Origin, X-Requested-With, Content-Type,0616 Accept, Authorization"
