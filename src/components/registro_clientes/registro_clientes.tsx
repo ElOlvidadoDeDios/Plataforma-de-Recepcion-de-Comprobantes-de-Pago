@@ -1,141 +1,149 @@
+import { FileText, MapPin, Briefcase, User } from 'lucide-react';
 import { useState, useCallback } from 'react';
-import {Save, X, FileText, MapPin, Briefcase, User } from 'lucide-react';
 import Layout from '../Layout';
+
+import { DatosForm } from './regsitro_datos';
 import RegistroDireccion from './registro_direccion';
-import { DatosForm , PersonData} from './regsitro_datos';
 import RegistroFamiliares from './registro_familiares';
 import RegistroLaboral from './registro_laboral';
-import { verificarSocioReniec } from '../../api/geodileApi';
+import CertificadosAfiliacion from './certificadosAfiliacion';
 
+// Interface para los datos básicos del cliente
+interface DatosBasicos {
+  NVA_CTA: string;
+  APE_PAT: string;
+  APE_MAT: string;
+  NOMBRES: string;
+}
 
+// Interface para los datos de dirección de la API
+interface DatosDireccion {
+  CUENTA: string;
+  TIPO_DIR: string;
+  TIPO_VIA: string;
+  NOM_VIA: string;
+  NUMERO: string;
+  INTERIOR: string;
+  TIPO_ZONA: string;
+  NOM_ZONA: string;
+  REFERENCIA: string;
+  DPTO: string;
+  PROV: string;
+  DIST: string;
+  TIPO_SECTOR: string;
+  DIRECCION: string;
+}
 
 export default function PersonaForm() {
   const [activeTab, setActiveTab] = useState('datos');
-  const [formData, setFormData] = useState<PersonData>({
-    dni: '',
-    apellidoPaterno: '',
-    apellidoMaterno: '',
-    nombres: '',
-    lugarNacimiento: '',
-    fechaNac: '1/08/2025',
-    nacionalidad: 'PERUANA',
-    sexo: '',
-    estadoCivil: 'SOLTERO (A)',
-    vivienda: 'PROPIA',
-    telefonoFijo1: '',
-    telefonoFijo2: '',
-    movil1: '',
-    movil2: '',
-    instruccion: 'ANALFABETO',
-    profesion: 'ABOGADO',
+  
+  // Estado para los datos básicos del cliente
+  const [datosBasicos, setDatosBasicos] = useState<DatosBasicos>({
+    NVA_CTA: '',
+    APE_PAT: '',
+    APE_MAT: '',
+    NOMBRES: ''
+  });
+  
+  // Estado para controlar si se han completado los datos básicos
+  const [datosBasicosCompletos, setDatosBasicosCompletos] = useState<boolean>(false);
+  
+  // Estado para los datos de dirección obtenidos de la API
+  const [datosDireccionApi, setDatosDireccionApi] = useState<DatosDireccion | null>(null);
+
+  // Inicialización de los datos requeridos por los componentes
+  const [formData, setFormData] = useState({
+    // Dirección
+    tipo_direccion: '',
+    tipo_via: '',
+    nombre: '',
+    numero: '',
+    interior: '',
+    mz: '',
+    lote: '',
+    referencia: '',
+    distrito: '',
+    provincia: '',
+    departamento: '',
+    zona: '',
+    nombre_zona: '',
+    // Laboral
     ocupacion: '',
-    activEconomica: 'AMBULANTES Y PUESTOS DE VENTA EN MERCADO',
+    empresa: '',
+    direccion_empresa: '',
+    telefono_empresa: '',
+    ingresos: '',
+    // Familiares
+    ap_paterno: '',
+    ap_materno: '',
+    nombres: '',
+    Fecha_nac: '',
+    parentesco: '',
+    dni: '',
+    telefono: '',
+    correo: '',
+    direccion: '',
+    estado_civil: '',
+    grado_instruccion: '',
+    vinculo_familiar: '',
+    sexo: '',
+    tipo_documento: '',
+    Nro_doc: '',
+    estado: '',
     email: '',
-    tipoSocio: 'SOCIO NORMAL',
-    grupoSolidario: '',
-    delegadoGrupo: false,
-    situacion: 'ACTIVO'
+    beneficiario: false,
   });
 
-  const [loading, setLoading] = useState(false);
-
-  const handleInputChange = useCallback((field: keyof PersonData, value: string | boolean) => {
-    setFormData(prev => {
-      if (prev[field] === value) return prev; // Evitar re-render innecesario
-      return {
-        ...prev,
-        [field]: value
-      };
-    });
-  }, []);
-
-  const searchByDNI = useCallback(async () => {
-    if (!formData.dni) return;
-    setLoading(true);
-    try {
-      const datosReniec = await verificarSocioReniec(formData.dni);
-      
-      if (datosReniec) {
-        setFormData(prev => ({
-          ...prev,
-          apellidoPaterno: datosReniec.apellido_paterno || '',
-          apellidoMaterno: datosReniec.apellido_materno || '',
-          nombres: datosReniec.nombres || '',
-          lugarNacimiento: 'LIMA', // valor por defecto
-          nacionalidad: 'PERUANA'
-        }));
-      }
-    } catch (error) {
-    } finally {
-      setLoading(false);
-    }
-  }, [formData.dni]);
-
-  const handleSubmit = useCallback(async () => {
-    try {
-      alert('Datos guardados correctamente');
-    } catch (error) {
-      alert('Error al guardar los datos');
-    }
-  }, [formData]);
-
-  const handleCancel = useCallback(() => {
+  // Función para actualizar el estado según la firma esperada por los componentes
+  const onInputChange = (field: string, value: string | boolean) => {
     setFormData({
-      dni: '',
-      apellidoPaterno: '',
-      apellidoMaterno: '',
-      nombres: '',
-      lugarNacimiento: '',
-      fechaNac: '1/08/2025',
-      nacionalidad: 'PERUANA',
-      sexo: '',
-      estadoCivil: 'SOLTERO (A)',
-      vivienda: 'PROPIA',
-      telefonoFijo1: '',
-      telefonoFijo2: '',
-      movil1: '',
-      movil2: '',
-      instruccion: 'ANALFABETO',
-      profesion: 'ABOGADO',
-      ocupacion: '',
-      activEconomica: 'AMBULANTES Y PUESTOS DE VENTA EN MERCADO',
-      email: '',
-      tipoSocio: 'SOCIO NORMAL',
-      grupoSolidario: '',
-      delegadoGrupo: false,
-      situacion: 'ACTIVO'
+      ...formData,
+      [field]: value,
     });
+  };
+
+  // Función callback para recibir los datos básicos del componente DatosForm
+  const handleDatosBasicosChange = useCallback((datos: DatosBasicos) => {
+    setDatosBasicos(datos);
+    
+    // Verificar si todos los campos requeridos están completos
+    const completos = datos.NVA_CTA !== '' &&
+                     datos.APE_PAT !== '' &&
+                     datos.APE_MAT !== '' &&
+                     datos.NOMBRES !== '';
+    
+    setDatosBasicosCompletos(completos);
   }, []);
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'datos':
-        return (
-          <DatosForm
-            formData={formData}
-            handleInputChange={handleInputChange}
-            searchByDNI={searchByDNI}
-            loading={loading}
-          />
-        );
-      case 'direccion':
-        return <RegistroDireccion formData={formData as any} onInputChange={handleInputChange as any} />;
-      case 'laboral':
-        return <RegistroLaboral formData={formData as any} onInputChange={handleInputChange as any} />;
-      case 'familia':
-        return <RegistroFamiliares formData={formData as any} onInputChange={handleInputChange as any} />;
-      default:
-        return (
-          <DatosForm
-            formData={formData}
-            handleInputChange={handleInputChange}
-            searchByDNI={searchByDNI}
-            loading={loading}
-          />
-        );
+  // Función callback para recibir los datos de dirección del componente DatosForm
+  const handleDatosDireccionChange = useCallback((datosDireccion: DatosDireccion | null) => {
+    setDatosDireccionApi(datosDireccion);
+  }, []);
+
+  // Función para cambiar de pestaña con validación
+  const handleTabChange = (tab: string) => {
+    if (tab === 'datos') {
+      setActiveTab(tab);
+    } else if (datosBasicosCompletos) {
+      setActiveTab(tab);
+    } else {
+      alert('Debe completar los datos básicos (Número de cuenta, Apellidos y Nombres) antes de continuar.');
     }
   };
 
+  const tabContents = {
+    datos: <DatosForm
+      onSave={() => console.log('Guardado')}
+      onClear={() => console.log('Limpiado')}
+      onDatosBasicosChange={handleDatosBasicosChange}
+      onDatosDireccionChange={handleDatosDireccionChange}
+    />,
+    direccion: <RegistroDireccion datosBasicos={datosBasicos} datosDireccionApi={datosDireccionApi} />,
+    laboral: <RegistroLaboral formData={formData} onInputChange={onInputChange} datosBasicos={datosBasicos} />,
+    familia: <RegistroFamiliares formData={formData} onInputChange={onInputChange} datosBasicos={datosBasicos} />,
+    impresion: <CertificadosAfiliacion />,
+  };
+  
   return (
     <Layout title="Registro de Clientes">
       <div className="flex flex-col" style={{ height: '100%' }}>
@@ -144,7 +152,7 @@ export default function PersonaForm() {
             <div className="border-t border-gray-200">
               <div className="flex flex-wrap">
                 <button
-                  onClick={() => setActiveTab('datos')}
+                  onClick={() => handleTabChange('datos')}
                   className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'datos'
                       ? 'border-blue-500 text-blue-600 bg-blue-50'
@@ -155,45 +163,57 @@ export default function PersonaForm() {
                   Datos
                 </button>
                 <button
-                  onClick={() => setActiveTab('direccion')}
+                  onClick={() => handleTabChange('direccion')}
                   className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'direccion'
                       ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      : !datosBasicosCompletos
+                        ? 'border-transparent text-gray-300 cursor-not-allowed'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
+                  disabled={!datosBasicosCompletos}
                 >
                   <MapPin className="inline w-4 h-4 mr-2" />
                   Dirección
                 </button>
                 <button
-                  onClick={() => setActiveTab('laboral')}
+                  onClick={() => handleTabChange('laboral')}
                   className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'laboral'
                       ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      : !datosBasicosCompletos
+                        ? 'border-transparent text-gray-300 cursor-not-allowed'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
+                  disabled={!datosBasicosCompletos}
                 >
                   <Briefcase className="inline w-4 h-4 mr-2" />
                   Laboral
                 </button>
                 <button
-                  onClick={() => setActiveTab('familia')}
+                  onClick={() => handleTabChange('familia')}
                   className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'familia'
                       ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      : !datosBasicosCompletos
+                        ? 'border-transparent text-gray-300 cursor-not-allowed'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
+                  disabled={!datosBasicosCompletos}
                 >
                   <MapPin className="inline w-4 h-4 mr-2" />
                   Familia/Benef.
                 </button>
                 <button
-                  onClick={() => setActiveTab('impresion')}
+                  onClick={() => handleTabChange('impresion')}
                   className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === 'impresion'
                       ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                      : !datosBasicosCompletos
+                        ? 'border-transparent text-gray-300 cursor-not-allowed'
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
                   }`}
+                  disabled={!datosBasicosCompletos}
                 >
                   <FileText className="inline w-4 h-4 mr-2" />
                   Impresión
@@ -201,30 +221,12 @@ export default function PersonaForm() {
               </div>
             </div>
             <div className="p-6 flex-grow w-full">
-              {renderTabContent()}
+              {activeTab === 'datos' && tabContents.datos}
+              {activeTab === 'direccion' && tabContents.direccion}
+              {activeTab === 'laboral' && tabContents.laboral}
+              {activeTab === 'familia' && tabContents.familia}
+              {activeTab === 'impresion' && tabContents.impresion}
             </div>
-          </div>
-        </div>
-        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 p-6">
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={handleSubmit}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 font-medium transition-colors"
-            >
-              <Save size={16} />
-              Grabar
-            </button>
-            <button
-              onClick={handleCancel}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 font-medium transition-colors"
-            >
-              <X size={16} />
-              Cancelar
-            </button>
-            {/* <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md flex items-center justify-center gap-2 font-medium transition-colors">
-              <FileText size={16} />
-              Salir
-            </button> */}
           </div>
         </div>
       </div>

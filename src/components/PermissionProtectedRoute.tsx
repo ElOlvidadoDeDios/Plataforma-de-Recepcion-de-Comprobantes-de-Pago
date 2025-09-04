@@ -53,6 +53,9 @@ const PermissionProtectedRoute: React.FC<PermissionProtectedRouteProps> = ({
     case 'canAccessReports':
       hasPermission = permissions.canAccessReports();
       break;
+    case 'canAccessAffiliationSocios':
+      hasPermission = permissions.canAccessAffiliationSocios();
+      break;
     default:
       hasPermission = false;
   }

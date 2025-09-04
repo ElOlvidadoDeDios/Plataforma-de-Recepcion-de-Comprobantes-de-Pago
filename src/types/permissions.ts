@@ -48,6 +48,10 @@ export enum Permission {
   // === REPORTES DE  UBICACIÓN  GEODILE ===
   GEODILE_VIEW = 'geodile:view',
   GEODILE_EDIT = 'geodile:edit',
+
+  // === AFILIACIÓN DE SOCIOS ===
+  AFFILIATION_SOCIOS_VIEW = 'affiliation_socios:view',
+  AFFILIATION_SOCIOS_EDIT = 'affiliation_socios:edit',
 }
 
 export enum UserRole {
@@ -110,6 +114,10 @@ export const PermissionCategories = {
     Permission.GEODILE_VIEW,   // Solo ver
     Permission.GEODILE_EDIT,   // Editar (incluye calcular, etc.)
   ],
+  'Afiliación de Socios': [
+    Permission.AFFILIATION_SOCIOS_VIEW,   // Solo ver
+    Permission.AFFILIATION_SOCIOS_EDIT,   // Editar (incluye gestionar, etc.)
+  ],
 
 };
 
@@ -160,6 +168,10 @@ export const PermissionLabels: Record<Permission, string> = {
   // Reportes de Ubicación
   [Permission.GEODILE_VIEW]: '📊 Ver Ubicación',
   [Permission.GEODILE_EDIT]: '⚙️ Gestionar Ubicación',
+
+  // Afiliación de Socios
+  [Permission.AFFILIATION_SOCIOS_VIEW]: '📊 Ver Afiliación de Socios',
+  [Permission.AFFILIATION_SOCIOS_EDIT]: '⚙️ Gestionar Afiliación de Socios',
 };
 
 /**

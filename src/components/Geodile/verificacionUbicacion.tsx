@@ -21,6 +21,10 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         a_image_selfie_negocio_fachada: null
     });
 
+    // Estados para controlar la carga
+    const [isLoading, setIsLoading] = useState(false);
+    const [isVerifyingDNI, setIsVerifyingDNI] = useState(false);
+
     const initialFormData = {
         dni: "",
         socio: "",
@@ -45,7 +49,6 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         setOptions({ selectedOption: event.target.value });
     };
 
-
     const handleImageChangeIn = (id: string, file: File) => {
         setImage(prevFiles => ({ ...prevFiles, [id]: file }));
     };
@@ -57,12 +60,14 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     const VerificarSocioReniec = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (isVerifyingDNI) return; // Evitar múltiples consultas
+
+        setIsVerifyingDNI(true);
         try {
             const socioData = await verificarSocioReniec(formData.dni);
             if (socioData) {
                 const socio = `${socioData.nombres} ${socioData.apellido_paterno} ${socioData.apellido_materno}`;
 
-                
                 setFormData(prevFormData => ({ ...prevFormData, socio }));
                 ComprobarSocioEnBD();
             } else {
@@ -71,6 +76,8 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         } catch (error) {
             alert('Ingrese un DNI correcto');
             setFormData(prevFormData => ({ ...prevFormData, socio: '' }));
+        } finally {
+            setIsVerifyingDNI(false);
         }
     };
 
@@ -85,11 +92,14 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (isLoading) return; // Evitar múltiples envíos
+
         if (!userData?.dni) {
             alert('Usuario no encontrado');
             return;
         }
 
+        setIsLoading(true);
         try {
             if (datos === false) {
                 // Función helper para obtener nombre de agencia por ID
@@ -175,13 +185,14 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                 } else {
                     const errorMsg = result?.message || result?.rawResponse || 'Error desconocido al procesar la verificación';
                     alert(`❌ ERROR EN LA VERIFICACIÓN:\n${errorMsg}`);
-
                 }
             } else {
                 alert('datos encontrados en BD');
             }
         } catch (error) {
             alert('Error al enviar la verificación');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -193,7 +204,11 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
             <h2 className="text-lg font-semibold uppercase">Verificar Ubicación</h2>
-            <button onClick={onClose} className="text-white hover:text-gray-200">
+            <button 
+                onClick={onClose} 
+                className="text-white hover:text-gray-200"
+                disabled={isLoading}
+            >
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
                 <path
                 fillRule="evenodd"
@@ -219,6 +234,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                         checked={options.selectedOption === 'DOMICILIO'}
                         onChange={handleOptionChange}
                         className="my-1"
+                        disabled={isLoading}
                     />
                     DOMICILIO
                     </label>
@@ -231,6 +247,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                         checked={options.selectedOption === 'NEGOCIO'}
                         onChange={handleOptionChange}
                         className="my-1"
+                        disabled={isLoading}
                     />
                     NEGOCIO
                     </label>
@@ -251,6 +268,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                     onChange={handleChange}
                     className="flex-1 bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-l-lg focus:ring-2 focus:ring-blue-500 p-2.5"
                     placeholder="DNI"
+                    disabled={isLoading || isVerifyingDNI}
                 />
                 <button
                     type="button"
@@ -258,9 +276,18 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                     const fakeEvent = new Event('submit') as unknown as React.FormEvent<HTMLFormElement>;
                     VerificarSocioReniec(fakeEvent);
                     }}
-                    className="bg-blue-600 text-white px-4 py-2.5 rounded-r-lg hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-4 py-2.5 rounded-r-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center"
+                    disabled={isLoading || isVerifyingDNI}
                 >
-                <svg
+                {isVerifyingDNI ? (
+                    <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    </div>
+                ) : (
+                    <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5"
                     fill="none"
@@ -270,6 +297,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                     >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
+                )}
                 </button>
                 </div>
             </div>
@@ -287,6 +315,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                 className="bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 w-full p-2.5"
                 placeholder="NOMBRE Y APELLIDOS"
                 required
+                disabled={isLoading}
                 />
             </div>
 
@@ -372,14 +401,26 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
             <div className="flex justify-end gap-3 pt-4 border-t-2 border-blue-200">
                 <button
                     type="submit"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg border-2 border-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg border-2 border-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center min-w-[100px]"
+                    disabled={isLoading}
                 >
-                    GUARDAR
+                    {isLoading ? (
+                        <div className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            GUARDANDO...
+                        </div>
+                    ) : (
+                        'GUARDAR'
+                    )}
                 </button>
                 <button
                 type="button"
                 onClick={onClose}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg border-2 border-red-500 hover:bg-red-600"
+                className="bg-red-500 text-white px-4 py-2 rounded-lg border-2 border-red-500 hover:bg-red-600 disabled:bg-red-400 disabled:cursor-not-allowed"
+                disabled={isLoading}
                 >
                 CERRAR
                 </button>

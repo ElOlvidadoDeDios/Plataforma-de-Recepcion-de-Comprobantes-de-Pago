@@ -120,6 +120,11 @@ export function useCombinedPermissions() {
     canDeleteAccounts: () => hasPermission(Permission.USERS_EDIT),
     canBlockEmails: () => hasPermission(Permission.USERS_EDIT),
 
+    // === AFILIACIÓN DE SOCIOS ===
+    canAccessAffiliationSocios: () => hasPermission(Permission.AFFILIATION_SOCIOS_VIEW),
+    canEditAffiliationSocios: () => hasPermission(Permission.AFFILIATION_SOCIOS_EDIT),
+    canViewAffiliationSocios: () => hasPermission(Permission.AFFILIATION_SOCIOS_VIEW),
+
     // Método para verificar si es usuario básico
     isBasicUser: () => {
       if (!user || !user.role) return true;

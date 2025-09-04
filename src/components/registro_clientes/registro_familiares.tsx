@@ -1,3 +1,11 @@
+// Interface para los datos básicos del cliente
+interface DatosBasicos {
+  NVA_CTA: string;
+  APE_PAT: string;
+  APE_MAT: string;
+  NOMBRES: string;
+}
+
 interface FamiliarData{
     ap_paterno: string;
     ap_materno: string;
@@ -10,17 +18,40 @@ interface FamiliarData{
     telefono: string;
     email: string;
     direccion: string;
-    beneficiario: boolean; 
+    beneficiario: boolean;
  }
 
-export interface RegistroLaboralProps {
+export interface RegistroFamiliaresProps {
     formData: FamiliarData;
     onInputChange: (field: keyof FamiliarData, value: string) => void;
+    datosBasicos: DatosBasicos;
 }
 
-export default function RegistroFamiliares({ formData, onInputChange }: RegistroLaboralProps) {
+export default function RegistroFamiliares({ formData, onInputChange, datosBasicos }: RegistroFamiliaresProps) {
     return (
         <div className=" mx-auto p-6 bg-white shadow-lg rounded-lg bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50">
+            {/* Sección Superior con Cuenta y Socio */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 italic mb-6 pb-4 border-b border-gray-200">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cuenta</label>
+                    <input
+                        type="text"
+                        value={datosBasicos.NVA_CTA || '<AUTOMATICO>'}
+                        className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                        readOnly
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Socio</label>
+                    <input
+                        type="text"
+                        value={`${datosBasicos.APE_PAT} ${datosBasicos.APE_MAT} ${datosBasicos.NOMBRES}`.trim()}
+                        className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                        readOnly
+                    />
+                </div>
+            </div>
+            
             <form className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>

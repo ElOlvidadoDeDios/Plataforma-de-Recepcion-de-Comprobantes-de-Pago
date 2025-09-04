@@ -102,6 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       permissions: userData.permissions || permissions,
       id_age: userData.id_age || tokenData.id_age, // Priorizar userData, fallback a token
       id_ana: userData.id_ana || tokenData.id_ana, // Priorizar userData, fallback a token
+      user: userData.user || tokenData.cod_user || '', // Priorizar userData, fallback a token
     };
     
     setUser(newUser);

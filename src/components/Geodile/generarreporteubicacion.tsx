@@ -459,8 +459,8 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                         <input
                                                             type="radio"
                                                             name={`condicion_negocio_${index}`}
-                                                            value="Sí"
-                                                            checked={datosCompletos[index]?.condicion_negocio === 'Sí'}
+                                                            value="SI"
+                                                            checked={datosCompletos[index]?.condicion_negocio === 'SI'}
                                                             onChange={(e) => handleCondicionNegocioChange(index, e.target.value)}
                                                             className="mr-2"
                                                         />
@@ -470,8 +470,8 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                         <input
                                                             type="radio"
                                                             name={`condicion_negocio_${index}`}
-                                                            value="No, en otro lugar"
-                                                            checked={datosCompletos[index]?.condicion_negocio === 'No, en otro lugar'}
+                                                            value="NEGOCIO EN OTRO LUGAR"
+                                                            checked={datosCompletos[index]?.condicion_negocio === 'NEGOCIO EN OTRO LUGAR'}
                                                             onChange={(e) => handleCondicionNegocioChange(index, e.target.value)}
                                                             className="mr-2"
                                                         />
@@ -481,8 +481,8 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                         <input
                                                             type="radio"
                                                             name={`condicion_negocio_${index}`}
-                                                            value="No tiene negocio"
-                                                            checked={datosCompletos[index]?.condicion_negocio === 'No tiene negocio'}
+                                                            value="NO TIENE NEGOCIO"
+                                                            checked={datosCompletos[index]?.condicion_negocio === 'NO TIENE NEGOCIO'}//NEGOCIO EN OTRO LUGAR
                                                             onChange={(e) => handleCondicionNegocioChange(index, e.target.value)}
                                                             className="mr-2"
                                                         />

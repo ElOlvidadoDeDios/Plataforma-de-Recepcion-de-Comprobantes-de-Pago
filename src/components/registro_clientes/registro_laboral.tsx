@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { departamentoOptions, locationData } from './departamentos';
 
+// Interface para los datos básicos del cliente
+interface DatosBasicos {
+  NVA_CTA: string;
+  APE_PAT: string;
+  APE_MAT: string;
+  NOMBRES: string;
+}
+
 interface RegistroLaboralProps {
   formData: any;
   onInputChange: (field: string, value: string | boolean) => void;
+  datosBasicos: DatosBasicos;
 }
 
-export default function RegistroLaboral({ formData, onInputChange }: RegistroLaboralProps) {
+export default function RegistroLaboral({ formData, onInputChange, datosBasicos }: RegistroLaboralProps) {
   const [provinciasDisponibles, setProvinciasDisponibles] = useState<string[]>([]);
   const [distritosDisponibles, setDistritosDisponibles] = useState<string[]>([]);
   // Valores por defecto para los campos laborales
@@ -66,14 +75,10 @@ export default function RegistroLaboral({ formData, onInputChange }: RegistroLab
               <input
                 type="text"
                 name="cuenta"
-                value={getFieldValue('cuenta', 'AUTOMATICO')}
-                onChange={handleInputChange}
+                value={datosBasicos.NVA_CTA || '<AUTOMATICO>'}
                 className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
                 readOnly
               />
-            </div>
-            <div className="text-center">
-              <span className="text-gray-600 font-medium">&lt;AUTOMATICO&gt;</span>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -82,9 +87,9 @@ export default function RegistroLaboral({ formData, onInputChange }: RegistroLab
               <input
                 type="text"
                 name="socio"
-                value={getFieldValue('socio')}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                value={`${datosBasicos.APE_PAT} ${datosBasicos.APE_MAT} ${datosBasicos.NOMBRES}`.trim()}
+                className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100"
+                readOnly
               />
             </div>
           </div>
