@@ -19,22 +19,111 @@ import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
 import Circle from 'ol/geom/Circle';
 import { Style, Icon, Fill, Stroke } from 'ol/style';
-import { fromLonLat, toLonLat } from 'ol/proj';
+import { fromLonLat} from 'ol/proj';
 import Overlay from 'ol/Overlay';
-import { Geolocation } from 'ol';
+// REMOVIDO: import { Geolocation } from 'ol'; // CAUSA INTERFERENCIA
 import 'ol/ol.css';
 
 // Coordenadas de todas las agencias
 const COORDENADAS_AGENCIAS: Record<string, [number, number]> = {
     "OFICINA PRINCIPAL": [-71.969723, -13.522657],
-    "AGENCIA SAN JERÓNIMO": [-71.8897073, -13.5452269],//-13.5452269!4d-71.8897073
-    "AGENCIA QUILLABAMBA": [-72.6920038, -12.8644368],//-12.8644368!4d-72.6920038
-    "AGENCIA SICUANI": [-71.2266959, -14.2715888],//-14.2715888!4d-71.2266959
-    "AGENCIA SANTIAGO": [-71.9618889, -13.5359722],//-13.5359722!4d-71.9618889
-    "AGENCIA LIMA": [-77.042793, -12.046374], // Lima - Coordenadas falsas
-    "AGENCIA JULIACA": [-70.1355, -15.4964], // Juliaca - Coordenadas falsas
-    "AGENCIA TICA TICA": [-71.996139, -13.506889],//-13.506889, -71.996139
+    "AGENCIA SAN JERÓNIMO": [-71.8897073, -13.5452269],
+    "AGENCIA QUILLABAMBA": [-72.6920038, -12.8644368],
+    "AGENCIA SICUANI": [-71.2266959, -14.2715888],
+    "AGENCIA SANTIAGO": [-71.9618889, -13.5359722],
+    "AGENCIA LIMA": [-77.042793, -12.046374],
+    "AGENCIA JULIACA": [-70.1355, -15.4964],
+    "AGENCIA TICA TICA": [-71.996139, -13.506889],
 } as const;
+
+// CORRECCIÓN 1: Función mejorada para manejar permisos
+const checkGeolocationPermission = async (): Promise<boolean> => {
+    if (!navigator.geolocation) {
+        return false;
+    }
+
+    try {
+        if (navigator.permissions) {
+            const permission = await navigator.permissions.query({name: 'geolocation'});
+            if (permission.state === 'denied') {
+                alert('Los permisos de ubicación están denegados. Por favor, habilítalos en la configuración de tu navegador.');
+                return false;
+            }
+        }
+        return true;
+    } catch (error) {
+        return true;
+    }
+};
+
+// CORRECCIÓN 2: Función mejorada para watchPosition con mejor manejo
+const startWatchingLocation = (
+    onSuccess: (position: GeolocationPosition) => void,
+    onError: (error: string) => void
+): Promise<number> => {
+    return new Promise((resolve, reject) => {
+        // Verificar que tenemos geolocalización disponible
+        if (!navigator.geolocation) {
+            reject(new Error('Geolocalización no soportada'));
+            return;
+        }
+
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+        const options: PositionOptions = {
+            enableHighAccuracy: true,
+            timeout: isMobile ? 30000 : 20000,
+            maximumAge: 5000
+        };
+
+        let lastSuccessTime = Date.now();
+        
+        // Usar watchPosition solo después de verificaciones
+        const watchId = navigator.geolocation.watchPosition(
+            (position) => {
+                lastSuccessTime = Date.now();
+                onSuccess(position);
+                resolve(watchId); // Resolver con el ID en el primer éxito
+            },
+            (error) => {
+                if (Date.now() - lastSuccessTime > 30000) {
+                    let message = 'Error desconocido';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            message = 'Permisos denegados';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            message = 'GPS no disponible';
+                            break;
+                        case error.TIMEOUT:
+                            message = 'Tiempo agotado - intenta nuevamente';
+                            break;
+                    }
+                    onError(message);
+                    reject(new Error(message));
+                }
+            },
+            options
+        );
+    });
+};
+
+// Función para verificar si la ubicación ha expirado (máximo 5 minutos)
+const isLocationExpired = (timestamp: number | null): boolean => {
+    if (!timestamp) return true;
+    const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutos en milisegundos
+    return (Date.now() - timestamp) > FIVE_MINUTES;
+};
+
+// Función para obtener el tiempo restante de la ubicación
+const getLocationTimeRemaining = (timestamp: number | null): string => {
+    if (!timestamp) return '0:00';
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    const elapsed = Date.now() - timestamp;
+    const remaining = Math.max(0, FIVE_MINUTES - elapsed);
+    const minutes = Math.floor(remaining / 60000);
+    const seconds = Math.floor((remaining % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
 
 export default function Inicio() {
     const { user } = useContext(AuthContext);
@@ -42,6 +131,7 @@ export default function Inicio() {
     
     const [layoutHidden, setLayoutHidden] = useState(false);
     const [position, setPosition] = useState<{lat: number, lng: number} | null>(null);
+    const [positionTimestamp, setPositionTimestamp] = useState<number | null>(null); // Timestamp de cuando se obtuvo la ubicación
     const [locate, setLocate] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isModalReportOpen, setIsModalReportOpen] = useState(false);
@@ -52,9 +142,30 @@ export default function Inicio() {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<Map | null>(null);
     const vectorSourceRef = useRef<VectorSource>(new VectorSource());
-    const geolocationRef = useRef<Geolocation | null>(null);
+    // REMOVIDO: const geolocationRef = useRef<Geolocation | null>(null); // CAUSA INTERFERENCIA
     const activePopupRef = useRef<Overlay | null>(null);
     const watchIdRef = useRef<number | null>(null);
+
+    // Estado para forzar re-render del contador cada segundo
+    const [, forceUpdate] = useState(0);
+
+    // Effect para actualizar el contador cada segundo
+    useEffect(() => {
+        if (positionTimestamp && !locate) {
+            const interval = setInterval(() => {
+                forceUpdate(prev => prev + 1); // Forzar re-render para actualizar el contador
+                
+                // Si la ubicación ha expirado, limpiarla automáticamente
+                if (isLocationExpired(positionTimestamp)) {
+                    setPosition(null);
+                    setPositionTimestamp(null);
+                    clearInterval(interval);
+                }
+            }, 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [positionTimestamp, locate]);
 
     // Suprimir warnings de Canvas2D
     const suppressCanvas2DWarnings = () => {
@@ -84,7 +195,6 @@ export default function Inicio() {
         const popupElement = document.createElement('div');
         popupElement.innerHTML = content;
         
-        // Aplicar estilos directamente al elemento
         popupElement.style.cssText = `
             position: absolute;
             background: white;
@@ -114,7 +224,6 @@ export default function Inicio() {
         popup.setPosition(coords);
         activePopupRef.current = popup;
 
-        // Auto-cerrar popup después de 3 segundos
         setTimeout(() => {
             if (activePopupRef.current === popup && mapInstanceRef.current) {
                 mapInstanceRef.current.removeOverlay(popup);
@@ -142,7 +251,6 @@ export default function Inicio() {
 
         const originalWarn = suppressCanvas2DWarnings();
 
-        // Crear el mapa
         mapInstanceRef.current = new Map({
             target: mapRef.current,
             layers: [
@@ -155,12 +263,11 @@ export default function Inicio() {
             ],
             view: new View({
                 center: fromLonLat(COORDENADAS_AGENCIAS["OFICINA PRINCIPAL"]),
-                zoom: 10, // Zoom más amplio para ver más agencias
+                zoom: 10,
             }),
             pixelRatio: 1,
         });
 
-        // Optimizar canvas después de creación
         setTimeout(() => {
             const canvases = mapRef.current?.querySelectorAll('canvas');
             canvases?.forEach((canvas: HTMLCanvasElement) => {
@@ -173,20 +280,17 @@ export default function Inicio() {
             });
         }, 500);
 
-        // Sistema de clics optimizado
         mapInstanceRef.current.on('click', (event) => {
             const clickCoord = event.coordinate;
             const view = mapInstanceRef.current!.getView();
             const resolution = view.getResolution() ?? 1;
-            const tolerance = resolution * 15; // Aumentar tolerancia
+            const tolerance = resolution * 15;
             
-            // Cerrar popup anterior
             if (activePopupRef.current) {
                 mapInstanceRef.current!.removeOverlay(activePopupRef.current);
                 activePopupRef.current = null;
             }
             
-            // Buscar feature cercano
             const features = vectorSourceRef.current.getFeatures();
             let clickedFeature = null;
             let minDistance = Infinity;
@@ -212,38 +316,8 @@ export default function Inicio() {
             }
         });
 
-        // Configurar geolocalización
-        const geolocation = new Geolocation({
-            trackingOptions: {
-                enableHighAccuracy: true,
-            },
-            projection: mapInstanceRef.current.getView().getProjection(),
-        });
+        // REMOVIDO: Configuración de geolocation de OpenLayers que causaba interferencia
 
-        geolocationRef.current = geolocation;
-
-        geolocation.on('change:position', () => {
-            const coordinates = geolocation.getPosition();
-            if (coordinates) {
-                const lonLat = toLonLat(coordinates);
-                setPosition({ lng: lonLat[0], lat: lonLat[1] });
-                updateUserLocationMarker(coordinates, geolocation.getAccuracy());
-                mapInstanceRef.current!.getView().setCenter(coordinates);
-            }
-        });
-
-        geolocation.on('error', (error: any) => {
-            const messages = {
-                1: 'Permisos de ubicación denegados.',
-                2: 'Ubicación no disponible.',
-                3: 'Tiempo de espera agotado.'
-            };
-            const message = messages[error.code as keyof typeof messages] || 'Error desconocido';
-            alert(`Error de ubicación: ${message}`);
-            setLocate(false);
-        });
-
-        // Agregar marcadores de todas las agencias
         addAllAgenciesMarkers();
 
         return () => {
@@ -252,11 +326,6 @@ export default function Inicio() {
             if (watchIdRef.current) {
                 navigator.geolocation.clearWatch(watchIdRef.current);
                 watchIdRef.current = null;
-            }
-            
-            if (geolocationRef.current) {
-                geolocationRef.current.setTracking(false);
-                geolocationRef.current = null;
             }
             
             if (activePopupRef.current && mapInstanceRef.current) {
@@ -273,12 +342,10 @@ export default function Inicio() {
 
     // Función para actualizar marcador de usuario
     const updateUserLocationMarker = (coordinates: number[], accuracy?: number) => {
-        // Remover marcadores anteriores del usuario
         const features = vectorSourceRef.current.getFeatures();
         const userFeatures = features.filter(f => f.get('type') === 'user' || f.get('type') === 'accuracy');
         userFeatures.forEach(f => vectorSourceRef.current.removeFeature(f));
 
-        // Crear círculo de precisión si está disponible
         if (accuracy && accuracy > 0) {
             const circleGeometry = new Circle(coordinates, accuracy);
             const accuracyFeature = new Feature({
@@ -297,7 +364,6 @@ export default function Inicio() {
             vectorSourceRef.current.addFeature(accuracyFeature);
         }
 
-        // Crear marcador de usuario
         const userFeature = new Feature({
             geometry: new Point(coordinates),
             type: 'user',
@@ -356,13 +422,12 @@ export default function Inicio() {
                 isUserAgency: nombreAgencia === nombreAgenciaUsuario
             });
 
-            // Estilo diferente para la agencia del usuario vs otras agencias
             const isUserAgency = nombreAgencia === nombreAgenciaUsuario;
-            const scale = isUserAgency ? 1.3 : 0.8; // La agencia del usuario es más grande
+            const scale = isUserAgency ? 1.3 : 0.8;
 
             agencyFeature.setStyle(new Style({
                 image: new Icon({
-                    src: createMarkerSvg('agencia'), // Usar el mismo tipo para todas
+                    src: createMarkerSvg('agencia'),
                     scale: scale,
                     anchor: [0.5, 1],
                 }),
@@ -370,7 +435,7 @@ export default function Inicio() {
 
             agencyFeature.set('clickHandler', () => {
                 const esAgenciaUsuario = isUserAgency;
-                const colorStyle = esAgenciaUsuario ? '#10b981' : '#3b82f6'; // Verde para usuario, azul para otras
+                const colorStyle = esAgenciaUsuario ? '#10b981' : '#3b82f6';
                 const textoAdicional = esAgenciaUsuario ? '<br><span style="color: #059669; font-size: 12px;">📍 Tu agencia</span>' : '';
                 
                 const popupContent = `
@@ -392,12 +457,10 @@ export default function Inicio() {
             if (userData) {
                 const coordenadas = await cargarCoordenadas(userData);
                 
-                // Limpiar marcadores de coordenadas anteriores
                 const features = vectorSourceRef.current.getFeatures();
                 const coordinateFeatures = features.filter(f => f.get('type') === 'coordinate');
                 coordinateFeatures.forEach(f => vectorSourceRef.current.removeFeature(f));
 
-                // Agregar nuevos marcadores
                 coordenadas.forEach((coordenada: Coordenada) => {
                     const coords = fromLonLat([coordenada.lng, coordenada.lat]);
                     
@@ -435,6 +498,7 @@ export default function Inicio() {
                 });
             }
         } catch (error: any) {
+            // Error silencioso
         }
     };
 
@@ -443,50 +507,53 @@ export default function Inicio() {
         cargarCoordenadasMapa();
     }, [userData?.dni]);
 
-    // Manejar localización con watchPosition optimizado
+    // CORRECCIÓN 4: Manejar localización con watchPosition optimizado
     useEffect(() => {
         if (locate) {
-            
-            watchIdRef.current = navigator.geolocation.watchPosition(
+            // Limpiar watch anterior si existe
+            if (watchIdRef.current) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+                watchIdRef.current = null;
+            }
+
+            // Iniciar watch con Promise
+            startWatchingLocation(
                 (position) => {
                     const { latitude, longitude, accuracy } = position.coords;
-                    
-                    const isDesktopBrowser = !/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-                    const maxAccuracy = isDesktopBrowser ? 500000 : 100;
-                    
-                    if (accuracy > maxAccuracy && !isDesktopBrowser) {
-                    }
-                    
                     const coordinates = fromLonLat([longitude, latitude]);
+                    const currentTimestamp = Date.now(); // Guardar el timestamp actual
+                    
                     setPosition({ lng: longitude, lat: latitude });
+                    setPositionTimestamp(currentTimestamp); // Guardar cuando se obtuvo la ubicación
+                    
+                    // Guardar el timestamp en sessionStorage para que el modal pueda accederlo
+                    sessionStorage.setItem('gps_timestamp', currentTimestamp.toString());
+                    
                     updateUserLocationMarker(coordinates, accuracy);
                     mapInstanceRef.current!.getView().setCenter(coordinates);
                 },
-                (error) => {
-                    const messages = {
-                        1: 'Permisos denegados.',
-                        2: 'Ubicación no disponible.',
-                        3: 'Tiempo agotado.'
-                    };
-                    const message = messages[error.code as keyof typeof messages] || error.message;
-                    alert(`Error de ubicación: ${message}`);
+                (errorMessage) => {
+                    // Mostrar solo mensaje al usuario, sin console.error
+                    alert(`Error de ubicación: ${errorMessage}`);
                     setLocate(false);
-                },
-                { 
-                    enableHighAccuracy: true, 
-                    timeout: 15000, 
-                    maximumAge: 5000 
+                    setPositionTimestamp(null); // Limpiar timestamp en caso de error
                 }
-            );
+            ).then((watchId) => {
+                watchIdRef.current = watchId;
+            }).catch(() => {
+                // Mostrar solo mensaje amigable, sin console.error
+                alert('Error al iniciar seguimiento de ubicación. Intenta nuevamente.');
+                setLocate(false);
+            });
 
-            // Auto-detener después de 60 segundos
+            // Auto-detener después de 2 minutos
             const timeout = setTimeout(() => {
                 if (watchIdRef.current) {
                     navigator.geolocation.clearWatch(watchIdRef.current);
                     watchIdRef.current = null;
                 }
                 setLocate(false);
-            }, 60000);
+            }, 120000);
 
             return () => {
                 if (watchIdRef.current) {
@@ -511,48 +578,71 @@ export default function Inicio() {
     };
     const handleCloseReportModal = () => setIsModalReportOpen(false);
 
+    // CORRECCIÓN 5: Handler mejorado para verificar vivienda con validación de ubicación y expiración
     const handleVerificarVivienda = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         
-        if (/Mobi|Android/i.test(navigator.userAgent)) {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    () => {
-                        setLocate(true);
-                        setIsModalOpen(true);
-                    },
-                    () => {
-                        alert('Error al acceder a la ubicación. Verifica permisos y GPS.');
-                    },
-                    { timeout: 10000 }
-                );
-            } else {
-                alert('Tu navegador no soporta geolocalización.');
-            }
-        } else {
-            alert("Esta función está disponible solo en dispositivos móviles.");
-        }
-    };
-
-    const handleLocateUser = () => {
-        
-        if (!navigator.geolocation) {
-            alert('Tu navegador no soporta geolocalización');
+        // VALIDACIÓN 1: Verificar que se tenga ubicación primero
+        if (!position || !position.lat || !position.lng) {
+            alert("⚠️ UBICACIÓN REQUERIDA\n\nPrimero debes activar el botón de ubicación (🎯) y esperar a que se obtenga tu posición GPS antes de poder verificar un socio.\n\n📍 Haz clic en el botón de ubicación y espera hasta que aparezca tu marcador en el mapa.");
             return;
         }
 
-        if (navigator.permissions) {
-            navigator.permissions.query({name: 'geolocation'}).then((result) => {
-                if (result.state === 'denied') {
-                    alert('Permisos de ubicación denegados. Habilítalos en tu navegador.');
-                    return;
-                }
-                setLocate(!locate); // Toggle
-            }).catch(() => {
-                setLocate(!locate);
-            });
-        } else {
-            setLocate(!locate);
+        // VALIDACIÓN 2: Verificar que la ubicación no haya expirado (máximo 5 minutos)
+        if (isLocationExpired(positionTimestamp)) {
+            alert("⏰ UBICACIÓN EXPIRADA\n\nTu ubicación GPS ha expirado (máximo 5 minutos). Para mantener la precisión de las verificaciones, debes obtener una nueva ubicación.\n\n🔄 Haz clic nuevamente en el botón de ubicación (🎯) para actualizar tu posición.");
+            
+            // Limpiar la ubicación expirada
+            setPosition(null);
+            setPositionTimestamp(null);
+            
+            // Limpiar también del sessionStorage
+            sessionStorage.removeItem('gps_timestamp');
+            return;
+        }
+
+        // VALIDACIÓN 3: Verificar que la ubicación sea reciente y válida
+        if (position.lat === 0 && position.lng === 0) {
+            alert("❌ UBICACIÓN INVÁLIDA\n\nTu ubicación actual no es válida. Activa el GPS y vuelve a obtener tu ubicación.");
+            return;
+        }
+        
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+        
+        if (!isMobile) {
+            alert("Esta función está disponible solo en dispositivos móviles.");
+            return;
+        }
+
+        // Si ya tenemos ubicación válida y reciente, abrir directamente el modal
+        setIsModalOpen(true);
+    };
+
+    // CORRECCIÓN 6: Handler mejorado para localizar usuario
+    const handleLocateUser = async () => {
+        // Si ya está localizando, detener
+        if (locate) {
+            if (watchIdRef.current) {
+                navigator.geolocation.clearWatch(watchIdRef.current);
+                watchIdRef.current = null;
+            }
+            setLocate(false);
+            return;
+        }
+
+        try {
+            // Verificar permisos
+            const hasPermission = await checkGeolocationPermission();
+            if (!hasPermission) {
+                return;
+            }
+
+            setLocate(true);
+
+        } catch (error: any) {
+            // Solo mostrar mensaje amigable al usuario
+            alert('Error al iniciar localización. Verifica permisos de ubicación.');
+            setLocate(false);
         }
     };
 
@@ -622,14 +712,9 @@ export default function Inicio() {
                     <svg 
                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"  fill="none" stroke="currentColor"  strokeWidth="2"  strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"
                     >
-                        {/* Documento */}
                         <rect x="4" y="3" width="16" height="18" rx="2" ry="2" className="stroke-current"/>
-                        
-                        {/* Línea del documento */}
                         <line x1="8" y1="7" x2="16" y2="7" />
                         <line x1="8" y1="11" x2="16" y2="11" />
-                        
-                        {/* Check de verificación */}
                         <path d="M9 15l2 2l4-4" stroke="limegreen" strokeWidth="2.5"/>
                     </svg>
                 </Button>
@@ -675,6 +760,18 @@ export default function Inicio() {
                 </div>
             )}
             
+            {/* Indicador de tiempo restante de ubicación */}
+            {position && positionTimestamp && !locate && (
+                <div className="z-50 fixed bottom-20 right-4 bg-green-50 px-3 py-2 rounded-lg shadow-lg border border-green-200 text-sm animate-fadeIn">
+                    <div className="flex items-center space-x-2">
+                        <div className={`w-2 h-2 rounded-full ${isLocationExpired(positionTimestamp) ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                        <span className={isLocationExpired(positionTimestamp) ? 'text-red-600' : 'text-green-600'}>
+                            {isLocationExpired(positionTimestamp) ? '⏰ Ubicación expirada' : `📍 Ubicación válida: ${getLocationTimeRemaining(positionTimestamp)}`}
+                        </span>
+                    </div>
+                </div>
+            )}
+            
             {/* Modales */}
             <ModalVerificarUbicacion
                 isOpen={isModalOpen}
@@ -692,4 +789,3 @@ export default function Inicio() {
         </div>
     );
 }
-

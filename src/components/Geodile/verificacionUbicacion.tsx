@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import InputImageCamera from "./InputImageCamera";
 import { AuthContext } from "../../contexts/AuthContext";
 import { AGENCIAS } from "../../types";
@@ -11,6 +11,47 @@ import {
 } from "../../api/geodileApi";
 
 export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { isOpen: boolean; onClose: () => void; coord: { lat: number; lng: number } }) {
+    // Función para verificar si la ubicación ha expirado (máximo 5 minutos)
+    const isLocationExpired = (timestamp: number | null): boolean => {
+        if (!timestamp) return true;
+        const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutos en milisegundos
+        return (Date.now() - timestamp) > FIVE_MINUTES;
+    };
+
+    // Función para obtener el tiempo restante de la ubicación
+    const getLocationTimeRemaining = (timestamp: number | null): string => {
+        if (!timestamp) return '0:00';
+        const FIVE_MINUTES = 5 * 60 * 1000;
+        const elapsed = Date.now() - timestamp;
+        const remaining = Math.max(0, FIVE_MINUTES - elapsed);
+        const minutes = Math.floor(remaining / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    // Estado para obtener el timestamp de la ubicación desde el localStorage o sessionStorage
+    const [positionTimestamp, setPositionTimestamp] = useState<number | null>(null);
+    const [, forceUpdate] = useState(0);
+
+    // Effect para obtener el timestamp y actualizar el contador
+    useEffect(() => {
+        // Obtener el timestamp guardado (asumiendo que se guarda cuando se obtiene la ubicación)
+        const timestamp = sessionStorage.getItem('gps_timestamp');
+        if (timestamp) {
+            setPositionTimestamp(parseInt(timestamp));
+        }
+    }, [isOpen]);
+
+    // Effect para actualizar el contador cada segundo
+    useEffect(() => {
+        if (positionTimestamp && isOpen) {
+            const interval = setInterval(() => {
+                forceUpdate(prev => prev + 1); // Forzar re-render para actualizar el contador
+            }, 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [positionTimestamp, isOpen]);
     const { user } = useContext(AuthContext);
     const userData = user; // Usar el usuario del contexto
     const [datos, setDatos] = useState<boolean | null>(null);
@@ -317,6 +358,47 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                 required
                 disabled={isLoading}
                 />
+            </div>
+
+            {/* COORDENADAS GPS - SIEMPRE VISIBLES */}
+            <div className="mb-4">
+                <label htmlFor="coordenadas_gps" className="block mb-1 text-[12px] font-medium text-blue-900">
+                    📍 TUS COORDENADAS GPS
+                </label>
+                <input
+                    disabled
+                    type="text"
+                    id="coordenadas_gps"
+                    name="coordenadas_gps"
+                    value={coord && coord.lat && coord.lng ? `${coord.lat.toFixed(6)} ; ${coord.lng.toFixed(6)}` : 'Obteniendo ubicación...'}
+                    className="bg-green-50 border border-green-300 text-green-800 text-[12px] font-mono rounded-lg w-full p-2.5"
+                    placeholder="COORDENADAS"
+                />
+                
+                {/* CONTADOR DE TIEMPO RESTANTE */}
+                {positionTimestamp && (
+                    <div className={`mt-2 px-3 py-2 rounded-lg text-[11px] font-medium ${
+                        isLocationExpired(positionTimestamp)
+                            ? 'bg-red-50 border border-red-300 text-red-700'
+                            : 'bg-blue-50 border border-blue-300 text-blue-700'
+                    }`}>
+                        <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${
+                                isLocationExpired(positionTimestamp) ? 'bg-red-500' : 'bg-blue-500'
+                            }`}></div>
+                            <span>
+                                {isLocationExpired(positionTimestamp)
+                                    ? '⏰ UBICACIÓN EXPIRADA - Obtén nueva ubicación'
+                                    : `⏱️ Ubicación válida por: ${getLocationTimeRemaining(positionTimestamp)}`
+                                }
+                            </span>
+                        </div>
+                    </div>
+                )}
+                
+                <p className="text-[10px] text-gray-600 mt-1">
+                    🎯 Estas son las coordenadas de tu ubicación actual que se enviarán con la verificación
+                </p>
             </div>
 
             {options.selectedOption === 'DOMICILIO' && formData.socio ? (

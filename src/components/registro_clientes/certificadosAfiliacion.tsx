@@ -2,6 +2,7 @@ import { ReactElement, useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
+import { CertificadoAfiliacion } from "./certificados/CertificadoAfiliacion";
 
 // Modal para previsualizar el documento
 function PreviewModal({
@@ -96,11 +97,12 @@ function Modal({
   onClose: () => void;
 }): ReactElement {
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
-  const [dniFile, setDniFile] = useState<File | null>(null);
+  const [dniFrontalFile, setDniFrontalFile] = useState<File | null>(null);
+  const [dniReversoFile, setDniReversoFile] = useState<File | null>(null);
 
   const handleSubmit = () => {
-    if (!paymentFile || !dniFile) {
-      alert("Por favor selecciona ambos archivos");
+    if (!paymentFile || !dniFrontalFile || !dniReversoFile) {
+      alert("Por favor selecciona todos los archivos requeridos");
       return;
     }
     alert("Comprobantes subidos exitosamente");
@@ -127,13 +129,24 @@ function Modal({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              🪪 DNI del socio
+              🪪 DNI del socio - Cara frontal
             </label>
             <input
               type="file"
               accept="image/*"
               className="w-full border rounded p-2"
-              onChange={(e) => setDniFile(e.target.files?.[0] || null)}
+              onChange={(e) => setDniFrontalFile(e.target.files?.[0] || null)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              🪪 DNI del socio - Cara reverso
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              className="w-full border rounded p-2"
+              onChange={(e) => setDniReversoFile(e.target.files?.[0] || null)}
             />
           </div>
           <div className="flex justify-end space-x-3">
@@ -287,22 +300,6 @@ function FichaIngreso(): ReactElement {
         <div className="text-center mt-6">
           <p className="text-xs">Fecha: _______________</p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function CertificadoAfiliacion() {
-  return (
-    <div className="w-[210mm] h-[297mm]">
-      <div className="text-left text-base space-y-0.1 pl-8 mt-[50mm]">
-        <p>CERTIFICADO N°</p>
-        <p>APELLIDOS Y NOMBRES</p>
-        <p>TIPO Y NRO DE DOCUMENTO</p>
-        <p>N° CUENTA DE SOCIO</p>
-        <p>APORTE INICIAL  S/</p>
-        <p>FECHA DE EMISION</p>
-        <p>RESPONSABLE</p>
       </div>
     </div>
   );
