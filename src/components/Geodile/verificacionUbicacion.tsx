@@ -214,6 +214,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                     }
                 }
                 
+                // Usar directamente verificarPreDesembolso (ya tiene timeout interno)
                 const result = await verificarPreDesembolso(formDataWithFiles);
                 
                 if (result?.status === true) {
@@ -227,8 +228,16 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                     const errorMsg = result?.message || result?.rawResponse || 'Error desconocido al procesar la verificación';
                     alert(`❌ ERROR EN LA VERIFICACIÓN:\n${errorMsg}`);
                 }
-            } else {
-                alert('datos encontrados en BD');
+            } else if (datos === true) {
+                // CORRECCIÓN: Cuando ya existe en BD, no mostrar alert, sino manejar automáticamente
+                console.log('El socio ya tiene una verificación previa en la base de datos');
+                
+                // Puedes agregar lógica adicional aquí si necesitas actualizar la verificación existente
+                // Por ejemplo, mostrar un modal de confirmación para actualizar
+                
+                // Por ahora, cerrar el modal automáticamente ya que no se puede proceder
+                setFormData(initialFormData);
+                onClose();
             }
         } catch (error) {
             alert('Error al enviar la verificación');

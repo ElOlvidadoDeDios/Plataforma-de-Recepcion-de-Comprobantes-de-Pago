@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { uploadVoucher } from '../../api/customerConsultationAPI';
 import { useAuth } from '../../hooks/useAuth';
 import { ClienteDesembolso } from '../../api/desembolsosApi';
+import { AGENCIAS } from '../../types';
 
 interface SubirComprobanteDesembolsoModalProps {
   credito: ClienteDesembolso;
@@ -20,6 +21,24 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+
+  /**
+   * Función helper para obtener NOMBRE de agencia por ID
+   * Igual que en geodileApi.ts y verificacionUbicacion.tsx
+   */
+  const obtenerNombreAgencia = (idAgencia: string): string => {
+    if (!idAgencia) return 'SIN AGENCIA ASIGNADA';
+    
+    // Buscar directamente en el objeto AGENCIAS usando el ID
+    const agenciasEntries = Object.entries(AGENCIAS);
+    const agenciaEncontrada = agenciasEntries.find(([_, id]) => id === idAgencia);
+    
+    if (agenciaEncontrada) {
+      return agenciaEncontrada[0]; // Retornar el NOMBRE (clave)
+    }
+    
+    return `AGENCIA ID: ${idAgencia}`; // Fallback
+  };
 
   // Manejar selección de archivo
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,10 +82,13 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
     setIsLoading(true);
 
     try {
+      // Obtener el nombre de la agencia desde el id_age del usuario
+      const nombreAgencia = obtenerNombreAgencia(user.id_age || '');
+      
       const voucherData = {
         DNI_SOCIO: credito.DATOS_SOCIO.DNI,
         PAGARE: credito.CREDITO_DESEMBOLSO.PAGARE,
-        AGENCIA: 'PRINCIPAL',
+        AGENCIA: nombreAgencia, // ✅ CORREGIDO: usar nombre de agencia, no hardcodeado
         ANALISTA: user.dni
       };
 
@@ -167,7 +189,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
               <div className="text-xs text-blue-600 space-y-1">
                 <p>• DNI Socio: {credito.DATOS_SOCIO.DNI}</p>
                 <p>• Pagaré: {credito.CREDITO_DESEMBOLSO.PAGARE}</p>
-                <p>• Agencia: PRINCIPAL</p>
+                <p>• Agencia: {obtenerNombreAgencia(user?.id_age || '')}</p>
                 <p>• Analista: {user?.dni || 'No disponible'}</p>
                 <p>• Monto: S/ {credito.CREDITO_DESEMBOLSO.MONTO_APRO}</p>
                 <p>• Archivo: png o jpg</p>

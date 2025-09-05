@@ -1,5 +1,146 @@
 import logo from '../../../logo_dile.webp'; // Ruta corregida del logo (3 niveles hacia arriba)
 
+
+
+
+export function FichaIngreso() {
+    return (
+        <div className="w-full">
+            <div className="text-center mb-6">
+                <h1 className="text-xl font-bold uppercase">FICHA DE INGRESO</h1>
+                <div className="mt-2 text-sm">
+                    <p>COOPERATIVA DE AHORRO Y CRÉDITO DILE</p>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <div className="p-3"> {/* Se quitó el border-2 border-black */}
+                    <h3 className="text-sm font-bold mb-3 uppercase">DATOS PERSONALES</h3>
+
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <p className="text-xs font-semibold mb-1">APELLIDO PATERNO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">APELLIDO MATERNO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">NOMBRES</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-4 mb-4">
+                        <div>
+                            <p className="text-xs font-semibold mb-1">NRO D.I</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">ESTADO CIVIL</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">FECHA NACIMIENTO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">SEXO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <p className="text-xs font-semibold mb-1">PROFESIÓN</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">GRADO INSTRUCCIÓN</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">CENTRO TRABAJO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                    </div>
+
+                    <div className="mb-4">
+                        <p className="text-xs font-semibold mb-1">CARGO</p>
+                        <div className="border-b-2 border-black h-6"></div>
+                    </div>
+
+                    <div className="mb-4">
+                        <p className="text-xs font-semibold mb-1">DIRECCIÓN DE DOMICILIO</p>
+                        <div className="border-b-2 border-black h-6"></div>
+                    </div>
+
+                    <div className="mb-4">
+                        <p className="text-xs font-semibold mb-1">REFERENCIA</p>
+                        <div className="border-b-2 border-black h-6"></div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <p className="text-xs font-semibold mb-1">DEPARTAMENTO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">PROVINCIA</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">DISTRITO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <p className="text-xs font-semibold mb-1">TELÉFONO</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                        <div>
+                            <p className="text-xs font-semibold mb-1">EMAIL</p>
+                            <div className="border-b-2 border-black h-6"></div>
+                        </div>
+                    </div>
+
+                    <div className="mb-6">
+                        <p className="text-xs font-semibold mb-1">OBSERVACIONES Y/O DECLARACIONES</p>
+                        <div className="border-2 border-black h-16"></div>
+                    </div>
+
+                    {/* Sección de firmas actualizada */}
+                    <div className="text-center mt-20">
+                        <div className="border-b-2 border-black w-40 mx-auto mb-4"></div>
+                        <p className="text-xs font-semibold mb-10">FIRMA Y HUELLA DEL AFILIADO</p>
+                        <div className="flex justify-center gap-16">
+                            <div className="text-center mt-4">
+                                <div className="border-b-2 border-black w-40 mx-auto mb-4"></div>
+                                <p className="text-xs font-semibold">FIRMA</p>
+                            </div>
+                            <div className="text-center mt-4">
+                                <div className="border-b-2 border-black w-40 mx-auto mb-4"></div>
+                                <p className="text-xs font-semibold">FIRMA</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="text-center mt-6">
+                    <p className="text-xs">
+                        Fecha: {new Date().toLocaleDateString('es-PE')}
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    );
+}
+
+
+
 export function CertificadoAfiliacion() {
   return (
     <div className="w-[200mm] h-[297mm] p-8 mx-auto bg-white" style={{fontFamily: 'Arial, sans-serif'}}>

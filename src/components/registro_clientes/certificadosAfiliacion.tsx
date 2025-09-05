@@ -2,7 +2,8 @@ import { ReactElement, useState, useRef } from "react";
 import ReactDOM from "react-dom";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { CertificadoAfiliacion } from "./certificados/CertificadoAfiliacion";
+import { FichaIngreso, CertificadoAfiliacion } from "./certificados/CertificadoAfiliacion";
+
 
 // Modal para previsualizar el documento
 function PreviewModal({
@@ -171,140 +172,6 @@ function Modal({
     document.body
   );
 }
-
-// Componente de Ficha de Ingreso
-function FichaIngreso(): ReactElement {
-  return (
-    <div className="w-full">
-      <div className="text-center mb-6">
-        <h1 className="text-xl font-bold uppercase">FICHA DE INGRESO</h1>
-        <div className="mt-2 text-sm">
-          <p>COOPERATIVA DE AHORRO Y CRÉDITO DILE</p>
-        </div>
-      </div>
-      
-      <div className="space-y-4">
-        <div className="border-2 border-black p-3">
-          <h3 className="text-sm font-bold mb-3 uppercase">DATOS PERSONALES</h3>
-          
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <p className="text-xs font-semibold mb-1">APELLIDO PATERNO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">APELLIDO MATERNO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">NOMBRES</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <div>
-              <p className="text-xs font-semibold mb-1">NRO D.I</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">ESTADO CIVIL</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">FECHA NACIMIENTO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">SEXO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <p className="text-xs font-semibold mb-1">PROFESIÓN</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">GRADO INSTRUCCIÓN</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">CENTRO TRABAJO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-          </div>
-          
-          <div className="mb-4">
-            <p className="text-xs font-semibold mb-1">CARGO</p>
-            <div className="border-b-2 border-black h-6"></div>
-          </div>
-          
-          <div className="mb-4">
-            <p className="text-xs font-semibold mb-1">DIRECCIÓN DE DOMICILIO</p>
-            <div className="border-b-2 border-black h-6"></div>
-          </div>
-          
-          <div className="mb-4">
-            <p className="text-xs font-semibold mb-1">REFERENCIA</p>
-            <div className="border-b-2 border-black h-6"></div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div>
-              <p className="text-xs font-semibold mb-1">DEPARTAMENTO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">PROVINCIA</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">DISTRITO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-xs font-semibold mb-1">TELÉFONO</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-            <div>
-              <p className="text-xs font-semibold mb-1">EMAIL</p>
-              <div className="border-b-2 border-black h-6"></div>
-            </div>
-          </div>
-          
-          <div className="mb-6">
-            <p className="text-xs font-semibold mb-1">OBSERVACIONES Y/O DECLARACIONES</p>
-            <div className="border-2 border-black h-16"></div>
-          </div>
-          
-          <div className="text-center mt-8">
-            <p className="text-xs font-semibold mb-4">FIRMA Y HUELLA DEL AFILIADO</p>
-            <div className="flex justify-center gap-12">
-              <div className="text-center">
-                <div className="border-2 border-black w-24 h-12 mb-2"></div>
-                <p className="text-xs font-semibold">FIRMA</p>
-              </div>
-              <div className="text-center">
-                <div className="border-2 border-black w-24 h-12 mb-2"></div>
-                <p className="text-xs font-semibold">HUELLA</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-center mt-6">
-          <p className="text-xs">Fecha: _______________</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 // Componente principal
 export default function CertificadosAfiliacion(): ReactElement {

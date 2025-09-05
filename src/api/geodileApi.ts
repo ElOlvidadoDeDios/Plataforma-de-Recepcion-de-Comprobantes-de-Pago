@@ -213,7 +213,7 @@ export const verificarPreDesembolso = async (formDataWithFiles: FormData) => {
         }
         // Agregar timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 segundos - mejor para conexiones de campo
 
         const response = await fetch(`${API_BASE_URL}/verificar_pre_desembolso`, {
             method: 'POST',
