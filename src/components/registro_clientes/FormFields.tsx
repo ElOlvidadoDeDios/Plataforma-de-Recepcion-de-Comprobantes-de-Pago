@@ -65,6 +65,7 @@ export interface DatosBasicos {
   APE_PAT: string;
   APE_MAT: string;
   NOMBRES: string;
+  SITUACION?: string; // 🚨 CAMPO NECESARIO PARA VALIDACIÓN DE FAMILIARES
 }
 
 // Usar la interfaz que ya existe para sectores

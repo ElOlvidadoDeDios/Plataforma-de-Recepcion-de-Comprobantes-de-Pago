@@ -174,11 +174,33 @@ export const Modal = ({ isOpen, onClose, children }: { isOpen: boolean; onClose:
   return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[95vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h3 className="text-xl font-semibold">Afiliación de Socio</h3>
-          <button 
+        <div
+          className="sticky top-0 p-4 flex justify-between items-center z-[9999] shadow-lg"
+          style={{
+            backgroundColor: '#22d3ee',
+            borderBottom: '2px solid #06b6d4',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <h3
+            className="text-xl font-semibold"
+            style={{ color: '#0c4a6e' }}
+          >
+            Afiliación de Socio
+          </h3>
+          <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="text-2xl font-bold p-1 rounded transition-colors z-[10000] relative"
+            style={{
+              color: '#0c4a6e',
+              backgroundColor: 'transparent'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#67e8f9';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
             ×
           </button>

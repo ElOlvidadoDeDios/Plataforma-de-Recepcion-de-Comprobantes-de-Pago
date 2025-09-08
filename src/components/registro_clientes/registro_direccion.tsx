@@ -205,6 +205,18 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
     try {
       setSaving(true);
       
+      // 🚨 VALIDAR QUE LA SITUACION ESTÉ DEFINIDA (no null/undefined)
+      if (!datosBasicos.SITUACION) {
+        alert('❌ Error: No se puede registrar la dirección.\n\nPrimero debe completar y guardar los datos básicos del socio.\n\nSituación actual: ' + (datosBasicos.SITUACION || 'No definida'));
+        return;
+      }
+
+      // 🚨 VALIDAR QUE LA SITUACION SEA VÁLIDA (AFILIADO o PRE_AFILIADO)
+      if (datosBasicos.SITUACION !== 'AFILIADO' && datosBasicos.SITUACION !== 'PRE_AFILIADO') {
+        alert('❌ Error: Solo se puede registrar dirección para socios con situación "AFILIADO" o "PRE_AFILIADO".\n\nSituación actual: ' + datosBasicos.SITUACION);
+        return;
+      }
+      
       // Validar campos requeridos
       const errors = validateForm();
       if (errors.length > 0) {
@@ -257,9 +269,31 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
     );
   }
 
+  // Variables para controlar el estado del registro
+  const puedeRegistrarDireccion = datosBasicos.SITUACION && (datosBasicos.SITUACION === 'AFILIADO' || datosBasicos.SITUACION === 'PRE_AFILIADO');
+
   return (
     <div className="w-full p-4 sm:p-6 bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50 rounded-lg shadow-lg">
       <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6">Dirección</h2>
+
+      {/* 🚨 ALERTA SI NO SE PUEDE REGISTRAR DIRECCIÓN */}
+      {!puedeRegistrarDireccion && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center gap-2 text-yellow-800">
+            <span className="text-xl">⚠️</span>
+            <h3 className="font-bold">Registro de dirección no disponible</h3>
+          </div>
+          <p className="text-yellow-700 mt-2">
+            Para registrar la dirección, primero debe completar y guardar los datos básicos del socio.
+          </p>
+          <p className="text-yellow-600 text-sm mt-1">
+            Situación actual: <span className="font-mono bg-yellow-100 px-2 py-1 rounded">{datosBasicos.SITUACION || 'No definida'}</span>
+          </p>
+          <p className="text-yellow-600 text-sm mt-1">
+            <strong>Situaciones válidas:</strong> AFILIADO, PRE_AFILIADO
+          </p>
+        </div>
+      )}
 
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 italic mb-2 pb-2">
@@ -490,15 +524,21 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || isReadOnly}
+          disabled={saving || isReadOnly || !puedeRegistrarDireccion}
           className={`px-4 py-2 rounded-md text-white font-medium transition-colors ${
-            saving || isReadOnly
+            saving || isReadOnly || !puedeRegistrarDireccion
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-green-600 hover:bg-green-700'
           }`}
-          title={isReadOnly ? 'Esta dirección ya está registrada y no puede ser modificada' : ''}
+          title={
+            !puedeRegistrarDireccion
+              ? 'Primero debe completar y guardar los datos básicos del socio'
+              : isReadOnly
+                ? 'Esta dirección ya está registrada y no puede ser modificada'
+                : ''
+          }
         >
-          {saving ? '🔄 Guardando...' : isReadOnly ? '📋 Dirección Registrada' : '💾 Guardar'}
+          {saving ? '🔄 Guardando...' : isReadOnly ? '📋 Dirección Registrada' : !puedeRegistrarDireccion ? '🚫 Registro no disponible' : '💾 Guardar'}
         </button>
       </div>
       

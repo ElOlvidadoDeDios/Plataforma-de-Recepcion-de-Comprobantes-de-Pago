@@ -189,7 +189,9 @@ export const DatosForm = memo(
             // Agregar datos adicionales
             fecha_registro: new Date().toISOString(),
             // Agregar dirección con nombres descriptivos si está disponible
-            direccion: response.DIRECCION ? await mapearDireccionConTextos(response.DIRECCION) : null
+            direccion: response.DIRECCION ? await mapearDireccionConTextos(response.DIRECCION) : null,
+            // 🚨 IMPORTANTE: Incluir el objeto DOCUMENT del API response
+            DOCUMENT: response.DOCUMENT || null
           };
           onRegistroExitoso(datosConTextosDescriptivos);
         }
@@ -278,11 +280,12 @@ export const DatosForm = memo(
         NVA_CTA: formData.NVA_CTA || '',
         APE_PAT: formData.APE_PAT || '',
         APE_MAT: formData.APE_MAT || '',
-        NOMBRES: formData.NOMBRES || ''
+        NOMBRES: formData.NOMBRES || '',
+        SITUACION: formData.SITUACION || '' // 🚨 INCLUIR SITUACION PARA VALIDACIÓN DE FAMILIARES
       };
       onDatosBasicosChange(datosBasicos);
     }
-  }, [formData.NVA_CTA, formData.APE_PAT, formData.APE_MAT, formData.NOMBRES, onDatosBasicosChange]);
+  }, [formData.NVA_CTA, formData.APE_PAT, formData.APE_MAT, formData.NOMBRES, formData.SITUACION, onDatosBasicosChange]);
 
     const validateDocumentLength = (value: string, docType: string) => {
       const validation = validateDoc(value, docType);
@@ -418,7 +421,9 @@ export const DatosForm = memo(
                   TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find(d => d.TIPO_DI === mappedData.TIPO_IDEN)?.NOM_DI || mappedData.TIPO_IDEN,
                   // Agregar datos adicionales
                   fecha_registro: new Date().toISOString(),
-                  direccion: datosCompletos.DIRECCION || null
+                  direccion: datosCompletos.DIRECCION || null,
+                  // 🚨 IMPORTANTE: Incluir el objeto DOCUMENT del API response
+                  DOCUMENT: datosCompletos.DOCUMENT || null
                 };
                 onRegistroExitoso(datosCompletosForCertificate);
               }
@@ -438,7 +443,9 @@ export const DatosForm = memo(
                 EST_SOCIO_TEXTO: estadoSocioOptions.find(e => e.value === finalFormData.EST_SOCIO)?.label || finalFormData.EST_SOCIO,
                 TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find(d => d.TIPO_DI === formData.TIPO_IDEN)?.NOM_DI || formData.TIPO_IDEN,
                 fecha_registro: new Date().toISOString(),
-                direccion: null
+                direccion: null,
+                // Para socios nuevos, no hay documentos existentes
+                DOCUMENT: null
               };
               onRegistroExitoso(datosCompletosForCertificate);
             }
@@ -459,7 +466,9 @@ export const DatosForm = memo(
                 EST_SOCIO_TEXTO: estadoSocioOptions.find(e => e.value === finalFormData.EST_SOCIO)?.label || finalFormData.EST_SOCIO,
                 TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find(d => d.TIPO_DI === formData.TIPO_IDEN)?.NOM_DI || formData.TIPO_IDEN,
                 fecha_registro: new Date().toISOString(),
-                direccion: null
+                direccion: null,
+                // En caso de error, tampoco hay documentos existentes
+                DOCUMENT: null
               };
               onRegistroExitoso(datosCompletosForCertificate);
             }

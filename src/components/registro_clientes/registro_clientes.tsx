@@ -109,24 +109,23 @@ export default function PersonaForm() {
     telefono_empresa: '',
     ingresos: '',
     // Familiares
-    ap_paterno: '',
-    ap_materno: '',
-    nombres: '',
-    Fecha_nac: '',
-    parentesco: '',
-    dni: '',
-    telefono: '',
-    correo: '',
-    direccion: '',
-    estado_civil: '',
-    grado_instruccion: '',
-    vinculo_familiar: '',
-    sexo: '',
-    tipo_documento: '',
-    Nro_doc: '',
-    estado: '',
-    email: '',
-    beneficiario: false,
+    ITEM: "",
+    CUENTA: "",
+    APE_PATERNO: "",
+    APE_MATERNO: "",
+    NOMBRE: "",
+    FECHA_NAC: "",
+    TIPO_PAREN: "",
+    SEXO: "",
+    TELEFONO: "",
+    EMAIL: "",
+    TIPO_DI: "",
+    NRO_DI: "",
+    TUTOR: "",
+    BENEFICIARIO: "",
+    PORC_BENEF: "",
+    DIRECCION_REF: "",
+    COD_USER: "",
   });
 
   // Función para actualizar el estado según la firma esperada por los componentes
@@ -176,7 +175,10 @@ export default function PersonaForm() {
     />,
     direccion: <RegistroDireccion datosBasicos={datosBasicos} datosDireccionApi={datosDireccionApi} />,
     familia: <RegistroFamiliares formData={formData} onInputChange={onInputChange} datosBasicos={datosBasicos} />,
-    impresion: <CertificadosAfiliacion datosCertificado={datosCertificado} />,
+    impresion: <CertificadosAfiliacion
+      datosCertificado={datosCertificado}
+      documentosExistentes={(clienteCompleto as any)?.DOCUMENT || null}
+    />,
   };
   
   return (
@@ -243,10 +245,18 @@ export default function PersonaForm() {
               </div>
             </div>
             <div className="p-6 flex-grow w-full">
-              {activeTab === 'datos' && tabContents.datos}
-              {activeTab === 'direccion' && tabContents.direccion}
-              {activeTab === 'familia' && tabContents.familia}
-              {activeTab === 'impresion' && tabContents.impresion}
+              <div style={{ display: activeTab === 'datos' ? 'block' : 'none' }}>
+                {tabContents.datos}
+              </div>
+              <div style={{ display: activeTab === 'direccion' ? 'block' : 'none' }}>
+                {tabContents.direccion}
+              </div>
+              <div style={{ display: activeTab === 'familia' ? 'block' : 'none' }}>
+                {tabContents.familia}
+              </div>
+              <div style={{ display: activeTab === 'impresion' ? 'block' : 'none' }}>
+                {tabContents.impresion}
+              </div>
             </div>
           </div>
         </div>

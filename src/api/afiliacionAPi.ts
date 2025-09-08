@@ -121,7 +121,120 @@ const getImgSocio = async (DNI: string): Promise<ImgSocioResponse | null> => {
   }
 };
 
-export default { sociospendientesAfiliar, afiliarSocioProceso, getImgSocio };
+interface datafamiliar {
+  ITEM: number;
+  CUENTA: string;
+  APE_PATERNO: string;
+  APE_MATERNO: string;
+  NOMBRE: string;
+  FECHA_NAC: string;
+  TIPO_PAREN: string;
+  SEXO: string;
+  TELEFONO: string;
+  EMAIL: string;
+  TIPO_DI: string;
+  NRO_DI: string;
+  TUTOR: string;
+  BENEFICIARIO: string;
+  PORC_BENEF: number;
+  DIRECCION_REF: string;
+  COD_USER: string;
+}
+
+export const familiarSocioProceso = async (datos: datafamiliar): Promise<any> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/insertSocioFamiliar`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `${API_BASE_URL_TOKEN}`,
+        },
+        body: JSON.stringify(datos)
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+//   {
+//   "ITEM": 1,
+//   "CUENTA": "000000037426",
+//   "APE_PATERNO": "PEREZ",
+//   "APE_MATERNO": "GARCIA",
+//   "NOMBRE": "JUAN",
+//   "FECHA_NAC": "2005-03-15",
+//   "TIPO_PAREN": "HI",
+//   "SEXO": "M",
+//   "TELEFONO": "987654321",
+//   "EMAIL": "juan.perez@example.com",
+//   "TIPO_DI": "01",
+//   "NRO_DI": "12345678",
+//   "TUTOR": "N",
+//   "BENEFICIARIO": "S",
+//   "PORC_BENEF": 0,
+//   "DIRECCION_REF": "Av. Principal 123, Lima",
+//   "COD_USER": "HLA1"
+// }
+interface comboBoxData {
+  TIPO_PAREN: string;
+  NOM_TPAREN: string;
+}
+interface comboBoxDataFamiliar {
+  TIPO_DI: string;
+  NOM_DI: string;
+  NCARACTER: string;
+}
+export interface FamiliarOpciones {
+  TIPO_VINCULO_FAMILIAR: comboBoxData[];
+  TIPO_DOCUMENTO: comboBoxDataFamiliar[];
+}
+export const useComboBoxFamiliarOpcionesData = async (): Promise<FamiliarOpciones | null> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/comboFamiliar`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `${API_BASE_URL_TOKEN}`,
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    
+    const data: FamiliarOpciones = await response.json();
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+//{
+//   "TIPO_VINCULO_FAMILIAR": [
+//     {
+//       "TIPO_PAREN": "01",
+//       "NOM_TPAREN": "Titular"
+//     },
+//     {
+//       "TIPO_DI": "99",
+//       "NOM_DI": "NINGUNO",
+//       "NCARACTER": "8"
+//     }
+//   ]
+// }
+
+export default { sociospendientesAfiliar, afiliarSocioProceso, getImgSocio, useComboBoxFamiliarOpcionesData };
 
 
 
