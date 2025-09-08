@@ -1,9 +1,82 @@
 import logo from '../../../logo_dile.webp'; // Ruta corregida del logo (3 niveles hacia arriba)
+import { DatosCertificado } from '../../../types/clienteData';
+// Props para los componentes
+interface DocumentoProps {
+  datosCertificado?: DatosCertificado;
+}
 
 
 
+// Helper para formatear texto de estado civil
+const formatearEstadoCivil = (cliente: any): string => {
+  return cliente?.TIPO_ECIV_TEXTO || cliente?.TIPO_ECIV || '';
+};
 
-export function FichaIngreso() {
+// Helper para formatear texto de profesión
+const formatearProfesion = (cliente: any): string => {
+  return cliente?.TIPO_PROF_TEXTO || cliente?.TIPO_PROF || '';
+};
+
+// Helper para formatear texto de instrucción
+const formatearInstruccion = (cliente: any): string => {
+  return cliente?.TIPO_INST_TEXTO || cliente?.TIPO_INST || '';
+};
+
+// Helper para formatear sexo
+const formatearSexo = (cliente: any): string => {
+  return cliente?.SEXO_TEXTO || (cliente?.SEXO === 'M' ? 'Masculino' : cliente?.SEXO === 'F' ? 'Femenino' : '');
+};
+
+// Helpers para formatear datos de dirección
+const formatearDireccionCompleta = (direccion: any): string => {
+  // Prioridad 1: Si hay DIRECCION_COMPLETA mapeada desde registro_datos.tsx
+  if (direccion?.DIRECCION_COMPLETA) {
+    return direccion.DIRECCION_COMPLETA;
+  }
+  
+  // Prioridad 2: Si hay una dirección ya formateada en DIRECCION
+  if (direccion?.DIRECCION) {
+    return direccion.DIRECCION;
+  }
+  
+  // Prioridad 3: Construir la dirección a partir de los componentes
+  const partes = [];
+  
+  if (direccion?.TIPO_VIA && direccion?.NOM_VIA) {
+    partes.push(`${direccion.TIPO_VIA} ${direccion.NOM_VIA}`);
+  } else if (direccion?.NOM_VIA) {
+    partes.push(direccion.NOM_VIA);
+  }
+  
+  if (direccion?.NUMERO) {
+    partes.push(`N° ${direccion.NUMERO}`);
+  }
+  
+  if (direccion?.INTERIOR) {
+    partes.push(`Int. ${direccion.INTERIOR}`);
+  }
+  
+  if (direccion?.NOM_ZONA) {
+    partes.push(direccion.NOM_ZONA);
+  }
+  
+  return partes.join(' - ');
+};
+
+const formatearUbigeo = (direccion: any, tipo: 'DPTO' | 'PROV' | 'DIST'): string => {
+  // Primero verificar si hay datos de texto ya mapeados
+  if (tipo === 'DPTO' && direccion?.DPTO_TEXTO) return direccion.DPTO_TEXTO;
+  if (tipo === 'PROV' && direccion?.PROV_TEXTO) return direccion.PROV_TEXTO;
+  if (tipo === 'DIST' && direccion?.DIST_TEXTO) return direccion.DIST_TEXTO;
+  
+  // Si no hay texto mapeado, usar el código original
+  return direccion?.[tipo] || '';
+};
+
+export function FichaIngreso({ datosCertificado }: DocumentoProps) {
+    const cliente = datosCertificado?.cliente;
+    const direccion = datosCertificado?.direccion;
+
     return (
         <div className="w-full">
             <div className="text-center mb-6">
@@ -20,90 +93,128 @@ export function FichaIngreso() {
                     <div className="grid grid-cols-3 gap-4 mb-4">
                         <div>
                             <p className="text-xs font-semibold mb-1">APELLIDO PATERNO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{cliente?.APE_PAT || ''}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">APELLIDO MATERNO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{cliente?.APE_MAT || ''}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">NOMBRES</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{cliente?.NOMBRES || ''}</span>
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-4 mb-4">
                         <div>
                             <p className="text-xs font-semibold mb-1">NRO D.I</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{cliente?.DOC_IDEN || ''}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">ESTADO CIVIL</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{formatearEstadoCivil(cliente)}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">FECHA NACIMIENTO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">
+                                    {cliente?.FECHA_NAC ? new Date(cliente.FECHA_NAC).toLocaleDateString('es-PE') : ''}
+                                </span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">SEXO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{formatearSexo(cliente)}</span>
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 mb-4">
                         <div>
                             <p className="text-xs font-semibold mb-1">PROFESIÓN</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{formatearProfesion(cliente)}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">GRADO INSTRUCCIÓN</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{formatearInstruccion(cliente)}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">CENTRO TRABAJO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{cliente?.OCUPACION || ''}</span>
+                            </div>
                         </div>
                     </div>
 
                     <div className="mb-4">
                         <p className="text-xs font-semibold mb-1">CARGO</p>
-                        <div className="border-b-2 border-black h-6"></div>
+                        <div className="border-b-2 border-black h-6 flex items-end px-2">
+                            <span className="text-xs">{cliente?.OCUPACION || ''}</span>
+                        </div>
                     </div>
 
                     <div className="mb-4">
                         <p className="text-xs font-semibold mb-1">DIRECCIÓN DE DOMICILIO</p>
-                        <div className="border-b-2 border-black h-6"></div>
+                        <div className="border-b-2 border-black h-6 flex items-end px-2">
+                            <span className="text-xs">{formatearDireccionCompleta(direccion)}</span>
+                        </div>
                     </div>
 
                     <div className="mb-4">
                         <p className="text-xs font-semibold mb-1">REFERENCIA</p>
-                        <div className="border-b-2 border-black h-6"></div>
+                        <div className="border-b-2 border-black h-6 flex items-end px-2">
+                            <span className="text-xs">{direccion?.REFERENCIA || ''}</span>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 mb-4">
                         <div>
                             <p className="text-xs font-semibold mb-1">DEPARTAMENTO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{formatearUbigeo(direccion, 'DPTO')}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">PROVINCIA</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{formatearUbigeo(direccion, 'PROV')}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">DISTRITO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{formatearUbigeo(direccion, 'DIST')}</span>
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
                             <p className="text-xs font-semibold mb-1">TELÉFONO</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{cliente?.TLF_CELULAR || ''}</span>
+                            </div>
                         </div>
                         <div>
                             <p className="text-xs font-semibold mb-1">EMAIL</p>
-                            <div className="border-b-2 border-black h-6"></div>
+                            <div className="border-b-2 border-black h-6 flex items-end px-2">
+                                <span className="text-xs">{cliente?.EMAIL || ''}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -141,7 +252,11 @@ export function FichaIngreso() {
 
 
 
-export function CertificadoAfiliacion() {
+export function CertificadoAfiliacion({ datosCertificado }: DocumentoProps) {
+  const cliente = datosCertificado?.cliente;
+  const usuario = datosCertificado?.usuario;
+  const fechaEmision = datosCertificado?.fechaEmision || new Date();
+
   return (
     <div className="w-[200mm] h-[297mm] p-8 mx-auto bg-white" style={{fontFamily: 'Arial, sans-serif'}}>
       {/* Header con logo */}
@@ -166,19 +281,21 @@ export function CertificadoAfiliacion() {
           <tbody>
             <tr>
               <td className="py-1 pr-2 font-bold w-1/3">CERTIFICADO N°:</td>
-              <td className="py-1">2049052787</td>
+              <td className="py-1">{cliente?.NVA_CTA || 'PENDIENTE'}</td>
             </tr>
             <tr>
               <td className="py-1 pr-2 font-bold">APELLIDOS Y NOMBRES:</td>
-              <td className="py-1">Juan Pérez</td>
+              <td className="py-1">
+                {`${cliente?.APE_PAT || ''} ${cliente?.APE_MAT || ''} ${cliente?.NOMBRES || ''}`.trim()}
+              </td>
             </tr>
             <tr>
               <td className="py-1 pr-2 font-bold">TIPO Y NRO DE DOCUMENTO:</td>
-              <td className="py-1">DNI 12345678</td>
+              <td className="py-1">DNI {cliente?.DOC_IDEN || ''}</td>
             </tr>
             <tr>
               <td className="py-1 pr-2 font-bold">N° CUENTA DE SOCIO:</td>
-              <td className="py-1">001234</td>
+              <td className="py-1">{cliente?.NVA_CTA || 'PENDIENTE'}</td>
             </tr>
             <tr>
               <td className="py-1 pr-2 font-bold">APORTE INICIAL:</td>
@@ -186,11 +303,11 @@ export function CertificadoAfiliacion() {
             </tr>
             <tr>
               <td className="py-1 pr-2 font-bold">FECHA DE EMISIÓN:</td>
-              <td className="py-1">04/09/2025</td>
+              <td className="py-1">{fechaEmision.toLocaleDateString('es-PE')}</td>
             </tr>
             <tr>
               <td className="py-1 pr-2 font-bold">RESPONSABLE:</td>
-              <td className="py-1">María Gómez</td>
+              <td className="py-1">{usuario?.razon}</td>
             </tr>
           </tbody>
         </table>

@@ -69,7 +69,20 @@ const SIMPLIFIED_MODULES = {
         description: 'Calcula el monto de crédito para un cliente',
         viewPermission: Permission.CALCULATOR_VIEW,
         editPermission: Permission.CALCULATOR_EDIT,
-    }
+    },
+    'Geodile': {
+        icon: '📍',
+        description: 'Visualiza ubicaciones y datos geográficos',
+        viewPermission: Permission.GEODILE_VIEW,
+        editPermission: Permission.GEODILE_EDIT,
+    },
+    'Afiliación de Socios': {
+        icon: '📋',
+        description: 'Gestiona afiliaciones de socios',
+        viewPermission: Permission.AFFILIATION_SOCIOS_VIEW,
+        editPermission: Permission.AFFILIATION_SOCIOS_EDIT,
+    },
+
 };
 
 const PermissionsManager: React.FC<PermissionsManagerProps> = ({

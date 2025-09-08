@@ -24,6 +24,7 @@ const UserCardList: React.FC<UserCardListProps> = ({
   users,
   currentUser,
   isSuperAdmin,
+  
   canViewSensitiveInfo,
   canAssignRoles,
   canAssignRole,

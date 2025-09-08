@@ -85,7 +85,6 @@ const MiComponenteRegistro = () => {
           handleInputChange('DOC_IDEN', e.target.value);
           const validation = validateDocumentLength(e.target.value, formData.TIPO_IDEN);
           if (!validation.isValid) {
-            console.log('Error:', validation.error);
           }
         }}
       />

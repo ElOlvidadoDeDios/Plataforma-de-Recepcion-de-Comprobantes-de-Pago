@@ -3,21 +3,21 @@ import { memo, useContext, useEffect, useState, useCallback } from 'react';
 import { SessionManager } from '../../utils/sessionManager';
 import { ClienteData } from '../../api/registroDeclientesApi';
 import { Search } from 'lucide-react';
-import { useComboBoxData, saveCliente, useComboBoxrellenarData } from '../../api/registroDeclientesApi';
+import registroClienteApi, { useComboBoxData, saveCliente, useComboBoxrellenarData } from '../../api/registroDeclientesApi';
 import { AGENCIAS } from '../../types/index';
 import { AuthContext } from '../../contexts/AuthContext';
 import { verificarSocioReniec } from '../../api/geodileApi';
-import {PersonData, TipoDocumento, SelectField, InputField, RadioGroup, DatosDireccionApi, DatosBasicos, ResponseData, mapResponseToPersonData, createInitialPersonData, SituacionBadge} from './FormFields';
+import {PersonData, TipoDocumento, SelectField, InputField, PhoneField, RadioGroup, DatosDireccionApi, DatosBasicos, ResponseData, mapResponseToPersonData, createInitialPersonData, SituacionBadge} from './FormFields';
 import { useRegistroClienteUtils } from '../../hooks/useRegistroClienteUtils';
 
 
-
 export const DatosForm = memo(
-  ({ onSave, onClear, onDatosBasicosChange, onDatosDireccionChange }: {
+  ({ onSave, onClear, onDatosBasicosChange, onDatosDireccionChange, onRegistroExitoso }: {
     onSave: () => void;
     onClear: () => void;
     onDatosBasicosChange?: (datos: DatosBasicos) => void;
     onDatosDireccionChange?: (datosDireccion: DatosDireccionApi | null) => void;
+    onRegistroExitoso?: (datosCompletos: any) => void;
   }) => {
     const [formData, setFormData] = useState<PersonData>(() => createInitialPersonData());
 
@@ -68,6 +68,74 @@ export const DatosForm = memo(
     });
 
 
+  // Función para mapear dirección con textos descriptivos
+  const mapearDireccionConTextos = useCallback(async (direccionOriginal: any) => {
+    try {
+      let direccionConTextos = {
+        ...direccionOriginal,
+        DIRECCION_COMPLETA: direccionOriginal.DIRECCION || direccionOriginal.NOM_VIA || ''
+      };
+
+      // Mapear departamento, provincia y distrito a textos usando las mismas funciones que registro_direccion.tsx
+      if (direccionOriginal.DPTO) {
+        try {
+          // Cargar departamentos para encontrar el texto
+          const departamentos = await registroClienteApi.useComboBoxDepartamentosData();
+          const deptoEncontrado = departamentos.find((d: any) => d.DPTO === direccionOriginal.DPTO);
+          if (deptoEncontrado) {
+            direccionConTextos.DPTO_TEXTO = (deptoEncontrado as any).NOM_UBIGEO;
+          } else {
+            direccionConTextos.DPTO_TEXTO = direccionOriginal.DPTO; // Si no encuentra, mantiene el código
+          }
+
+          // Mapear provincia si existe departamento
+          if (direccionOriginal.PROV) {
+            const provincias = await registroClienteApi.useComboBoxProvinciasData(direccionOriginal.DPTO);
+            const provEncontrada = provincias.find((p: any) => p.PROV === direccionOriginal.PROV);
+            if (provEncontrada) {
+              direccionConTextos.PROV_TEXTO = (provEncontrada as any).NOM_UBIGEO;
+            } else {
+              direccionConTextos.PROV_TEXTO = direccionOriginal.PROV; // Si no encuentra, mantiene el código
+            }
+
+            // Mapear distrito si existe provincia
+            if (direccionOriginal.DIST) {
+              const distritos = await registroClienteApi.useComboBoxDistritosData(direccionOriginal.DPTO, direccionOriginal.PROV);
+              const distEncontrado = distritos.find((d: any) => d.DIST === direccionOriginal.DIST);
+              if (distEncontrado) {
+                direccionConTextos.DIST_TEXTO = (distEncontrado as any).NOM_UBIGEO;
+              } else {
+                direccionConTextos.DIST_TEXTO = direccionOriginal.DIST; // Si no encuentra, mantiene el código
+              }
+            }
+          }
+        } catch (error) {
+
+          // En caso de error, mantener los códigos originales
+          direccionConTextos.DPTO_TEXTO = direccionOriginal.DPTO || '';
+          direccionConTextos.PROV_TEXTO = direccionOriginal.PROV || '';
+          direccionConTextos.DIST_TEXTO = direccionOriginal.DIST || '';
+        }
+      } else {
+        // Si no hay código de departamento, usar cadenas vacías
+        direccionConTextos.DPTO_TEXTO = '';
+        direccionConTextos.PROV_TEXTO = '';
+        direccionConTextos.DIST_TEXTO = '';
+      }
+
+      return direccionConTextos;
+    } catch (error) {
+
+      return {
+        ...direccionOriginal,
+        DIRECCION_COMPLETA: direccionOriginal.DIRECCION || direccionOriginal.NOM_VIA || '',
+        DPTO_TEXTO: direccionOriginal.DPTO || '',
+        PROV_TEXTO: direccionOriginal.PROV || '',
+        DIST_TEXTO: direccionOriginal.DIST || ''
+      };
+    }
+  }, []);
+
   const searchByDNI = useCallback(async () => {
     if (!formData.DOC_IDEN || !selectedDocType) return;
     setSearchLoading(true);
@@ -85,15 +153,46 @@ export const DatosForm = memo(
     try {
       const response = await useComboBoxrellenarData(selectedDocType, formData.DOC_IDEN);
       
+
         // Los datos vienen de la base de datos - SOCIO EXISTE - BLOQUEAR EDICIÓN
         setIsExistingSocio(true);
         
       if (response?.DATOS) {
+
         // Usar la función utilitaria para mapear los datos
         const mappedData = mapResponseToPersonData(response as ResponseData, formDataLimpio);
+
         
         // Actualizar el formulario con los datos mapeados
         setFormData(mappedData);
+
+        // 🚨 IMPORTANTE: Si el socio YA EXISTE, ejecutar onRegistroExitoso aquí también
+        if (onRegistroExitoso) {
+          // Convertir IDs a textos descriptivos usando las opciones del hook
+          const datosConTextosDescriptivos = {
+            ...mappedData,
+            // ✅ CAPTURAR EL COD_USER Y AGE DE LA API - DATOS DEL ANALISTA ORIGINAL
+            // Usar los datos ya mapeados correctamente por la función mapResponseToPersonData
+            COD_USER_ORIGINAL: mappedData.COD_USER, // Usuario analista que originalmente registró (ya mapeado)
+            AGE_ORIGINAL: mappedData.AGE, // Agencia original donde se registró (ya mapeada)
+            // Convertir campos usando las opciones ya procesadas del hook
+            TIPO_NAC_TEXTO: nacionalidadOptions.find(n => n.value === mappedData.TIPO_NAC)?.label || mappedData.TIPO_NAC,
+            SEXO_TEXTO: mappedData.SEXO === 'M' ? 'Masculino' : mappedData.SEXO === 'F' ? 'Femenino' : mappedData.SEXO,
+            TIPO_ECIV_TEXTO: estadoCivilOptions.find(e => e.value === mappedData.TIPO_ECIV)?.label || mappedData.TIPO_ECIV,
+            TIPO_VIV_TEXTO: viviendaOptions.find(v => v.value === mappedData.TIPO_VIV)?.label || mappedData.TIPO_VIV,
+            TIPO_INST_TEXTO: instruccionOptions.find(i => i.value === mappedData.TIPO_INST)?.label || mappedData.TIPO_INST,
+            TIPO_PROF_TEXTO: profesionOptions.find(p => p.value === mappedData.TIPO_PROF)?.label || mappedData.TIPO_PROF,
+            TIPO_ACTI_TEXTO: actividadEconomicaOptions.find(a => a.value === mappedData.TIPO_ACTI)?.label || mappedData.TIPO_ACTI,
+            TIPO_SOCIO_TEXTO: tipoSocioOptions.find(s => s.value === mappedData.TIPO_SOCIO)?.label || mappedData.TIPO_SOCIO,
+            EST_SOCIO_TEXTO: estadoSocioOptions.find(e => e.value === mappedData.EST_SOCIO)?.label || mappedData.EST_SOCIO,
+            TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find(d => d.TIPO_DI === mappedData.TIPO_IDEN)?.NOM_DI || mappedData.TIPO_IDEN,
+            // Agregar datos adicionales
+            fecha_registro: new Date().toISOString(),
+            // Agregar dirección con nombres descriptivos si está disponible
+            direccion: response.DIRECCION ? await mapearDireccionConTextos(response.DIRECCION) : null
+          };
+          onRegistroExitoso(datosConTextosDescriptivos);
+        }
 
         // Verificar si hay datos completos de dirección (más allá de solo CUENTA)
         if (response.DIRECCION && onDatosDireccionChange) {
@@ -300,17 +399,78 @@ export const DatosForm = memo(
               const mappedData = mapResponseToPersonData(datosCompletos as ResponseData, formData);
               // Actualizar el formulario con todos los datos completos
               setFormData(mappedData);
+              
+              // Si hay callback de registro exitoso, pasar los datos completos con textos descriptivos
+              if (onRegistroExitoso) {
+                // Crear objeto con todos los datos del cliente incluyendo textos descriptivos
+                const datosCompletosForCertificate = {
+                  ...mappedData,
+                  // Convertir IDs a textos descriptivos
+                  TIPO_NAC_TEXTO: nacionalidadOptions.find(n => n.value === mappedData.TIPO_NAC)?.label || mappedData.TIPO_NAC,
+                  SEXO_TEXTO: mappedData.SEXO === 'M' ? 'Masculino' : mappedData.SEXO === 'F' ? 'Femenino' : mappedData.SEXO,
+                  TIPO_ECIV_TEXTO: estadoCivilOptions.find(e => e.value === mappedData.TIPO_ECIV)?.label || mappedData.TIPO_ECIV,
+                  TIPO_VIV_TEXTO: viviendaOptions.find(v => v.value === mappedData.TIPO_VIV)?.label || mappedData.TIPO_VIV,
+                  TIPO_INST_TEXTO: instruccionOptions.find(i => i.value === mappedData.TIPO_INST)?.label || mappedData.TIPO_INST,
+                  TIPO_PROF_TEXTO: profesionOptions.find(p => p.value === mappedData.TIPO_PROF)?.label || mappedData.TIPO_PROF,
+                  TIPO_ACTI_TEXTO: actividadEconomicaOptions.find(a => a.value === mappedData.TIPO_ACTI)?.label || mappedData.TIPO_ACTI,
+                  TIPO_SOCIO_TEXTO: tipoSocioOptions.find(s => s.value === mappedData.TIPO_SOCIO)?.label || mappedData.TIPO_SOCIO,
+                  EST_SOCIO_TEXTO: estadoSocioOptions.find(e => e.value === mappedData.EST_SOCIO)?.label || mappedData.EST_SOCIO,
+                  TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find(d => d.TIPO_DI === mappedData.TIPO_IDEN)?.NOM_DI || mappedData.TIPO_IDEN,
+                  // Agregar datos adicionales
+                  fecha_registro: new Date().toISOString(),
+                  direccion: datosCompletos.DIRECCION || null
+                };
+                onRegistroExitoso(datosCompletosForCertificate);
+              }
+            } else if (onRegistroExitoso) {
+              // Si no hay datos completos pero el guardado fue exitoso, usar los datos del formulario con textos descriptivos
+              const datosCompletosForCertificate = {
+                ...finalFormData,
+                // Convertir IDs a textos descriptivos usando los datos del formulario
+                TIPO_NAC_TEXTO: nacionalidadOptions.find(n => n.value === finalFormData.TIPO_NAC)?.label || finalFormData.TIPO_NAC,
+                SEXO_TEXTO: finalFormData.SEXO === 'M' ? 'Masculino' : finalFormData.SEXO === 'F' ? 'Femenino' : finalFormData.SEXO,
+                TIPO_ECIV_TEXTO: estadoCivilOptions.find(e => e.value === finalFormData.TIPO_ECIV)?.label || finalFormData.TIPO_ECIV,
+                TIPO_VIV_TEXTO: viviendaOptions.find(v => v.value === finalFormData.TIPO_VIV)?.label || finalFormData.TIPO_VIV,
+                TIPO_INST_TEXTO: instruccionOptions.find(i => i.value === finalFormData.TIPO_INST)?.label || finalFormData.TIPO_INST,
+                TIPO_PROF_TEXTO: profesionOptions.find(p => p.value === finalFormData.TIPO_PROF)?.label || finalFormData.TIPO_PROF,
+                TIPO_ACTI_TEXTO: actividadEconomicaOptions.find(a => a.value === finalFormData.TIPO_ACTI)?.label || finalFormData.TIPO_ACTI,
+                TIPO_SOCIO_TEXTO: tipoSocioOptions.find(s => s.value === finalFormData.TIPO_SOCIO)?.label || finalFormData.TIPO_SOCIO,
+                EST_SOCIO_TEXTO: estadoSocioOptions.find(e => e.value === finalFormData.EST_SOCIO)?.label || finalFormData.EST_SOCIO,
+                TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find(d => d.TIPO_DI === formData.TIPO_IDEN)?.NOM_DI || formData.TIPO_IDEN,
+                fecha_registro: new Date().toISOString(),
+                direccion: null
+              };
+              onRegistroExitoso(datosCompletosForCertificate);
             }
           } catch (error) {
+            // Si hay error en la consulta pero el guardado fue exitoso, usar los datos del formulario con textos descriptivos
+            if (onRegistroExitoso) {
+              const datosCompletosForCertificate = {
+                ...finalFormData,
+                // Convertir IDs a textos descriptivos usando los datos del formulario
+                TIPO_NAC_TEXTO: nacionalidadOptions.find(n => n.value === finalFormData.TIPO_NAC)?.label || finalFormData.TIPO_NAC,
+                SEXO_TEXTO: finalFormData.SEXO === 'M' ? 'Masculino' : finalFormData.SEXO === 'F' ? 'Femenino' : finalFormData.SEXO,
+                TIPO_ECIV_TEXTO: estadoCivilOptions.find(e => e.value === finalFormData.TIPO_ECIV)?.label || finalFormData.TIPO_ECIV,
+                TIPO_VIV_TEXTO: viviendaOptions.find(v => v.value === finalFormData.TIPO_VIV)?.label || finalFormData.TIPO_VIV,
+                TIPO_INST_TEXTO: instruccionOptions.find(i => i.value === finalFormData.TIPO_INST)?.label || finalFormData.TIPO_INST,
+                TIPO_PROF_TEXTO: profesionOptions.find(p => p.value === finalFormData.TIPO_PROF)?.label || finalFormData.TIPO_PROF,
+                TIPO_ACTI_TEXTO: actividadEconomicaOptions.find(a => a.value === finalFormData.TIPO_ACTI)?.label || finalFormData.TIPO_ACTI,
+                TIPO_SOCIO_TEXTO: tipoSocioOptions.find(s => s.value === finalFormData.TIPO_SOCIO)?.label || finalFormData.TIPO_SOCIO,
+                EST_SOCIO_TEXTO: estadoSocioOptions.find(e => e.value === finalFormData.EST_SOCIO)?.label || finalFormData.EST_SOCIO,
+                TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find(d => d.TIPO_DI === formData.TIPO_IDEN)?.NOM_DI || formData.TIPO_IDEN,
+                fecha_registro: new Date().toISOString(),
+                direccion: null
+              };
+              onRegistroExitoso(datosCompletosForCertificate);
+            }
           }
+        } else {
         }
         
         onSave();
       } catch (error) {
       }
     };
-
-    // Las opciones ahora vienen del hook useRegistroClienteUtils
 
     // Effect para seleccionar DNI por defecto
     useEffect(() => {
@@ -534,36 +694,42 @@ export const DatosForm = memo(
                     disabled={isExistingSocio}
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <InputField
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <PhoneField
                     label="Número de referencia principal"
-                    type='text'
                     value={formData.TLF_CASA}
                     onChange={(v) => handleInputChange('TLF_CASA', v)}
                     disabled={isExistingSocio}
+                    fieldName="TLF_CASA"
+                    placeholder="Ingrese número de referencia"
                   />
-                  <InputField
+                  <PhoneField
                     label="Número de referencia secundario"
-                    type='text'
                     value={formData.TLF_CASA2}
                     onChange={(v) => handleInputChange('TLF_CASA2', v)}
                     disabled={isExistingSocio}
+                    fieldName="TLF_CASA2"
+                    placeholder="Ingrese número de referencia"
                   />
-                  <InputField
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <PhoneField
                     label="Número de Celular principal"
-                    type='text'
                     value={formData.TLF_CELULAR}
                     onChange={(v) => handleInputChange('TLF_CELULAR', v)}
                     labelClassName='text-red-500 font-bold'
                     required
                     disabled={isExistingSocio}
+                    fieldName="TLF_CELULAR"
+                    placeholder="Ingrese número de celular"
                   />
-                  <InputField
+                  <PhoneField
                     label="Número de Celular secundario"
-                    type='text'
                     value={formData.TLF_CELULAR2}
                     onChange={(v) => handleInputChange('TLF_CELULAR2', v)}
                     disabled={isExistingSocio}
+                    fieldName="TLF_CELULAR2"
+                    placeholder="Ingrese número de celular"
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

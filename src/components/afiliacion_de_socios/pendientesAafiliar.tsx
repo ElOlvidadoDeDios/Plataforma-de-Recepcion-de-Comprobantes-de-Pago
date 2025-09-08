@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { Edit3, Save, X } from 'lucide-react';
+import { useState, useEffect, useContext } from 'react';
 import Layout from '../Layout';
-import afiliacionAPI, { type AfiliacionSocios } from '../../api/afiliacionAPi';
+import afiliacionAPI, { type AfiliacionSocios, type AfiliarSocioRequest } from '../../api/afiliacionAPi';
+import { AuthContext } from '../../contexts/AuthContext';
+import { useComboBoxrellenarData, useComboBoxData } from '../../api/registroDeclientesApi';
+import registroClienteApi from '../../api/registroDeclientesApi';
+import { mapResponseToPersonData, createInitialPersonData, type ResponseData, type TipoDocumento } from '../registro_clientes/FormFields';
+import { useRegistroClienteUtils } from '../../hooks/useRegistroClienteUtils';
+import { AGENCIAS } from '../../types/index';
+import { DNIImageViewer, EditableField, EditableSelectField, VoucherViewer, Modal } from './componetes';
 // Interfaz extendida con dirección
 interface SocioData {
   SITUACION: string;
@@ -55,201 +60,15 @@ interface SocioData {
     TIPO_SECTOR: string;
     COD_USER: string;
   };
+  DOCUMENT: {
+    CUENTA: string;
+    DNI_FRONTAL: string;//"DOCUMENT_AFILIACION/OFICINA PRINCIPAL/75654681_05092025175818_68bb6b0a3bfd1.jpg",
+    DNI_POSTERIOR: string;//"DOCUMENT_AFILIACION/OFICINA PRINCIPAL/75654681_05092025175818_68bb6b0a3c687.png",
+    OTRO_DOCUMENTO: string;//"DOCUMENT_AFILIACION/OFICINA PRINCIPAL/75654681_05092025175818_68bb6b0a3d3d1.jpg"
+  };
+  
 }
 
-// Componente para campo editable
-const EditableField = ({ 
-  label, 
-  value, 
-  onChange, 
-  fieldKey,
-  type = "text" 
-}: { 
-  label: string; 
-  value: string; 
-  onChange: (key: string, value: string) => void;
-  fieldKey: string;
-  type?: string;
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value);
-
-  const handleSave = () => {
-    onChange(fieldKey, editValue);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditValue(value);
-    setIsEditing(false);
-  };
-
-  return (
-    <div className="relative">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <div className="flex items-center gap-2">
-        {isEditing ? (
-          <>
-            <input
-              type={type}
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              className="flex-1 text-sm border border-gray-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              autoFocus
-            />
-            <button
-              onClick={handleSave}
-              className="p-1 text-green-600 hover:text-green-800"
-              title="Guardar"
-            >
-              <Save size={16} />
-            </button>
-            <button
-              onClick={handleCancel}
-              className="p-1 text-red-600 hover:text-red-800"
-              title="Cancelar"
-            >
-              <X size={16} />
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="flex-1 text-sm text-gray-900 bg-gray-50 p-2 rounded">
-              {value || 'No registrado'}
-            </p>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-1 text-blue-600 hover:text-blue-800"
-              title="Editar"
-            >
-              <Edit3 size={16} />
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Componente Modal
-const Modal = ({ isOpen, onClose, children }: { isOpen: boolean; onClose: () => void; children: React.ReactNode }) => {
-  if (!isOpen) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-7xl w-full max-h-[95vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
-          <h3 className="text-xl font-semibold">Afiliación de Socio</h3>
-          <button 
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-          >
-            ×
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>,
-    document.body
-  );
-};
-
-// Componente para mostrar imágenes del DNI
-const DNIImageViewer = ({ nroDni }: { nroDni: string }) => {
-  const [frontLoaded, setFrontLoaded] = useState(false);
-  const [backLoaded, setBackLoaded] = useState(false);
-  const [frontError, setFrontError] = useState(false);
-  const [backError, setBackError] = useState(false);
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {/* DNI Frontal */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-        <h5 className="font-medium text-gray-700 mb-3">DNI - Cara Frontal</h5>
-        <div className="bg-gray-100 min-h-[200px] rounded-lg flex items-center justify-center">
-          {!frontError ? (
-            <img 
-              src={`/api/images/dni/${nroDni}_front.jpg`}
-              alt="DNI Frontal"
-              className={`max-w-full max-h-[300px] object-contain rounded ${!frontLoaded ? 'hidden' : ''}`}
-              onLoad={() => setFrontLoaded(true)}
-              onError={() => setFrontError(true)}
-            />
-          ) : null}
-          
-          {(frontError || !frontLoaded) && (
-            <div className="text-center">
-              <div className="text-4xl text-gray-400 mb-2">🆔</div>
-              <p className="text-sm text-gray-500">Cara frontal del DNI</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {frontError ? 'Error al cargar imagen' : 'Cargando imagen...'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* DNI Posterior */}
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-        <h5 className="font-medium text-gray-700 mb-3">DNI - Cara Posterior</h5>
-        <div className="bg-gray-100 min-h-[200px] rounded-lg flex items-center justify-center">
-          {!backError ? (
-            <img 
-              src={`/api/images/dni/${nroDni}_back.jpg`}
-              alt="DNI Posterior"
-              className={`max-w-full max-h-[300px] object-contain rounded ${!backLoaded ? 'hidden' : ''}`}
-              onLoad={() => setBackLoaded(true)}
-              onError={() => setBackError(true)}
-            />
-          ) : null}
-          
-          {(backError || !backLoaded) && (
-            <div className="text-center">
-              <div className="text-4xl text-gray-400 mb-2">🆔</div>
-              <p className="text-sm text-gray-500">Cara posterior del DNI</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {backError ? 'Error al cargar imagen' : 'Cargando imagen...'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Componente para voucher
-const VoucherViewer = ({ nroDni }: { nroDni: string }) => {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-
-  return (
-    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-      <h5 className="font-medium text-gray-700 mb-3">Comprobante de Pago de Afiliación</h5>
-      <div className="bg-gray-100 min-h-[200px] rounded-lg flex items-center justify-center">
-        {!error ? (
-          <img 
-            src={`/api/images/voucher/${nroDni}_voucher.jpg`}
-            alt="Comprobante de pago"
-            className={`max-w-full max-h-[300px] object-contain rounded ${!loaded ? 'hidden' : ''}`}
-            onLoad={() => setLoaded(true)}
-            onError={() => setError(true)}
-          />
-        ) : null}
-        
-        {(error || !loaded) && (
-          <div className="text-center">
-            <div className="text-4xl text-gray-400 mb-2">🧾</div>
-            <p className="text-sm text-gray-500">Voucher de pago de afiliación</p>
-            <p className="text-xs text-gray-400 mt-1">
-              {error ? 'Error al cargar imagen' : 'Cargando imagen...'}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 export default function AfiliacionSociosComponent() {
   // Estado para la lista inicial simplificada desde la API
@@ -260,113 +79,43 @@ export default function AfiliacionSociosComponent() {
   // Estados para el modal con datos completos
   const [selectedSocio, setSelectedSocio] = useState<SocioData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [loadingModal, setLoadingModal] = useState(false);
+  const [loadingModal, setLoadingModal] = useState<string | null>(null); // Cambiar a string para identificar qué socio se está cargando
+  // ✅ ESTADO PARA GUARDAR LOS TEXTOS DESCRIPTIVOS
+  const [textosDescriptivos, setTextosDescriptivos] = useState<any>(null);
+  // ✅ ESTADO PARA LAS OPCIONES DE TIPO VÍA Y ZONA
+  const [opcionesSector, setOpcionesSector] = useState<any>({
+    TIPO_VIA: [],
+    TIPO_ZONA: []
+  });
 
-  // Datos completos de ejemplo (se usarán cuando se haga clic en "Revisar Afiliación")
-  const mockDataCompleta: SocioData[] = [
-    {
-      SITUACION: "PRE_AFILIADO",
-      DATOS: {
-        CUENTA: "<AUTOMATICO>",
-        AGENCIA: "01",
-        APE_PATERNO: "GUERRA",
-        APE_MATERNO: "SULCA",
-        NOMBRE: "JUAN LUIS",
-        FECHA_APERTURA: "2025-09-03",
-        FECHA_NAC: "2000-12-02",
-        LUGAR_NAC: "cusco",
-        EST_SOCIO: "01",
-        TIPO_PERSONA: "01",
-        TIPO_VIVIENDA: "02",
-        EST_CIVIL: "02",
-        SEXO: "M",
-        TIPO_PROFESION: "0019",
-        TIPO_INSTRUCCION: "01",
-        OCUPACION: "cantante",
-        EMAIL: "alexanderhanccoleon4@gmail.com",
-        TIPO_DI: "01",
-        NRO_DI: "75654681",
-        TLF_FIJO1: "",
-        TLF_FIJO2: "",
-        TLF_CEL1: "931941085",
-        TLD_CEL2: "",
-        TIPO_ACTI: "18",
-        AFILIA_FPSSOC: "N",
-        FEC_FPSSOC: "1900-01-01",
-        TIPO_NAC: "132",
-        AFILIA_FPSCONY: "E",
-        FEC_FPSCONY: "1900-01-01",
-        COD_USER: "HLA1"
-      },
-      DIRECCION: {
-        CUENTA: "75654681",
-        TIPO_DIR: "01",
-        TIPO_VIA: "01",
-        NOM_VIA: "los heroes",
-        NUMERO: "200",
-        INTERIOR: "",
-        TIPO_ZONA: "07",
-        NOM_ZONA: "los jardines",
-        REFERENCIA: "cerca del colegio humberto luna",
-        DPTO: "08",
-        PROV: "01",
-        DIST: "01",
-        TIPO_SECTOR: "016",
-        COD_USER: "HLA1"
-      }
-    },
-    {
-      SITUACION: "PRE_AFILIADO",
-      DATOS: {
-        CUENTA: "<AUTOMATICO>",
-        AGENCIA: "01",
-        APE_PATERNO: "VILA",
-        APE_MATERNO: "PUICON",
-        NOMBRE: "VALERIA SUEY",
-        FECHA_APERTURA: "2025-08-30",
-        FECHA_NAC: "2000-12-19",
-        LUGAR_NAC: "cusco",
-        EST_SOCIO: "01",
-        TIPO_PERSONA: "01",
-        TIPO_VIVIENDA: "02",
-        EST_CIVIL: "02",
-        SEXO: "F",
-        TIPO_PROFESION: "0019",
-        TIPO_INSTRUCCION: "02",
-        OCUPACION: "ayudante",
-        EMAIL: "valeria.vila@gmail.com",
-        TIPO_DI: "01",
-        NRO_DI: "75654690",
-        TLF_FIJO1: "901579322",
-        TLF_FIJO2: "",
-        TLF_CEL1: "931941085",
-        TLD_CEL2: "",
-        TIPO_ACTI: "18",
-        AFILIA_FPSSOC: "N",
-        FEC_FPSSOC: "1900-01-01",
-        TIPO_NAC: "132",
-        AFILIA_FPSCONY: "E",
-        FEC_FPSCONY: "1900-01-01",
-        COD_USER: "HLA1"
-      },
-      DIRECCION: {
-        CUENTA: "75654690",
-        TIPO_DIR: "01",
-        TIPO_VIA: "02",
-        NOM_VIA: "avenida el sol",
-        NUMERO: "150",
-        INTERIOR: "A",
-        TIPO_ZONA: "05",
-        NOM_ZONA: "centro histórico",
-        REFERENCIA: "frente a la plaza de armas",
-        DPTO: "08",
-        PROV: "01",
-        DIST: "01",
-        TIPO_SECTOR: "012",
-        COD_USER: "HLA1"
-      }
-    }
-  ];
+  // 🔥 OBTENER comboData IGUAL QUE EN registro_datos.tsx línea 31
+  const { comboData } = useComboBoxData();
+
+  // 🎯 USAR EL MISMO HOOK QUE REGISTRO DE CLIENTES
+  const handleInputChange = () => {
+    // No necesitamos esta función aquí, pero es requerida por el hook
+  };
+
+  const {
+    // Opciones de select (ya procesadas)
+    nacionalidadOptions,
+    estadoCivilOptions,
+    viviendaOptions,
+    instruccionOptions,
+    profesionOptions,
+    actividadEconomicaOptions,
+    tipoSocioOptions,
+    estadoSocioOptions,
+    tipoPersonaOptions,
+
+  } = useRegistroClienteUtils({
+    comboData, // ✅ Usar el comboData obtenido del hook
+    showFullForm: true,
+    formData: {},
+    handleInputChange
+  });
+
+  // ✅ DATOS MOCK REMOVIDOS - AHORA SE USAN LOS DATOS REALES DEL API getSocioEdit
 
   // Cargar lista inicial desde la API
   useEffect(() => {
@@ -377,7 +126,6 @@ export default function AfiliacionSociosComponent() {
         const data = await afiliacionAPI.sociospendientesAfiliar();
         setSociosLista(data);
       } catch (error) {
-        console.error('Error al cargar socios pendientes:', error);
         setError('Error al cargar la lista de socios pendientes');
       } finally {
         setLoading(false);
@@ -385,6 +133,19 @@ export default function AfiliacionSociosComponent() {
     };
 
     cargarSociosPendientes();
+  }, []);
+
+  // 🏗️ CARGAR OPCIONES DE SECTOR (TIPO_VIA y TIPO_ZONA)
+  useEffect(() => {
+    const cargarOpcionesSector = async () => {
+      try {
+        const sectorOpcionesData = await registroClienteApi.useComboBoxSectorOpcionesData();
+        setOpcionesSector(sectorOpcionesData);
+      } catch (error) {
+      }
+    };
+
+    cargarOpcionesSector();
   }, []);
 
   const getTipoDocumento = (tipo: string) => {
@@ -408,84 +169,273 @@ export default function AfiliacionSociosComponent() {
     }
   };
 
-  const handleAfiliar = async (socioLista: AfiliacionSocios) => {
+  // 🔧 Función para mapear dirección con textos descriptivos (igual que en registro_datos.tsx)
+  const mapearDireccionConTextos = async (direccionOriginal: any) => {
     try {
-      setLoadingModal(true);
-      
-      // Aquí simularemos la carga de datos completos
-      // En producción, aquí harías otra llamada a la API para obtener los datos completos
-      const socioCompleto = mockDataCompleta.find(s => s.DATOS.NRO_DI === socioLista.DNI);
-      
-      if (socioCompleto) {
-        setSelectedSocio(socioCompleto);
-        setIsModalOpen(true);
+      let direccionConTextos = {
+        ...direccionOriginal,
+        DIRECCION_COMPLETA: direccionOriginal.DIRECCION || direccionOriginal.NOM_VIA || ''
+      };
+
+      // ✅ MAPEAR TIPO_VIA y TIPO_ZONA con textos descriptivos
+      if (direccionOriginal.TIPO_VIA && opcionesSector.TIPO_VIA) {
+        const tipoViaEncontrado = opcionesSector.TIPO_VIA.find((via: any) => via.TIPO_VIA === direccionOriginal.TIPO_VIA);
+        if (tipoViaEncontrado) {
+          direccionConTextos.TIPO_VIA_TEXTO = tipoViaEncontrado.NOM_TVIA;
+        } else {
+          direccionConTextos.TIPO_VIA_TEXTO = direccionOriginal.TIPO_VIA;
+        }
       } else {
-        // Si no se encuentra en los datos mock, crear estructura básica
-        const socioBasico: SocioData = {
-          SITUACION: socioLista.ESTADO,
-          DATOS: {
-            CUENTA: "<AUTOMATICO>",
-            AGENCIA: "01",
-            APE_PATERNO: socioLista.APELLIDOS.split(' ')[0] || '',
-            APE_MATERNO: socioLista.APELLIDOS.split(' ')[1] || '',
-            NOMBRE: socioLista.NOMBRES,
-            FECHA_APERTURA: socioLista.FECHA_PRE_AFI,
-            FECHA_NAC: "2000-01-01", // Valor por defecto
-            LUGAR_NAC: "",
-            EST_SOCIO: "01",
-            TIPO_PERSONA: "01",
-            TIPO_VIVIENDA: "02",
-            EST_CIVIL: "02",
-            SEXO: "",
-            TIPO_PROFESION: "",
-            TIPO_INSTRUCCION: "",
-            OCUPACION: "",
-            EMAIL: "",
-            TIPO_DI: "01",
-            NRO_DI: socioLista.DNI,
-            TLF_FIJO1: "",
-            TLF_FIJO2: "",
-            TLF_CEL1: "",
-            TLD_CEL2: "",
-            TIPO_ACTI: "",
-            AFILIA_FPSSOC: "N",
-            FEC_FPSSOC: "1900-01-01",
-            TIPO_NAC: "",
-            AFILIA_FPSCONY: "E",
-            FEC_FPSCONY: "1900-01-01",
-            COD_USER: ""
-          },
-          DIRECCION: {
-            CUENTA: socioLista.DNI,
-            TIPO_DIR: "01",
-            TIPO_VIA: "",
-            NOM_VIA: "",
-            NUMERO: "",
-            INTERIOR: "",
-            TIPO_ZONA: "",
-            NOM_ZONA: "",
-            REFERENCIA: "",
-            DPTO: "",
-            PROV: "",
-            DIST: "",
-            TIPO_SECTOR: "",
-            COD_USER: ""
-          }
-        };
-        setSelectedSocio(socioBasico);
-        setIsModalOpen(true);
+        direccionConTextos.TIPO_VIA_TEXTO = direccionOriginal.TIPO_VIA || '';
       }
+
+      if (direccionOriginal.TIPO_ZONA && opcionesSector.TIPO_ZONA) {
+        const tipoZonaEncontrada = opcionesSector.TIPO_ZONA.find((zona: any) => zona.TIPO_ZONA === direccionOriginal.TIPO_ZONA);
+        if (tipoZonaEncontrada) {
+          direccionConTextos.TIPO_ZONA_TEXTO = tipoZonaEncontrada.NOM_TZONA;
+        } else {
+          direccionConTextos.TIPO_ZONA_TEXTO = direccionOriginal.TIPO_ZONA;
+        }
+      } else {
+        direccionConTextos.TIPO_ZONA_TEXTO = direccionOriginal.TIPO_ZONA || '';
+      }
+
+      // Mapear departamento, provincia y distrito a textos usando las mismas funciones
+      if (direccionOriginal.DPTO) {
+        try {
+          // Cargar departamentos para encontrar el texto
+          const departamentos = await registroClienteApi.useComboBoxDepartamentosData();
+          const deptoEncontrado = departamentos.find((d: any) => d.DPTO === direccionOriginal.DPTO);
+          if (deptoEncontrado) {
+            direccionConTextos.DPTO_TEXTO = (deptoEncontrado as any).NOM_UBIGEO;
+          } else {
+            direccionConTextos.DPTO_TEXTO = direccionOriginal.DPTO;
+          }
+
+          // Mapear provincia si existe departamento
+          if (direccionOriginal.PROV) {
+            const provincias = await registroClienteApi.useComboBoxProvinciasData(direccionOriginal.DPTO);
+            const provEncontrada = provincias.find((p: any) => p.PROV === direccionOriginal.PROV);
+            if (provEncontrada) {
+              direccionConTextos.PROV_TEXTO = (provEncontrada as any).NOM_UBIGEO;
+            } else {
+              direccionConTextos.PROV_TEXTO = direccionOriginal.PROV;
+            }
+
+            // Mapear distrito si existe provincia
+            if (direccionOriginal.DIST) {
+              const distritos = await registroClienteApi.useComboBoxDistritosData(direccionOriginal.DPTO, direccionOriginal.PROV);
+              const distEncontrado = distritos.find((d: any) => d.DIST === direccionOriginal.DIST);
+              if (distEncontrado) {
+                direccionConTextos.DIST_TEXTO = (distEncontrado as any).NOM_UBIGEO;
+              } else {
+                direccionConTextos.DIST_TEXTO = direccionOriginal.DIST;
+              }
+            }
+          }
+        } catch (error) {
+          // En caso de error, mantener los códigos originales
+          direccionConTextos.DPTO_TEXTO = direccionOriginal.DPTO || '';
+          direccionConTextos.PROV_TEXTO = direccionOriginal.PROV || '';
+          direccionConTextos.DIST_TEXTO = direccionOriginal.DIST || '';
+        }
+      } else {
+        // Si no hay código de departamento, usar cadenas vacías
+        direccionConTextos.DPTO_TEXTO = '';
+        direccionConTextos.PROV_TEXTO = '';
+        direccionConTextos.DIST_TEXTO = '';
+      }
+
+      return direccionConTextos;
     } catch (error) {
-      console.error('Error al cargar datos completos:', error);
-      alert('Error al cargar la información completa del socio');
-    } finally {
-      setLoadingModal(false);
+      return {
+        ...direccionOriginal,
+        DIRECCION_COMPLETA: direccionOriginal.DIRECCION || direccionOriginal.NOM_VIA || '',
+        TIPO_VIA_TEXTO: direccionOriginal.TIPO_VIA || '',
+        TIPO_ZONA_TEXTO: direccionOriginal.TIPO_ZONA || '',
+        DPTO_TEXTO: direccionOriginal.DPTO || '',
+        PROV_TEXTO: direccionOriginal.PROV || '',
+        DIST_TEXTO: direccionOriginal.DIST || ''
+      };
     }
   };
 
-  const handleAprobar = () => {
-    if (selectedSocio) {
-      // Actualizar en la lista principal también
+  // 🎯 FUNCIÓN SIMPLIFICADA USANDO EXACTAMENTE EL MISMO MAPEO QUE EN REGISTRO_DATOS.TSX
+  const mapearCodigosATextos = (mappedData: any, comboData?: any) => {
+    return {
+      // ✅ USAR LOS MISMOS CAMPOS Y MAPEO QUE EN registro_datos.tsx (líneas 172-195)
+      TIPO_NAC_TEXTO: nacionalidadOptions.find(n => n.value === mappedData.TIPO_NAC)?.label || mappedData.TIPO_NAC,
+      SEXO_TEXTO: mappedData.SEXO === 'M' ? 'Masculino' : mappedData.SEXO === 'F' ? 'Femenino' : mappedData.SEXO,
+      TIPO_ECIV_TEXTO: estadoCivilOptions.find(e => e.value === mappedData.TIPO_ECIV)?.label || mappedData.TIPO_ECIV,
+      TIPO_VIV_TEXTO: viviendaOptions.find(v => v.value === mappedData.TIPO_VIV)?.label || mappedData.TIPO_VIV,
+      TIPO_INST_TEXTO: instruccionOptions.find(i => i.value === mappedData.TIPO_INST)?.label || mappedData.TIPO_INST,
+      TIPO_PROF_TEXTO: profesionOptions.find(p => p.value === mappedData.TIPO_PROF)?.label || mappedData.TIPO_PROF,
+      TIPO_ACTI_TEXTO: actividadEconomicaOptions.find(a => a.value === mappedData.TIPO_ACTI)?.label || mappedData.TIPO_ACTI,
+      TIPO_SOCIO_TEXTO: tipoSocioOptions.find(s => s.value === mappedData.TIPO_SOCIO)?.label || mappedData.TIPO_SOCIO,
+      EST_SOCIO_TEXTO: estadoSocioOptions.find(e => e.value === mappedData.EST_SOCIO)?.label || mappedData.EST_SOCIO,
+      TIPO_PERSONA_TEXTO: tipoPersonaOptions.find(tp => tp.value === mappedData.TIPO_PERSONA)?.label || mappedData.TIPO_PERSONA,
+      // ✅ MAPEO PARA TIPO DOCUMENTO igual que en registro_datos.tsx línea 188
+      TIPO_IDEN_TEXTO: comboData?.TIPO_DOCUMENTO?.find((d: TipoDocumento) => d.TIPO_DI === mappedData.TIPO_IDEN)?.NOM_DI || getTipoDocumento(mappedData.TIPO_IDEN || '01'),
+      // ✅ MAPEO PARA AGENCIA usando las agencias reales exactamente como en registro_datos.tsx líneas 34-36
+      AGE_TEXTO: getAgenciaNombre(mappedData.AGE)
+    };
+  };
+
+  // 🏢 FUNCIÓN PARA OBTENER NOMBRE DE AGENCIA (exactamente igual que en registro_datos.tsx líneas 34-36)
+  const getAgenciaNombre = (agenciaId: string) => {
+    return Object.keys(AGENCIAS).find((key) => AGENCIAS[key as keyof typeof AGENCIAS] === agenciaId) || agenciaId;
+  };
+
+  const handleAfiliar = async (socioLista: AfiliacionSocios) => {
+    try {
+      setLoadingModal(socioLista.DNI); // Identificar cuál socio se está cargando
+      
+      // 🔥 USAR EL MISMO ENDPOINT QUE EN REGISTRO DE CLIENTES
+      // Llamar al endpoint getSocioEdit para obtener los datos completos
+      const response = await useComboBoxrellenarData("01", socioLista.DNI); // "01" = DNI
+      
+      // 📄 OBTENER IMÁGENES REALES USANDO EL NUEVO ENDPOINT getImgSocio
+      let imagenesReales = null;
+      try {
+        imagenesReales = await afiliacionAPI.getImgSocio(socioLista.DNI);
+      } catch (error) {
+      }
+      
+      if (response?.DATOS) {
+        // Crear datos iniciales básicos para el mapeo
+        const formDataLimpio = createInitialPersonData({
+          TIPO_IDEN: "01", // DNI
+          DOC_IDEN: socioLista.DNI,
+        });
+        
+        // 🎯 USAR LA MISMA FUNCIÓN DE MAPEO QUE EN REGISTRO DE CLIENTES
+        const mappedData = mapResponseToPersonData(response as ResponseData, formDataLimpio);
+        
+        // 🏠 MAPEAR DIRECCIÓN CON TEXTOS DESCRIPTIVOS
+        let direccionConTextos = {};
+        if (response.DIRECCION) {
+          direccionConTextos = await mapearDireccionConTextos(response.DIRECCION);
+        }
+        
+        const textosDescriptivosMapeados = mapearCodigosATextos(mappedData, comboData);
+        
+        // ✅ GUARDAR EN EL ESTADO PARA USAR EN EL MODAL
+        setTextosDescriptivos(textosDescriptivosMapeados);
+
+        // Convertir al formato que espera el componente de afiliación - USAR LOS TEXTOS MAPEADOS
+        const socioCompleto: SocioData = {
+          SITUACION: socioLista.ESTADO,
+          DATOS: {
+            CUENTA: mappedData.NVA_CTA || "<AUTOMATICO>",
+            // ✅ USAR LOS TEXTOS MAPEADOS IGUAL QUE LA DIRECCIÓN
+            AGENCIA: textosDescriptivosMapeados.AGE_TEXTO || mappedData.AGE || '',
+            APE_PATERNO: mappedData.APE_PAT || '',
+            APE_MATERNO: mappedData.APE_MAT || '',
+            NOMBRE: mappedData.NOMBRES || '',
+            FECHA_APERTURA: mappedData.FECHA_APERT || socioLista.FECHA_PRE_AFI,
+            FECHA_NAC: mappedData.FECHA_NAC ? mappedData.FECHA_NAC.split(' ')[0] : '',
+            LUGAR_NAC: mappedData.LUGAR_NAC || '',
+            EST_SOCIO: textosDescriptivosMapeados.EST_SOCIO_TEXTO || mappedData.EST_SOCIO || '',
+            TIPO_PERSONA: textosDescriptivosMapeados.TIPO_PERSONA_TEXTO || mappedData.TIPO_PERSONA || '',
+            // ✅ USAR LOS TEXTOS MAPEADOS EN LUGAR DE LOS CÓDIGOS
+            TIPO_VIVIENDA: textosDescriptivosMapeados.TIPO_VIV_TEXTO || mappedData.TIPO_VIV || '',
+            EST_CIVIL: textosDescriptivosMapeados.TIPO_ECIV_TEXTO || mappedData.TIPO_ECIV || '',
+            SEXO: textosDescriptivosMapeados.SEXO_TEXTO || mappedData.SEXO || '',
+            TIPO_PROFESION: textosDescriptivosMapeados.TIPO_PROF_TEXTO || mappedData.TIPO_PROF || '',
+            TIPO_INSTRUCCION: textosDescriptivosMapeados.TIPO_INST_TEXTO || mappedData.TIPO_INST || '',
+            OCUPACION: mappedData.OCUPACION || '',
+            EMAIL: mappedData.EMAIL || '',
+            TIPO_DI: mappedData.TIPO_IDEN || '',
+            NRO_DI: mappedData.DOC_IDEN || socioLista.DNI,
+            TLF_FIJO1: mappedData.TLF_CASA || '',
+            TLF_FIJO2: mappedData.TLF_CASA2 || '',
+            TLF_CEL1: mappedData.TLF_CELULAR || '',
+            TLD_CEL2: mappedData.TLF_CELULAR2 || '',
+            TIPO_ACTI: textosDescriptivosMapeados.TIPO_ACTI_TEXTO || mappedData.TIPO_ACTI || '',
+            AFILIA_FPSSOC: response.DATOS?.AFILIA_FPSSOC || '',
+            FEC_FPSSOC: response.DATOS?.FEC_FPSSOC || '',
+            TIPO_NAC: textosDescriptivosMapeados.TIPO_NAC_TEXTO || mappedData.TIPO_NAC || '',
+            AFILIA_FPSCONY: response.DATOS?.AFILIA_FPSCONY || '',
+            FEC_FPSCONY: response.DATOS?.FEC_FPSCONY || '',
+            COD_USER: mappedData.COD_USER || ''
+          },
+          DIRECCION: {
+            CUENTA: socioLista.DNI,
+            // ✅ USAR SOLO LO QUE VIENE DEL API - NO ASUMIR VALORES
+            TIPO_DIR: response.DIRECCION?.TIPO_DIR || '',
+            // ✅ USAR TEXTOS DESCRIPTIVOS PARA TIPO_VIA Y TIPO_ZONA
+            TIPO_VIA: (direccionConTextos as any).TIPO_VIA_TEXTO || response.DIRECCION?.TIPO_VIA || '',
+            NOM_VIA: response.DIRECCION?.NOM_VIA || '',
+            NUMERO: response.DIRECCION?.NUMERO || '',
+            INTERIOR: response.DIRECCION?.INTERIOR || '',
+            TIPO_ZONA: (direccionConTextos as any).TIPO_ZONA_TEXTO || response.DIRECCION?.TIPO_ZONA || '',
+            NOM_ZONA: response.DIRECCION?.NOM_ZONA || '',
+            REFERENCIA: response.DIRECCION?.REFERENCIA || '',
+            // ✅ USAR TEXTOS DESCRIPTIVOS DE UBICACIÓN SI ESTÁN DISPONIBLES, SI NO, USAR CÓDIGOS ORIGINALES
+            DPTO: (direccionConTextos as any).DPTO_TEXTO || response.DIRECCION?.DPTO || '',
+            PROV: (direccionConTextos as any).PROV_TEXTO || response.DIRECCION?.PROV || '',
+            DIST: (direccionConTextos as any).DIST_TEXTO || response.DIRECCION?.DIST || '',
+            TIPO_SECTOR: response.DIRECCION?.TIPO_SECTOR || '',
+            COD_USER: response.DIRECCION?.COD_USER || ''
+          },
+          // ✅ MAPEAR DOCUMENTOS USANDO IMÁGENES REALES DEL ENDPOINT getImgSocio
+          DOCUMENT: {
+            CUENTA: socioLista.DNI,
+            DNI_FRONTAL: imagenesReales?.link?.LINK_DNI_FRONTAL || '',
+            DNI_POSTERIOR: imagenesReales?.link?.LINK_DNI_POSTERIOR || '',
+            OTRO_DOCUMENTO: imagenesReales?.link?.LINK_VOUCHER_AFI || ''
+          }
+        };
+        
+        setSelectedSocio(socioCompleto);
+        setIsModalOpen(true);
+        
+      } else {
+        // ❌ ERROR: Los datos DEBEN existir porque están pre-afiliados
+        alert(`ERROR: No se encontraron los datos del socio ${socioLista.DNI} en la base de datos. Contacte al administrador.`);
+      }
+    } catch (error) {
+      alert('Error al cargar la información completa del socio desde la base de datos');
+    } finally {
+      setLoadingModal(null);
+    }
+  };
+
+  // 🔐 OBTENER DATOS DEL USUARIO DESDE AUTH CONTEXT
+  const { user } = useContext(AuthContext);
+  const [procesandoAfiliacion, setProcesandoAfiliacion] = useState(false);
+
+  const handleAprobar = async () => {
+    if (!selectedSocio || !user) {
+      alert('❌ Error: No hay datos del usuario o socio seleccionado');
+      return;
+    }
+
+    // Verificar que el usuario tenga agencias configuradas
+    if (!user.agencias || user.agencias.length === 0) {
+      alert('❌ Error: El usuario no tiene agencias asignadas');
+      return;
+    }
+
+    try {
+      setProcesandoAfiliacion(true);
+
+      // 📝 PREPARAR DATOS PARA EL ENDPOINT
+      const datosAfiliacion: AfiliarSocioRequest = {
+        TIPO_DOC: "01", // DNI por defecto
+        NRO_DOC: selectedSocio.DATOS.NRO_DI,
+        AGENCIA: user.agencias[0].agencia || "01", // Primera agencia del usuario
+        COD_CAJA: user.agencias[0].cod_caja || "079", // Código de caja de la primera agencia
+        USER: user.user || user.dni || "USER" // Usuario desde AuthContext
+      };
+
+
+      // 🚀 LLAMAR AL ENDPOINT REAL
+      await afiliacionAPI.afiliarSocioProceso(datosAfiliacion);
+
+      alert('✅ Afiliación procesada exitosamente');
+
+      // Actualizar estado en la lista principal
       setSociosLista(prev =>
         prev.map(s =>
           s.DNI === selectedSocio.DATOS.NRO_DI
@@ -493,23 +443,14 @@ export default function AfiliacionSociosComponent() {
             : s
         )
       );
-      setIsModalOpen(false);
-      setSelectedSocio(null);
-    }
-  };
 
-  const handleRechazar = () => {
-    if (selectedSocio) {
-      // Actualizar en la lista principal también
-      setSociosLista(prev =>
-        prev.map(s =>
-          s.DNI === selectedSocio.DATOS.NRO_DI
-            ? { ...s, ESTADO: "RECHAZADO" }
-            : s
-        )
-      );
       setIsModalOpen(false);
       setSelectedSocio(null);
+
+    } catch (error) {
+      alert(`❌ Error al procesar la afiliación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setProcesandoAfiliacion(false);
     }
   };
 
@@ -598,10 +539,10 @@ export default function AfiliacionSociosComponent() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button
                       onClick={() => handleAfiliar(socio)}
-                      disabled={socio.ESTADO !== 'PRE_AFILIADO' || loadingModal}
+                      disabled={socio.ESTADO !== 'PRE_AFILIADO' || loadingModal === socio.DNI}
                       className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center"
                     >
-                      {loadingModal ? (
+                      {loadingModal === socio.DNI ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                           Cargando...
@@ -796,7 +737,7 @@ export default function AfiliacionSociosComponent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <EditableField
                     label="Agencia"
-                    value={selectedSocio.DATOS.AGENCIA}
+                    value={textosDescriptivos?.AGE_TEXTO || selectedSocio.DATOS.AGENCIA}
                     onChange={(key, value) => handleFieldChange('DATOS', key, value)}
                     fieldKey="AGENCIA"
                   />
@@ -807,41 +748,64 @@ export default function AfiliacionSociosComponent() {
                     fieldKey="FECHA_APERTURA"
                     type="date"
                   />
-                  <EditableField
+                  <EditableSelectField
                     label="Tipo de Profesión"
-                    value={selectedSocio.DATOS.TIPO_PROFESION}
+                    value={textosDescriptivos?.TIPO_PROF_TEXTO || profesionOptions.find(p => p.value === selectedSocio.DATOS.TIPO_PROFESION)?.label || selectedSocio.DATOS.TIPO_PROFESION}
                     onChange={(key, value) => handleFieldChange('DATOS', key, value)}
                     fieldKey="TIPO_PROFESION"
+                    options={profesionOptions}
+                    codigo={selectedSocio.DATOS.TIPO_PROFESION}
                   />
-                  <EditableField
+                  <EditableSelectField
                     label="Tipo de Instrucción"
-                    value={selectedSocio.DATOS.TIPO_INSTRUCCION}
+                    value={textosDescriptivos?.TIPO_INST_TEXTO || selectedSocio.DATOS.TIPO_INSTRUCCION}
                     onChange={(key, value) => handleFieldChange('DATOS', key, value)}
                     fieldKey="TIPO_INSTRUCCION"
+                    options={instruccionOptions}
+                    codigo={selectedSocio.DATOS.TIPO_INSTRUCCION}
                   />
-                  <EditableField
+                  <EditableSelectField
                     label="Tipo de Actividad"
-                    value={selectedSocio.DATOS.TIPO_ACTI}
+                    value={textosDescriptivos?.TIPO_ACTI_TEXTO || actividadEconomicaOptions.find(a => a.value === selectedSocio.DATOS.TIPO_ACTI)?.label || selectedSocio.DATOS.TIPO_ACTI}
                     onChange={(key, value) => handleFieldChange('DATOS', key, value)}
                     fieldKey="TIPO_ACTI"
+                    options={actividadEconomicaOptions}
+                    codigo={selectedSocio.DATOS.TIPO_ACTI}
                   />
-                  <EditableField
+                  <EditableSelectField
                     label="Sexo"
-                    value={selectedSocio.DATOS.SEXO === 'M' ? 'Masculino' : 'Femenino'}
+                    value={textosDescriptivos?.SEXO_TEXTO || selectedSocio.DATOS.SEXO}
                     onChange={(key, value) => handleFieldChange('DATOS', key, value)}
                     fieldKey="SEXO"
+                    options={[
+                      { value: 'M', label: 'Masculino' },
+                      { value: 'F', label: 'Femenino' }
+                    ]}
+                    codigo={selectedSocio.DATOS.SEXO}
                   />
-                  <EditableField
+                  <EditableSelectField
                     label="Estado Civil"
-                    value={selectedSocio.DATOS.EST_CIVIL}
+                    value={textosDescriptivos?.TIPO_ECIV_TEXTO || estadoCivilOptions.find(e => e.value === selectedSocio.DATOS.EST_CIVIL)?.label || selectedSocio.DATOS.EST_CIVIL}
                     onChange={(key, value) => handleFieldChange('DATOS', key, value)}
                     fieldKey="EST_CIVIL"
+                    options={estadoCivilOptions}
+                    codigo={selectedSocio.DATOS.EST_CIVIL}
                   />
-                  <EditableField
+                  <EditableSelectField
                     label="Tipo de Vivienda"
-                    value={selectedSocio.DATOS.TIPO_VIVIENDA}
+                    value={textosDescriptivos?.TIPO_VIV_TEXTO || selectedSocio.DATOS.TIPO_VIVIENDA}
                     onChange={(key, value) => handleFieldChange('DATOS', key, value)}
                     fieldKey="TIPO_VIVIENDA"
+                    options={viviendaOptions}
+                    codigo={selectedSocio.DATOS.TIPO_VIVIENDA}
+                  />
+                  <EditableSelectField
+                    label="Nacionalidad"
+                    value={textosDescriptivos?.TIPO_NAC_TEXTO || selectedSocio.DATOS.TIPO_NAC}
+                    onChange={(key, value) => handleFieldChange('DATOS', key, value)}
+                    fieldKey="TIPO_NAC"
+                    options={nacionalidadOptions}
+                    codigo={selectedSocio.DATOS.TIPO_NAC}
                   />
                 </div>
               </div>
@@ -853,13 +817,16 @@ export default function AfiliacionSociosComponent() {
                 {/* DNI - Ambas caras */}
                 <div className="mb-6">
                   <h5 className="text-md font-medium mb-3 text-gray-700">Documento de Identidad (DNI)</h5>
-                  <DNIImageViewer nroDni={selectedSocio.DATOS.NRO_DI} />
+                  <DNIImageViewer
+                    dniFrontal={selectedSocio.DOCUMENT.DNI_FRONTAL}
+                    dniPosterior={selectedSocio.DOCUMENT.DNI_POSTERIOR}
+                  />
                 </div>
 
                 {/* Comprobante de Pago */}
                 <div className="mb-4">
                   <h5 className="text-md font-medium mb-3 text-gray-700">Comprobante de Pago</h5>
-                  <VoucherViewer nroDni={selectedSocio.DATOS.NRO_DI} />
+                  <VoucherViewer otroDocumento={selectedSocio.DOCUMENT.OTRO_DOCUMENTO} />
                 </div>
                 
                 {/* Información adicional sobre las imágenes */}
@@ -871,37 +838,41 @@ export default function AfiliacionSociosComponent() {
                 </div>
               </div>
 
-              {/* Observaciones */}
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold mb-4 text-gray-800 border-b pb-2">Observaciones del Analista</h4>
-                <textarea
-                  className="w-full p-3 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={4}
-                  placeholder="Agregar observaciones sobre la verificación de documentos, inconsistencias encontradas, validación de datos con el DNI, o cualquier comentario relevante para la decisión de afiliación..."
-                ></textarea>
-              </div>
-
               {/* Botones de Acción */}
               <div className="flex flex-col sm:flex-row gap-3 justify-end border-t pt-4">
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors"
+                  disabled={procesandoAfiliacion}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={handleRechazar}
-                  className="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium transition-colors"
-                >
-                  Rechazar Afiliación
-                </button>
-                <button
                   onClick={handleAprobar}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium transition-colors"
+                  disabled={procesandoAfiliacion || !user?.agencias?.length}
+                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Aprobar Afiliación
+                  {procesandoAfiliacion ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Procesando...
+                    </>
+                  ) : (
+                    'Aprobar Afiliación'
+                  )}
                 </button>
               </div>
+
+              {/* 🔍 INFO DE DEBUG PARA VER DATOS DEL USUARIO */}
+              {user && (
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs">
+                  <p><strong>👤 Usuario:</strong> {user.user || user.dni}</p>
+                  <p><strong>🏢 Agencias:</strong> {user.agencias?.length || 0}</p>
+                  {user.agencias && user.agencias.length > 0 && (
+                    <p><strong>📊 Agencia activa:</strong> {user.agencias[0].agencia} (Caja: {user.agencias[0].cod_caja})</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </Modal>

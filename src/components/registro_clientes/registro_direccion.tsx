@@ -71,7 +71,6 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
         setOpcionesSector(sectorOpcionesData);
         
       } catch (error) {
-        console.error('Error cargando datos iniciales:', error);
       } finally {
         setLoading(false);
       }
@@ -88,7 +87,6 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
           const data = await registroClienteApi.useComboBoxProvinciasData(formData.departamento);
           setProvincias(data);
         } catch (error) {
-          console.error('Error cargando provincias:', error);
         }
       };
       loadProvincias();
@@ -105,7 +103,6 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
           const data = await registroClienteApi.useComboBoxDistritosData(formData.departamento, formData.provincia);
           setDistritos(data);
         } catch (error) {
-          console.error('Error cargando distritos:', error);
         }
       };
       loadDistritos();
@@ -122,7 +119,6 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
           const data = await registroClienteApi.useComboBoxSectoresData(formData.departamento, formData.provincia, formData.distrito);
           setSectores(data);
         } catch (error) {
-          console.error('Error cargando sectores:', error);
         }
       };
       loadSectores();
@@ -134,7 +130,6 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
   // Effect para autocompletar el formulario cuando lleguen datos de dirección de la API
   useEffect(() => {
     if (datosDireccionApi) {
-      console.log('🔄 Autocompletando datos de dirección desde API:', datosDireccionApi);
       
       // Mapear los datos de la API al formato del formulario
       const direccionMapeada = {
@@ -156,9 +151,6 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
 
       setFormData(direccionMapeada);
       setIsReadOnly(true); // Bloquear edición cuando hay datos de la API
-      
-      console.log('✅ Datos de dirección autocompletados:', direccionMapeada);
-      console.log('🔒 Campos bloqueados para edición');
     } else {
       setIsReadOnly(false); // Permitir edición cuando no hay datos de la API
     }
@@ -243,31 +235,12 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
         COD_USER: user.user, // Usar el código de usuario del contexto
       };
 
-      console.log('📋 Datos a enviar para dirección:', direccionData);
-      console.log('🔍 Detalle de cada campo a enviar:');
-      console.log('  ➤ CUENTA:', direccionData.CUENTA);
-      console.log('  ➤ TIPO_DIR:', direccionData.TIPO_DIR);
-      console.log('  ➤ TIPO_VIA:', direccionData.TIPO_VIA);
-      console.log('  ➤ NOMBRE_VIA:', direccionData.NOM_VIA);
-      console.log('  ➤ NUMERO:', direccionData.NUMERO);
-      console.log('  ➤ INTERIOR:', direccionData.INTERIOR);
-      console.log('  ➤ TIPO_ZONA:', direccionData.TIPO_ZONA);
-      console.log('  ➤ NOMBRE_ZONA:', direccionData.NOM_ZONA);
-      console.log('  ➤ DPTO:', direccionData.DPTO);
-      console.log('  ➤ PROV:', direccionData.PROV);
-      console.log('  ➤ DIST:', direccionData.DIST);
-      console.log('  ➤ TIPO_SECTOR:', direccionData.TIPO_SECTOR);
-      console.log('  ➤ REFERENCIA:', direccionData.REFERENCIA);
-      console.log('  ➤ COD_USER:', direccionData.COD_USER);
+;
 
       // Llamar a la API
       await saverDirecion(direccionData);
-
-      // Si llegamos aquí, el guardado fue exitoso
-      console.log('🎉 Dirección guardada exitosamente');
       
     } catch (error) {
-      console.error('💥 Error al guardar dirección:', error);
       // El error ya se muestra en la función saverDirecion
     } finally {
       setSaving(false);

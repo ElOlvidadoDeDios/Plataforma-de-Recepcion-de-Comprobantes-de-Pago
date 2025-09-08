@@ -1,12 +1,13 @@
-import { FileText, MapPin, Briefcase, User } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { FileText, MapPin, User } from 'lucide-react';
+import { useState, useCallback, useMemo } from 'react';
 import Layout from '../Layout';
+import { useAuth } from '../../hooks/useAuth';
 
 import { DatosForm } from './regsitro_datos';
 import RegistroDireccion from './registro_direccion';
 import RegistroFamiliares from './registro_familiares';
-import RegistroLaboral from './registro_laboral';
 import CertificadosAfiliacion from './certificadosAfiliacion';
+import { ClienteCompleto } from '../../types/clienteData';
 
 // Interface para los datos básicos del cliente
 interface DatosBasicos {
@@ -36,6 +37,7 @@ interface DatosDireccion {
 
 export default function PersonaForm() {
   const [activeTab, setActiveTab] = useState('datos');
+  const { user } = useAuth();
   
   // Estado para los datos básicos del cliente
   const [datosBasicos, setDatosBasicos] = useState<DatosBasicos>({
@@ -50,6 +52,39 @@ export default function PersonaForm() {
   
   // Estado para los datos de dirección obtenidos de la API
   const [datosDireccionApi, setDatosDireccionApi] = useState<DatosDireccion | null>(null);
+
+  // Estado para almacenar todos los datos del cliente después del guardado exitoso
+  const [clienteCompleto, setClienteCompleto] = useState<ClienteCompleto | null>(null);
+
+  // Función callback para recibir los datos completos del cliente después del registro exitoso
+  const handleRegistroExitoso = useCallback((datosCompletos: ClienteCompleto) => {
+    setClienteCompleto(datosCompletos);
+  }, []);
+
+  // Crear datos para certificado usando useMemo para optimización
+  const datosCertificado = useMemo(() => {
+    
+    if (!clienteCompleto || !user) {
+      return undefined;
+    }
+    
+    // Crear estructura esperada por CertificadosAfiliacion
+    const datos = {
+      cliente: clienteCompleto,
+      direccion: (clienteCompleto as any).direccion || null, // ← Pasar dirección por separado
+      usuario: {
+        id_age: user.id_age?.toString() || '0',
+        razon: user.email || user.user || '',
+        dni: user.dni || ''
+      },
+      fechaEmision: new Date(), // ← Pasar objeto Date, no string
+      // ✅ PASAR LOS DATOS DEL ANALISTA ORIGINAL Y AGENCIA ORIGINAL
+      codUserOriginal: (clienteCompleto as any).COD_USER_ORIGINAL || clienteCompleto.COD_USER,
+      ageOriginal: (clienteCompleto as any).AGE_ORIGINAL || clienteCompleto.AGE
+    } as any;
+    
+    return datos;
+  }, [clienteCompleto, user]);
 
   // Inicialización de los datos requeridos por los componentes
   const [formData, setFormData] = useState({
@@ -137,11 +172,11 @@ export default function PersonaForm() {
       onClear={() => console.log('Limpiado')}
       onDatosBasicosChange={handleDatosBasicosChange}
       onDatosDireccionChange={handleDatosDireccionChange}
+      onRegistroExitoso={handleRegistroExitoso}
     />,
     direccion: <RegistroDireccion datosBasicos={datosBasicos} datosDireccionApi={datosDireccionApi} />,
-    laboral: <RegistroLaboral formData={formData} onInputChange={onInputChange} datosBasicos={datosBasicos} />,
     familia: <RegistroFamiliares formData={formData} onInputChange={onInputChange} datosBasicos={datosBasicos} />,
-    impresion: <CertificadosAfiliacion />,
+    impresion: <CertificadosAfiliacion datosCertificado={datosCertificado} />,
   };
   
   return (
@@ -176,20 +211,7 @@ export default function PersonaForm() {
                   <MapPin className="inline w-4 h-4 mr-2" />
                   Dirección
                 </button>
-                <button
-                  onClick={() => handleTabChange('laboral')}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'laboral'
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : !datosBasicosCompletos
-                        ? 'border-transparent text-gray-300 cursor-not-allowed'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                  disabled={!datosBasicosCompletos}
-                >
-                  <Briefcase className="inline w-4 h-4 mr-2" />
-                  Laboral
-                </button>
+
                 <button
                   onClick={() => handleTabChange('familia')}
                   className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -223,7 +245,6 @@ export default function PersonaForm() {
             <div className="p-6 flex-grow w-full">
               {activeTab === 'datos' && tabContents.datos}
               {activeTab === 'direccion' && tabContents.direccion}
-              {activeTab === 'laboral' && tabContents.laboral}
               {activeTab === 'familia' && tabContents.familia}
               {activeTab === 'impresion' && tabContents.impresion}
             </div>

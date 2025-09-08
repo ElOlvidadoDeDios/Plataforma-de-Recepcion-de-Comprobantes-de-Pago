@@ -347,18 +347,25 @@ export default function Inicio() {
         userFeatures.forEach(f => vectorSourceRef.current.removeFeature(f));
 
         if (accuracy && accuracy > 0) {
-            const circleGeometry = new Circle(coordinates, accuracy);
+            // ✅ AJUSTAR RADIO DEL CÍRCULO: máximo 500 metros como Google Maps
+            const maxRadius = 500; // 500 metros máximo
+            const minRadius = 50;   // 50 metros mínimo
+            
+            // Calcular radio ajustado: usar accuracy pero limitado entre 50m y 500m
+            const adjustedRadius = Math.max(minRadius, Math.min(accuracy, maxRadius));
+            
+            const circleGeometry = new Circle(coordinates, adjustedRadius);
             const accuracyFeature = new Feature({
                 geometry: circleGeometry,
                 type: 'accuracy',
             });
             accuracyFeature.setStyle(new Style({
                 stroke: new Stroke({
-                    color: 'rgba(0, 123, 255, 0.5)',
+                    color: 'rgba(0, 123, 255, 0.6)',
                     width: 2,
                 }),
                 fill: new Fill({
-                    color: 'rgba(0, 123, 255, 0.1)',
+                    color: 'rgba(0, 123, 255, 0.15)',
                 }),
             }));
             vectorSourceRef.current.addFeature(accuracyFeature);

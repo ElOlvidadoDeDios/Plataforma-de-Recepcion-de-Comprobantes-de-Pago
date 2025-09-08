@@ -15,6 +15,15 @@ export interface AfiliacionSocios {
     ESTADO: string;
 }
 
+// Interface para el endpoint de afiliación
+export interface AfiliarSocioRequest {
+    TIPO_DOC: string;
+    NRO_DOC: string;
+    AGENCIA: string;
+    COD_CAJA: string;
+    USER: string;
+}
+
 const sociospendientesAfiliar = async (): Promise<AfiliacionSocios[]> => {
   try {
     const response = await fetch(
@@ -39,5 +48,80 @@ const sociospendientesAfiliar = async (): Promise<AfiliacionSocios[]> => {
   }
 };
 
+const afiliarSocioProceso = async (datos: AfiliarSocioRequest): Promise<any> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/afiliarSocio_proceso`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `${API_BASE_URL_TOKEN}`,
+        },
+        body: JSON.stringify(datos)
+      }
+    );
 
-export default { sociospendientesAfiliar };
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
+  }
+  catch (error) {
+    throw error;
+  }
+};
+
+
+interface ImgSocioResponse {
+  status: boolean;
+  link: {
+    LINK_DNI_FRONTAL: string;
+    LINK_DNI_POSTERIOR: string;
+    LINK_VOUCHER_AFI: string;
+  };
+}
+
+const getImgSocio = async (DNI: string): Promise<ImgSocioResponse | null> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api_mongo_firm_easy/api/get_url_img_pre_afilia`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `${API_BASE_URL_TOKEN}`,
+        },
+        body: JSON.stringify({ DNI: DNI })
+      }
+    );
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    const responseText = await response.text();
+    
+    // Verificar si la respuesta es HTML (error del servidor)
+    if (responseText.startsWith('<') || responseText.includes('<br')) {
+      return null;
+    }
+    
+    try {
+      const data = JSON.parse(responseText);
+      return data;
+    } catch (parseError) {
+      return null;
+    }
+    
+  } catch (error) {
+    return null;
+  }
+};
+
+export default { sociospendientesAfiliar, afiliarSocioProceso, getImgSocio };
+
+
+

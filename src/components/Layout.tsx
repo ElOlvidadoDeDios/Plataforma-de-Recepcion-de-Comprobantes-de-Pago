@@ -6,6 +6,7 @@ import UserInfo from './UserInfo';
 import { useCombinedPermissions } from '../hooks/useCombinedPermissions';
 import { UserChangePasswordModal } from './gestion_usuarios';
 import { useAuth } from '../hooks/useAuth';
+import { useAutoLogout } from '../hooks/useAutoLogout';
 import logo from '../logo_dile.webp';
 
 // Interfaz para las props del Layout
@@ -107,6 +108,9 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
   const location = useLocation();
   const permissions = useCombinedPermissions();
   const { user } = useAuth();
+
+  // Hook para auto-logout en móviles (5 minutos de inactividad)
+  const { isMobile: isMobileDevice, isActive } = useAutoLogout();
 
   // Estados para el sidebar
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -291,7 +295,14 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
       {/* Footer */}
       {!(isGeodilePage && layoutHidden) && (
         <div className="bg-blue-600/20 backdrop-blur-sm p-4 text-center text-white text-sm border-t border-white/10 mt-auto">
-          <p>© 2025 DILE. Todos los derechos reservados.</p>
+          <div className="flex flex-col space-y-1">
+            <p>© 2025 DILE. Todos los derechos reservados.</p>
+            {isMobileDevice && isActive && (
+              <p className="text-xs text-yellow-200">
+                📱 Auto-logout activado: Se cerrará sesión tras 5 min de inactividad
+              </p>
+            )}
+          </div>
         </div>
       )}
 

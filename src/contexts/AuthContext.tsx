@@ -51,7 +51,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             parsedUser.id_ana = payload.id_ana;
           }
         } catch (error) {
-          console.warn('No se pudieron sincronizar permisos:', error);
           parsedUser.permissions = parsedUser.permissions || [];
         }
 
