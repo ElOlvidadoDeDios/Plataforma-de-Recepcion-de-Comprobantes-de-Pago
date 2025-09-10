@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useComboBoxFamiliarOpcionesData, type FamiliarOpciones } from '../../api/afiliacionAPi';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
 
 // Interfaces
 interface DatosBasicos {
@@ -129,6 +130,8 @@ export default function RegistroFamiliares({ formData, onInputChange, datosBasic
   
   // 🔐 OBTENER USUARIO DEL CONTEXTO DE AUTENTICACIÓN (igual que en registro_datos.tsx)
   const { user } = useContext(AuthContext);
+  // 📢 HOOK PARA NOTIFICACIONES PROFESIONALES
+  const notifications = useNotifications();
 
   // Cargar opciones de la API al montar el componente
   useEffect(() => {
@@ -138,7 +141,7 @@ export default function RegistroFamiliares({ formData, onInputChange, datosBasic
         const opciones = await useComboBoxFamiliarOpcionesData();
         setFamiliarOpciones(opciones);
       } catch (error) {
-        alert('Error al cargar opciones de familiar');
+        notifications.error('Error al cargar opciones de familiar. Por favor recargue la página.');
       } finally {
         setLoading(false);
       }
@@ -157,18 +160,25 @@ export default function RegistroFamiliares({ formData, onInputChange, datosBasic
   const handleSubmit = async () => {
     // 🚨 VALIDAR QUE EL SOCIO ESTÉ AFILIADO ANTES DE PERMITIR REGISTRAR FAMILIARES
     if (!datosBasicos.SITUACION || datosBasicos.SITUACION !== 'AFILIADO') {
-      alert('❌ Error: Solo se pueden registrar familiares/beneficiarios para socios con situación "AFILIADO".\n\nSituación actual: ' + (datosBasicos.SITUACION || 'No definida'));
+      notifications.warning(
+        `Solo se pueden registrar familiares/beneficiarios para socios con situación "AFILIADO".\n\nSituación actual: ${datosBasicos.SITUACION || 'No definida'}`,
+        { duration: 6000, icon: '👥' }
+      );
       return;
     }
 
     // 🔐 VALIDAR QUE EXISTA USUARIO AUTENTICADO
     if (!user?.user) {
-      alert('❌ Error: No se encontró información del usuario autenticado');
+      notifications.error('No se encontró información del usuario autenticado', { icon: '🔐' });
       return;
     }
 
     if (!formData.APE_PATERNO || !formData.NOMBRE || !formData.TIPO_PAREN) {
-      alert('Por favor complete los campos obligatorios: Apellido Paterno, Nombres y Vínculo Familiar');
+      notifications.validation('Campos obligatorios faltantes', [
+        'Apellido Paterno',
+        'Nombres',
+        'Vínculo Familiar'
+      ]);
       return;
     }
 
@@ -192,7 +202,7 @@ export default function RegistroFamiliares({ formData, onInputChange, datosBasic
       const response = await familiarSocioProceso(datosFamiliar);
 
       if (response === true) {
-        alert('✅ Familiar registrado exitosamente');
+        notifications.success('Familiar registrado exitosamente', { icon: '👨‍👩‍👧‍👦' });
         
         // Limpiar formulario después del envío exitoso
         Object.keys(formData).forEach((key) => {
@@ -203,10 +213,10 @@ export default function RegistroFamiliares({ formData, onInputChange, datosBasic
           onSubmit();
         }
       } else {
-        alert('❌ Error al registrar el familiar. Por favor intente nuevamente.');
+        notifications.error('Error al registrar el familiar. Por favor intente nuevamente.');
       }
     } catch (error) {
-      alert('❌ Error al procesar el familiar. Por favor intente nuevamente.');
+      notifications.error('Error al procesar el familiar. Por favor intente nuevamente.');
     } finally {
       setSubmitting(false);
     }

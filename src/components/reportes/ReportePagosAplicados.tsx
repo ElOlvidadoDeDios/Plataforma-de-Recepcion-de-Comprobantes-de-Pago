@@ -12,7 +12,9 @@ import {
   ReportPreview,
   PrintableReport
 } from './components';
+import { useNotifications } from '../../hooks/useNotifications';
 
+const Notification=useNotifications();
 // Función para obtener el nombre de la agencia por su código
 const getAgencyName = (agencyCode: string): string => {
   const entry = Object.entries(AGENCIAS).find(([, code]) => code === agencyCode);
@@ -548,7 +550,7 @@ const ReportePagosAplicados: React.FC = () => {
   // Función para manejar el clic de imprimir
   const handlePrintClick = () => {
     if (!datosPagos || datosPagos.length === 0) {
-      alert('No hay datos para imprimir. Por favor, genere un reporte primero.');
+      Notification.info('No hay datos para imprimir. Por favor, genere un reporte primero.');
       return;
     }
     handlePrint();

@@ -6,6 +6,9 @@ import { FichaIngreso, CertificadoAfiliacion } from "./certificados/CertificadoA
 import { DatosCertificado } from "../../types/clienteData";
 import { uploadAllFilesAtOnce, UploadFileData } from "../../api/registroDeclientesApi";
 import afiliacionApi from "../../api/afiliacionAPi";
+import { useNotifications } from "../../hooks/useNotifications";
+
+const Notification=useNotifications();
 
 
 // Modal para previsualizar el documento
@@ -46,7 +49,7 @@ function PreviewModal({
         pdf.save(`${title}.pdf`);
         onClose();
       } catch (error) {
-        alert('Error al generar el PDF');
+        Notification.error('Error al generar el PDF');
       }
     }
   };
@@ -116,12 +119,12 @@ function Modal({
 
   const handleSubmit = async () => {
     if (!dniFrontalFile || !dniReversoFile || !paymentFile) {
-      alert("Por favor selecciona todos los archivos requeridos en el orden correcto");
+      Notification.info("Por favor selecciona todos los archivos requeridos en el orden correcto");
       return;
     }
 
     if (!cliente?.DOC_IDEN || !ageOriginal || !codUserOriginal) {
-      alert("Error: Faltan datos necesarios (DNI, agencia o analista). Por favor complete el registro del cliente.");
+      Notification.error("Error: Faltan datos necesarios (DNI, agencia o analista). Por favor complete el registro del cliente.");
       return;
     }
 
@@ -167,7 +170,7 @@ function Modal({
           mensaje += `\n\n📊 Respuesta de la DB:\n${JSON.stringify(result.data, null, 2)}`;
         }
         
-        alert(mensaje);
+        Notification.success(mensaje);
         // Ejecutar callback para refrescar imágenes si existe
         if (onUploadSuccess) {
           onUploadSuccess();
@@ -185,7 +188,7 @@ function Modal({
         throw new Error(mensajeError);
       }
     } catch (error) {
-      alert(`❌ Error subiendo comprobantes: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      Notification.error(`❌ Error subiendo comprobantes: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setIsUploading(false);
     }

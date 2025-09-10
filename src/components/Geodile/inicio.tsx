@@ -23,7 +23,9 @@ import { fromLonLat} from 'ol/proj';
 import Overlay from 'ol/Overlay';
 // REMOVIDO: import { Geolocation } from 'ol'; // CAUSA INTERFERENCIA
 import 'ol/ol.css';
+import { useNotifications } from '../../hooks/useNotifications';
 
+const Notification=useNotifications();
 // Coordenadas de todas las agencias
 const COORDENADAS_AGENCIAS: Record<string, [number, number]> = {
     "OFICINA PRINCIPAL": [-71.969723, -13.522657],
@@ -46,7 +48,7 @@ const checkGeolocationPermission = async (): Promise<boolean> => {
         if (navigator.permissions) {
             const permission = await navigator.permissions.query({name: 'geolocation'});
             if (permission.state === 'denied') {
-                alert('Los permisos de ubicación están denegados. Por favor, habilítalos en la configuración de tu navegador.');
+                Notification.warning('Los permisos de ubicación están denegados. Por favor, habilítalos en la configuración de tu navegador.');
                 return false;
             }
         }
@@ -541,7 +543,7 @@ export default function Inicio() {
                 },
                 (errorMessage) => {
                     // Mostrar solo mensaje al usuario, sin console.error
-                    alert(`Error de ubicación: ${errorMessage}`);
+                    Notification.error(`Error de ubicación: ${errorMessage}`);
                     setLocate(false);
                     setPositionTimestamp(null); // Limpiar timestamp en caso de error
                 }
@@ -549,7 +551,7 @@ export default function Inicio() {
                 watchIdRef.current = watchId;
             }).catch(() => {
                 // Mostrar solo mensaje amigable, sin console.error
-                alert('Error al iniciar seguimiento de ubicación. Intenta nuevamente.');
+                Notification.error('Error al iniciar seguimiento de ubicación. Intenta nuevamente.');
                 setLocate(false);
             });
 
@@ -591,13 +593,13 @@ export default function Inicio() {
         
         // VALIDACIÓN 1: Verificar que se tenga ubicación primero
         if (!position || !position.lat || !position.lng) {
-            alert("⚠️ UBICACIÓN REQUERIDA\n\nPrimero debes activar el botón de ubicación (🎯) y esperar a que se obtenga tu posición GPS antes de poder verificar un socio.\n\n📍 Haz clic en el botón de ubicación y espera hasta que aparezca tu marcador en el mapa.");
+            Notification.warning("⚠️ UBICACIÓN REQUERIDA\n\nPrimero debes activar el botón de ubicación (🎯) y esperar a que se obtenga tu posición GPS antes de poder verificar un socio.\n\n📍 Haz clic en el botón de ubicación y espera hasta que aparezca tu marcador en el mapa.");
             return;
         }
 
         // VALIDACIÓN 2: Verificar que la ubicación no haya expirado (máximo 5 minutos)
         if (isLocationExpired(positionTimestamp)) {
-            alert("⏰ UBICACIÓN EXPIRADA\n\nTu ubicación GPS ha expirado (máximo 5 minutos). Para mantener la precisión de las verificaciones, debes obtener una nueva ubicación.\n\n🔄 Haz clic nuevamente en el botón de ubicación (🎯) para actualizar tu posición.");
+            Notification.warning("⏰ UBICACIÓN EXPIRADA\n\nTu ubicación GPS ha expirado (máximo 5 minutos). Para mantener la precisión de las verificaciones, debes obtener una nueva ubicación.\n\n🔄 Haz clic nuevamente en el botón de ubicación (🎯) para actualizar tu posición.");
             
             // Limpiar la ubicación expirada
             setPosition(null);
@@ -610,14 +612,14 @@ export default function Inicio() {
 
         // VALIDACIÓN 3: Verificar que la ubicación sea reciente y válida
         if (position.lat === 0 && position.lng === 0) {
-            alert("❌ UBICACIÓN INVÁLIDA\n\nTu ubicación actual no es válida. Activa el GPS y vuelve a obtener tu ubicación.");
+            Notification.error("❌ UBICACIÓN INVÁLIDA\n\nTu ubicación actual no es válida. Activa el GPS y vuelve a obtener tu ubicación.");
             return;
         }
         
         const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
         
         if (!isMobile) {
-            alert("Esta función está disponible solo en dispositivos móviles.");
+            Notification.warning("Esta función está disponible solo en dispositivos móviles.");
             return;
         }
 
@@ -648,7 +650,7 @@ export default function Inicio() {
 
         } catch (error: any) {
             // Solo mostrar mensaje amigable al usuario
-            alert('Error al iniciar localización. Verifica permisos de ubicación.');
+            Notification.error('Error al iniciar localización. Verifica permisos de ubicación.');
             setLocate(false);
         }
     };

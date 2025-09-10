@@ -8,6 +8,8 @@ import { mapResponseToPersonData, createInitialPersonData, type ResponseData, ty
 import { useRegistroClienteUtils } from '../../hooks/useRegistroClienteUtils';
 import { AGENCIAS } from '../../types/index';
 import { DNIImageViewer, EditableField, EditableSelectField, VoucherViewer, Modal } from './componetes';
+import { useNotifications } from '../../hooks/useNotifications';
+const Notification = useNotifications();
 // Interfaz extendida con dirección
 interface SocioData {
   SITUACION: string;
@@ -392,10 +394,10 @@ export default function AfiliacionSociosComponent() {
         
       } else {
         // ❌ ERROR: Los datos DEBEN existir porque están pre-afiliados
-        alert(`ERROR: No se encontraron los datos del socio ${socioLista.DNI} en la base de datos. Contacte al administrador.`);
+        Notification.error(`ERROR: No se encontraron los datos del socio ${socioLista.DNI} en la base de datos. Contacte al administrador.`);
       }
     } catch (error) {
-      alert('Error al cargar la información completa del socio desde la base de datos');
+      Notification.error('Error al cargar la información completa del socio desde la base de datos');
     } finally {
       setLoadingModal(null);
     }
@@ -407,13 +409,13 @@ export default function AfiliacionSociosComponent() {
 
   const handleAprobar = async () => {
     if (!selectedSocio || !user) {
-      alert('❌ Error: No hay datos del usuario o socio seleccionado');
+      Notification.error('❌ Error: No hay datos del usuario o socio seleccionado');
       return;
     }
 
     // Verificar que el usuario tenga agencias configuradas
     if (!user.agencias || user.agencias.length === 0) {
-      alert('❌ Error: El usuario no tiene agencias asignadas');
+      Notification.error('❌ Error: El usuario no tiene agencias asignadas');
       return;
     }
 
@@ -433,7 +435,7 @@ export default function AfiliacionSociosComponent() {
       // 🚀 LLAMAR AL ENDPOINT REAL
       await afiliacionAPI.afiliarSocioProceso(datosAfiliacion);
 
-      alert('✅ Afiliación procesada exitosamente');
+      Notification.success('✅ Afiliación procesada exitosamente');
 
       // Actualizar estado en la lista principal
       setSociosLista(prev =>
@@ -448,7 +450,7 @@ export default function AfiliacionSociosComponent() {
       setSelectedSocio(null);
 
     } catch (error) {
-      alert(`❌ Error al procesar la afiliación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      Notification.error(`❌ Error al procesar la afiliación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setProcesandoAfiliacion(false);
     }

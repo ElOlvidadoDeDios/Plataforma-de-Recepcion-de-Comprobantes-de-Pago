@@ -9,6 +9,9 @@ import { AuthContext } from '../../contexts/AuthContext';
 import { verificarSocioReniec } from '../../api/geodileApi';
 import {PersonData, TipoDocumento, SelectField, InputField, PhoneField, RadioGroup, DatosDireccionApi, DatosBasicos, ResponseData, mapResponseToPersonData, createInitialPersonData, SituacionBadge} from './FormFields';
 import { useRegistroClienteUtils } from '../../hooks/useRegistroClienteUtils';
+import { useNotifications } from '../../hooks/useNotifications';
+
+const Notification=useNotifications();
 
 
 export const DatosForm = memo(
@@ -366,7 +369,7 @@ export const DatosForm = memo(
       const isValid = requiredFields.every(field => {
         const value = formDataWithAgencia[field];
         if (value === undefined || value === null || value === '') {
-          alert(`Por favor, complete todos los campos obligatorios. Campo: ${field}`);
+          Notification.validation('Por favor, complete todos los campos obligatorios.', [field]);
           return false;
         }
         return true;

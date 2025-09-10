@@ -384,6 +384,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
         );
     }
     
+    // PRIMERO: Validar estados específicos antes que condiciones generales
     if (firmDigital.ESTADO === 'NO_FIRMA') {
         return (
             <button
@@ -459,7 +460,8 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
       );
     }
 
-    // Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
+    // ULTIMO: Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
+    // Solo aplica después de verificar todos los estados específicos
     if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
       return (
         <button
@@ -611,12 +613,27 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
         );
     }
 
-    // Si el estado es NO_FIRMA o NO_FIRMAR, no mostrar botón
-    if (firmDigital.ESTADO === 'NO_FIRMA' || firmDigital.ESTADO === 'NO_FIRMAR') {
+    // PRIMERO: Validar estados específicos antes que condiciones generales
+    if (firmDigital.ESTADO === 'NO_FIRMA') {
       return (
         <button
           className="p-2 bg-gray-400 text-white rounded-full cursor-default"
           title="Contrato no disponible"
+          disabled
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+        </button>
+      );
+    }
+
+    if (firmDigital.ESTADO === 'NO_FIRMAR') {
+      return (
+        <button
+          className="p-2 bg-red-400 text-white rounded-full cursor-default"
+          title="No se puede firmar: fecha límite expirada"
           disabled
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -672,7 +689,8 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
       );
     }
 
-    // Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
+    // ULTIMO: Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
+    // Solo aplica después de verificar todos los estados específicos
     if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
       return (
         <button

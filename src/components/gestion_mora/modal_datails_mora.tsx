@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { creditAttentionApi, ClienteMora, GestionMora1x1Request } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotifications } from '../../hooks/useNotifications';
 
+
+const Notification=useNotifications();
 interface ModalDetailsProps {
   showDetailsModal: boolean;
   showGestionModal: boolean;
@@ -98,13 +101,13 @@ const ModalDetailsMora = ({
     
     // Validar que el usuario esté autenticado y tenga DNI
     if (!user || !user.dni) {
-      alert('Error: No se pudo obtener la información del usuario');
+      Notification.error('Error: No se pudo obtener la información del usuario');
       return;
     }
 
     // Validar que todos los campos estén llenos
     if (!motivoRetraso.trim() || !compromiso.trim() || !fechaCompromiso) {
-      alert('Por favor complete todos los campos');
+      Notification.info('Por favor complete todos los campos');
       return;
     }
 
@@ -144,10 +147,10 @@ const ModalDetailsMora = ({
         // Solo recargar datos si es necesario (opcional)
         // onReloadData();
       } else {
-        alert('Error al guardar la gestión de mora: ' + response.message);
+        Notification.error('Error al guardar la gestión de mora: ' + response.message);
       }
     } catch (error: any) {
-      alert('Error al guardar la gestión de mora. Por favor intente nuevamente.');
+      Notification.error('Error al guardar la gestión de mora. Por favor intente nuevamente.');
     } finally {
       setIsSubmitting(false);
     }
@@ -176,12 +179,12 @@ const ModalDetailsMora = ({
   // Función para extraer datos de gestión de períodos anteriores usando el nuevo endpoint
   const extraerGestionesAnteriores = async () => {
     if (!mesConsulta || !anoConsulta) {
-      alert('Por favor seleccione mes y año para consultar');
+      Notification.info('Por favor seleccione mes y año para consultar');
       return;
     }
 
     if (!selectedCliente) {
-      alert('No hay cliente seleccionado');
+      Notification.info('No hay cliente seleccionado');
       return;
     }
 

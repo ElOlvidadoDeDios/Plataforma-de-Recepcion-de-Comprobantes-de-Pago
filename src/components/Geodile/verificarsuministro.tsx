@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { verificarSuministro as verificarSuministroAPI } from "../../api/geodileApi";
+import { useNotifications } from "../../hooks/useNotifications";
 
+
+const  Notification=useNotifications();
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -31,7 +34,7 @@ export default function ModalVerificarSuministro({ isOpen, onClose, onContinue }
         e.preventDefault();
         
         if (!suministro.trim()) {
-            alert('Por favor ingrese un número de suministro');
+            Notification.info('Por favor ingrese un número de suministro');
             return;
         }
 

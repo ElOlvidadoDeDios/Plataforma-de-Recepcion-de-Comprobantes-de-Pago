@@ -8,11 +8,14 @@ import { UserRole } from '../../types/roles';
 import { useAuth } from '../../hooks/useAuth';
 import { getMovimientosDiarios, MovimientoPrestamoDiario } from '../../api/paymentsApi';
 import { fetchAllUsers } from '../../api/userApi';
+import { useNotifications } from '../../hooks/useNotifications';
 
 interface ReportePagosModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+const Notification=useNotifications();
 
 const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
@@ -228,7 +231,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      alert('Error al exportar a Excel');
+      Notification.error('Error al exportar a Excel');
     }
   };
 
@@ -312,7 +315,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
       const nombreArchivo = `Cuadre_Caja_${fechaSeleccionada}${nombreAgencia ? `_${nombreAgencia}` : ''}.pdf`;
       doc.save(nombreArchivo);
     } catch (error) {
-      alert('Error al exportar a PDF');
+      Notification.error('Error al exportar a PDF');
     }
   };
 

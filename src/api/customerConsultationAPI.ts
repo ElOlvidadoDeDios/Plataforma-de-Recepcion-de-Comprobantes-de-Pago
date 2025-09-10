@@ -26,6 +26,7 @@ export interface BusquedaInicialResponse {
 // Interfaces para el detalle del cliente
 export interface DatosPersonales {
   DNI: string;
+  TIPO_DOC: string;
   NOMBRES: string;
   APE_PAT: string;
   APE_MAT: string;

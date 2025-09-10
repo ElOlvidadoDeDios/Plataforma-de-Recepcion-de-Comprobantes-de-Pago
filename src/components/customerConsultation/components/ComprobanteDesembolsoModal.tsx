@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { DetalleCredito, ClienteResponse, checkVoucherExists, uploadVoucher } from '../../../api/customerConsultationAPI';
 import { useAuth } from '../../../hooks/useAuth';
+import { useNotifications } from '../../../hooks/useNotifications';
 
 interface ComprobanteDesembolsoModalProps {
   credito: DetalleCredito;
@@ -9,7 +10,7 @@ interface ComprobanteDesembolsoModalProps {
   onClose: () => void;
   readOnly?: boolean; // Nuevo prop para modo solo lectura
 }
-
+const Notification = useNotifications();
 const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
   credito,
   clientData,
@@ -70,7 +71,7 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
       
       // Si después de verificar resulta que existe, no permitir subir
       if (voucherExists) {
-        alert('El comprobante ya existe para este préstamo. No se puede subir un archivo nuevo.');
+        Notification.warning('El comprobante ya existe para este préstamo. No se puede subir un archivo nuevo.');
         if (event.target) {
           event.target.value = '';
         }
@@ -79,13 +80,13 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
 
       // Validar que sea una imagen
       if (!file.type.startsWith('image/')) {
-        alert('Por favor seleccione solo archivos de imagen (PNG, JPG, JPEG)');
+        Notification.warning('Por favor seleccione solo archivos de imagen (PNG, JPG, JPEG)');
         return;
       }
 
       // Validar tamaño (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('El archivo no debe superar 5MB');
+        Notification.warning('El archivo no debe superar 5MB');
         return;
       }
 
@@ -103,12 +104,12 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
   // Función para enviar el archivo - Ahora usa el backend NestJS
   const handleSubmit = async () => {
     if (!selectedFile) {
-      alert('Por favor seleccione un archivo');
+      Notification.warning('Por favor seleccione un archivo');
       return;
     }
 
     if (!user) {
-      alert('Usuario no autenticado');
+      Notification.warning('Usuario no autenticado');
       return;
     }
 
@@ -143,7 +144,7 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
 
     } catch (error) {
       setIsLoading(false);
-      alert('Error al enviar el archivo. Por favor intente nuevamente.');
+      Notification.error('Error al enviar el archivo. Por favor intente nuevamente.');
     }
   };
 
@@ -152,7 +153,7 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
     if (voucherUrl && voucherUrl.trim() !== '') {
       window.open(voucherUrl, '_blank');
     } else {
-      alert('La URL del comprobante no está disponible en este momento. Por favor, contacte al administrador.');
+      Notification.warning('La URL del comprobante no está disponible en este momento. Por favor, contacte al administrador.');
     }
   };
 

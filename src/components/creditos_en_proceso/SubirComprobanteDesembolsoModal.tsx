@@ -4,7 +4,9 @@ import { uploadVoucher } from '../../api/customerConsultationAPI';
 import { useAuth } from '../../hooks/useAuth';
 import { ClienteDesembolso } from '../../api/desembolsosApi';
 import { AGENCIAS } from '../../types';
+import { useNotifications } from '../../hooks/useNotifications';
 
+const Notification = useNotifications();
 interface SubirComprobanteDesembolsoModalProps {
   credito: ClienteDesembolso;
   onClose: () => void;
@@ -46,13 +48,13 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
     if (file) {
       // Validar que sea una imagen
       if (!file.type.startsWith('image/')) {
-        alert('Por favor seleccione solo archivos de imagen (PNG, JPG, JPEG)');
+        Notification.warning('Por favor seleccione solo archivos de imagen (PNG, JPG, JPEG)');
         return;
       }
 
       // Validar tamaño (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('El archivo no debe superar 5MB');
+        Notification.warning('El archivo no debe superar 5MB');
         return;
       }
 
@@ -70,12 +72,12 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
   // Función para enviar el archivo
   const handleSubmit = async () => {
     if (!selectedFile) {
-      alert('Por favor seleccione un archivo');
+      Notification.warning('Por favor seleccione un archivo');
       return;
     }
 
     if (!user) {
-      alert('Usuario no autenticado');
+      Notification.warning('Usuario no autenticado');
       return;
     }
 
@@ -95,7 +97,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
       const result = await uploadVoucher(voucherData, selectedFile);
 
       if (result.status) {
-        alert('Comprobante subido exitosamente');
+        Notification.success('Comprobante subido exitosamente');
         onSuccess?.();
         onClose();
       } else {
@@ -103,7 +105,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
       }
 
     } catch (error) {
-      alert('Error al enviar el archivo. Por favor intente nuevamente.');
+      Notification.error('Error al enviar el archivo. Por favor intente nuevamente.');
     } finally {
       setIsLoading(false);
     }

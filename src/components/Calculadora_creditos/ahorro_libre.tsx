@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Calculator, Printer } from "lucide-react";
+import { useNotifications } from "../../hooks/useNotifications";
+
+const Notification = useNotifications();
 
 type ProyeccionItem = {
     producto: string;
@@ -54,9 +57,9 @@ export default function AhorroLibre() {
             const { producto, TEA, frecuencia, hasta, frecuencia2, importe, fecha_calculo, fecha_vencimiento } = typedData;
             setFormData(prev => ({ ...prev, producto, TEA, frecuencia, hasta, frecuencia2, importe, fecha_calculo, fecha_vencimiento }));
             setResultados(typedData);
-            alert('Cálculo realizado correctamente');
+            Notification.success('Cálculo realizado correctamente');
         } catch (error) {
-            alert('Error al realizar el cálculo');
+            Notification.error('Error al realizar el cálculo');
         }
     }
 

@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { useNotifications } from "../../hooks/useNotifications";
+
+
+const Notification = useNotifications();
 
 export default function CalculadoraCreditos() {
     const [formData, setFormData] = useState({
@@ -32,9 +36,9 @@ export default function CalculadoraCreditos() {
 
     const handleSubmit = async () => {
         try {
-            alert('Datos guardados correctamente');
+            Notification.success('Datos guardados correctamente');
         } catch (error) {
-            alert('Error al guardar los datos');
+            Notification.error('Error al guardar los datos');
         }
     };
 

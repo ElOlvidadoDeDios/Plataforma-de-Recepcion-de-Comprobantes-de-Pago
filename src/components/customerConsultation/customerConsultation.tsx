@@ -13,7 +13,10 @@ import ClienteList from './components/ClienteList';
 import LoadingState from './components/LoadingState';
 import ClienteDetails from './components/ClienteDetails';
 import CreditosTable from './components/CreditosTable';
+import { useNotifications } from '../../hooks/useNotifications';
 
+
+const Notification=useNotifications();
 const ConsultaClientes = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>(TipoDocumento.DNI);
@@ -119,13 +122,13 @@ const ConsultaClientes = () => {
       } else {
         setClienteSeleccionado(null);
         SessionManager.removeItem('clienteSeleccionado');
-        alert('No se pudieron obtener los detalles del cliente. Por favor intente nuevamente.');
+        Notification.warning('No se pudieron obtener los detalles del cliente. Por favor intente nuevamente.');
       }
     } catch (error) {
       setClienteSeleccionado(null);
       SessionManager.removeItem('clienteSeleccionado');
       SessionManager.removeItem('clientData');
-      alert('Ocurrió un error al consultar los detalles del cliente. Por favor intente nuevamente.');
+      Notification.error('Ocurrió un error al consultar los detalles del cliente. Por favor intente nuevamente.');
     } finally {
       setIsLoading(false);
     }

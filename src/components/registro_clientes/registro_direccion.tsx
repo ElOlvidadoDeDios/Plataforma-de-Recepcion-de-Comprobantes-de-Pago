@@ -4,6 +4,7 @@ import registroClienteApi, { saverDirecion, saverDirecionData } from '../../api/
 import { AuthContext } from '../../contexts/AuthContext';
 import { InputField, SelectField } from './FormFields';
 import { DireccionData, RegistroDireccionProps } from './FormFields';
+import { useNotifications } from '../../hooks/useNotifications';
 
 /*  "DIRECCION": {
     "CUENTA": "000000028224",
@@ -24,6 +25,8 @@ import { DireccionData, RegistroDireccionProps } from './FormFields';
 */
 export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: RegistroDireccionProps) {
   const { user } = useContext(AuthContext);
+  // 📢 HOOK PARA NOTIFICACIONES PROFESIONALES
+  const notifications = useNotifications();
   const [formData, setFormData] = useState<DireccionData>({
     cuenta: '',
     socio: '',
@@ -207,25 +210,31 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
       
       // 🚨 VALIDAR QUE LA SITUACION ESTÉ DEFINIDA (no null/undefined)
       if (!datosBasicos.SITUACION) {
-        alert('❌ Error: No se puede registrar la dirección.\n\nPrimero debe completar y guardar los datos básicos del socio.\n\nSituación actual: ' + (datosBasicos.SITUACION || 'No definida'));
+        notifications.warning(
+          `No se puede registrar la dirección.\n\nPrimero debe completar y guardar los datos básicos del socio.\n\nSituación actual: ${datosBasicos.SITUACION || 'No definida'}`,
+          { duration: 6000, icon: '📍' }
+        );
         return;
       }
 
       // 🚨 VALIDAR QUE LA SITUACION SEA VÁLIDA (AFILIADO o PRE_AFILIADO)
       if (datosBasicos.SITUACION !== 'AFILIADO' && datosBasicos.SITUACION !== 'PRE_AFILIADO') {
-        alert('❌ Error: Solo se puede registrar dirección para socios con situación "AFILIADO" o "PRE_AFILIADO".\n\nSituación actual: ' + datosBasicos.SITUACION);
+        notifications.warning(
+          `Solo se puede registrar dirección para socios con situación "AFILIADO" o "PRE_AFILIADO".\n\nSituación actual: ${datosBasicos.SITUACION}`,
+          { duration: 6000, icon: '🏠' }
+        );
         return;
       }
       
       // Validar campos requeridos
       const errors = validateForm();
       if (errors.length > 0) {
-        alert(`❌ Los siguientes campos son obligatorios:\n\n• ${errors.join('\n• ')}`);
+        notifications.validation('Los siguientes campos son obligatorios', errors);
         return;
       }
 
       if (!user?.user) {
-        alert('❌ No se pudo obtener el código de usuario');
+        notifications.error('No se pudo obtener el código de usuario', { icon: '👤' });
         return;
       }
 
@@ -249,8 +258,15 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
 
 ;
 
-      // Llamar a la API
-      await saverDirecion(direccionData);
+      // Llamar a la API con notificación de carga
+      await notifications.promise(
+        saverDirecion(direccionData),
+        {
+          loading: 'Guardando dirección...',
+          success: 'Dirección registrada exitosamente',
+          error: 'Error al registrar la dirección'
+        }
+      );
       
     } catch (error) {
       // El error ya se muestra en la función saverDirecion

@@ -9,7 +9,8 @@ import {
     crearFormDataVerificacion,
     type VerificacionData
 } from "../../api/geodileApi";
-
+import { useNotifications } from "../../hooks/useNotifications";
+const Notification=useNotifications();
 export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { isOpen: boolean; onClose: () => void; coord: { lat: number; lng: number } }) {
     const FIVE_MINUTES = 5 * 60 * 1000; // 5 minutos en milisegundos
 
@@ -134,7 +135,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
     const VerificarSocioReniec = async () => {
         if (isVerifyingDNI) return;
         if (formData.dni.length !== 8) {
-            alert('El DNI debe tener exactamente 8 dígitos');
+            Notification.validation('El DNI debe tener exactamente', ['8 dígitos']);
             return;
         }
 
@@ -149,7 +150,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                 throw new Error('No se encontraron datos del socio');
             }
         } catch (error) {
-            alert('Ingrese un DNI correcto');
+            Notification.validation('Ingrese un DNI correcto', ['El DNI debe tener 8 dígitos o es inválido']);
             setFormData(prevFormData => ({ ...prevFormData, socio: '' }));
         } finally {
             setIsVerifyingDNI(false);
@@ -176,18 +177,18 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     const validateLocation = () => {
         if (!coord || !coord.lat || !coord.lng) {
-            alert('❌ ERROR: No se detectaron coordenadas GPS válidas.\n\n📍 Asegúrate de activar la ubicación primero.');
+            Notification.error('❌ ERROR: No se detectaron coordenadas GPS válidas.\n\n📍 Asegúrate de activar la ubicación primero.');
             return false;
         }
 
         if (!esCoordenadaValida(coord.lat, coord.lng)) {
-            alert('❌ COORDENADAS INVÁLIDAS\n\n🗺️ Las coordenadas detectadas no corresponden a una ubicación válida en Perú.\n\nLatitud: ' + coord.lat.toFixed(6) + '\nLongitud: ' + coord.lng.toFixed(6) + '\n\n🔄 Por favor, obtén una nueva ubicación GPS.');
+            Notification.error('❌ COORDENADAS INVÁLIDAS\n\n🗺️ Las coordenadas detectadas no corresponden a una ubicación válida en Perú.\n\nLatitud: ' + coord.lat.toFixed(6) + '\nLongitud: ' + coord.lng.toFixed(6) + '\n\n🔄 Por favor, obtén una nueva ubicación GPS.');
             return false;
         }
 
         const timestampStr = sessionStorage.getItem('gps_timestamp');
         if (!timestampStr || isLocationExpired(parseInt(timestampStr))) {
-            alert('⏰ UBICACIÓN EXPIRADA\n\n🔄 Tu ubicación GPS ha expirado. Obtén una nueva ubicación antes de continuar.');
+            Notification.info('⏰ UBICACIÓN EXPIRADA\n\n🔄 Tu ubicación GPS ha expirado. Obtén una nueva ubicación antes de continuar.');
             return false;
         }
 
@@ -196,7 +197,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     const prepareVerificacionData = (): VerificacionData | null => {
         if (!userData?.dni) {
-            alert('❌ Usuario no encontrado en el sistema');
+            Notification.error('❌ Usuario no encontrado en el sistema');
             return null;
         }
 
@@ -227,12 +228,12 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     const handleSuccess = (result: any) => {
         if (result?.status === true) {
-            alert(`✅ VERIFICACIÓN ENVIADA CORRECTAMENTE\n${result?.message || 'Datos procesados exitosamente'}`);
+            Notification.success(`✅ VERIFICACIÓN ENVIADA CORRECTAMENTE\n${result?.message || 'Datos procesados exitosamente'}`);
             resetForm();
             onClose();
         } else {
             const errorMsg = result?.message || result?.rawResponse || 'Error desconocido al procesar la verificación';
-            alert(`❌ ERROR EN LA VERIFICACIÓN:\n${errorMsg}\n\n💡 SUGERENCIA: Verifica tu conexión a internet e intenta nuevamente.`);
+            Notification.error(`❌ ERROR EN LA VERIFICACIÓN:\n${errorMsg}\n\n💡 SUGERENCIA: Verifica tu conexión a internet e intenta nuevamente.`);
         }
     };
 
@@ -251,7 +252,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         } else {
             mensajeError += `🤔 ERROR DESCONOCIDO: ${error.message || 'Error no identificado'}\n\n💡 SUGERENCIA: Contacta al soporte técnico`;
         }
-        alert(mensajeError);
+        Notification.error(mensajeError);
         setUltimoEnvio(0); // Permitir reintento
     };
 
@@ -304,7 +305,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         const tiempoActual = Date.now();
         if (tiempoActual - ultimoEnvio < 30000) {
             const segundosRestantes = Math.ceil((30000 - (tiempoActual - ultimoEnvio)) / 1000);
-            alert(`⏳ Espera ${segundosRestantes} segundos antes de enviar otra verificación`);
+            Notification.info(`⏳ Espera ${segundosRestantes} segundos antes de enviar otra verificación`);
             return;
         }
 

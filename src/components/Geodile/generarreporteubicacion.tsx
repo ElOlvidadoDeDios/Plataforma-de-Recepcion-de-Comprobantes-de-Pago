@@ -7,12 +7,13 @@ import {
     updateReportData,
     type ReporteInfoData
 } from "../../api/geodileApi";
+import { useNotifications } from "../../hooks/useNotifications";
 
 interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
-
+const Notification=useNotifications();
 export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalProps) {
     const { user } = useContext(AuthContext);
     const userData = user; // Usar el usuario del contexto
@@ -37,13 +38,13 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
     const handleGenerarReporte = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!userData?.dni) {
-            alert('Usuario no encontrado');
+            Notification.warning('Usuario no encontrado');
             return;
         }
 
         // Verificar si puede generar el reporte basado en el campo GENERAR de la API
         if (!puedeGenerarReporte) {
-            alert('⚠️ No se puede generar el reporte. Por favor, complete todos los campos requeridos y actualice cada registro individualmente.');
+            Notification.warning('⚠️ No se puede generar el reporte. Por favor, complete todos los campos requeridos y actualice cada registro individualmente.');
             return;
         }
         
@@ -51,14 +52,14 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
             const data = await generarPdfGps(userData.dni, formData.DNI);
             abrirReporte(data.url);
         } catch (error: any) {
-            alert(`Error al generar el reporte: ${error.message}`);
+            Notification.error(`Error al generar el reporte: ${error.message}`);
         }
     };
 
     const fetchSocio = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!userData?.dni) {
-            alert('Usuario no encontrado');
+            Notification.warning('Usuario no encontrado');
             return;
         }
 
@@ -175,7 +176,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
     const actualizarRegistroIndividual = async (index: number) => {
         try {
             if (!userData?.dni) {
-                alert('Error: Usuario no encontrado');
+                Notification.error('Error: Usuario no encontrado');
                 return;
             }
             
@@ -192,7 +193,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
             ].some(campo => campo);
             
             if (camposFaltantes) {
-                alert('⚠️ Por favor, complete todos los campos requeridos para este registro antes de actualizar.');
+                Notification.warning('⚠️ Por favor, complete todos los campos requeridos para este registro antes de actualizar.');
                 return;
             }
             
@@ -230,19 +231,19 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                     
                     // Mostrar mensaje según el estado
                     if (reporteInfo.GENERAR) {
-                        alert('🎉 ¡Registro actualizado! Ya puede generar el reporte.');
+                        Notification.success('🎉 ¡Registro actualizado! Ya puede generar el reporte.');
                         setMostrarVerificacion(false);
                     } else {
-                        alert('✅ Registro actualizado correctamente. Complete los campos restantes.');
+                        Notification.warning('✅ Registro actualizado correctamente. Complete los campos restantes.');
                     }
                 } else {
-                    alert('✅ Registro actualizado correctamente.');
+                    Notification.success('✅ Registro actualizado correctamente.');
                 }
             } else {
-                alert(`❌ Error al actualizar el registro: ${result.message}`);
+                Notification.error(`❌ Error al actualizar el registro: ${result.message}`);
             }
         } catch (error: any) {
-            alert(`❌ Error al actualizar el registro: ${error.message}`);
+            Notification.error(`❌ Error al actualizar el registro: ${error.message}`);
         }
     };
 

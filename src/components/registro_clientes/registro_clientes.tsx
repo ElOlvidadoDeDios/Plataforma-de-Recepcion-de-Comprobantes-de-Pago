@@ -2,6 +2,7 @@ import { FileText, MapPin, User } from 'lucide-react';
 import { useState, useCallback, useMemo } from 'react';
 import Layout from '../Layout';
 import { useAuth } from '../../hooks/useAuth';
+import { useNotifications } from '../../hooks/useNotifications';
 
 import { DatosForm } from './regsitro_datos';
 import RegistroDireccion from './registro_direccion';
@@ -38,6 +39,8 @@ interface DatosDireccion {
 export default function PersonaForm() {
   const [activeTab, setActiveTab] = useState('datos');
   const { user } = useAuth();
+  // 📢 HOOK PARA NOTIFICACIONES PROFESIONALES
+  const notifications = useNotifications();
   
   // Estado para los datos básicos del cliente
   const [datosBasicos, setDatosBasicos] = useState<DatosBasicos>({
@@ -161,7 +164,10 @@ export default function PersonaForm() {
     } else if (datosBasicosCompletos) {
       setActiveTab(tab);
     } else {
-      alert('Debe completar los datos básicos (Número de cuenta, Apellidos y Nombres) antes de continuar.');
+      notifications.warning('Debe completar los datos básicos (Número de cuenta, Apellidos y Nombres) antes de continuar.', {
+        icon: '📝',
+        duration: 5000
+      });
     }
   };
 

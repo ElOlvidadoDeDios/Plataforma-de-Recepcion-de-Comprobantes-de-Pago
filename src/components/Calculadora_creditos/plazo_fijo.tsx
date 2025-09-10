@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { useNotifications } from "../../hooks/useNotifications";
+
+const Notification = useNotifications();
 
 type ProyeccionItem = {
     item: number | string;
@@ -69,7 +72,7 @@ export default function PlazoFijo() {
             setProyeccionIntereses(proyeccion);
             setInteresesFinal(interesesFinal);
         } catch (error) {
-            alert('Error al obtener la proyección de intereses');
+            Notification.error('Error al obtener la proyección de intereses');
         }
     };
 

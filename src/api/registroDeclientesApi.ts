@@ -1,9 +1,12 @@
 
 // API para gestionar datos de clientes
 import { useEffect, useState } from "react";
+import { useNotifications } from "../hooks/useNotifications";
 
 const API_BASE_URL =import.meta.env.VITE_API_BASE_URL_GEODILE;  // corregir
 const API_BASE_URL_TOKEN = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+
+const Notification = useNotifications();
 
 // Interfaces para los datos del API
 interface EstadoCivil {
@@ -177,14 +180,14 @@ export const saveCliente = async (clienteData: ClienteData) => {
         
         // Verificar si la respuesta es exitosa
         if (response.ok && (data === true || (data.status === true && data.inserted_id))) {
-            alert('✅ Datos guardados exitosamente');
+            Notification.success('✅ Datos guardados exitosamente');
         } else {
-            alert('❌ No se guardaron los datos, inténtelo de nuevo');
+            Notification.error('❌ No se guardaron los datos, inténtelo de nuevo');
         }
         
         return data;
     } catch (error) {
-        alert('❌ No se guardaron los datos, inténtelo de nuevo');
+        Notification.error('❌ No se guardaron los datos, inténtelo de nuevo');
         throw error;
     }
 }
@@ -461,17 +464,17 @@ export const saverDirecion = async (direccionData: saverDirecionData) => {
         // Verificar si la respuesta es exitosa
         if (response.ok && (data === true || (data.status === true && data.message))) {
             if (data.message) {
-                alert(`✅ ${data.message}`);
+                Notification.success(`✅ ${data.message}`);
             } else {
-                alert('✅ Datos guardados exitosamente');
+                Notification.success('✅ Datos guardados exitosamente');
             }
         } else {
-            alert('❌ No se guardaron los datos, inténtelo de nuevo');
+            Notification.error('❌ No se guardaron los datos, inténtelo de nuevo');
         }
         
         return data;
     } catch (error) {
-        alert('❌ No se guardaron los datos, inténtelo de nuevo');
+        Notification.error('❌ No se guardaron los datos, inténtelo de nuevo');
         throw error;
     }
 }
