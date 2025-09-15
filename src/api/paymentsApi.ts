@@ -2,7 +2,8 @@ import axios, { AxiosError } from 'axios';
 import { PaymentRecord } from '../types';
 import { APIError } from '../utils/error';
 import { SessionManager } from '../utils/sessionManager';
-
+const API_BASE_URL_GEO = import.meta.env.VITE_API_BASE_URL_GEODILE ;
+const URL_GEODILE_TOKEN = ` ${import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN}`;
 export interface PaymentHistoryRecord {
   email: string;
   dni_usuario: string;
@@ -527,42 +528,53 @@ export const getPaymentsByCreditoId = async (creditoId: string) => {
 
 
 // reporte de movimientos diarios
-export interface MovimientoPrestamoDiario   {
-    FECHA_MOV: string;
-    COD_AGENCIA: string;
-    COD_CAJA: string;
-    NRO_DOC: string;
-    CAPITAL: string;
-    INTERES: string;
-    MORA: string;
-    SEGURO: string;
-    PORTES: string;
-    DESGRAV: string;
-    APORTE: string;
-    TOTAL: string;
-    MONEDA: string;
-    TIPO_PAGO: string;
-    GLOSA: string
-  };
+export interface MovimientoPrestamoDiario {
+  FECHA_MOV: string;
+  COD_AGENCIA: string;
+  COD_CAJA: string;
+  NRO_DOC: string;
+  CAPITAL: string;
+  INTERES: string;
+  MORA: string;
+  SEGURO: string;
+  PORTES: string;
+  DESGRAV: string;
+  APORTE: string;
+  TOTAL: string;
+  MONEDA: string;
+  TIPO_PAGO: string;
+}
+
 export const getMovimientosDiarios = async (
   fecha: string,
   caja: string,
   agencia: string
-  ): Promise<MovimientoPrestamoDiario[]> => {
-    try {
-      const response = await axiosInstance.post('/api/diario_caja_x_dia', {
+): Promise<MovimientoPrestamoDiario[]> => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL_GEO}/api_app_dile_v1_1/api/diario_caja_x_dia`,
+      {
         fecha,
         caja,
-        agencia
-      });
-      return response.data;
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        throw new APIError(
-          'Error al obtener los movimientos diarios de caja',
-          error.response?.status
-        );
+        agencia,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `${URL_GEODILE_TOKEN}`,
+
+        },
       }
-      throw new APIError('Error al obtener los movimientos diarios de caja ');
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new APIError(
+        'Error al obtener los movimientos diarios de caja',
+        error.response?.status
+      );
     }
-  };
+    throw new APIError('Error al obtener los movimientos diarios de caja');
+  }
+};
