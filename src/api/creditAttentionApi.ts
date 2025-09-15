@@ -28,14 +28,16 @@ export interface CreditoMora {
 
 export interface GestionMoraData {
   ID_GESTION: string | null;
+  PERIODO: string | null;
   MOTIVO_RETRASO: string | null;
   COMPROMISO: string | null;
   FECHA_COMPROMISO: string | null;
+  ESTADO: string | null;
 }
 
 export interface ClienteMora {
   CREDITO_MORA: CreditoMora;
-  GESTION_MORA: GestionMoraData;
+  GESTION_MORA: GestionMoraData[];
 }
 
 // Interface para el registro de gestión de mora
@@ -67,9 +69,11 @@ export interface GestionMora1x1Request {
 export interface GestionMora1x1Response {
   GESTION_MORA: {
     ID_GESTION: string;
+    PERIODO: string;
     MOTIVO_RETRASO: string;
     COMPROMISO: string;
     FECHA_COMPROMISO: string;
+    ESTADO: string;
   };
 }
 

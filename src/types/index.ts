@@ -28,6 +28,7 @@ export interface PaymentRecord {
     motivo_rechazo?: string;
     _id?: string;
     nroOperacion?: string;
+    nro_banco?: string;
     tipoOperacion?: string;
     monto_pago?: number;
   }>;

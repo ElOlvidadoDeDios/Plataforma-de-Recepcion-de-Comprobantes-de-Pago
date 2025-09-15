@@ -29,6 +29,7 @@ export interface PaymentHistoryRecord {
       estado_nuevo: string;
       nroOperacion: string;
       tipoOperacion: string;
+      nro_banco: string;
       motivo_rechazo?: string;
       monto_pago: number;
       ruta_comprobante: string;
@@ -471,6 +472,7 @@ export const procesarComprobantesMasivo = async (data: {
       montoPago: string;
       nroOperacion: string;
       tipoOperacion: string;
+      nro_banco: string;
       estado: string;
       _id: string;
       motivo_rechazo?: string;

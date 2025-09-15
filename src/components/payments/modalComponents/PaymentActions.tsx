@@ -108,7 +108,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
     // Solo verificar que todos los vouchers pendientes tengan sus campos completos
     const pendingVouchers = paymentDetails.filter(detail => detail.estado === 'pendiente');
     const incompleteVouchers = pendingVouchers.filter(
-      voucher => !voucher.montoPago || !voucher.nroOperacion || !voucher.tipoOperacion
+      voucher => !voucher.montoPago || !voucher.nroOperacion || !voucher.nro_banco || !voucher.tipoOperacion
     );
 
     if (incompleteVouchers.length > 0) {

@@ -208,7 +208,7 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
     try {
       setSaving(true);
       
-      // 🚨 VALIDAR QUE LA SITUACION ESTÉ DEFINIDA (no null/undefined)
+      //  VALIDAR QUE LA SITUACION ESTÉ DEFINIDA (no null/undefined)
       if (!datosBasicos.SITUACION) {
         notifications.warning(
           `No se puede registrar la dirección.\n\nPrimero debe completar y guardar los datos básicos del socio.\n\nSituación actual: ${datosBasicos.SITUACION || 'No definida'}`,

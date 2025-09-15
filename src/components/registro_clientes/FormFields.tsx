@@ -638,7 +638,7 @@ export function mapResponseToPersonData(response: ResponseData, formData: Person
  * @param overrides - Campos específicos para sobrescribir los valores por defecto
  * @returns PersonData con valores iniciales
  */
-export function createInitialPersonData(overrides?: Partial<PersonData>): PersonData {
+export const createInitialPersonData = (overrides?: Partial<PersonData>): PersonData => {
   const initialData: PersonData = {
     NVA_CTA: '<AUTOMATICO>',
     AGE: '',
@@ -670,4 +670,4 @@ export function createInitialPersonData(overrides?: Partial<PersonData>): Person
   };
 
   return { ...initialData, ...overrides };
-}
+};

@@ -40,6 +40,7 @@ export interface PaymentDetailsModalProps {
         indice: number;
         montoPago: string;
         nroOperacion: string;
+        nro_banco: string;
         tipoOperacion: string;
         estado?: string;
         _id?: string;
@@ -54,6 +55,7 @@ export interface PaymentDetailsModalProps {
 export interface VoucherDetail {
   montoPago: string;
   nroOperacion: string;
+  nro_banco: string; // Ajustar a nro_banco para el backend
   tipoOperacion: string;
   estado: 'pendiente' | 'aceptado' | 'rechazado';
   imageIndex: number;

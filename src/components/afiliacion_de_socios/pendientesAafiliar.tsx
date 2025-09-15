@@ -81,6 +81,7 @@ export default function AfiliacionSociosComponent() {
   // Estados para el modal con datos completos
   const [selectedSocio, setSelectedSocio] = useState<SocioData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [nroBanco, setNroBanco] = useState(''); // Estado local para el número de banco
   const [loadingModal, setLoadingModal] = useState<string | null>(null); // Cambiar a string para identificar qué socio se está cargando
   // ✅ ESTADO PARA GUARDAR LOS TEXTOS DESCRIPTIVOS
   const [textosDescriptivos, setTextosDescriptivos] = useState<any>(null);
@@ -125,8 +126,22 @@ export default function AfiliacionSociosComponent() {
       try {
         setLoading(true);
         setError(null);
-        const data = await afiliacionAPI.sociospendientesAfiliar();
-        setSociosLista(data);
+        interface ApiResponse {
+          status?: boolean;
+          message?: string;
+          data?: AfiliacionSocios[];
+        }
+        
+        const data: ApiResponse | AfiliacionSocios[] = await afiliacionAPI.sociospendientesAfiliar();
+        if (Array.isArray(data)) {
+          setSociosLista(data);
+        } else if (data?.status === false) {
+          setError(data.message || 'No hay información disponible');
+          setSociosLista([]);
+        } else {
+          setError('Respuesta inesperada de la API');
+          setSociosLista([]);
+        }
       } catch (error) {
         setError('Error al cargar la lista de socios pendientes');
       } finally {
@@ -428,7 +443,8 @@ export default function AfiliacionSociosComponent() {
         NRO_DOC: selectedSocio.DATOS.NRO_DI,
         AGENCIA: user.agencias[0].agencia || "01", // Primera agencia del usuario
         COD_CAJA: user.agencias[0].cod_caja || "079", // Código de caja de la primera agencia
-        USER: user.user || user.dni || "USER" // Usuario desde AuthContext
+        USER: user.user || user.dni || "USER", // Usuario desde AuthContext
+        nro_banco: nroBanco // Agregar el número de banco al enviar los datos
       };
 
 
@@ -482,6 +498,11 @@ export default function AfiliacionSociosComponent() {
     return (
       <Layout title="Afiliación de Socios">
         <div className="p-4 bg-white shadow-md rounded-md">
+          {error && (
+            <div className="text-center text-yellow-600">
+              <p className="text-lg font-semibold">{error}</p>
+            </div>
+          )}
           <div className="text-center text-red-600">
             <p className="text-lg font-semibold">Error al cargar datos</p>
             <p className="text-sm">{error}</p>
@@ -502,63 +523,69 @@ export default function AfiliacionSociosComponent() {
       <div className="p-4 bg-white shadow-md rounded-md">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Gestión de Afiliación de Socios</h2>
         
-        <div className="overflow-x-auto shadow-lg rounded-lg">
-          <table className="min-w-full bg-white">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nro. DNI</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apellidos</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombres</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Edad</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">F. Pre-afiliación</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {sociosLista.map((socio) => (
-                <tr key={socio.DNI} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {socio.DNI}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {socio.APELLIDOS}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {socio.NOMBRES}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {socio.EDAD} años
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(socio.FECHA_PRE_AFI).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEstadoBadgeClass(socio.ESTADO)}`}>
-                      {socio.ESTADO}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleAfiliar(socio)}
-                      disabled={socio.ESTADO !== 'PRE_AFILIADO' || loadingModal === socio.DNI}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center"
-                    >
-                      {loadingModal === socio.DNI ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Cargando...
-                        </>
-                      ) : (
-                        'Revisar Afiliación'
-                      )}
-                    </button>
-                  </td>
+        {sociosLista.length === 0 ? (
+          <div className="text-center text-gray-600">
+            <p className="text-lg font-semibold">No hay socios pendientes de afiliación.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto shadow-lg rounded-lg">
+            <table className="min-w-full bg-white">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nro. DNI</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apellidos</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombres</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Edad</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">F. Pre-afiliación</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sociosLista.map((socio) => (
+                  <tr key={socio.DNI} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {socio.DNI}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {socio.APELLIDOS}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {socio.NOMBRES}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {socio.EDAD} años
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(socio.FECHA_PRE_AFI).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEstadoBadgeClass(socio.ESTADO)}`}>
+                        {socio.ESTADO}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleAfiliar(socio)}
+                        disabled={socio.ESTADO !== 'PRE_AFILIADO' || loadingModal === socio.DNI}
+                        className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center"
+                      >
+                        {loadingModal === socio.DNI ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Cargando...
+                          </>
+                        ) : (
+                          'Revisar Afiliación'
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Modal de Afiliación */}
         <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
@@ -842,27 +869,34 @@ export default function AfiliacionSociosComponent() {
 
               {/* Botones de Acción */}
               <div className="flex flex-col sm:flex-row gap-3 justify-end border-t pt-4">
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={procesandoAfiliacion}
-                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleAprobar}
-                  disabled={procesandoAfiliacion || !user?.agencias?.length}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {procesandoAfiliacion ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Procesando...
-                    </>
-                  ) : (
-                    'Aprobar Afiliación'
-                  )}
-                </button>
+                  <input
+                      type="text"
+                      placeholder="Número de Banco"
+                      value={nroBanco}
+                      onChange={(e) => setNroBanco(e.target.value)}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                      onClick={() => setIsModalOpen(false)}
+                      disabled={procesandoAfiliacion}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                      Cancelar
+                  </button>
+                  <button
+                      onClick={handleAprobar}
+                      disabled={procesandoAfiliacion || !user?.agencias?.length}
+                      className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                      {procesandoAfiliacion ? (
+                          <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              Procesando...
+                          </>
+                      ) : (
+                          'Aprobar Afiliación'
+                      )}
+                  </button>
               </div>
 
               {/* 🔍 INFO DE DEBUG PARA VER DATOS DEL USUARIO */}

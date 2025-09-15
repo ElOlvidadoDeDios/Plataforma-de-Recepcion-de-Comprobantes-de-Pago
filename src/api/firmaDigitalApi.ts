@@ -3,6 +3,7 @@
 interface GenerarContratoRequest {
   PAGARE: string;
   DNI: string;
+  TIPO_DOC: string;
 }
 
 interface VerificarDocumentoRequest {

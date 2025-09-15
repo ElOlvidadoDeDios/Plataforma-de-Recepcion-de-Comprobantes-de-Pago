@@ -103,7 +103,7 @@ export  const useComboBoxData = () => {
     const fetchComboData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/combo_box_insert`,
+        const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1_dev/api/combo_box_insert`,// modificar a qui 
           {
             method: 'GET',
             headers: {

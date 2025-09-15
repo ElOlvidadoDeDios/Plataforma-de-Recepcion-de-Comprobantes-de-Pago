@@ -197,6 +197,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
           indice: number;
           montoPago: string;
           nroOperacion: string;
+          nro_banco: string;
           tipoOperacion: string;
           estado?: string;
           _id?: string;

@@ -54,6 +54,7 @@ export const usePaymentDetailsState = (
                 details.push({
                   montoPago,
                   nroOperacion: comp.nroOperacion || '', // ✅ Precargar si ya existe
+                  nro_banco: comp.nro_banco || '', // ✅ Precargar si ya existe
                   tipoOperacion: comp.tipoOperacion || '', // ✅ Precargar si ya existe
                   estado: comp.estado,
                   imageIndex: idx,
@@ -92,6 +93,7 @@ export const usePaymentDetailsState = (
       return {
         montoPago,
         nroOperacion: comp.nroOperacion || '', // ✅ Precargar si ya existe
+        nro_banco: comp.nro_banco || '', // ✅ Precargar si ya existe
         tipoOperacion: comp.tipoOperacion || '', // ✅ Precargar si ya existe
         estado: comp.estado,
         imageIndex: idx,

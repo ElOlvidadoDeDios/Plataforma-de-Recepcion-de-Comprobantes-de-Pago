@@ -129,6 +129,7 @@ export const handleUpdateStatus = async (
             montoPago: detail.montoPago || '0',
             nroOperacion: detail.nroOperacion || '',
             tipoOperacion: detail.tipoOperacion || '',
+            nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
             estado: 'rechazado',
             _id: comp._id || '',
             motivo_rechazo: finalReason,
@@ -253,6 +254,7 @@ export const handleUpdateStatus = async (
           montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
+          nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
           estado: shouldReject ? 'rechazado' as const : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: shouldReject ? finalReason : detail.motivo_rechazo,
@@ -450,6 +452,7 @@ export const handlePartialAcceptStatus = async (
           montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
+          nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
           estado: shouldAccept ? 'aceptado' as const : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: shouldAccept ? '' : detail.motivo_rechazo,
@@ -652,6 +655,7 @@ export const handleAcceptStatus = async (
           montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
+          nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
           estado: detail.estado === 'pendiente' ? 'aceptado' : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: detail.estado === 'pendiente' ? '' : detail.motivo_rechazo,

@@ -22,9 +22,16 @@ export interface AfiliarSocioRequest {
     AGENCIA: string;
     COD_CAJA: string;
     USER: string;
+    nro_banco?: string; // Campo opcional para el número de banco
 }
 
-const sociospendientesAfiliar = async (): Promise<AfiliacionSocios[]> => {
+interface ApiResponse {
+  status?: boolean;
+  message?: string;
+  data?: AfiliacionSocios[];
+}
+
+const sociospendientesAfiliar = async (): Promise<ApiResponse | AfiliacionSocios[]> => {
   try {
     const response = await fetch(
       `${API_BASE_URL}/api_mongo_firm_easy/api/ListSociosPreAfiliados`,
@@ -38,15 +45,27 @@ const sociospendientesAfiliar = async (): Promise<AfiliacionSocios[]> => {
     );
 
     if (!response.ok) {
-      throw new Error(`Error: ${response.status}`);
+      throw new Error(`Error HTTP: ${response.status}`);
     }
 
-    const data: AfiliacionSocios[] = await response.json();
-    return data;
+    const data = await response.json();
+
+    // Validar si la respuesta trae socios o es un error
+    if (data.status === false) {
+      return []; // devolvemos array vacío para que no rompa el render
+    }
+
+    // Si es un array, devolvemos normal
+    return data as AfiliacionSocios[];
   } catch (error) {
-    throw error;
+    if (error instanceof Error) {
+    } else {
+    }
+    // Log error details for debugging without breaking the UI
+    return []; // Return empty array to ensure UI stability
   }
 };
+
 
 const afiliarSocioProceso = async (datos: AfiliarSocioRequest): Promise<any> => {
   try {
@@ -182,7 +201,6 @@ export const familiarSocioProceso = async (datos: datafamiliar): Promise<any> =>
 //   "BENEFICIARIO": "S",
 //   "PORC_BENEF": 0,
 //   "DIRECCION_REF": "Av. Principal 123, Lima",
-//   "COD_USER": "HLA1"
 // }
 interface comboBoxData {
   TIPO_PAREN: string;

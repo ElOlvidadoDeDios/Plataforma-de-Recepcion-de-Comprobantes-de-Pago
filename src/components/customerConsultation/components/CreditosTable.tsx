@@ -139,7 +139,8 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
   
           const response = await generarContrato({
               PAGARE: credito.ID_PRESTAMO,
-              DNI: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI
+              DNI: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
+              TIPO_DOC: clientData.INFO_SOCIO.DATOS_PERSONALES.TIPO_DOC
           });
 
       if (response.success) {
