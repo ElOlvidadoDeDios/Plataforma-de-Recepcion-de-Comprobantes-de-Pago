@@ -181,9 +181,7 @@ const ModalDetailsMora = ({
         CUENTA: cliente.CREDITO_MORA.CUENTA,
         PERIODO: periodo,
       };
-      console.log("Datos enviados a getGestionMora1x1:", gestionData);
       const response = await creditAttentionApi.getGestionMora1x1(gestionData);
-      console.log("Respuesta de getGestionMora1x1:", response);
       setGestionMoraActualizada(response.GESTION_MORA);
     } catch (error) {
       setGestionMoraActualizada(null);

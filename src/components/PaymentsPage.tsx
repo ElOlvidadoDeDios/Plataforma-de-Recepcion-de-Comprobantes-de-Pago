@@ -49,7 +49,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   const validations = React.useMemo(() => {
     const hasViewPermission = canViewPayments();
     const hasEditPermission = canEditPayments();
-    const isRoleBasedPaymentsUser = user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO;
+    const isRoleBasedPaymentsUser = user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO || user?.role === UserRole.JEFE_OPERACIONES;
     const hasAgencias = isRoleBasedPaymentsUser ? (user.agencias?.length ?? 0) > 0 : true;
     
     return {
@@ -65,17 +65,17 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
       // 🔧 Lógica corregida:
       // - Con solo VIEW: NUNCA requiere agencias (acceso directo)
       // - Con EDIT: SÍ requiere agencias para procesar
-      needsAgencySelection: hasEditPermission && isRoleBasedPaymentsUser && !hasAgencias,
+      needsAgencySelection: hasEditPermission && isRoleBasedPaymentsUser && !hasAgencias && user?.role !== UserRole.JEFE_OPERACIONES,
       canAccessWithoutAgency: hasViewPermission,
       
       // Estados de modo
-      isReadOnlyMode: hasViewPermission && !hasEditPermission,
+      isReadOnlyMode: hasViewPermission && !hasEditPermission || user?.role === UserRole.JEFE_OPERACIONES,
       isFullEditMode: hasEditPermission
     };
   }, [canViewPayments, canEditPayments, user]);
 
   // 🔧 Verificar permisos básicos
-  if (!validations.hasAnyPaymentPermission) {
+  if (!validations.hasAnyPaymentPermission && user?.role !== UserRole.JEFE_OPERACIONES) {
     return <Navigate to="/" replace />;
   }
 
@@ -284,14 +284,14 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     </p>
                   )}
                   {/* 🔧 Indicador de modo solo lectura */}
-                  {validations.isReadOnlyMode && (
+                  {validations.isReadOnlyMode && user?.role !== UserRole.JEFE_OPERACIONES && (
                     <div className="flex items-center gap-2 mt-2">
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        Modo Solo Lectura
+                        Modo Solo Lectura (JEFE_OPERACIONES)
                       </span>
                       <span className="text-xs text-gray-500">Puede ver pagos pero no procesarlos</span>
                     </div>
@@ -427,7 +427,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     )}
                     
                     {/* 🔧 Reportes: Solo mostrar si puede EDITAR (análisis avanzado) */}
-                    {validations.isFullEditMode && (
+                    {validations.isFullEditMode  && (
                       <button
                         onClick={() => setIsReporteModalOpen(true)}
                         className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"

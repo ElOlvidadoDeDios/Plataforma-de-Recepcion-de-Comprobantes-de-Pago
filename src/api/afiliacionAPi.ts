@@ -251,6 +251,66 @@ export const useComboBoxFamiliarOpcionesData = async (): Promise<FamiliarOpcione
 //     }
 //   ]
 // }
+export interface DatosAdicionalesAPI {
+  CUENTA: string;
+  TIEMPO_LABORANDO: number;
+  TUVO_CREDITOS: string;
+  TIENE_VEHICULO: string;
+  TIENE_CARGA_FAMILIAR: string;
+  NUMERO_HIJOS: number;
+  DETALLES_HIJO: {
+    EDAD_HIJO: number;
+    VIVE_CON_TITULAR: string;
+    NIVEL_ESTUDIO: string;
+    TIPO_INSTITUCION: string;
+    DONDE_ESTUDIA: string;
+  }[] | null;
+}
+export interface DatosAdicionalesResponse {
+  status: boolean;
+  message: string;
+  detalle: {
+    INSERT_SOCIO: {
+      status: boolean;
+      message: string;
+      detalle: string;
+    };
+    NUM_HIJOS_INSERT: number;
+    INSERT_HIJOS: {
+      status: boolean;
+      message: string;
+      detalle: string;
+    }[];
+  };
+}
+
+
+export const DatosAdicionales_insert = async (
+  data: DatosAdicionalesAPI
+): Promise<DatosAdicionalesResponse> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api_app_dile_v1_1/api/insertDatosAdicionales`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `${API_BASE_URL_TOKEN}`,
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+
+    const result: DatosAdicionalesResponse = await response.json();
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
 
 export default { sociospendientesAfiliar, afiliarSocioProceso, getImgSocio, useComboBoxFamiliarOpcionesData };
 

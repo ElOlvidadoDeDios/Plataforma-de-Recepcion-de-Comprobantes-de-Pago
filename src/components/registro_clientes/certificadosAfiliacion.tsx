@@ -322,8 +322,7 @@ export default function CertificadosAfiliacion({
             </div>
             <div className="p-1">
               <FormularioAdicional
-                onSubmit={(data) => {
-                  console.log('Datos del formulario:', data);
+                onSubmit={() => {
                   // Aquí puedes agregar la lógica para enviar los datos al backend
                   // Por ejemplo: await afiliacionApi.guardarInformacionAdicional(datosCertificado?.cliente?.DOC_IDEN, data);
                   alert('✅ Información guardada correctamente');

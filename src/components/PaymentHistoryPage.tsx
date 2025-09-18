@@ -354,7 +354,7 @@ const PaymentHistoryPage: React.FC = () => {
   const esSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
   const esUserPayment = user?.role === UserRole.CAJERO;
   
-  const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
+  const [startDate, setStartDate] = useState(format(subDays(new Date(), 0), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRegistro, setSelectedRegistro] = useState<PaymentHistoryRecord | null>(null);

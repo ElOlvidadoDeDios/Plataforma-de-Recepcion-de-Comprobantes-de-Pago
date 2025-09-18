@@ -553,16 +553,16 @@ export const DatosForm = memo(
               </div>
               <div className="flex-1 min-w-[120px]">
                 <label className="block text-sm md:text-base font-medium mb-1">Fecha Ingreso</label>
-                <input
-                  type="text"
-                  value={new Date(formData.FECHA_APERT).toLocaleDateString('es-PE', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                  })}
-                  className="bg-white text-black rounded px-3 py-1 w-full text-sm md:text-base"
-                  readOnly
-                />
+                  <input
+                    type="text"
+                    value={new Date(formData.FECHA_APERT + "T00:00:00-05:00").toLocaleDateString('es-PE', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    })}
+                    className="bg-white text-black rounded px-3 py-1 w-full text-sm md:text-base"
+                    readOnly
+                  />
               </div>
               <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 flex-wrap">
                 <div className="flex items-center gap-2">

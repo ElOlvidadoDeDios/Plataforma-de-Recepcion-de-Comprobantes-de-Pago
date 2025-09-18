@@ -58,6 +58,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
 }) => {
   const [showTotalRejectModal, setShowTotalRejectModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [processing, setProcessing] = useState(false); // Estado para evitar múltiples clics
 
   // Función para validar datos obligatorios
   const validateRequiredData = (): string | null => {
@@ -98,6 +99,8 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   }
 
   const handleRejectAll = () => {
+    if (processing || isLoading) return; // Evitar múltiples clics
+
     // VALIDAR DATOS OBLIGATORIOS PRIMERO
     const validationError = validateRequiredData();
     if (validationError) {
@@ -125,6 +128,8 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   };
 
   const handleTotalReject = () => {
+    if (processing || isLoading) return; // Evitar múltiples clics
+
     const finalReason = selectedRejectReason === "Otro (especificar)"
       ? customReason.trim()
       : selectedRejectReason.trim();
@@ -137,6 +142,53 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
     
     setShowTotalRejectModal(false);
   };
+
+  const handleAcceptStatus = async () => {
+    if (processing || isLoading) return; // Evitar múltiples clics
+
+    setProcessing(true);
+    setErrorMessage('');
+    
+    try {
+      await onAcceptStatus();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Error al procesar la aceptación');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleConfirmReject = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (processing || isLoading) return; // Evitar múltiples clics
+
+    if (!selectedRejectReason) {
+      setErrorMessage('Debe seleccionar un motivo de rechazo');
+      return;
+    }
+    if (selectedRejectReason === "Otro (especificar)" && !customReason.trim()) {
+      setErrorMessage('Debe especificar el motivo del rechazo');
+      return;
+    }
+
+    setProcessing(true);
+    
+    const finalReason = selectedRejectReason === "Otro (especificar)"
+      ? customReason.trim()
+      : selectedRejectReason.trim();
+
+    setErrorMessage('');
+    onUpdateStatus('rechazado', {
+      montoTotal: '0',
+      vouchers: [],
+      motivo_rechazo: finalReason
+    }, 0);
+    
+    setProcessing(false);
+  };
+
+  const isDisabled = isLoading || processing;
 
   return (
     <>
@@ -157,29 +209,22 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
           </div>
           <div className="flex gap-1 sm:gap-2">
             <button
-              onClick={async () => {
-                setErrorMessage('');
-                try {
-                  await onAcceptStatus();
-                } catch (error) {
-                  setErrorMessage(error instanceof Error ? error.message : 'Error al procesar la aceptación');
-                }
-              }}
+              onClick={handleAcceptStatus}
               className={`bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-green-600 transition-colors ${
-                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                isDisabled ? 'opacity-50 cursor-not-allowed' : ''
               }`}
-              disabled={isLoading}
+              disabled={isDisabled}
             >
-              {isLoading ? 'Procesando...' : totalPayments > 1 ? `Aceptar (${totalPayments})` : 'Aceptar'}
+              {isDisabled ? 'Procesando...' : totalPayments > 1 ? `Aceptar (${totalPayments})` : 'Aceptar'}
             </button>
             <button
               onClick={handleRejectAll}
               className={`bg-red-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-red-600 transition-colors ${
-                isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                isDisabled ? 'opacity-50 cursor-not-allowed' : ''
               }`}
-              disabled={isLoading}
+              disabled={isDisabled}
             >
-              {isLoading ? 'Procesando...' : 'Rechazar Todo'}
+              {isDisabled ? 'Procesando...' : 'Rechazar Todo'}
             </button>
           </div>
         </div>
@@ -211,7 +256,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
                   value={selectedRejectReason}
                   onChange={(e) => setSelectedRejectReason(e.target.value)}
                   className="w-full rounded-md border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 bg-white"
-                  disabled={isLoading}
+                  disabled={isDisabled}
                 >
                   <option value="">Seleccione un motivo</option>
                   {[
@@ -230,48 +275,27 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
                     placeholder="Especifique el motivo del rechazo"
                     className="w-full rounded-md border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 resize-none"
                     rows={3}
-                    disabled={isLoading}
+                    disabled={isDisabled}
                   />
                 )}
                 <div className="flex justify-end gap-3 mt-6">
                   <button
                     onClick={onCloseModal}
                     className={`px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 ${
-                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      isDisabled ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
-                    disabled={isLoading}
+                    disabled={isDisabled}
                   >
                     Cancelar
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (!selectedRejectReason) {
-                        setErrorMessage('Debe seleccionar un motivo de rechazo');
-                        return;
-                      }
-                      if (selectedRejectReason === "Otro (especificar)" && !customReason.trim()) {
-                        setErrorMessage('Debe especificar el motivo del rechazo');
-                        return;
-                      }
-
-                      const finalReason = selectedRejectReason === "Otro (especificar)"
-                        ? customReason.trim()
-                        : selectedRejectReason.trim();
-
-                      setErrorMessage('');
-                      onUpdateStatus('rechazado', {
-                        montoTotal: '0',
-                        vouchers: [],
-                        motivo_rechazo: finalReason
-                      }, 0);
-                    }}
+                    onClick={handleConfirmReject}
                     className={`px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 ${
-                      isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                      isDisabled ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
-                    disabled={isLoading}
+                    disabled={isDisabled}
                   >
-                    {isLoading ? 'Procesando...' : 'Confirmar Rechazo'}
+                    {isDisabled ? 'Procesando...' : 'Confirmar Rechazo'}
                   </button>
                 </div>
               </div>
@@ -283,7 +307,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
       {showTotalRejectModal && (
         <TotalRejectModal
           showModal={true}
-          isLoading={isLoading}
+          isLoading={isDisabled}
           selectedReason={selectedRejectReason}
           customReason={customReason}
           onClose={() => setShowTotalRejectModal(false)}

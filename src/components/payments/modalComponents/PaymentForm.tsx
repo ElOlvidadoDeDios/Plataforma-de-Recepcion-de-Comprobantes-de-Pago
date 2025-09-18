@@ -45,6 +45,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   agenciaCode
 }) => {
   const [errorMessage, setErrorMessage] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Función para validar datos obligatorios
   const validateRequiredData = (): string | null => {
@@ -73,6 +74,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
 
     return null;
   };
+
   return (
     <div className="w-full h-full rounded-lg flex flex-col p-2 pt-8 space-y-6 overflow-y-auto">
       {vouchers.map((voucher, index) => (
@@ -84,16 +86,21 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               {onAcceptVoucher && (
                 <button
                   onClick={async () => {
+                    if (loading) return; // SIMPLE: Evitar múltiples clics
+                    setLoading(true);
+
                     // VALIDAR DATOS OBLIGATORIOS PRIMERO
                     const validationError = validateRequiredData();
                     if (validationError) {
                       setErrorMessage(validationError);
+                      setLoading(false);
                       return;
                     }
 
                     const currentVoucher = vouchers[index];
                     if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion) {
                       setErrorMessage('Debe completar todos los datos del comprobante antes de aceptarlo');
+                      setLoading(false);
                       return;
                     }
                     
@@ -102,18 +109,29 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                       await onAcceptVoucher?.(index);
                     } catch (error: any) {
                       setErrorMessage(error.message || 'Error al procesar la aceptación parcial');
+                    } finally {
+                      setLoading(false);
                     }
                   }}
-                  className="text-green-500 hover:text-green-700 flex items-center gap-1"
+                  disabled={loading} // Deshabilitar cuando está cargando
+                  className={`text-green-500 hover:text-green-700 flex items-center gap-1 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                   title="Aceptar solo este comprobante"
                 >
-                  <span className="text-xs bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded font-medium transition-colors">Aceptar parcial</span>
+                  <span className={`text-xs px-2 py-1 rounded font-medium transition-colors ${
+                    loading 
+                      ? 'bg-gray-400 text-white cursor-not-allowed' 
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}>
+                    {loading ? 'Procesando...' : 'Aceptar parcial'}
+                  </span>
                 </button>
               )}
               
               {/* Botón Rechazar Parcial */}
               <button
                 onClick={() => {
+                  if (loading) return; // SIMPLE: Evitar múltiples clics
+
                   // VALIDAR DATOS OBLIGATORIOS PRIMERO
                   const validationError = validateRequiredData();
                   if (validationError) {
@@ -129,10 +147,17 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                   setErrorMessage('');
                   onRejectVoucher(index);
                 }}
-                className="text-red-500 hover:text-red-700 flex items-center gap-1"
+                disabled={loading} // Deshabilitar cuando está cargando
+                className={`text-red-500 hover:text-red-700 flex items-center gap-1 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 title="Rechazar solo este comprobante"
               >
-                <span className="text-xs bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded font-medium transition-colors">Rechazo parcial</span>
+                <span className={`text-xs px-2 py-1 rounded font-medium transition-colors ${
+                  loading 
+                    ? 'bg-gray-400 text-white cursor-not-allowed' 
+                    : 'bg-red-500 hover:bg-red-600 text-white'
+                }`}>
+                  {loading ? 'Procesando...' : 'Rechazo parcial'}
+                </span>
               </button>
             </div>
           )}

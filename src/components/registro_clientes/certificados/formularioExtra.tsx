@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { DatosAdicionales_insert, DatosAdicionalesAPI } from '../../../api/afiliacionAPi';
 
-// Interfaces para datos básicos del usuario (igual que en familiares)
+
+// Interfaces para datos básicos del usuario
 interface DatosBasicos {
   NVA_CTA: string;
   APE_PAT: string;
@@ -26,6 +28,8 @@ interface FormData {
   tieneVehiculo: string;
 }
 
+
+
 interface FormularioAdicionalProps {
   onSubmit?: (data: FormData) => void;
   onCancel?: () => void;
@@ -45,6 +49,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleInputChange = (field: keyof FormData, value: any) => {
     setFormData(prev => ({
@@ -135,17 +140,86 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Función para transformar los datos al formato del API
+  const transformDataForAPI = (data: FormData): DatosAdicionalesAPI => {
+    // Mapear valores de creditos
+    const creditosMap: Record<string, string> = {
+      'formal': 'FORMAL',
+      'informal': 'INFORMAL',
+      'ninguno': 'NINGUNO'
+    };
+
+    // Mapear valores de nivel de estudios
+    const nivelMap: Record<string, string> = {
+      'inicial': 'INICIAL',
+      'primaria': 'PRIMARIA',
+      'secundaria': 'SECUNDARIA',
+      'universidad': 'UNIVERSIDAD'
+    };
+
+    // Mapear valores de tipo de institución
+    const institucionMap: Record<string, string> = {
+      'publica': 'PUBLICO',
+      'privada': 'PRIVADO'
+    };
+
+    // Transformar datos básicos
+    const apiData: DatosAdicionalesAPI = {
+      CUENTA: datosBasicos.NVA_CTA,
+      TIEMPO_LABORANDO: data.tiempo,
+      TUVO_CREDITOS: creditosMap[data.creditos] || data.creditos.toUpperCase(),
+      TIENE_VEHICULO: data.tieneVehiculo === 'si' ? 'S' : 'N',
+      TIENE_CARGA_FAMILIAR: data.cargaFamiliar === 'si' ? 'S' : 'N',
+      NUMERO_HIJOS: data.numHijos,
+      DETALLES_HIJO: null
+    };
+
+    // Si tiene hijos, agregar los detalles
+    if (data.cargaFamiliar === 'si' && data.numHijos > 0 && data.hijos.length > 0) {
+      apiData.DETALLES_HIJO = data.hijos.map(hijo => ({
+        EDAD_HIJO: hijo.edad,
+        VIVE_CON_TITULAR: hijo.vive === 'si' ? 'S' : 'N',
+        NIVEL_ESTUDIO: nivelMap[hijo.nivel] || hijo.nivel.toUpperCase(),
+        TIPO_INSTITUCION: institucionMap[hijo.institucion] || hijo.institucion.toUpperCase(),
+        DONDE_ESTUDIA: hijo.dondeEstudia.toUpperCase()
+      }));
+    }
+
+    return apiData;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (validateForm()) {
-      onSubmit?.(formData);
+      setIsSubmitting(true);
+      
+      try {
+        // Transformar datos al formato del API
+        const apiData = transformDataForAPI(formData);
+        
+        // Enviar al API usando la función importada
+        const result = await DatosAdicionales_insert(apiData);
+
+        if (result.status) {
+          onSubmit?.(formData);
+        } else {
+          setErrors((prev) => ({
+            ...prev,
+            apiError: result.message || 'Error desconocido al guardar los datos',
+          }));
+        }
+      } catch (error) {
+        alert('❌ Error inesperado al procesar los datos');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 md:p-6 bg-white">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 md:p-6 rounded-lg mb-6">
+    <div className="w-full mx-auto p-4 md:p-6 bg-cyan-50">
+      <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-4 md:p-6 rounded-lg mb-6">
         <div className="mb-4">
           <p className="text-sm md:text-base">
             <strong>Cuenta:</strong> {datosBasicos.NVA_CTA}
@@ -172,7 +246,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
             type="number"
             min="0"
             value={formData.tiempo || ''}
-            disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+            disabled={!puedeEditar || isSubmitting}
             onChange={(e) => handleInputChange('tiempo', parseInt(e.target.value) || 0)}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
               errors.tiempo ? 'border-red-500' : 'border-gray-300'
@@ -192,7 +266,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
           <select
             value={formData.creditos}
             onChange={(e) => handleInputChange('creditos', e.target.value)}
-            disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+            disabled={!puedeEditar || isSubmitting}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
               errors.creditos ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -210,12 +284,12 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
         {/* Vehículo */}
         <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
           <label className="block text-sm md:text-base font-semibold text-orange-800 mb-2">
-            🚗 ¿Tiene vehículo?
+            🚗 ¿Tiene vehículo propio?
           </label>
           <select
             value={formData.tieneVehiculo}
             onChange={(e) => handleInputChange('tieneVehiculo', e.target.value)}
-            disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+            disabled={!puedeEditar || isSubmitting}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
               errors.tieneVehiculo ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -237,7 +311,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
           <select
             value={formData.cargaFamiliar}
             onChange={(e) => handleInputChange('cargaFamiliar', e.target.value)}
-            disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+            disabled={!puedeEditar || isSubmitting}
             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
               errors.cargaFamiliar ? 'border-red-500' : 'border-gray-300'
             }`}
@@ -261,11 +335,13 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
                 min="0"
                 max="20"
                 value={formData.numHijos || ''}
+                disabled={!puedeEditar || isSubmitting}
                 onChange={(e) => {
                   const num = parseInt(e.target.value) || 0;
                   handleInputChange('numHijos', num);
-                  // Deshabilitar si no es AFILIADO
-                  handleHijosChange(num);
+                  if (!isSubmitting && puedeEditar) {
+                    handleHijosChange(num);
+                  }
                 }}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                   errors.numHijos ? 'border-red-500' : 'border-gray-300'
@@ -301,7 +377,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
                       min="0"
                       value={hijo.edad || ''}
                       onChange={(e) => handleHijoChange(index, 'edad', parseInt(e.target.value) || 0)}
-                      disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+                      disabled={!puedeEditar || isSubmitting}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                         errors[`hijo_${index}_edad`] ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -318,7 +394,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
                     <select
                       value={hijo.vive}
                       onChange={(e) => handleHijoChange(index, 'vive', e.target.value)}
-                      disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+                      disabled={!puedeEditar || isSubmitting}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                         errors[`hijo_${index}_vive`] ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -339,7 +415,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
                     <select
                       value={hijo.nivel}
                       onChange={(e) => handleHijoChange(index, 'nivel', e.target.value)}
-                      disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+                      disabled={!puedeEditar || isSubmitting}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                         errors[`hijo_${index}_nivel`] ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -362,7 +438,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
                     <select
                       value={hijo.institucion}
                       onChange={(e) => handleHijoChange(index, 'institucion', e.target.value)}
-                      disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+                      disabled={!puedeEditar || isSubmitting}
                       className={`w-full px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 border rounded-lg ${
                         errors[`hijo_${index}_institucion`] ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -384,7 +460,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
                       type="text"
                       value={hijo.dondeEstudia}
                       onChange={(e) => handleHijoChange(index, 'dondeEstudia', e.target.value)}
-                      disabled={!puedeEditar} // Deshabilitar si no es AFILIADO
+                      disabled={!puedeEditar || isSubmitting}
                       className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
                         errors[`hijo_${index}_dondeEstudia`] ? 'border-red-500' : 'border-gray-300'
                       }`}
@@ -405,20 +481,32 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
           <button
             type="button"
             onClick={onCancel}
-            className="w-full sm:w-auto px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition duration-200 font-medium"
+            disabled={isSubmitting}
+            className={`w-full sm:w-auto px-6 py-3 rounded-lg transition duration-200 font-medium ${
+              isSubmitting 
+                ? 'bg-gray-400 text-gray-700 cursor-not-allowed' 
+                : 'bg-gray-500 text-white hover:bg-gray-600'
+            }`}
           >
             ❌ Cancelar
           </button>
           <button
             type="submit"
+            disabled={!puedeEditar || isSubmitting}
             className={`w-full sm:w-auto px-6 py-3 rounded-lg transition duration-200 font-medium ${
-              puedeEditar
+              puedeEditar && !isSubmitting
                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700'
                 : 'bg-gray-400 text-gray-700 cursor-not-allowed'
             }`}
-            disabled={!puedeEditar} // Desactivar si no es AFILIADO
           >
-            💾 Guardar Información
+            {isSubmitting ? (
+              <>
+                <span className="inline-block animate-spin mr-2">⏳</span>
+                Guardando...
+              </>
+            ) : (
+              '💾 Guardar Información'
+            )}
           </button>
         </div>
       </form>
