@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, usePermissions } from '../../../hooks/useAuth';
 import { updateUserRole, updateUserStatus } from '../../../api';
 import toast from 'react-hot-toast';
+//import { User } from 'lucide-react';
 
 export const useUserManagement = () => {
   const navigate = useNavigate();
@@ -85,7 +86,8 @@ export const useUserManagement = () => {
       UserRole.GERENTE_GENERAL,
       UserRole.JEFE_OPERACIONES,
       UserRole.BASIC_USER,
-      UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+      UserRole.ANALISTA_CREDITOS_PAGO_DIARIO,
+      UserRole.RECAUDADOR
     ];
     if (isSuperAdmin) {
       return [UserRole.SUPER_ADMIN, ...baseRoles];
@@ -116,19 +118,22 @@ export const useUserManagement = () => {
       targetUser.role !== UserRole.GERENTE_GENERAL &&
       targetUser.role !== UserRole.JEFE_OPERACIONES &&
       targetUser.role !== UserRole.SUPER_ADMIN && 
-      targetUser.role !== UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+      targetUser.role !== UserRole.ANALISTA_CREDITOS_PAGO_DIARIO &&
+      targetUser.role !== UserRole.RECAUDADOR
     ) {
       return false;
     }
     
-    if (user?.id === targetUser._id) {
+    if (user?._id === targetUser._id) {
       return (
         targetUser.role === UserRole.CAJERO ||
         targetUser.role === UserRole.ADMINISTRADOR ||
         targetUser.role === UserRole.GERENTE_GENERAL ||
         targetUser.role === UserRole.JEFE_OPERACIONES ||
         targetUser.role === UserRole.SUPER_ADMIN ||
-        targetUser.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+        targetUser.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ||
+        targetUser.role === UserRole.RECAUDADOR
+
       );
     }
     

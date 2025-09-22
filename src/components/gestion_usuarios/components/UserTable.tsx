@@ -58,6 +58,7 @@ const UserTable: React.FC<UserTableProps> = ({
       [UserRole.SUPER_ADMIN]: { color: 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border-purple-200', icon: '👑' },
       [UserRole.ADMINISTRADOR]: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '🛡️' },
       [UserRole.CAJERO]: { color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: '💰' },
+      [UserRole.RECAUDADOR]: { color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '💵' },
       [UserRole.ANALISTA_CREDITOS_I]: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: '📊' },
       [UserRole.GERENTE_GENERAL]: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: '🎯' },
       [UserRole.JEFE_OPERACIONES]: { color: 'bg-teal-100 text-teal-700 border-teal-200', icon: '⚡' },
@@ -69,6 +70,7 @@ const UserTable: React.FC<UserTableProps> = ({
       [UserRole.SUPER_ADMIN]: 'Super Admin',
       [UserRole.ADMINISTRADOR]: 'Administrador de agencia',
       [UserRole.CAJERO]: 'Cajero',
+      [UserRole.RECAUDADOR]: 'Recaudador',
       [UserRole.ANALISTA_CREDITOS_I]: 'Analista de Créditos I',
       [UserRole.GERENTE_GENERAL]: 'Gerente General',
       [UserRole.JEFE_OPERACIONES]: 'Jefe de Operaciones',
@@ -183,6 +185,7 @@ const UserTable: React.FC<UserTableProps> = ({
 
                         return (
                           user.role === UserRole.CAJERO ||
+                          user.role === UserRole.RECAUDADOR ||
                           user.role === UserRole.ADMINISTRADOR ||
                           user.role === UserRole.GERENTE_GENERAL ||
                           user.role === UserRole.JEFE_OPERACIONES ||
@@ -282,11 +285,13 @@ const UserTable: React.FC<UserTableProps> = ({
                               {role === UserRole.SUPER_ADMIN ? '👑 Super Admin' :
                                role === UserRole.ADMINISTRADOR ? '🛡️ Administrador de agencia' :
                                role === UserRole.CAJERO ? '💰 Cajero' :
+                               role === UserRole.RECAUDADOR ? '💵 Recaudador' :
                                role === UserRole.ANALISTA_CREDITOS_I ? '📊 Analista de Créditos I' :
                                role === UserRole.GERENTE_GENERAL ? '👑 Gerente General' :
                                role === UserRole.JEFE_OPERACIONES ? '⚡ Jefe de Operaciones' :
                                role === UserRole.BASIC_USER ? '👤 Usuario Básico' :
                                role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? '📊 Analista de Créditos PagoDíario' :
+                               
                                ''}
                             </option>
                           ))}

@@ -125,6 +125,11 @@ export function useCombinedPermissions() {
     canEditAffiliationSocios: () => hasPermission(Permission.AFFILIATION_SOCIOS_EDIT),
     canViewAffiliationSocios: () => hasPermission(Permission.AFFILIATION_SOCIOS_VIEW),
 
+    // pago recaudadores
+    canAccessPagoRecaudadores: () => hasPermission(Permission.PAGO_RECAUDADORES_VIEW),
+    canEditPagoRecaudadores: () => hasPermission(Permission.PAGO_RECAUDADORES_EDIT),
+    canViewPagoRecaudadores: () => hasPermission(Permission.PAGO_RECAUDADORES_VIEW),
+
     // Método para verificar si es usuario básico
     isBasicUser: () => {
       if (!user || !user.role) return true;

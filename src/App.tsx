@@ -25,6 +25,7 @@ import RegistroClientes from './components/registro_clientes/registro_clientes';
 import CalculadoraCreditos from './components/Calculadora_creditos/cal_creditos';
 import GeodilePage from './components/Geodile/GeodilePage';
 import AfiliacionSocios from './components/afiliacion_de_socios/pendientesAafiliar';
+import ConsultaCuotasSocios from './components/pagos_recaudadores/pagosRecaudadores';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -209,6 +210,16 @@ function App() {
                   <ProtectedRoute>
                     <PermissionProtectedRoute permission="canAccessAffiliationSocios">
                       <AfiliacionSocios />
+                    </PermissionProtectedRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pago-recaudadores"
+                element={
+                  <ProtectedRoute>
+                    <PermissionProtectedRoute permission="canAccessPagoRecaudadores">
+                      <ConsultaCuotasSocios />
                     </PermissionProtectedRoute>
                   </ProtectedRoute>
                 }

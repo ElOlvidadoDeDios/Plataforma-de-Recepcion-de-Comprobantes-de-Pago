@@ -114,6 +114,7 @@ const UserCardList: React.FC<UserCardListProps> = ({
                   );
                   return (
                     user.role === UserRole.CAJERO ||
+                    user.role === UserRole.RECAUDADOR ||
                     user.role === UserRole.ADMINISTRADOR ||
                     user.role === UserRole.GERENTE_GENERAL ||
                     user.role === UserRole.JEFE_OPERACIONES ||
@@ -180,6 +181,7 @@ const UserCardList: React.FC<UserCardListProps> = ({
                               {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
                                role === UserRole.ADMINISTRADOR ? 'Administrador de agencia' :
                                role === UserRole.CAJERO ? 'Cajero' :
+                               role === UserRole.RECAUDADOR ? 'Recaudador' :
                                role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
                                role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
                                role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
@@ -200,6 +202,7 @@ const UserCardList: React.FC<UserCardListProps> = ({
                         {user.role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
                          user.role === UserRole.ADMINISTRADOR ? 'Administrador' :
                          user.role === UserRole.CAJERO ? 'Cajero' :
+                         user.role === UserRole.RECAUDADOR ? 'Recaudador' :
                          user.role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
                          user.role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
                          user.role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :

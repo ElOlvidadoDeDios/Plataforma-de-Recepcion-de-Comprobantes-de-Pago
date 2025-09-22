@@ -414,7 +414,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                   {/* Botones de acción - Distribuidos mejor en pantallas grandes */}
                   <div className="flex flex-col sm:flex-row lg:flex-row gap-3 lg:flex-shrink-0">
                     {/* 🔧 Botón Historial: Solo mostrar si puede EDITAR (usuarios con EDIT pueden ver historial procesado) */}
-                    {validations.isFullEditMode && (
+                    {(validations.isFullEditMode || validations.isReadOnlyMode) && (
                       <button
                         onClick={() => navigate('/payments/history')}
                         className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"
@@ -427,7 +427,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     )}
                     
                     {/* 🔧 Reportes: Solo mostrar si puede EDITAR (análisis avanzado) */}
-                    {validations.isFullEditMode  && (
+                    {(validations.isFullEditMode || validations.isReadOnlyMode) && (
                       <button
                         onClick={() => setIsReporteModalOpen(true)}
                         className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 sm:px-5 py-3 sm:py-2.5 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-sm font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 min-h-[44px] sm:min-h-[40px] lg:whitespace-nowrap"

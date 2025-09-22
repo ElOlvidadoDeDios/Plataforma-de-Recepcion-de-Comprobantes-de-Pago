@@ -49,6 +49,8 @@ export interface GestionMoraRequest {
   COMPROMISO: string;
   FECHA_COMPROMISO: string;
   REGISTRADOR: string;
+  NOMBRE_A: string;
+  AGENCIA: string;
 }
 
 // Interface para la respuesta del registro de gestión de mora

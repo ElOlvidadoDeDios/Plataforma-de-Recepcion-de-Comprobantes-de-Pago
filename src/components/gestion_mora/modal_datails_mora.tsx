@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { creditAttentionApi, ClienteMora, GestionMora1x1Request } from '../../api';
+import { AGENCIAS } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useNotifications } from '../../hooks/useNotifications';
 
@@ -95,6 +96,8 @@ const ModalDetailsMora = ({
         COMPROMISO: compromiso.trim(),
         FECHA_COMPROMISO: fechaCompromiso,
         REGISTRADOR: user.dni,
+        NOMBRE_A: user.razon?.replace(/,/g, '') || '' ,
+        AGENCIA: Object.keys(AGENCIAS).find((key) => AGENCIAS[key as keyof typeof AGENCIAS] === user.id_age) || user.id_age || ''
       };
 
       const response = await creditAttentionApi.saveGestionMora(gestionData);

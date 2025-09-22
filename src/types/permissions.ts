@@ -52,6 +52,10 @@ export enum Permission {
   // === AFILIACIÓN DE SOCIOS ===
   AFFILIATION_SOCIOS_VIEW = 'affiliation_socios:view',
   AFFILIATION_SOCIOS_EDIT = 'affiliation_socios:edit',
+
+  // === PAGO RECAUDADORES ===
+  PAGO_RECAUDADORES_VIEW = 'pago_recaudadores:view',
+  PAGO_RECAUDADORES_EDIT = 'pago_recaudadores:edit',
 }
 
 export enum UserRole {
@@ -118,6 +122,10 @@ export const PermissionCategories = {
     Permission.AFFILIATION_SOCIOS_VIEW,   // Solo ver
     Permission.AFFILIATION_SOCIOS_EDIT,   // Editar (incluye gestionar, etc.)
   ],
+  'Pago Recaudadores': [
+    Permission.PAGO_RECAUDADORES_VIEW,   // Solo ver
+    Permission.PAGO_RECAUDADORES_EDIT,   // Editar (incluye gestionar, etc.)
+  ],
 
 };
 
@@ -172,6 +180,10 @@ export const PermissionLabels: Record<Permission, string> = {
   // Afiliación de Socios
   [Permission.AFFILIATION_SOCIOS_VIEW]: '📊 Ver Afiliación de Socios',
   [Permission.AFFILIATION_SOCIOS_EDIT]: '⚙️ Gestionar Afiliación de Socios',
+
+  // Pago Recaudadores
+  [Permission.PAGO_RECAUDADORES_VIEW]: '📊 Ver Pago Recaudadores',
+  [Permission.PAGO_RECAUDADORES_EDIT]: '⚙️ Gestionar Pago Recaudadores',
 };
 
 /**
@@ -191,6 +203,7 @@ export const LegacyPermissionMapping: Record<string, Permission[]> = {
   'canAccessCalculadoraCreditos': [Permission.CALCULATOR_VIEW, Permission.CALCULATOR_EDIT],
   'canAccessGeodile': [Permission.GEODILE_VIEW, Permission.GEODILE_EDIT],
   'canAccessReports': [Permission.INSTALLMENTS_VIEW, Permission.INSTALLMENTS_EDIT], // Reportes van con cuotas
+  'canAccessPagoRecaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
   'canAssignRoles': [Permission.USERS_EDIT],
   'canDeleteAccounts': [Permission.USERS_EDIT],
   'canBlockEmails': [Permission.USERS_EDIT],

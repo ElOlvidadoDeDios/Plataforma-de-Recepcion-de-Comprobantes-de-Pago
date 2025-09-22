@@ -43,5 +43,7 @@ export function usePermissions() {
     canDeleteAccounts: () => combinedPermissions.canDeleteAccounts(),
     canBlockEmails: () => combinedPermissions.canBlockEmails(),
     canAccessGeodile: () => combinedPermissions.canAccessGeodile(),
+    canAccessAffiliationSocios: () => combinedPermissions.canAccessAffiliationSocios(),
+    canAccessPagoRecaudadores: () => combinedPermissions.canAccessPagoRecaudadores(),
   };
 }

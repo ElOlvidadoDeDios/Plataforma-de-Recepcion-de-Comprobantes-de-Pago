@@ -44,6 +44,8 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         [Permission.GEODILE_EDIT]: '⚙️ Gestionar Ubicación',
         [Permission.AFFILIATION_SOCIOS_VIEW]: '📊 Ver Reporte de Afiliación',
         [Permission.AFFILIATION_SOCIOS_EDIT]: '⚙️ Gestionar Reporte de Afiliación',
+        [Permission.PAGO_RECAUDADORES_EDIT]: '⚙️ Gestionar Pagos Recaudadores',
+        [Permission.PAGO_RECAUDADORES_VIEW]: '📊 Ver Pagos Recaudadores',
     };
 
     // Permisos organizados por secciones simplificadas
@@ -60,6 +62,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Calculadora de Créditos': [Permission.CALCULATOR_VIEW, Permission.CALCULATOR_EDIT],
         'Módulo Geodile': [Permission.GEODILE_VIEW, Permission.GEODILE_EDIT],
         'Afiliación de socios': [Permission.AFFILIATION_SOCIOS_VIEW, Permission.AFFILIATION_SOCIOS_EDIT],
+        'Pagos Recaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
     };
 
     // Todos los permisos disponibles (solo SUPER_ADMIN no necesita permisos extra)

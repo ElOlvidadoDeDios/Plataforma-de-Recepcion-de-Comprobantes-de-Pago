@@ -20,6 +20,8 @@ export const useAutoLogout = () => {
     setUser(null);
     SessionManager.removeItem('token');
     SessionManager.removeItem('user');
+    // Clear any persisted endpoints or session data
+    SessionManager.removeItem('endpoint');
     window.location.href = '/login';
   }, [setIsAuthenticated, setUser]);
 
@@ -47,7 +49,15 @@ export const useAutoLogout = () => {
   }, [performLogout]);
 
   const resetInactivityTimer = useCallback(() => {
-    if (!isMobileDevice() || !user) return;
+    if (!isMobileDevice() || !user) {
+        // Ensure session validity before resetting timer
+        const token = SessionManager.getItem('token');
+        if (!token) {
+            performLogout();
+            return;
+        }
+        return;
+    }
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(handleLogout, INACTIVITY_TIME);
   }, [handleLogout, user]);

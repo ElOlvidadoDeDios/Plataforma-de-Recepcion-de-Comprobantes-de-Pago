@@ -44,6 +44,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
       UserRole.BASIC_USER,
       UserRole.ANALISTA_CREDITOS_I,
       UserRole.CAJERO,
+      UserRole.RECAUDADOR,
       UserRole.ADMINISTRADOR,
       UserRole.GERENTE_GENERAL,
       UserRole.JEFE_OPERACIONES,
@@ -364,6 +365,7 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
                   {role === UserRole.SUPER_ADMIN ? '🔥 Super Admin' :
                    role === UserRole.ADMINISTRADOR ? 'Administrador de agencia' :
                    role === UserRole.CAJERO ? 'Cajero' :
+                    role === UserRole.RECAUDADOR ? 'Recaudador' :
                    role === UserRole.ANALISTA_CREDITOS_I ? 'Analista de Créditos I' :
                    role === UserRole.GERENTE_GENERAL ? 'Gerente General' :
                    role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
