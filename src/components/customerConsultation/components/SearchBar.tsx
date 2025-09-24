@@ -49,9 +49,9 @@ const SearchBar = ({ searchQuery, tipoDocumento, onSearchChange, onTipoDocumento
                 onSearchChange(value);
               }}
               className="w-full border-2 border-cyan-200 rounded-lg p-2 md:p-3 focus:outline-none focus:border-cyan-400 transition-colors"
-              placeholder={`Escriba el ${tipoDocumento === TipoDocumento.DNI ? 'DNI (solo números)' :
+              placeholder={`Escriba el ${tipoDocumento === TipoDocumento.DNI ? 'DNI' :
                 tipoDocumento === TipoDocumento.NOMBRE ? 'nombre' :
-                'número de cuenta (números y guiones)'} (mínimo 3 caracteres)...`}
+                'número de cuenta'}`}
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

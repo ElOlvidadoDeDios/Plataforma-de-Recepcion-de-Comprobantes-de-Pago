@@ -23,8 +23,6 @@ const ConsultaCuotasSocios: React.FC = () => {
   const [montoTotal, setMontoTotal] = useState(0);
   const [montoPago, setMontoPago] = useState('0.00');
   const [isMontoPagoEdited, setIsMontoPagoEdited] = useState(false);
-  const [comprobantePago, setComprobantePago] = useState<string | null>(null);
-  const [ultimoPago, setUltimoPago] = useState<{ cuotas: number; monto: string } | null>(null);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [, setLocationError] = useState<string | null>(null);
@@ -337,12 +335,7 @@ const ConsultaCuotasSocios: React.FC = () => {
       const result = await procesarPago(pagoData);
 
       if (result.status) {
-        setUltimoPago({
-          cuotas: cuotasSeleccionadas.length,
-          monto: montoNum.toFixed(2),
-        });
         Notification.success(`Pago exitoso: S/ ${montoNum.toFixed(2)}`);
-        setComprobantePago(result.detail || null);
 
         if (result.detail) {
           generateVoucherPDF({
@@ -351,29 +344,18 @@ const ConsultaCuotasSocios: React.FC = () => {
           });
         }
 
-        const cuotasActualizadasRaw = await fetchCuotasPorDNI(clienteSeleccionado.NRO_DI);
-        const cuotasActualizadas = cleanPagarés(cuotasActualizadasRaw);
-        setPagarés(cuotasActualizadas);
-
-        const detalleActualizado = await searchClientesByDNI(clienteSeleccionado.NRO_DI);
-        if (detalleActualizado?.INFO_SOCIO) {
-          setClientData(detalleActualizado);
-        }
-
+        // Resetear todos los estados para una nueva búsqueda
+        setSearchQuery('');
+        setResultadosBusqueda([]);
+        setClienteSeleccionado(null);
+        setClientData(null);
+        setPagarés({});
+        setPagareSeleccionado(null);
         setCuotasSeleccionadas([]);
-        setIsMontoPagoEdited(false);
+        setMontoTotal(0);
         setMontoPago('0.00');
-
-        setTimeout(async () => {
-          Notification.info('Recargando consulta para mostrar evidencia del pago...');
-          const detalleActualizado = await searchClientesByDNI(clienteSeleccionado.NRO_DI);
-          if (detalleActualizado?.INFO_SOCIO) {
-            setClientData(detalleActualizado);
-            const cuotasActualizadasRaw = await fetchCuotasPorDNI(clienteSeleccionado.NRO_DI);
-            const cuotasActualizadas = cleanPagarés(cuotasActualizadasRaw);
-            setPagarés(cuotasActualizadas);
-          }
-        }, 1500);
+        setIsMontoPagoEdited(false);
+        SessionManager.removeItem('clienteSeleccionado');
       } else {
         Notification.error(result.message || 'Error en pago');
       }
@@ -589,15 +571,6 @@ const ConsultaCuotasSocios: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {comprobantePago && ultimoPago && (
-              <div className="bg-green-50 border border-green-200 p-3 md:p-4 rounded-lg">
-                <h3 className="font-bold text-green-800 mb-2 text-sm md:text-base">¡Pago realizado!</h3>
-                <p className="text-xs md:text-sm text-gray-600 mt-1">
-                  Pago de {ultimoPago.cuotas} cuota(s) por S/ {ultimoPago.monto}
-                </p>
-              </div>
-            )}
 
             {Object.keys(pagarés).length > 0 ? (
               <>

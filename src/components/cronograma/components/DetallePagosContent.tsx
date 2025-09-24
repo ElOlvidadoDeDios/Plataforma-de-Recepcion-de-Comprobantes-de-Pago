@@ -54,14 +54,6 @@ const DetallePagosContent: React.FC<DetallePagosContentProps> = ({ prestamo }) =
             DESGRAV: parseFloat(mov.DESGRAV),
             APORTE: parseFloat(mov.APORTE),
           }))
-          .sort((a, b) => {
-            // Asume formato DD/MM/YYYY
-            const [da, ma, ya] = a.FECHA_MOV.split('/');
-            const [db, mb, yb] = b.FECHA_MOV.split('/');
-            const fechaA = new Date(`${ya}-${ma}-${da}`);
-            const fechaB = new Date(`${yb}-${mb}-${db}`);
-            return fechaA.getTime() - fechaB.getTime();
-          })
           .map((pago, idx) => ({
             ...pago,
             cuotaNumero: idx + 1,

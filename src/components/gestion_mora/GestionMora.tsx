@@ -6,6 +6,7 @@ import { useCombinedPermissions } from '../../hooks/useCombinedPermissions';
 import { jwtDecode } from 'jwt-decode';
 import { SessionManager } from '../../utils/sessionManager';
 import ModalDetailsMora from './modal_datails_mora';
+import ModalReporteMora from './ModalReporteMora';
 
 // Interfaces
 interface AnalistaNuevo {
@@ -38,6 +39,7 @@ const GestionMora = () => {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [periodoConsulta, setPeriodoConsulta] = useState('');
   const [userAgency, setUserAgency] = useState('');
+  const [showReporteMoraModal, setShowReporteMoraModal] = useState(false);
 
   // Estados para los modales
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -113,6 +115,19 @@ const GestionMora = () => {
     return mapeoAgencias[nombreAgencia] || '01';
   };
 
+  const mapearCodigoANombreAgencia = (codigo: string): string => {
+    const mapeoInverso: { [key: string]: string } = {
+      '02': 'AGENCIA SAN JERÓNIMO',
+      '05': 'AGENCIA SANTIAGO',
+      '04': 'AGENCIA SICUANI',
+      '98': 'AGENCIA LIMA',
+      '01': 'OFICINA PRINCIPAL',
+      '03': 'AGENCIA QUILLABAMBA',
+      '08': 'AGENCIA TICA TICA',
+    };
+    return mapeoInverso[codigo] || codigo;
+  };
+
   const getEstadoMora = (diasAtraso: number) => {
     if (diasAtraso <= 8) return { text: 'Mora Temprana', color: 'bg-green-100 text-green-800 border-green-200', icon: '✅', bgGradient: 'from-green-50 to-emerald-50' };
     if (diasAtraso <= 30) return { text: 'Mora Media', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: '⚠️', bgGradient: 'from-yellow-50 to-amber-50' };
@@ -126,6 +141,16 @@ const GestionMora = () => {
     const moraCritica = filteredClientes.filter((c) => parseInt(c.CREDITO_MORA.DIAS_ATRASO) > 30).length;
     const montoTotal = filteredClientes.reduce((sum, c) => sum + parseFloat(c.CREDITO_MORA.SALDO_PRESENTE), 0);
     return { total, moraTemprana, moraMedia, moraCritica, montoTotal };
+  };
+
+  const getNombreAgencia = () => {
+    if (userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL') {
+      const admin = administradores.find((a) => a.NOM_ADMI === selectedAdministrador);
+      return admin ? admin.AGENCIA : '';
+    } else if (userRole === 'ADMINISTRADOR') {
+      return mapearCodigoANombreAgencia(userAgency);
+    }
+    return '';
   };
 
   const stats = getEstadisticas();
@@ -266,6 +291,14 @@ const GestionMora = () => {
     setShowExtractModal(true);
   };
 
+  const abrirModalReporteMora = () => {
+    setShowReporteMoraModal(true);
+  };
+
+  const cerrarModalReporteMora = () => {
+    setShowReporteMoraModal(false);
+  };
+
   const actualizarGestionesAnteriores = (gestiones: any[]) => {
     setGestionesAnteriores(gestiones);
   };
@@ -331,7 +364,7 @@ const GestionMora = () => {
   const renderFiltros = () => (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-800 flex items-center">🔍 Filtros y Búsqueda</h2>
+        <h3 className="text-lg font-semibold text-gray-800 flex items-center">🔍 Filtros y Búsqueda</h3>
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setViewMode('cards')}
@@ -422,6 +455,18 @@ const GestionMora = () => {
             )}
           </button>
         </div>
+        {(userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL' || userRole === 'ADMINISTRADOR') && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">📈 Reporte</label>
+            <button
+              className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 font-medium"
+              onClick={abrirModalReporteMora}
+              disabled={!getNombreAgencia()}
+            >
+              📊 Reporte de Mora
+            </button>
+          </div>
+        )}
       </div>
       <div className="mt-6 space-y-3">
         {loadingData && (
@@ -456,7 +501,7 @@ const GestionMora = () => {
               {userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL'
                 ? 'Seleccione un administrador y luego un analista. Los datos se cargarán automáticamente.'
                 : userRole === 'ADMINISTRADOR'
-                ? `Seleccione un analista de su agencia (${userAgency}). Los datos se cargarán automáticamente para el período ${periodoConsulta}.`
+                ? `Seleccione un analista de su agencia (${mapearCodigoANombreAgencia(userAgency)}). Los datos se cargarán automáticamente para el período ${periodoConsulta}.`
                 : 'Seleccione "Mis datos". Los datos se cargarán automáticamente.'}
             </p>
           </div>
@@ -713,7 +758,31 @@ const GestionMora = () => {
             </div>
           ) : viewMode === 'cards' ? renderCards() : renderTabla()}
         </div>
-        <ModalDetailsMora          showDetailsModal={showDetailsModal}          showGestionModal={showGestionModal}          showExtractModal={showExtractModal}          selectedCliente={selectedCliente}          selectedAnalista={selectedAnalista}          analistas={analistas}          gestionesAnteriores={gestionesAnteriores}          loadingGestionesAnteriores={loadingGestionesAnteriores}          onCloseDetailsModal={cerrarModalDetalles}          onCloseGestionModal={cerrarModalGestion}          onCloseExtractModal={cerrarModalExtraccion}          onOpenGestionModal={abrirModalGestion}          onReloadData={cargarClientesEnMora}          onSetGestionesAnteriores={actualizarGestionesAnteriores}          onSetLoadingGestionesAnteriores={actualizarLoadingGestionesAnteriores}          onOpenExtractModal={abrirModalExtraccion}        />
+        <ModalDetailsMora
+          showDetailsModal={showDetailsModal}
+          showGestionModal={showGestionModal}
+          showExtractModal={showExtractModal}
+          selectedCliente={selectedCliente}
+          selectedAnalista={selectedAnalista}
+          analistas={analistas}
+          gestionesAnteriores={gestionesAnteriores}
+          loadingGestionesAnteriores={loadingGestionesAnteriores}
+          onCloseDetailsModal={cerrarModalDetalles}
+          onCloseGestionModal={cerrarModalGestion}
+          onCloseExtractModal={cerrarModalExtraccion}
+          onOpenGestionModal={abrirModalGestion}
+          onReloadData={cargarClientesEnMora}
+          onSetGestionesAnteriores={actualizarGestionesAnteriores}
+          onSetLoadingGestionesAnteriores={actualizarLoadingGestionesAnteriores}
+          onOpenExtractModal={abrirModalExtraccion}
+        />
+        {(userRole === 'SUPER_ADMIN' || userRole === 'GERENTE_GENERAL' || userRole === 'ADMINISTRADOR') && (
+          <ModalReporteMora
+            isOpen={showReporteMoraModal}
+            onClose={cerrarModalReporteMora}
+            agencia={getNombreAgencia()}
+          />
+        )}
       </div>
     </Layout>
   );

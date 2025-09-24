@@ -103,7 +103,7 @@ export  const useComboBoxData = () => {
     const fetchComboData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/combo_box_insert`,// modificar a qui 
+        const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1_dev/api/combo_box_insert`,// modificar a qui 
           {
             method: 'GET',
             headers: {
@@ -199,7 +199,7 @@ export const useComboBoxrellenarData = async (
 ): Promise<any> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1/api/getSocioEdit`,
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/getSocioEdit`,
       {
         method: 'POST',
         headers: {
@@ -230,7 +230,7 @@ export const useComboBoxrellenarData = async (
 const useComboBoxDepartamentosData = async (): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1/api/getdptos`,
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/getdptos`,
       {
         method: 'GET',
         headers: {
@@ -255,7 +255,7 @@ const useComboBoxProvinciasData = async (
 ): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1/api/listProv`,
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/listProv`,
       {
         method: 'POST',
         headers: {
@@ -285,7 +285,7 @@ const useComboBoxDistritosData = async (
 ): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1/api/listDist`,
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/listDist`,
       {
         method: 'POST',
         headers: {
@@ -317,7 +317,7 @@ const useComboBoxSectoresData = async (
 ): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1/api/listSector`,
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/listSector`,
       {
         method: 'POST',
         headers: {
@@ -367,7 +367,7 @@ interface SectorOpciones {
 const useComboBoxSectorOpcionesData = async (): Promise<SectorOpciones> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1/api/comboxDir`,
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/comboxDir`,
       {
         method: 'GET',
         headers: {
@@ -406,7 +406,7 @@ interface FamiliarOpciones {
 const useComboBoxFamiliarOpcionesData = async (): Promise<FamiliarOpciones> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1/api/comboFamiliar`,
+      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/comboFamiliar`,
       {
         method: 'GET',
         headers: {
@@ -655,7 +655,7 @@ export const uploadMultipleFiles = async (
 
 export const validarnumeroCelular = async (numero: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/validarNumCel`, {
+    const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1_dev/api/validarNumCel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -673,6 +673,96 @@ export const validarnumeroCelular = async (numero: string) => {
   } catch (error) {
     throw error;
   }
+};
+export interface ReporteMoraData {
+  AGENCIA: string;
+  status: boolean;
+  message: string;
+  resumen: {
+    total_pending: number;
+    total_cumplido: number;
+    total_incumplido: number;
+    TOTAL_GESTIONES: number;
+  };
+  resumen_responsables: {
+    [key: string]: {
+      total_gestiones: number;
+      por_estado: {
+        PENDING: number;
+        CUMPLIDO: number;
+        INCUMPLIMIENTO: number;
+      };
+      agencias: string[];
+    };
+  };
+  detalles: {
+    PENDIENTE: Array<{
+      PAGARE: string;
+      CUENTA: string;
+      OTORGA: string;
+      PERIODO: string;
+      DETALLE_GESTION: {
+        ID_DETALLE: string;
+        MOTIVO_RETRASO: string;
+        COMPROMISO: string;
+        FECHA_COMPROMISO: string;
+        RESPONSABLE: string;
+        AGENCIA: string;
+        ESTADO: string;
+      };
+    }>;
+    CUMPLIDO: Array<{
+      PAGARE: string;
+      CUENTA: string;
+      OTORGA: string;
+      PERIODO: string;
+      DETALLE_GESTION: {
+        ID_DETALLE: string;
+        MOTIVO_RETRASO: string;
+        COMPROMISO: string;
+        FECHA_COMPROMISO: string;
+        RESPONSABLE: string;
+        AGENCIA: string;
+        ESTADO: string;
+      };
+    }>;
+    INCUMPLIDOS: Array<{
+      PAGARE: string;
+      CUENTA: string;
+      OTORGA: string;
+      PERIODO: string;
+      DETALLE_GESTION: {
+        ID_DETALLE: string;
+        MOTIVO_RETRASO: string;
+        COMPROMISO: string;
+        FECHA_COMPROMISO: string;
+        RESPONSABLE: string;
+        AGENCIA: string;
+        ESTADO: string;
+      };
+    }>;
+  };
+}
+export const getReporteMora = async (AGENCIA: string): Promise<ReporteMoraData> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1_dev/api/getGestionesXestados`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `${API_BASE_URL_TOKEN}`,
+        },
+        body: JSON.stringify({ AGENCIA: AGENCIA })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      throw error;
+    }
 };
 
 export default { useComboBoxData , saveCliente, useComboBoxDepartamentosData, useComboBoxProvinciasData, useComboBoxDistritosData, useComboBoxSectoresData, useComboBoxSectorOpcionesData, useComboBoxFamiliarOpcionesData, uploadPreAfiliaFile, uploadMultipleFiles, uploadAllFilesAtOnce};
