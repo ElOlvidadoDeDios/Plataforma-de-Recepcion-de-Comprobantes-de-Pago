@@ -439,11 +439,11 @@ export default function AfiliacionSociosComponent() {
 
       // 📝 PREPARAR DATOS PARA EL ENDPOINT
       const datosAfiliacion: AfiliarSocioRequest = {
-        TIPO_DOC: "01", // DNI por defecto
+        TIPO_DOC: selectedSocio.DATOS.TIPO_DI, // DNI por defecto
         NRO_DOC: selectedSocio.DATOS.NRO_DI,
-        AGENCIA: user.agencias[0].agencia || "01", // Primera agencia del usuario
-        COD_CAJA: user.agencias[0].cod_caja || "079", // Código de caja de la primera agencia
-        USER: user.user || user.dni || "USER", // Usuario desde AuthContext
+        AGENCIA: user.agencias[0].agencia , // Primera agencia del usuario
+        COD_CAJA: user.agencias[0].cod_caja, // Código de caja de la primera agencia
+        USER: user.user || user.dni, // Usuario desde AuthContext
         nro_banco: nroBanco // Agregar el número de banco al enviar los datos
       };
 

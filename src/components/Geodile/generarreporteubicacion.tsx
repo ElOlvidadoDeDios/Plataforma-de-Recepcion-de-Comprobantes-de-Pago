@@ -16,8 +16,6 @@ interface ModalProps {
     onClose: () => void;
 }
 
-
-
 const Notification = useNotifications();
 
 export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalProps) {
@@ -32,7 +30,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
     const [puedeGenerarReporte, setPuedeGenerarReporte] = useState(false);
     const [mensajesSuministro, setMensajesSuministro] = useState<Record<number, { texto: string; color: string } | null>>({});
 
-    // Función debounced para evitar llamadas excesivas a la API
     const verificarSuministroDebounced = debounce(async (index: number, suministro: string) => {
         if (!suministro.trim()) {
             setMensajesSuministro(prev => ({ ...prev, [index]: null }));
@@ -117,9 +114,43 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                 setDatosIncompletos(reporteInfo.data || []);
 
                 const datosCompletos: { [key: number]: ReporteInfoData } = {};
+                const domicilioIndex = reporteInfo.data.findIndex(d => d.tipo_ubicacion === 'DOMICILIO');
+                const negocioIndex = reporteInfo.data.findIndex(d => d.tipo_ubicacion === 'NEGOCIO');
+                
                 reporteInfo.data.forEach((item, index) => {
                     datosCompletos[index] = { ...item };
                 });
+
+                // HERENCIA AUTOMÁTICA del domicilio al negocio
+                if (domicilioIndex !== -1 && negocioIndex !== -1) {
+                    const domicilio = reporteInfo.data[domicilioIndex];
+                    const negocio = reporteInfo.data[negocioIndex];
+                    
+                    // Si el domicilio tiene condicion_negocio y el negocio NO lo tiene
+                    if (domicilio.condicion_negocio && domicilio.condicion_negocio.trim() !== '' && 
+                        (!negocio.condicion_negocio || negocio.condicion_negocio.trim() === '')) {
+                        
+                        // Si es "Sí", copiar TODO
+                        if (domicilio.condicion_negocio === 'Sí') {
+                            datosCompletos[negocioIndex] = {
+                                ...datosCompletos[negocioIndex],
+                                suministro: domicilio.suministro || datosCompletos[negocioIndex].suministro,
+                                direccion: domicilio.direccion || datosCompletos[negocioIndex].direccion,
+                                ref_vehiculo: domicilio.ref_vehiculo || datosCompletos[negocioIndex].ref_vehiculo,
+                                ref_paradero: domicilio.ref_paradero || datosCompletos[negocioIndex].ref_paradero,
+                                ref_adicional: domicilio.ref_adicional || datosCompletos[negocioIndex].ref_adicional,
+                                condicion_negocio: 'Heredado del domicilio'
+                            };
+                        } else {
+                            // Si es otro valor, solo copiar condicion_negocio
+                            datosCompletos[negocioIndex] = {
+                                ...datosCompletos[negocioIndex],
+                                condicion_negocio: domicilio.condicion_negocio
+                            };
+                        }
+                    }
+                }
+                
                 setDatosCompletos(datosCompletos);
                 setMostrarVerificacion(true);
             } else {
@@ -146,7 +177,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
             }
         }));
 
-        // Verificar suministro si el campo cambiado es 'suministro'
         if (campo === 'suministro') {
             verificarSuministroDebounced(index, valor);
         }
@@ -182,7 +212,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                         ref_vehiculo: datosOriginalesNegocio.ref_vehiculo || '',
                         ref_paradero: datosOriginalesNegocio.ref_paradero || '',
                         ref_adicional: datosOriginalesNegocio.ref_adicional || '',
-                        condicion_negocio: valor === 'No tiene negocio' ? 'No aplica - No tiene negocio' : 'Negocio en otra ubicación'
+                        condicion_negocio: valor === 'NO TIENE NEGOCIO' ? 'No aplica - No tiene negocio' : 'Negocio en otra ubicación'
                     }
                 }));
             }
@@ -229,6 +259,9 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                     setDatosIncompletos(reporteInfo.data || []);
 
                     const nuevosDatosCompletos: { [key: number]: ReporteInfoData } = {};
+                    const domicilioIndex = reporteInfo.data.findIndex(d => d.tipo_ubicacion === 'DOMICILIO');
+                    const negocioIndex = reporteInfo.data.findIndex(d => d.tipo_ubicacion === 'NEGOCIO');
+                    
                     reporteInfo.data.forEach((item, idx) => {
                         const datosExistentes = datosCompletos[idx];
                         nuevosDatosCompletos[idx] = {
@@ -241,6 +274,37 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                             condicion_negocio: item.condicion_negocio || datosExistentes?.condicion_negocio || ''
                         };
                     });
+
+                    // HERENCIA AUTOMÁTICA DESPUÉS DE ACTUALIZAR
+                    if (domicilioIndex !== -1 && negocioIndex !== -1) {
+                        const domicilio = nuevosDatosCompletos[domicilioIndex];
+                        const negocio = nuevosDatosCompletos[negocioIndex];
+                        
+                        // Si el domicilio tiene condicion_negocio y el negocio NO lo tiene
+                        if (domicilio.condicion_negocio && domicilio.condicion_negocio.trim() !== '' && 
+                            (!negocio.condicion_negocio || negocio.condicion_negocio.trim() === '')) {
+                            
+                            // Si es "Sí", copiar TODO
+                            if (domicilio.condicion_negocio === 'Sí') {
+                                nuevosDatosCompletos[negocioIndex] = {
+                                    ...nuevosDatosCompletos[negocioIndex],
+                                    suministro: domicilio.suministro || nuevosDatosCompletos[negocioIndex].suministro,
+                                    direccion: domicilio.direccion || nuevosDatosCompletos[negocioIndex].direccion,
+                                    ref_vehiculo: domicilio.ref_vehiculo || nuevosDatosCompletos[negocioIndex].ref_vehiculo,
+                                    ref_paradero: domicilio.ref_paradero || nuevosDatosCompletos[negocioIndex].ref_paradero,
+                                    ref_adicional: domicilio.ref_adicional || nuevosDatosCompletos[negocioIndex].ref_adicional,
+                                    condicion_negocio: 'Heredado del domicilio'
+                                };
+                            } else {
+                                // Si es otro valor, solo copiar condicion_negocio
+                                nuevosDatosCompletos[negocioIndex] = {
+                                    ...nuevosDatosCompletos[negocioIndex],
+                                    condicion_negocio: domicilio.condicion_negocio
+                                };
+                            }
+                        }
+                    }
+                    
                     setDatosCompletos(nuevosDatosCompletos);
 
                     if (reporteInfo.GENERAR) {
@@ -352,7 +416,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                         </div>
 
                                                         <div className="space-y-3 text-sm">
-                                                            {/* Suministro */}
                                                             <div>
                                                                 <label className="font-bold text-gray-700 block mb-1">Suministro:</label>
                                                                 {!item.suministro || item.suministro.trim() === '' ? (
@@ -375,7 +438,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 )}
                                                             </div>
 
-                                                            {/* Dirección */}
                                                             <div>
                                                                 <label className="font-bold text-gray-700 block mb-1">Dirección:</label>
                                                                 {!item.direccion || item.direccion.trim() === '' ? (
@@ -391,7 +453,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 )}
                                                             </div>
 
-                                                            {/* Referencia transporte */}
                                                             <div>
                                                                 <label className="font-bold text-gray-700 block mb-1">Ref. transporte:</label>
                                                                 {!item.ref_vehiculo || item.ref_vehiculo.trim() === '' ? (
@@ -407,7 +468,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 )}
                                                             </div>
 
-                                                            {/* Referencia Paradero */}
                                                             <div>
                                                                 <label className="font-bold text-gray-700 block mb-1">Ref. Paradero:</label>
                                                                 {!item.ref_paradero || item.ref_paradero.trim() === '' ? (
@@ -423,7 +483,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 )}
                                                             </div>
 
-                                                            {/* Referencia Adicional */}
                                                             <div>
                                                                 <label className="font-bold text-gray-700 block mb-1">Ref. Adicional:</label>
                                                                 {!item.ref_adicional || item.ref_adicional.trim() === '' ? (
@@ -439,7 +498,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 )}
                                                             </div>
 
-                                                            {/* Condición Negocio - Solo para DOMICILIO */}
                                                             {item.tipo_ubicacion === 'DOMICILIO' && (
                                                                 <div>
                                                                     <label className="font-bold text-gray-700 block mb-1">¿EL NEGOCIO ESTÁ EN ESTA MISMA DIRECCIÓN?</label>
@@ -487,7 +545,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 </div>
                                                             )}
 
-                                                            {/* Condición Negocio - Solo para NEGOCIO */}
                                                             {item.tipo_ubicacion === 'NEGOCIO' && datosCompletos[index]?.condicion_negocio && (
                                                                 <div>
                                                                     <label className="font-bold text-gray-700 block mb-1">Condición:</label>
@@ -497,7 +554,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 </div>
                                                             )}
 
-                                                            {/* Información no editable */}
                                                             <div className="pt-2 border-t border-gray-200">
                                                                 <div className="flex justify-between text-xs text-gray-500">
                                                                     <span><strong>Coords:</strong> {item.lat}, {item.lng}</span>
@@ -505,7 +561,6 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                 </div>
                                                             </div>
 
-                                                            {/* Botón Actualizar */}
                                                             {tieneVacios && (
                                                                 <button
                                                                     type="button"

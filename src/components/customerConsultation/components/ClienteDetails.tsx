@@ -50,8 +50,8 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
         </h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
           <DataField label="DNI" value={INFO_SOCIO.DATOS_PERSONALES.DNI} />
-          <DataField label="APELLIDO PATERNO" value={INFO_SOCIO.DATOS_PERSONALES.APE_PAT} />
           <DataField label="NOMBRES" value={INFO_SOCIO.DATOS_PERSONALES.NOMBRES} />
+          <DataField label="APELLIDO PATERNO" value={INFO_SOCIO.DATOS_PERSONALES.APE_PAT} />
           <DataField label="APELLIDO MATERNO" value={INFO_SOCIO.DATOS_PERSONALES.APE_MAT} />
         </div>
       </div>
