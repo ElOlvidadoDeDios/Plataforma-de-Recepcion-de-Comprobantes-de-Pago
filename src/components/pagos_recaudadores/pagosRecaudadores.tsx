@@ -372,22 +372,31 @@ const ConsultaCuotasSocios: React.FC = () => {
     <div className="mt-4">
       <h3 className="font-semibold mb-2 text-base md:text-lg">Pagarés Pendientes:</h3>
       <div className="flex flex-wrap gap-2">
-        {Object.keys(pagarés).map((pagare, index) => (
-          <button
-            key={`${pagare.trim()}-${index}`}
-            onClick={() => {
-              setPagareSeleccionado(pagare);
-              setCuotasSeleccionadas([]);
-              setIsMontoPagoEdited(false);
-              setMontoPago('0.00');
-            }}
-            className={`px-3 py-1.5 text-sm md:px-4 md:py-2 md:text-base rounded-lg font-medium ${
-              pagareSeleccionado === pagare ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
-            }`}
-          >
-            {pagare} ({pagarés[pagare].length} cuotas)
-          </button>
-        ))}
+        {Object.keys(pagarés).map((pagare, index) => {
+          // Obtener el nombre del producto de la primera cuota del pagaré
+          const nombreProducto = pagarés[pagare]?.[0]?.NombreProducto || 'N/A';
+          
+          return (
+            <button
+              key={`${pagare.trim()}-${index}`}
+              onClick={() => {
+                setPagareSeleccionado(pagare);
+                setCuotasSeleccionadas([]);
+                setIsMontoPagoEdited(false);
+                setMontoPago('0.00');
+              }}
+              className={`px-3 py-1.5 text-sm md:px-4 md:py-2 md:text-base rounded-lg font-medium ${
+                pagareSeleccionado === pagare ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
+              }`}
+            >
+              <div className="text-left">
+                <div className="font-bold">{pagare}</div>
+                <div className="text-xs opacity-75">{nombreProducto}</div>
+                <div className="text-xs">({pagarés[pagare].length} cuotas)</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   ));

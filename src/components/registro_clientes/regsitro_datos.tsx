@@ -596,15 +596,16 @@ export const DatosForm = memo(
                       type="text"
                       value={formData.DOC_IDEN}
                       onChange={handleDocNumberChange}
-                      className={`bg-white text-black rounded px-3 py-1 text-sm md:text-base px-2 py-1  ${
+                      maxLength={12}
+                      className={`bg-white text-black rounded px-2 py-1 text-sm md:text-base w-28 md:w-32 ${
                         docError ? 'border border-red-500' : 'border border-gray-300'
                       }`}
-                      placeholder="Número de documento"
+                      placeholder="Nro. Doc."
                     />
                     <button
                       onClick={handleSearchByDNI}
                       disabled={searchLoading || !!docError}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-black px-2 py-1 rounded text-sm flex items-center gap-1 disabled:opacity-50"
+                      className="bg-yellow-500 hover:bg-yellow-600 text-black px-2 py-1 rounded text-sm flex items-center gap-1 disabled:opacity-50 flex-shrink-0"
                     >
                       {searchLoading ? '...' : <Search size={14} />}
                     </button>
