@@ -12,16 +12,18 @@ interface NotificationModalProps {
 
 const formatDate = (dateString: string): string => {
   try {
-    const date = new Date(dateString);
+    const date = new Date(`${dateString}T00:00:00`);
+
     return date.toLocaleDateString('es-PE', {
       year: 'numeric',
-      month: 'short',
+      month: 'long',
       day: 'numeric'
     });
   } catch {
     return dateString;
   }
 };
+
 
 const getEstadoBadgeColor = (estado: string): string => {
   switch (estado.toUpperCase()) {
