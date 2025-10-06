@@ -103,7 +103,7 @@ export  const useComboBoxData = () => {
     const fetchComboData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1_dev/api/combo_box_insert`,// modificar a qui 
+        const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/combo_box_insert`,// modificar a qui 
           {
             method: 'GET',
             headers: {
@@ -199,7 +199,7 @@ export const useComboBoxrellenarData = async (
 ): Promise<any> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/getSocioEdit`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/getSocioEdit`,
       {
         method: 'POST',
         headers: {
@@ -230,7 +230,7 @@ export const useComboBoxrellenarData = async (
 const useComboBoxDepartamentosData = async (): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/getdptos`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/getdptos`,
       {
         method: 'GET',
         headers: {
@@ -285,7 +285,7 @@ const useComboBoxDistritosData = async (
 ): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/listDist`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/listDist`,
       {
         method: 'POST',
         headers: {
@@ -317,7 +317,7 @@ const useComboBoxSectoresData = async (
 ): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/listSector`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/listSector`,
       {
         method: 'POST',
         headers: {
@@ -367,7 +367,7 @@ interface SectorOpciones {
 const useComboBoxSectorOpcionesData = async (): Promise<SectorOpciones> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/comboxDir`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/comboxDir`,
       {
         method: 'GET',
         headers: {
@@ -406,7 +406,7 @@ interface FamiliarOpciones {
 const useComboBoxFamiliarOpcionesData = async (): Promise<FamiliarOpciones> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/comboFamiliar`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/comboFamiliar`,
       {
         method: 'GET',
         headers: {
@@ -655,7 +655,7 @@ export const uploadMultipleFiles = async (
 
 export const validarnumeroCelular = async (numero: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1_dev/api/validarNumCel`, {
+    const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/validarNumCel`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -745,7 +745,7 @@ export interface ReporteMoraData {
 }
 export const getReporteMora = async (AGENCIA: string): Promise<ReporteMoraData> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1_dev/api/getGestionesXestados`, {
+      const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/getGestionesXestados`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
