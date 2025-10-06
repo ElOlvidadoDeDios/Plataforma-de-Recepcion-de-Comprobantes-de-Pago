@@ -357,6 +357,13 @@ export const DatosForm = memo(
       const formDataWithAgencia = {
         ...formData,
         AGE: userData?.id_age || '',
+        // Convertir campos de texto a mayúsculas
+        APE_PAT: formData.APE_PAT?.toUpperCase() || '',
+        APE_MAT: formData.APE_MAT?.toUpperCase() || '',
+        NOMBRES: formData.NOMBRES?.toUpperCase() || '',
+        LUGAR_NAC: formData.LUGAR_NAC?.toUpperCase() || '',
+        OCUPACION: formData.OCUPACION?.toUpperCase() || '',
+        EMAIL: formData.EMAIL?.toLowerCase() || '', // Email en minúsculas por convención
       };
 
       const requiredFields: Array<keyof PersonData> = [

@@ -5,7 +5,9 @@ export * from './paymentsApi';
 export * from './creditRequestApi';
 export * from './creditAttentionApi';
 export * from './customerConsultationAPI';
+export * from './notificacionesApi';
 
 // Exportaciones específicas adicionales
 export { fetchCreditAnalysts, fetchAllExternalUsers } from './userApi';
 export type { AnalistaByAgencia, AdministradorInfo } from './creditAttentionApi';
+export type { NotificacionGestionDiaria, DetalleGestion, NotificacionesResponse } from './notificacionesApi';

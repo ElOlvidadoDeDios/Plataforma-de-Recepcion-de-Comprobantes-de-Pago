@@ -20,6 +20,7 @@ import NonBasicUserRoute from './components/NonBasicUserRoute';
 import PermissionProtectedRoute from './components/PermissionProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
+import { NotificationsProvider } from './contexts/NotificationsContext';
 import { useSocket } from './hooks/useSocket';
 import RegistroClientes from './components/registro_clientes/registro_clientes';
 import CalculadoraCreditos from './components/Calculadora_creditos/cal_creditos';
@@ -47,8 +48,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SocketProvider>
-          <Router>
+        <NotificationsProvider>
+          <SocketProvider>
+            <Router>
             <Routes>
               {/* Solo Login para sistema interno */}
               <Route path="/login" element={<Login />} />
@@ -226,9 +228,10 @@ function App() {
               />
               <Route path="*" element={<div>404 Not Found</div>} />
             </Routes>
-          </Router>
-          <Toaster position="top-right" />
-        </SocketProvider>
+            </Router>
+            <Toaster position="top-right" />
+          </SocketProvider>
+        </NotificationsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

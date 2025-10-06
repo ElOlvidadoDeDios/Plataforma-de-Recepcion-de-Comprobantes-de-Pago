@@ -188,6 +188,12 @@ export default function RegistroFamiliares({ formData, onInputChange, datosBasic
       // 🚀 DATOS COMPLETOS PARA ENVIAR A LA API
       const datosFamiliar = {
         ...formData,
+        // Convertir campos de texto a mayúsculas
+        APE_PATERNO: formData.APE_PATERNO?.toUpperCase() || '',
+        APE_MATERNO: formData.APE_MATERNO?.toUpperCase() || '',
+        NOMBRE: formData.NOMBRE?.toUpperCase() || '',
+        DIRECCION_REF: formData.DIRECCION_REF?.toUpperCase() || '',
+        EMAIL: formData.EMAIL?.toLowerCase() || '', // Email en minúsculas por convención
         ITEM: 1, // Fijo en 1 (número)
         CUENTA: datosBasicos.NVA_CTA,
         COD_USER: user.user, // Usuario autenticado

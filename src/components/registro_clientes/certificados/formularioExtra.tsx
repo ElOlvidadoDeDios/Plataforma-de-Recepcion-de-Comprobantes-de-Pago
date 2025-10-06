@@ -181,7 +181,7 @@ export default function FormularioAdicional({ onSubmit, onCancel, datosBasicos }
         VIVE_CON_TITULAR: hijo.vive === 'si' ? 'S' : 'N',
         NIVEL_ESTUDIO: nivelMap[hijo.nivel] || hijo.nivel.toUpperCase(),
         TIPO_INSTITUCION: institucionMap[hijo.institucion] || hijo.institucion.toUpperCase(),
-        DONDE_ESTUDIA: hijo.dondeEstudia.toUpperCase()
+        DONDE_ESTUDIA: hijo.dondeEstudia.trim().toUpperCase()
       }));
     }
 

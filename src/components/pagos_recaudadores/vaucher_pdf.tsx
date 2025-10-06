@@ -143,7 +143,8 @@ export const generateVoucherPDF = (data: VoucherData) => {
   }
 
   if (data.SALDO_ANTER_PRE) {
-    doc.text(`SALDO CAPITAL:S/${parseFloat(data.SALDO_ANTER_PRE).toFixed(2)}`, marginLeft + 1, currentY);
+    const saldoCapital = parseFloat(data.SALDO_ANTER_PRE) - parseFloat(data.AMORTIZ || "0");
+    doc.text(`SALDO CAPITAL:S/${saldoCapital.toFixed(2)}`, marginLeft + 1, currentY);
     currentY += 3;
   }
 

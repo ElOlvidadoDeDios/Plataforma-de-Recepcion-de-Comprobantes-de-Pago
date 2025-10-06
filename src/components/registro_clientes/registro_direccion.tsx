@@ -243,16 +243,16 @@ export default function RegistroDireccion({ datosBasicos, datosDireccionApi }: R
         CUENTA: datosBasicos.NVA_CTA || '', // Usar la cuenta del cliente
         TIPO_DIR: formData.tipo_direccion,
         TIPO_VIA: formData.tipo_via,
-        NOM_VIA: formData.nombre.trim(),
+        NOM_VIA: formData.nombre.trim().toUpperCase(),
         NUMERO: formData.numero.trim(),
-        INTERIOR: formData.interior.trim(),
+        INTERIOR: formData.interior.trim().toUpperCase(),
         TIPO_ZONA: formData.zona || '',
-        NOM_ZONA: formData.nombre_zona.trim(),
+        NOM_ZONA: formData.nombre_zona.trim().toUpperCase(),
         DPTO: formData.departamento,
         PROV: formData.provincia,
         DIST: formData.distrito,
         TIPO_SECTOR: formData.sector || '',
-        REFERENCIA: formData.referencia.trim(),
+        REFERENCIA: formData.referencia.trim().toUpperCase(),
         COD_USER: user.user, // Usar el código de usuario del contexto
       };
 
