@@ -255,7 +255,7 @@ const useComboBoxProvinciasData = async (
 ): Promise<ComboBoxData[]> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_dev/api/listProv`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/listProv`,
       {
         method: 'POST',
         headers: {
