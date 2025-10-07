@@ -7,6 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 import { SessionManager } from '../../utils/sessionManager';
 import ModalDetailsMora from './modal_datails_mora';
 import ModalReporteMora from './ModalReporteMora';
+import WhatsAppModal from './WhatsAppModal';
 
 // Interfaces
 interface AnalistaNuevo {
@@ -45,6 +46,7 @@ const GestionMora = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showGestionModal, setShowGestionModal] = useState(false);
   const [showExtractModal, setShowExtractModal] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<ClienteMora | null>(null);
   const [gestionesAnteriores, setGestionesAnteriores] = useState<any[]>([]);
   const [loadingGestionesAnteriores, setLoadingGestionesAnteriores] = useState(false);
@@ -279,6 +281,16 @@ const GestionMora = () => {
 
   const cerrarModalGestion = () => {
     setShowGestionModal(false);
+    setSelectedCliente(null);
+  };
+
+  const abrirModalWhatsApp = (cliente: ClienteMora) => {
+    setSelectedCliente(cliente);
+    setShowWhatsAppModal(true);
+  };
+
+  const cerrarModalWhatsApp = () => {
+    setShowWhatsAppModal(false);
     setSelectedCliente(null);
   };
 
@@ -604,6 +616,14 @@ const GestionMora = () => {
                   <span className="text-sm text-gray-600">Saldo:</span>
                   <span className="font-bold text-lg text-gray-900">S/ {parseFloat(cliente.CREDITO_MORA.SALDO_PRESENTE).toFixed(2)}</span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Cuotas pendientes:</span>
+                  <span className="font-bold text-lg text-gray-900">{cliente.CREDITO_MORA.CUOTAS_PAGAR} cuotas</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">M. pendiente:</span>
+                  <span className="font-bold text-lg text-gray-900">S/ {(cliente.CREDITO_MORA.POR_PAGAR).toFixed(2)}</span>
+                </div>
               </div>
               <div className="mt-4 mb-4">
                 <span className={`px-3 py-1 rounded-full text-sm font-semibold ${estadoMora.color}`}>{estadoMora.text}</span>
@@ -611,15 +631,22 @@ const GestionMora = () => {
               <div className="flex space-x-2 pt-4 border-t border-gray-200">
                 <button
                   onClick={() => abrirModalDetalles(cliente)}
-                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-sm font-medium"
+                  className="flex-1 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200 text-xs font-medium"
                 >
-                  👁️ Ver detalles
+                  👁️ Ver
                 </button>
                 <button
                   onClick={() => abrirModalGestion(cliente)}
-                  className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm font-medium"
+                  className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-xs font-medium"
                 >
                   ⚡ Gestionar
+                </button>
+                <button
+                  onClick={() => abrirModalWhatsApp(cliente)}
+                  className="flex-1 px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors duration-200 text-xs font-medium"
+                  title="Enviar mensaje por WhatsApp"
+                >
+                  📱 WhatsApp
                 </button>
               </div>
             </div>
@@ -640,6 +667,8 @@ const GestionMora = () => {
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cuenta</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Días Atraso</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Saldo</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">N° cuotas pendientes</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">M. pendiente</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Estado</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Acciones</th>
             </tr>
@@ -699,6 +728,12 @@ const GestionMora = () => {
                       <div className="text-sm font-bold text-gray-900">S/ {parseFloat(cliente.CREDITO_MORA.SALDO_PRESENTE).toFixed(2)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-bold text-gray-900">{cliente.CREDITO_MORA.CUOTAS_PAGAR} cuotas</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-bold text-gray-900">S/ {(cliente.CREDITO_MORA.POR_PAGAR).toFixed(2)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border-2 ${estadoMora.color}`}>
                         {estadoMora.icon} {estadoMora.text}
                       </span>
@@ -716,6 +751,13 @@ const GestionMora = () => {
                           className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors duration-200 text-xs font-medium"
                         >
                           ⚡ Gestionar
+                        </button>
+                        <button
+                          onClick={() => abrirModalWhatsApp(cliente)}
+                          className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors duration-200 text-xs font-medium"
+                          title="Enviar mensaje por WhatsApp"
+                        >
+                          📱 WhatsApp
                         </button>
                       </div>
                     </td>
@@ -783,6 +825,11 @@ const GestionMora = () => {
             agencia={getNombreAgencia()}
           />
         )}
+        <WhatsAppModal
+          isOpen={showWhatsAppModal}
+          onClose={cerrarModalWhatsApp}
+          cliente={selectedCliente}
+        />
       </div>
     </Layout>
   );

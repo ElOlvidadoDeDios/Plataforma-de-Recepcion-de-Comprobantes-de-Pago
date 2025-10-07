@@ -24,6 +24,9 @@ export interface CreditoMora {
   SALDO_PRESENTE: string;
   DIAS_ATRASO: string;
   PRODUCTO: string;
+  CUOTAS_PAGAR: number;
+  POR_PAGAR: number;
+  CELULAR: string;
 }
 
 export interface GestionMoraData {
@@ -79,6 +82,16 @@ export interface GestionMora1x1Response {
   };
 }
 
+// Interface para envío de mensajes WhatsApp
+export interface WhatsAppMessageRequest {
+  number: string;
+  message: string;
+}
+
+export interface WhatsAppMessageResponse {
+  status: boolean;
+  message?: string;
+}
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -239,6 +252,16 @@ export const creditAttentionApi = {
             return response.data;
         } catch (error: any) {
             throw new Error('Error al obtener gestión de mora 1x1');
+        }
+    },
+
+    // Enviar mensaje de WhatsApp
+    sendWhatsAppMessage: async (messageData: WhatsAppMessageRequest): Promise<WhatsAppMessageResponse> => {
+        try {
+            const response = await axios.post('https://n70fhxk0-3008.brs.devtunnels.ms/v1/send-message', messageData);
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Error al enviar mensaje de WhatsApp');
         }
     },
 

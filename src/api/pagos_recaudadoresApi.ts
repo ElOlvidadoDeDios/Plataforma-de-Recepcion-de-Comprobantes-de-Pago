@@ -44,7 +44,7 @@ const API_KEY = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 // ENDPOINTS CENTRALIZADOS (Fácil de mover a un servicio)
 const API_ENDPOINTS = {
   CUOTAS_BY_DNI: (dni: string) => `${API_BASE_URL}/pagos-recaudadores/cuotas/${dni}`,
-  PROCESAR_PAGO: `${API_BASE_URL_G}api_app_dile_v1_1/api/InsertPagosPagador`,
+  PROCESAR_PAGO: `${API_BASE_URL_G}api_app_dile_v1_1_dev/api/InsertPagosPagador`,
 };
 
 // ======================
