@@ -85,7 +85,10 @@ export interface GestionMora1x1Response {
 // Interface para envío de mensajes WhatsApp
 export interface WhatsAppMessageRequest {
   number: string;
-  message: string;
+  type: "text" | "media";
+  message?: string; // Para tipo text
+  mediaPath?: string; // Para tipo media
+  caption?: string; // Para tipo media
 }
 
 export interface WhatsAppMessageResponse {

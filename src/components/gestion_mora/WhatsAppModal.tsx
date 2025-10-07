@@ -20,8 +20,17 @@ const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
 
   // Mensaje predeterminado
-  const defaultMessage = cliente 
-    ? `Estimado ${cliente.CREDITO_MORA.SOCIO}, le recordamos que tiene cuotas pendientes por pagar. Monto pendiente: S/ ${cliente.CREDITO_MORA.POR_PAGAR}. Le pedimos encarecidamente que realice el pago lo más pronto posible para evitar mayores inconvenientes. Gracias.`
+  const defaultMessage = cliente
+    ? `🙋‍♀️ Estimado/a ${cliente.CREDITO_MORA.SOCIO}:
+📢 Le informamos que tu pago correspondiente al pagaré N° ${cliente.CREDITO_MORA.PAGARE} por un monto de S/ ${cliente.CREDITO_MORA.POR_PAGAR.toFixed(2)} con un atraso de ${cliente.CREDITO_MORA.DIAS_ATRASO} días. ⏰
+🙏 Agradecemos tu atención y te recomendamos realizar el pago a tiempo para evitar recargos. ⚠️
+💳 Métodos de pago:
+  •  📱 Billeteras de confianza: (Yape / Plin)
+     👉 Escanea el código QR adjunto para pagar fácilmente.
+  • Transferencia bancaria: 🏦 010002456952-54852361
+❓ Cualquier duda o inconveniente, no dudes en contactarnos. 📞 +51974768491
+🤝 Atentamente,
+Cooperativa DILE`
     : '';
 
   useEffect(() => {
@@ -68,12 +77,14 @@ const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
 
     try {
       // Usar número hardcodeado para pruebas, después usar el número formateado del cliente
-      const phoneNumber = "51931941085"; // Para pruebas
-      //const phoneNumber = formatPhoneNumber(cliente.CREDITO_MORA.CELULAR); // Para producción
+      //const phoneNumber = "51931941085"; // Para pruebas
+      const phoneNumber = formatPhoneNumber(cliente.CREDITO_MORA.CELULAR); // Para producción
       
       const response = await creditAttentionApi.sendWhatsAppMessage({
         number: phoneNumber,
-        message: message.trim()
+        type: "media",
+        mediaPath: "https://dile.com.pe/images/QR_dile_pagos.jpeg",
+        caption: message.trim()
       });
 
       if (response.status) {
@@ -175,16 +186,31 @@ const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
                   </div>
                 </div>
 
+                {/* Información sobre la imagen QR */}
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center space-x-3">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800">Se incluirá imagen QR de pagos</h4>
+                      <p className="text-sm text-blue-600">La imagen QR será enviada junto con el mensaje</p>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Mensaje */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
-                    Mensaje a enviar:
+                    Mensaje que acompañará la imagen:
                   </label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     disabled={isLoading}
-                    rows={6}
+                    rows={8}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none disabled:opacity-50 disabled:bg-gray-50"
                     placeholder="Escriba su mensaje aquí..."
                   />
