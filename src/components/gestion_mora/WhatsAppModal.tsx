@@ -150,9 +150,9 @@ const defaultMessage = cliente
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
               {/* Header */}
-              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-6">
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white p-4 sm:p-6 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="bg-white/20 p-2 rounded-lg">
@@ -182,8 +182,8 @@ const defaultMessage = cliente
                 </div>
               </div>
 
-              {/* Content */}
-              <div className="p-6 space-y-6">
+              {/* Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
                 {/* Información del cliente */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <h3 className="font-semibold text-gray-800 mb-3">Información del Cliente</h3>
@@ -231,7 +231,7 @@ const defaultMessage = cliente
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     disabled={isLoading}
-                    rows={8}
+                    rows={6}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none disabled:opacity-50 disabled:bg-gray-50"
                     placeholder="Escriba su mensaje aquí..."
                   />
@@ -262,9 +262,11 @@ const defaultMessage = cliente
                     </div>
                   </div>
                 )}
+              </div>
 
-                {/* Botones */}
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              {/* Botones - Fixed at bottom */}
+              <div className="flex-shrink-0 bg-white p-4 border-t border-gray-200">
+                <div className="flex justify-end space-x-3">
                   <button
                     onClick={handleClose}
                     disabled={isLoading}

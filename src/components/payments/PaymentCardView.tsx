@@ -41,6 +41,7 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
           <h3 className="text-lg font-semibold">{currentPayment.nombreSocio}</h3>
           <p className="text-gray-600">DNI: {currentPayment.dni}</p>
           <p className="text-gray-600">{formatDate(currentPayment.fecha, currentPayment.hora)}</p>
+          <p className="text-gray-800">Págare:  <strong>{currentPayment.creditoId}</strong></p>
         </div>
       </div>
       <div className="flex items-center space-x-2">

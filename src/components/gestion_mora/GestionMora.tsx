@@ -357,21 +357,21 @@ const GestionMora = () => {
     }
   }, [searchTerm, clientes]);
 
-  // Renderizado
-  const renderHeader = () => (
-    <div className="flex-col bg-gradient-to-l from-cyan-500 via-sky-400 to-teal-500 text-white drop-shadow-md p-6 rounded-xl shadow-2xl mb-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">📊 Gestión de Mora</h1>
-          <p className="text-blue-100">Monitoreo y gestión de clientes en mora</p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold">{stats.total}</div>
-          <div className="text-sm text-blue-200">Total de casos</div>
-        </div>
-      </div>
-    </div>
-  );
+  // // Renderizado
+  // const renderHeader = () => (
+  //   <div className="flex-col bg-gradient-to-l from-cyan-500 via-sky-400 to-teal-500 text-white drop-shadow-md p-6 rounded-xl shadow-2xl mb-6">
+  //     <div className="flex items-center justify-between">
+  //       <div>
+  //         <h1 className="text-3xl font-bold mb-2">📊 Gestión de Mora</h1>
+  //         <p className="text-blue-100">Monitoreo y gestión de clientes en mora</p>
+  //       </div>
+  //       <div className="text-right">
+  //         <div className="text-2xl font-bold">{stats.total}</div>
+  //         <div className="text-sm text-blue-200">Total de casos</div>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
 
   const renderFiltros = () => (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-200">
@@ -596,6 +596,7 @@ const GestionMora = () => {
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-gray-900 mb-1">{cliente.CREDITO_MORA.SOCIO}</h3>
                   <p className="text-sm text-gray-600">{cliente.CREDITO_MORA.PRODUCTO}</p>
+                  <p className="text-sm text-gray-600">{cliente.CREDITO_MORA.CUENTA}</p>
                 </div>
                 <div className="text-2xl">{estadoMora.icon}</div>
               </div>
@@ -603,10 +604,6 @@ const GestionMora = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Pagaré:</span>
                   <span className="font-semibold text-gray-900">{cliente.CREDITO_MORA.PAGARE}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Cuenta:</span>
-                  <span className="font-semibold text-gray-900">{cliente.CREDITO_MORA.CUENTA}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">Días atraso:</span>
@@ -657,17 +654,22 @@ const GestionMora = () => {
   );
 
   const renderTabla = () => (
-    <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200">
+      <div
+        className="overflow-x-auto max-h-[52vh] scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#CBD5E0 #F7FAFC'
+        }}
+      >
+        <table className="min-w-full divide-y divide-gray-200" style={{ minWidth: '1200px' }}>
           <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">👤 Cliente</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Pagaré</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Cuenta</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Días Atraso</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Saldo</th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">N° cuotas pendientes</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">C. pendientes</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">M. pendiente</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Estado</th>
               <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Acciones</th>
@@ -710,14 +712,12 @@ const GestionMora = () => {
                         <div className="ml-4">
                           <div className="text-sm font-bold text-gray-900">{cliente.CREDITO_MORA.SOCIO}</div>
                           <div className="text-sm text-gray-500">{cliente.CREDITO_MORA.PRODUCTO}</div>
+                          <div className="text-sm text-gray-500">{cliente.CREDITO_MORA.CUENTA}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{cliente.CREDITO_MORA.PAGARE}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{cliente.CREDITO_MORA.CUENTA}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -773,11 +773,11 @@ const GestionMora = () => {
 
   return (
     <Layout title="Gestión de Mora">
-      <div className="h-full w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 min-h-screen">
-        {renderHeader()}
+      <div className="w-full bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-4">
+        {/*renderHeader()*/}
         {renderFiltros()}
         {filteredClientes.length > 0 && renderEstadisticas()}
-        <div className="space-y-4">
+        <div className="space-y-4 pb-6">
           {isLoading ? (
             <div className="flex justify-center items-center py-12">
               <div className="text-center">
