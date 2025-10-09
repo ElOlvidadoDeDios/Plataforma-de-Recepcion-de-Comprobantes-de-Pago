@@ -20,18 +20,39 @@ const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
 
   // Mensaje predeterminado
-  const defaultMessage = cliente
-    ? `🙋‍♀️ Estimado/a ${cliente.CREDITO_MORA.SOCIO}:
-📢 Le informamos que tu pago correspondiente al pagaré N° ${cliente.CREDITO_MORA.PAGARE} por un monto de S/ ${cliente.CREDITO_MORA.POR_PAGAR.toFixed(2)} con un atraso de ${cliente.CREDITO_MORA.DIAS_ATRASO} días. ⏰
-🙏 Agradecemos tu atención y te recomendamos realizar el pago a tiempo para evitar recargos. ⚠️
-💳 Métodos de pago:
-  •  📱 Billeteras de confianza: (Yape / Plin)
-     👉 Escanea el código QR adjunto para pagar fácilmente.
-  • Transferencia bancaria: 🏦 010002456952-54852361
-❓ Cualquier duda o inconveniente, no dudes en contactarnos. 📞 +51974768491
-🤝 Atentamente,
-Cooperativa DILE`
-    : '';
+const defaultMessage = cliente
+  ? `🙋‍♀️ Estimado/a ${cliente.CREDITO_MORA.SOCIO}:
+    📢 Le informamos que tu pago correspondiente al pagaré N° ${cliente.CREDITO_MORA.PAGARE} por un monto de S/ ${cliente.CREDITO_MORA.POR_PAGAR.toFixed(2)} con un atraso de ${cliente.CREDITO_MORA.DIAS_ATRASO} días. ⏰
+    🙏 Agradecemos tu atención y te recomendamos realizar el pago a tiempo para evitar recargos. ⚠️
+
+    💳 *Métodos de pago:*
+    • 📱 *Billeteras de confianza:* (Yape / Plin)
+      👉 Escanea el código QR adjunto para pagar fácilmente.
+    • 🏦 *Transferencia bancaria:*
+
+    🏦 *Cuentas Cooperativa DILE - Soles:*
+        ─────────────────────
+        *BANCO CONTINENTAL BBVA*
+        👤 COOPERATIVA DE AHORRO Y CRÉDITO DILE  
+        Cuenta Corriente: *0011-0200-0100089464-30*  
+        CCI: *011-200-000100089464-30*
+
+        *SCOTIABANK*
+        👤 COOPERATIVA DE AHORRO Y CRÉDITO DE INTELECTUALES, LÍDERES Y EMPRESARIOS  
+        Cuenta de Ahorros: *780-7794198*  
+        CCI: *009-318-207807794198-71*
+
+        💼 *Servicio de Recaudación BBVA*
+        Nombre de Recaudo: COOPERATIVA DILE  
+        Código de Recaudo: *14857*  
+        Moneda: SOLES
+        ──────────────────────
+
+    ❓ Cualquier duda o inconveniente, no dudes en contactarnos. 📞 +51974768491  
+    🤝 Atentamente,  
+    *Cooperativa DILE*`
+  : '';
+
 
   useEffect(() => {
     if (isOpen && cliente) {
