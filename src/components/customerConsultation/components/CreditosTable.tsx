@@ -187,7 +187,8 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
 
       const response = await verificarDocumentoFirmado({
         ID_DOCUMENT_FIRM: credito.FIRM_DIGITAL.ID_DOCUMENT,
-        PAGARE: credito.ID_PRESTAMO
+        PAGARE: credito.ID_PRESTAMO,
+        AGENCIA: credito.AGENCIA
       });
 
       if (response.success) {

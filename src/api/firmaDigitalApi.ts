@@ -9,6 +9,7 @@ interface GenerarContratoRequest {
 interface VerificarDocumentoRequest {
   ID_DOCUMENT_FIRM: string;
   PAGARE: string;
+  AGENCIA: string;
 }
 
 interface GenerarContratoResponse {
