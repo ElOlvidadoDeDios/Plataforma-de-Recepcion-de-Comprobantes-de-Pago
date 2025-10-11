@@ -477,11 +477,11 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                                 id="socio"
                                 name="socio"
                                 value={formData.socio}
-                                onChange={handleChange}
-                                className="bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 w-full p-2.5"
+                                className="bg-gray-100 border border-gray-300 text-gray-700 text-sm rounded-lg w-full p-2.5 cursor-not-allowed"
                                 placeholder="NOMBRE Y APELLIDOS"
                                 required
-                                disabled={isLoading}
+                                readOnly
+                                disabled
                             />
                         </div>
 
