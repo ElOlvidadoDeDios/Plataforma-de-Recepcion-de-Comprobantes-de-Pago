@@ -131,7 +131,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                         (!negocio.condicion_negocio || negocio.condicion_negocio.trim() === '')) {
                         
                         // Si es "Sí", copiar TODO
-                        if (domicilio.condicion_negocio === 'Sí') {
+                        if (domicilio.condicion_negocio === 'SI') {
                             datosCompletos[negocioIndex] = {
                                 ...datosCompletos[negocioIndex],
                                 suministro: domicilio.suministro || datosCompletos[negocioIndex].suministro,
@@ -285,7 +285,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                             (!negocio.condicion_negocio || negocio.condicion_negocio.trim() === '')) {
                             
                             // Si es "Sí", copiar TODO
-                            if (domicilio.condicion_negocio === 'Sí') {
+                            if (domicilio.condicion_negocio === 'SI') {
                                 nuevosDatosCompletos[negocioIndex] = {
                                     ...nuevosDatosCompletos[negocioIndex],
                                     suministro: domicilio.suministro || nuevosDatosCompletos[negocioIndex].suministro,
@@ -509,7 +509,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                                         type="radio"
                                                                                         name={`condicion_negocio_${index}`}
                                                                                         value="Sí"
-                                                                                        checked={datosCompletos[index]?.condicion_negocio === 'Sí'}
+                                                                                        checked={datosCompletos[index]?.condicion_negocio === 'SI'}
                                                                                         onChange={(e) => handleCondicionNegocioChange(index, e.target.value)}
                                                                                         className="mr-2"
                                                                                     />

@@ -12,6 +12,10 @@ interface VerificarDocumentoRequest {
   AGENCIA: string;
 }
 
+interface ObtenerUrlFirmadaRequest {
+  URL: string;
+}
+
 interface GenerarContratoResponse {
   success: boolean;
   data?: any;
@@ -24,8 +28,16 @@ interface VerificarDocumentoResponse {
   message?: string;
 }
 
+interface ObtenerUrlFirmadaResponse {
+  success: boolean;
+  data?: any;
+  message?: string;
+  url?: string;
+}
+
 // Usar la misma base URL que el resto de la aplicación
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const AGENCY_API_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
 
 export const generarContrato = async (data: GenerarContratoRequest): Promise<GenerarContratoResponse> => {
   try {
@@ -46,6 +58,44 @@ export const generarContrato = async (data: GenerarContratoRequest): Promise<Gen
     return {
       success: true,
       data: result
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    };
+  }
+};
+
+export const obtenerUrlFirmada = async (data: ObtenerUrlFirmadaRequest): Promise<ObtenerUrlFirmadaResponse> => {
+  try {
+    const response = await fetch(`${AGENCY_API_URL}/api_mongo_firm_easy/api/FirmPreAwsFirmeasy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en el servidor: ${response.status}`);
+    }
+
+    // El endpoint retorna directamente la URL como string, no como JSON
+    const urlString = await response.text();
+    
+    // Limpiar la URL: remover barras invertidas, comillas y espacios
+    const cleanUrl = urlString
+      .replace(/\\/g, '')        // Remover barras invertidas
+      .replace(/"/g, '')         // Remover comillas
+      .trim();                   // Remover espacios
+
+    // Si el endpoint responde con 200, consideramos que es exitoso
+    return {
+      success: true,
+      data: cleanUrl,
+      url: cleanUrl
     };
 
   } catch (error) {

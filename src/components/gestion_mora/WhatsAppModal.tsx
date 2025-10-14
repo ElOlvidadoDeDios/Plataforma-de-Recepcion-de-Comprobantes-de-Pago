@@ -275,9 +275,8 @@ const defaultMessage = cliente
                     Cancelar
                   </button>
                   <button
-                    onClick={handleSendMessage}
-                    disabled={isLoading || !message.trim()}
-                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    disabled={true}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2 opacity-50 cursor-not-allowed"
                   >
                     {isLoading ? (
                       <>

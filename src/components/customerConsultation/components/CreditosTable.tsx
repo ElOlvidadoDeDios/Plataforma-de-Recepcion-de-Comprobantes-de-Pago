@@ -2,7 +2,7 @@ import { useState, lazy, Suspense, useEffect, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { DetalleCredito, ClienteResponse, checkVoucherExists } from '../../../api/customerConsultationAPI';
 import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
-import { generarContrato, verificarDocumentoFirmado } from '../../../api/firmaDigitalApi';
+import { generarContrato, verificarDocumentoFirmado, obtenerUrlFirmada } from '../../../api/firmaDigitalApi';
 import { PaymentRecord } from '../../../types';
 import ComprobanteDesembolsoModal from './ComprobanteDesembolsoModal';
 import { AuthContext } from '../../../contexts/AuthContext';
@@ -221,6 +221,51 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     }
   };
 
+  // Función para manejar el clic en contrato firmado y obtener URL pública
+  const handleVerContratoFirmado = async (credito: DetalleCredito) => {
+    if (!credito.FIRM_DIGITAL?.URL_SIGNED_FILE) {
+      setNotificationMessage('No hay URL de contrato firmado disponible');
+      setShowNotificationModal(true);
+      return;
+    }
+
+    try {
+      setLoadingFirma(true);
+      setSelectedCreditoFirma(credito.ID_PRESTAMO);
+
+      // Llamar al endpoint para obtener la URL pública
+      const response = await obtenerUrlFirmada({
+        URL: credito.FIRM_DIGITAL.URL_SIGNED_FILE
+      });
+
+      if (response.success && response.url) {
+        // Abrir la URL pública en una nueva pestaña
+        window.open(response.url, '_blank');
+      } else {
+        // Si no se puede obtener la URL pública, usar la original
+        setNotificationMessage('No se pudo obtener la URL pública. Usando URL original...');
+        setShowNotificationModal(true);
+        setTimeout(() => {
+          if (credito.FIRM_DIGITAL?.URL_SIGNED_FILE) {
+            window.open(credito.FIRM_DIGITAL.URL_SIGNED_FILE, '_blank');
+          }
+        }, 1000);
+      }
+    } catch (error) {
+      // En caso de error, usar la URL original
+      setNotificationMessage('Error al obtener URL pública. Usando URL original...');
+      setShowNotificationModal(true);
+      setTimeout(() => {
+        if (credito.FIRM_DIGITAL?.URL_SIGNED_FILE) {
+          window.open(credito.FIRM_DIGITAL.URL_SIGNED_FILE, '_blank');
+        }
+      }, 1000);
+    } finally {
+      setLoadingFirma(false);
+      setSelectedCreditoFirma('');
+    }
+  };
+
   // Hook para cargar el estado de vouchers al inicio
   useEffect(() => {
     const verificarVouchers = async () => {
@@ -297,18 +342,21 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
       }
       
       return (
-        <a
-          href={firmDigital.URL_SIGNED_FILE}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors flex items-center justify-center"
+        <button
+          onClick={() => handleVerContratoFirmado(credito)}
+          disabled={isLoading}
+          className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors flex items-center justify-center disabled:bg-green-300"
           title="Ver contrato firmado"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </a>
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          )}
+        </button>
       );
     }
 
@@ -526,18 +574,21 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
       }
       
       return (
-        <a
-          href={firmDigital.URL_SIGNED_FILE}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors flex items-center justify-center"
+        <button
+          onClick={() => handleVerContratoFirmado(credito)}
+          disabled={isLoading}
+          className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors flex items-center justify-center disabled:bg-green-300"
           title="Ver contrato firmado"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-            <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
-          </svg>
-        </a>
+          {isLoading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+          )}
+        </button>
       );
     }
 
