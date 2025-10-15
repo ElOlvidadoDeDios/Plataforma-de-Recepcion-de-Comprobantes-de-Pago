@@ -25,7 +25,14 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const maxSize = 1920;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        reject(new Error('Error al procesar imagen'));
+                        return;
+                    }
+
+                    // Tamaño más pequeño para evitar problemas de memoria
+                    const maxSize = 800; // Muy reducido para mejor rendimiento
                     let width = img.width;
                     let height = img.height;
                     
@@ -41,7 +48,7 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                     
                     canvas.width = width;
                     canvas.height = height;
-                    canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
                     
                     canvas.toBlob((blob) => {
                         if (blob) {
@@ -49,7 +56,7 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                         } else {
                             reject(new Error('Error al comprimir imagen'));
                         }
-                    }, 'image/jpeg', 0.85);
+                    }, 'image/jpeg', 0.6); // Calidad muy baja para menor tamaño
                 };
                 img.onerror = () => reject(new Error('Error al cargar imagen'));
                 img.src = e.target?.result as string;
@@ -63,18 +70,26 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
         const file = event.target.files?.[0];
         if (!file) return;
         
-        // Limpiar imagen anterior antes de crear una nueva
-        if (image) URL.revokeObjectURL(image);
+        // Limpiar imagen anterior
+        if (image) {
+            URL.revokeObjectURL(image);
+            setImage(null);
+        }
         
         setLoading(true);
         setError(null);
         
+        // Limpiar input
+        event.target.value = '';
+        
         try {
             const compressed = await compressImage(file);
-            setImage(URL.createObjectURL(compressed));
+            const imageUrl = URL.createObjectURL(compressed);
+            setImage(imageUrl);
             handleImageChangeIn(id, compressed);
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Error al procesar imagen');
+            setError('Error al procesar imagen. Intenta otra vez.');
+            console.error('Error:', err);
         } finally {
             setLoading(false);
         }
@@ -94,12 +109,12 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                     <div className="grid gap-2">
                         <div className="flex items-center justify-center">
                             <label>
-                                <input 
-                                    type="file" 
-                                    accept="image/*" 
-                                    capture="environment" 
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/jpg,image/png"
+                                    capture="environment"
                                     hidden
-                                    onChange={handleCapture} 
+                                    onChange={handleCapture}
                                     disabled={loading}
                                 />
                                 <div className={`flex w-24 h-10 px-2 flex-col rounded-xl shadow text-white text-xs font-semibold leading-4 items-center justify-center cursor-pointer focus:outline-none ${loading ? 'bg-gray-400' : 'bg-primary-100'}`}>

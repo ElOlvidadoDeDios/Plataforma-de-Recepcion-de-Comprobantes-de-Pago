@@ -187,7 +187,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
         const negocioIndex = datosIncompletos.findIndex(d => d.tipo_ubicacion === 'NEGOCIO');
 
         if (item.tipo_ubicacion === 'DOMICILIO' && negocioIndex !== -1) {
-            if (valor === 'Sí') {
+            if (valor === 'SI') {
                 const datosDelDomicilio = datosCompletos[index];
                 setDatosCompletos(prev => ({
                     ...prev,
@@ -508,7 +508,7 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
                                                                                     <input
                                                                                         type="radio"
                                                                                         name={`condicion_negocio_${index}`}
-                                                                                        value="Sí"
+                                                                                        value="SI"
                                                                                         checked={datosCompletos[index]?.condicion_negocio === 'SI'}
                                                                                         onChange={(e) => handleCondicionNegocioChange(index, e.target.value)}
                                                                                         className="mr-2"
