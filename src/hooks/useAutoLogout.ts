@@ -15,8 +15,8 @@ export const useAutoLogout = () => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scheduleCheckRef = useRef<NodeJS.Timeout | null>(null);
   const INACTIVITY_TIME = 3 * 60 * 1000; // 3 minutos (solo móvil)
-  const LOGOUT_HOUR = 20; // 8 PM (solo desktop)
-  const LOGOUT_MINUTE = 0; // A las 8:00 PM exacto
+  const LOGOUT_HOUR = 21; // 9 PM (solo desktop)
+  const LOGOUT_MINUTE = 0; // A las 9:00 PM exacto
 
   const performLogout = useCallback(() => {
     setIsAuthenticated(false);
@@ -27,7 +27,7 @@ export const useAutoLogout = () => {
     window.location.href = '/login';
   }, [setIsAuthenticated, setUser]);
 
-  // Calcular milisegundos hasta las 8 PM
+  // Calcular milisegundos hasta las 9 PM
   const getMillisecondsUntilLogout = useCallback((): number => {
     const now = new Date();
     const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
@@ -35,7 +35,7 @@ export const useAutoLogout = () => {
     const logoutTime = new Date(peruTime);
     logoutTime.setHours(LOGOUT_HOUR, LOGOUT_MINUTE, 0, 0);
 
-    // Si ya pasó las 8 PM hoy, programar para mañana
+    // Si ya pasó las 9 PM hoy, programar para mañana
     if (peruTime >= logoutTime) {
       logoutTime.setDate(logoutTime.getDate() + 1);
     }
@@ -51,9 +51,9 @@ export const useAutoLogout = () => {
     const peruTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Lima' }));
     const currentHour = peruTime.getHours();
 
-    // Si ya pasó las 8 PM, cerrar inmediatamente
+    // Si ya pasó las 9 PM, cerrar inmediatamente
     if (currentHour >= LOGOUT_HOUR) {
-      toast.error('🕐 La aplicación se cierra a las 8 PM', {
+      toast.error('🕐 La aplicación se cierra a las 9 PM', {
         duration: 3000,
         position: 'top-center',
         style: {
@@ -82,17 +82,17 @@ export const useAutoLogout = () => {
   const scheduleExactLogout = useCallback(() => {
     if (!user || isMobileDevice()) return;
 
-    // Si ya pasó las 8 PM, cerrar ahora
+    // Si ya pasó las 9 PM, cerrar ahora
     if (checkScheduledLogout()) return;
 
-    // Calcular tiempo exacto hasta las 8 PM
+    // Calcular tiempo exacto hasta las 9 PM
     const msUntilLogout = getMillisecondsUntilLogout();
 
-    // Programar un solo timeout hasta las 8 PM exacto
+    // Programar un solo timeout hasta las 9 PM exacto
     if (scheduleCheckRef.current) clearTimeout(scheduleCheckRef.current);
     
     scheduleCheckRef.current = setTimeout(() => {
-      toast.error('🕐 La aplicación se cierra a las 8 PM', {
+      toast.error('🕐 La aplicación se cierra a las 9 PM', {
         duration: 3000,
         position: 'top-center',
         style: {
@@ -159,7 +159,7 @@ export const useAutoLogout = () => {
   const handleVisibilityChange = () => {
     if (document.visibilityState === 'visible') {
       if (!isMobileDevice()) {
-        // Verificar si ya pasó las 8 PM cuando vuelve a la pestaña
+        // Verificar si ya pasó las 9 PM cuando vuelve a la pestaña
         checkScheduledLogout();
       } else {
         resetInactivityTimer();
@@ -170,7 +170,7 @@ export const useAutoLogout = () => {
   useEffect(() => {
     if (!user) return;
 
-    // DESKTOP: Programar cierre exacto a las 8 PM
+    // DESKTOP: Programar cierre exacto a las 9 PM
     if (!isMobileDevice()) {
       scheduleExactLogout();
       document.addEventListener('visibilitychange', handleVisibilityChange, true);

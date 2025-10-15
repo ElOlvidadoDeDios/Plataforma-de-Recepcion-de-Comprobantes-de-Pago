@@ -87,10 +87,42 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
         }
 
         try {
+            Notification.info('⏳ Generando reporte...');
             const data = await generarPdfGps(userData.dni, formData.DNI);
-            abrirReporte(data.url);
+            
+            if (data.url) {
+                // Detectar iOS/iPhone específicamente
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                
+                if (isIOS) {
+                    // Para iOS: crear un enlace temporal y hacer click automático
+                    const link = document.createElement('a');
+                    link.href = data.url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.download = `reporte_${formData.DNI}_${new Date().getTime()}.pdf`;
+                    
+                    // Agregar al DOM temporalmente
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    // Limpiar después de un momento
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                    }, 100);
+                    
+                    Notification.success('✅ Reporte generado. Se abrirá en una nueva pestaña.');
+                } else {
+                    // Para Android y PC: usar la función original
+                    abrirReporte(data.url);
+                    Notification.success('✅ Reporte generado correctamente');
+                }
+            } else {
+                throw new Error('No se recibió la URL del reporte');
+            }
         } catch (error: any) {
-            Notification.error(`Error al generar el reporte: ${error.message}`);
+            Notification.error(`❌ Error al generar el reporte: ${error.message || 'Error desconocido'}`);
+            console.error('Error al generar reporte:', error);
         }
     };
 
@@ -606,3 +638,5 @@ export default function ModalGenerarReportUbicacion({ isOpen, onClose }: ModalPr
         </div>
     );
 }
+
+
