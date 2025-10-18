@@ -5,6 +5,7 @@ import {
   searchClientesByDNI,
   TipoDocumento,
   ClienteBasico,
+  DetalleCredito,
 } from '../../api/customerConsultationAPI';
 import { SessionManager } from '../../utils/sessionManager';
 import Layout from '../Layout';
@@ -147,6 +148,24 @@ const ConsultaClientes = () => {
     }
   };
 
+  // Función para actualizar un crédito específico en el estado local
+  const handleUpdateCredito = (creditoId: string, updatedData: Partial<DetalleCredito>) => {
+    if (clientData && clientData.CREDITO_VIGENTE) {
+      const updatedCreditos = clientData.CREDITO_VIGENTE.map(credito =>
+        credito.ID_PRESTAMO === creditoId
+          ? { ...credito, ...updatedData }
+          : credito
+      );
+      
+      const updatedClientData = {
+        ...clientData,
+        CREDITO_VIGENTE: updatedCreditos
+      };
+      
+      setClientData(updatedClientData);
+    }
+  };
+
   return (
     <Layout title="Consulta de socios">
       <div className="h-full w-full bg-gradient-to-r from-cyan-50 to-teal-50">
@@ -179,6 +198,7 @@ const ConsultaClientes = () => {
               creditos={clientData.CREDITO_VIGENTE || []}
               clientData={clientData}
               onRefreshData={handleRefreshClientData}
+              onUpdateCredito={handleUpdateCredito}
             />
           </>
         ) : (

@@ -125,9 +125,6 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
             // Enviar archivo comprimido al padre
             handleImageChangeIn(id, compressedFile);
             
-            console.log(`Imagen original: ${(file.size / 1024).toFixed(2)} KB`);
-            console.log(`Imagen comprimida: ${(compressedFile.size / 1024).toFixed(2)} KB`);
-            
         } catch (err) {
             console.error('Error al procesar imagen:', err);
             setError('Error al procesar la imagen. Por favor, intenta de nuevo.');

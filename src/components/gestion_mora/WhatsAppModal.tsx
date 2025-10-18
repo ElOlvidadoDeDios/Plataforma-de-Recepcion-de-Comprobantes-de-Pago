@@ -103,12 +103,11 @@ const defaultMessage = cliente
       
       const response = await creditAttentionApi.sendWhatsAppMessage({
         number: phoneNumber,
-        type: "media",
-        mediaPath: "https://dile.com.pe/images/QR_dile_pagos.jpeg",
-        caption: message.trim()
+        message: message.trim(),
+        mediaUrl: "https://dile.com.pe/images/QR_dile_pagos.jpeg"
       });
 
-      if (response.status) {
+      if (response.status === "ok") {
         setSuccessMessage('Mensaje enviado exitosamente');
         setTimeout(() => {
           onClose();
@@ -275,8 +274,9 @@ const defaultMessage = cliente
                     Cancelar
                   </button>
                   <button
-                    disabled={true}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2 opacity-50 cursor-not-allowed"
+                    onClick={handleSendMessage}
+                    disabled={isLoading || !message.trim()}
+                    className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <>

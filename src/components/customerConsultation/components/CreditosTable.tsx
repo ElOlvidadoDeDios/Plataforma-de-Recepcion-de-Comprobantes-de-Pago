@@ -15,11 +15,15 @@ interface CreditosTableProps {
   creditos: DetalleCredito[];
   clientData: ClienteResponse;
   onRefreshData?: () => void; // Función para refrescar los datos
+  onUpdateCredito?: (creditoId: string, updatedData: Partial<DetalleCredito>) => void; // Función para actualizar un crédito específico
 }
 
-const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTableProps) => {
+const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }: CreditosTableProps) => {
   const authContext = useContext(AuthContext);
   const { user } = authContext || {};
+  
+  // Estado local para manejar los créditos (copia actualizable)
+  const [localCreditos, setLocalCreditos] = useState<DetalleCredito[]>(creditos);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPrestamo, setSelectedPrestamo] = useState<DetalleCredito | null>(null);
@@ -38,6 +42,27 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
   const [selectedCreditoDesembolso, setSelectedCreditoDesembolso] = useState<DetalleCredito | null>(null);
   // Estado para rastrear qué vouchers existen
   const [vouchersExistentes, setVouchersExistentes] = useState<Record<string, boolean>>({});
+
+  // Sincronizar el estado local con los props cuando cambien
+  useEffect(() => {
+    setLocalCreditos(creditos);
+  }, [creditos]);
+
+  // Función para actualizar un crédito específico en el estado local
+  const updateLocalCredito = (creditoId: string, updatedData: Partial<DetalleCredito>) => {
+    setLocalCreditos(prevCreditos =>
+      prevCreditos.map(credito =>
+        credito.ID_PRESTAMO === creditoId
+          ? { ...credito, ...updatedData }
+          : credito
+      )
+    );
+    
+    // También notificar al componente padre si tiene la función
+    if (onUpdateCredito) {
+      onUpdateCredito(creditoId, updatedData);
+    }
+  };
 
   // FUNCIONES DE VALIDACIÓN DE PERMISOS
   const hasPermission = (permission: Permission): boolean => {
@@ -153,11 +178,32 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
           // El contrato se generó exitosamente
           setNotificationMessage('Contrato generado exitosamente. El documento está listo para firmar.');
           setShowNotificationModal(true);
-          // Refrescar los datos para obtener el estado actualizado
+          
+          // Actualizar inmediatamente el estado local del crédito
+          if (response.data && response.data.ID_DOCUMENT) {
+            updateLocalCredito(credito.ID_PRESTAMO, {
+              FIRM_DIGITAL: {
+                ESTADO: 'PENDIENTE',
+                ID_DOCUMENT: response.data.ID_DOCUMENT,
+                URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
+              }
+            });
+          } else {
+            // Si no hay ID_DOCUMENT en la respuesta, solo cambiar el estado
+            updateLocalCredito(credito.ID_PRESTAMO, {
+              FIRM_DIGITAL: {
+                ESTADO: 'PENDIENTE',
+                ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+                URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
+              }
+            });
+          }
+          
+          // Refrescar los datos para obtener el estado actualizado del servidor
           if (onRefreshData) {
             setTimeout(() => {
               onRefreshData();
-            }, 1000); // Esperar 1 segundo antes de refrescar
+            }, 500); // Reducir tiempo de espera
           }
         }
       } else {
@@ -198,14 +244,35 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
           setNotificationMessage(response.data.message || 'El documento aún no ha sido firmado');
           setShowNotificationModal(true);
         } else {
-          // El documento ya fue firmado, refrescar datos
+          // El documento ya fue firmado
           setNotificationMessage('Documento firmado exitosamente. Los datos se actualizarán automáticamente.');
           setShowNotificationModal(true);
-          // Refrescar los datos para obtener el estado actualizado
+          
+          // Actualizar inmediatamente el estado local del crédito
+          if (response.data && response.data.URL_SIGNED_FILE) {
+            updateLocalCredito(credito.ID_PRESTAMO, {
+              FIRM_DIGITAL: {
+                ESTADO: 'FIRMADO',
+                ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+                URL_SIGNED_FILE: response.data.URL_SIGNED_FILE
+              }
+            });
+          } else {
+            // Si no hay URL en la respuesta, solo cambiar el estado
+            updateLocalCredito(credito.ID_PRESTAMO, {
+              FIRM_DIGITAL: {
+                ESTADO: 'FIRMADO',
+                ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+                URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
+              }
+            });
+          }
+          
+          // Refrescar los datos para obtener el estado actualizado del servidor
           if (onRefreshData) {
             setTimeout(() => {
               onRefreshData();
-            }, 1000); // Esperar 1 segundo antes de refrescar
+            }, 500); // Reducir tiempo de espera
           }
         }
       } else {
@@ -269,11 +336,11 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
   // Hook para cargar el estado de vouchers al inicio
   useEffect(() => {
     const verificarVouchers = async () => {
-      if (!clientData?.INFO_SOCIO?.DATOS_PERSONALES?.DNI || !creditos?.length) return;
+      if (!clientData?.INFO_SOCIO?.DATOS_PERSONALES?.DNI || !localCreditos?.length) return;
       
       const resultados: Record<string, boolean> = {};
       
-      for (const credito of creditos) {
+      for (const credito of localCreditos) {
         if (credito.ESTADO === 'VIGENTE') {
           try {
             const result = await checkVoucherExists(
@@ -291,7 +358,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     };
 
     verificarVouchers();
-  }, [clientData, creditos]);
+  }, [clientData, localCreditos]);
 
   // Función para abrir modal de subir comprobante de desembolso
   const handleSubirComprobante = async (credito: DetalleCredito) => {
@@ -781,7 +848,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
     );
   };
 
-  if (!Array.isArray(creditos) || creditos.length === 0 || typeof creditos[0] === 'string') {
+  if (!Array.isArray(localCreditos) || localCreditos.length === 0 || typeof localCreditos[0] === 'string') {
     return (
       <div className="bg-white rounded-lg shadow-lg p-3 overflow-hidden">
         <h2 className="text-lg font-bold uppercase text-cyan-800 mb-3 pb-2 border-b-2 border-cyan-200">
@@ -821,7 +888,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
             </tr>
           </thead>
           <tbody>
-            {creditos.map((credito, index) => (
+            {localCreditos.map((credito, index) => (
               <tr key={`${credito.ID_PRESTAMO}-${index}`} className="transition-colors duration-200 ease-in-out hover:bg-gradient-to-r hover:from-cyan-50 hover:to-teal-50">
                 <td className="px-4 py-2 text-sm border border-gray-200">
                   <button
@@ -887,7 +954,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData }: CreditosTablePro
 
       {/* Vista Móvil - Tarjetas */}
       <div className="lg:hidden">
-        {creditos.map((credito, index) => (
+        {localCreditos.map((credito, index) => (
           <div key={`${credito.ID_PRESTAMO}-${index}`} className="bg-white rounded-lg shadow-md p-3 mb-3">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-bold text-cyan-800">

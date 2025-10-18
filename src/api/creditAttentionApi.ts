@@ -85,15 +85,15 @@ export interface GestionMora1x1Response {
 // Interface para envío de mensajes WhatsApp
 export interface WhatsAppMessageRequest {
   number: string;
-  type: "text" | "media";
-  message?: string; // Para tipo text
-  mediaPath?: string; // Para tipo media
-  caption?: string; // Para tipo media
+  message: string;
+  mediaUrl?: string; // Para incluir imagen/media
 }
 
 export interface WhatsAppMessageResponse {
-  status: boolean;
+  status: string;
+  number?: string;
   message?: string;
+  mediaUrl?: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -261,7 +261,7 @@ export const creditAttentionApi = {
     // Enviar mensaje de WhatsApp
     sendWhatsAppMessage: async (messageData: WhatsAppMessageRequest): Promise<WhatsAppMessageResponse> => {
         try {
-            const response = await axios.post('https://n70fhxk0-3008.brs.devtunnels.ms/v1/send-message', messageData);
+            const response = await axios.post('https://n70fhxk0-3008.brs.devtunnels.ms/v1/send-media', messageData);
             return response.data;
         } catch (error: any) {
             throw new Error('Error al enviar mensaje de WhatsApp');

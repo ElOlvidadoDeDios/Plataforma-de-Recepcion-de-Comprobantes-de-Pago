@@ -231,31 +231,50 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
       </div>
 
       {showRejectModal && rejectType === 'partial' && (
-        <div className="fixed inset-0 bg-black/50 z-[100]" onClick={onCloseModal}>
-          <div 
-            className="fixed inset-0 flex items-center justify-center"
-            style={{ top: `${window.scrollY}px` }}
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10001] flex items-center justify-center p-4" onClick={onCloseModal}>
+          <div
+            className="bg-white w-full max-w-md max-h-[90vh] overflow-y-auto rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white w-[90%] max-w-md mx-auto relative p-6 rounded-lg shadow-lg"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-semibold mb-4 text-red-600">
-                Rechazo Parcial
-              </h3>
-              <div className="space-y-4">
-                <p className="text-sm text-gray-600 mb-4">
-                  Esta acción rechazará el comprobante seleccionado.
-                </p>
-                {errorMessage && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-md text-sm mb-4">
-                    {errorMessage}
-                  </div>
-                )}
+            {/* Header fijo */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-4 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-red-600">
+                    Rechazo Parcial
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                    Esta acción rechazará el comprobante seleccionado
+                  </p>
+                </div>
+                <button
+                  onClick={onCloseModal}
+                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors"
+                  disabled={isDisabled}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Contenido scrolleable */}
+            <div className="p-4 sm:p-6 space-y-4">
+              {errorMessage && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm">
+                  {errorMessage}
+                </div>
+              )}
+              
+              <div className="space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Motivo del rechazo
+                </label>
                 <select
                   value={selectedRejectReason}
                   onChange={(e) => setSelectedRejectReason(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 bg-white"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white disabled:opacity-50 disabled:bg-gray-50"
                   disabled={isDisabled}
                 >
                   <option value="">Seleccione un motivo</option>
@@ -268,36 +287,52 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
                     <option key={reason} value={reason}>{reason}</option>
                   ))}
                 </select>
-                {selectedRejectReason === "Otro (especificar)" && (
+              </div>
+
+              {selectedRejectReason === "Otro (especificar)" && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Especifique el motivo
+                  </label>
                   <textarea
                     value={customReason}
                     onChange={(e) => setCustomReason(e.target.value)}
-                    placeholder="Especifique el motivo del rechazo"
-                    className="w-full rounded-md border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-cyan-500 resize-none"
-                    rows={3}
+                    placeholder="Describa detalladamente el motivo del rechazo..."
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 resize-none disabled:opacity-50 disabled:bg-gray-50"
+                    rows={4}
                     disabled={isDisabled}
                   />
-                )}
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    onClick={onCloseModal}
-                    className={`px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 ${
-                      isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    disabled={isDisabled}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleConfirmReject}
-                    className={`px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600 ${
-                      isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    disabled={isDisabled}
-                  >
-                    {isDisabled ? 'Procesando...' : 'Confirmar Rechazo'}
-                  </button>
+                  <p className="text-xs text-gray-500">
+                    Caracteres: {customReason.length}
+                  </p>
                 </div>
+              )}
+            </div>
+
+            {/* Footer fijo */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 px-4 sm:px-6 py-4 rounded-b-xl">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <button
+                  onClick={onCloseModal}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isDisabled}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmReject}
+                  className="flex-1 px-4 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isDisabled}
+                >
+                  {isDisabled ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      <span>Procesando...</span>
+                    </div>
+                  ) : (
+                    'Confirmar Rechazo'
+                  )}
+                </button>
               </div>
             </div>
           </div>
