@@ -67,8 +67,8 @@ export interface UserResponse {
 export type User = UserResponse;
 
 export const AGENCIAS = {
-  "AGENCIA JULIACA": "07",
-  "AGENCIA LIMA": "06",
+  "AGENCIA JULIACA": "06",
+  "AGENCIA LIMA": "07",
   "AGENCIA QUILLABAMBA": "03",
   "AGENCIA SAN JERÓNIMO": "02",
   "AGENCIA SANTIAGO": "05",
