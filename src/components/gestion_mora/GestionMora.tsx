@@ -174,13 +174,27 @@ const GestionMora = () => {
         const tokenData = getTokenData();
         const agencia = tokenData.id_age;
         setUserAgency(agencia);
-        const analistasDeAgencia = await creditAttentionApi.getAnalistasByAgencia(periodo, agencia);
+        
+        // Para agencias 06 (Juliaca) y 07 (Lima), enviar agencia 98 al backend
+        let agenciaParaBackend = agencia;
+        if (agencia === '06' || agencia === '07') {
+          agenciaParaBackend = '98';
+        }
+        
+        const analistasDeAgencia = await creditAttentionApi.getAnalistasByAgencia(periodo, agenciaParaBackend);
         let analistasFiltrados = analistasDeAgencia;
-        if (agencia === '98') {
-          const adminAgencia = analistasDeAgencia.find((a) => a.ID_ANA === tokenData.id_ana)?.AGENCIA;
-          if (adminAgencia) {
-            analistasFiltrados = analistasDeAgencia.filter((a) => a.AGENCIA === adminAgencia);
+        
+        // Si es agencia 98 (incluye casos de 06 y 07), filtrar por agencia específica
+        if (agenciaParaBackend === '98') {
+          let nombreAgenciaAdmin;
+          if (agencia === '06') {
+            nombreAgenciaAdmin = 'AGENCIA JULIACA';
+          } else if (agencia === '07') {
+            nombreAgenciaAdmin = 'AGENCIA LIMA';
+          } else {
+            nombreAgenciaAdmin = mapearCodigoANombreAgencia(agencia);
           }
+          analistasFiltrados = analistasDeAgencia.filter((a) => a.AGENCIA === nombreAgenciaAdmin);
         }
         setAnalistas(analistasFiltrados);
       } else if (currentUserRole === 'ANALISTA_CREDITOS_I' || currentUserRole === 'ANALISTA_CREDITOS_PAGO_DIARIO') {
@@ -232,7 +246,13 @@ const GestionMora = () => {
       } else {
         const analista = analistas.find((a) => a.ID_ANA === selectedAnalista);
         if (!analista) throw new Error('Analista no encontrado');
-        const codigoAgencia = obtenerCodigoAgencia(analista.AGENCIA) || userAgency || '01';
+        let codigoAgencia = obtenerCodigoAgencia(analista.AGENCIA) || userAgency || '01';
+        
+        // Para agencias 06 (Juliaca) y 07 (Lima), enviar agencia 98 al backend
+        if (codigoAgencia === '06' || codigoAgencia === '07') {
+          codigoAgencia = '98';
+        }
+        
         response = await creditAttentionApi.getClientesEnMoraByAnalista({
           ID_ANA: analista.ID_ANA,
           CARGO: analista.CARGO,

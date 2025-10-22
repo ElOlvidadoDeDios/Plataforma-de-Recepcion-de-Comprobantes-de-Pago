@@ -27,6 +27,7 @@ import CalculadoraCreditos from './components/Calculadora_creditos/cal_creditos'
 import GeodilePage from './components/Geodile/GeodilePage';
 import AfiliacionSocios from './components/afiliacion_de_socios/pendientesAafiliar';
 import ConsultaCuotasSocios from './components/pagos_recaudadores/pagosRecaudadores';
+import PerfilUsuario from './components/PerfilUsuario';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -226,7 +227,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="*" element={<div>404 Not Found</div>} />
+            <Route
+              path="/perfil-usuario"
+              element={
+                <ProtectedRoute>
+                  <PerfilUsuario />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<div>404 Not Found</div>} />
             </Routes>
             </Router>
             <Toaster position="top-right" />

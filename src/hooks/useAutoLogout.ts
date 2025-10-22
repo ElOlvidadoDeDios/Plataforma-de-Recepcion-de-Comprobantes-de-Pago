@@ -15,7 +15,7 @@ export const useAutoLogout = () => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const scheduleCheckRef = useRef<NodeJS.Timeout | null>(null);
   const INACTIVITY_TIME = 3 * 60 * 1000; // 3 minutos (solo móvil)
-  const LOGOUT_HOUR = 21; // 9 PM (solo desktop)
+  const LOGOUT_HOUR = 22; // 9 PM (solo desktop)
   const LOGOUT_MINUTE = 0; // A las 9:00 PM exacto
 
   const performLogout = useCallback(() => {

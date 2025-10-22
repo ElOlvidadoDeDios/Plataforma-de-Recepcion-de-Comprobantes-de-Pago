@@ -354,9 +354,12 @@ export const DatosForm = memo(
     };
 
     const handleSave = async () => {
+      // 🚨 LÓGICA ESPECIAL: Si la agencia del usuario es 06 o 07, siempre enviar 98
+      const agenciaAEnviar = (userData?.id_age === '06' || userData?.id_age === '07') ? '98' : (userData?.id_age || '');
+      
       const formDataWithAgencia = {
         ...formData,
-        AGE: userData?.id_age || '',
+        AGE: agenciaAEnviar,
         // Convertir campos de texto a mayúsculas
         APE_PAT: formData.APE_PAT?.toUpperCase() || '',
         APE_MAT: formData.APE_MAT?.toUpperCase() || '',
@@ -389,7 +392,7 @@ export const DatosForm = memo(
 
       const finalFormData: ClienteData = {
         ...formDataWithAgencia,
-        AGE: userData?.id_age || '',
+        AGE: agenciaAEnviar, // Usar la misma lógica de agencia
         COD_USER: userData?.user || SessionManager.getItem('user') || '',
         TIPO_SOCIO: formData.TIPO_SOCIO,
         TIPO_PERSONA: formData.TIPO_PERSONA,
