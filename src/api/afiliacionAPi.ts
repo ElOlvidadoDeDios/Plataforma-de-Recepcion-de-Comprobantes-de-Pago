@@ -8,6 +8,7 @@ const API_BASE_URL_TOKEN = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 
 export interface AfiliacionSocios {
     DNI: string;
+    AGENCIA: string;
     APELLIDOS: string;
     NOMBRES: string;
     FECHA_PRE_AFI : string;
