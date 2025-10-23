@@ -437,11 +437,17 @@ export default function AfiliacionSociosComponent() {
     try {
       setProcesandoAfiliacion(true);
 
+      // 🏢 LÓGICA ESPECIAL PARA AGENCIAS 06 Y 07 -> CONVERTIR A 98
+      let agenciaFinal = user.agencias[0].agencia;
+      if (agenciaFinal === "06" || agenciaFinal === "07") {
+        agenciaFinal = "98";
+      }
+
       // 📝 PREPARAR DATOS PARA EL ENDPOINT
       const datosAfiliacion: AfiliarSocioRequest = {
         TIPO_DOC: selectedSocio.DATOS.TIPO_DI, // DNI por defecto
         NRO_DOC: selectedSocio.DATOS.NRO_DI,
-        AGENCIA: user.agencias[0].agencia , // Primera agencia del usuario
+        AGENCIA: agenciaFinal, // Usar agencia procesada (98 si era 06 o 07)
         COD_CAJA: user.agencias[0].cod_caja, // Código de caja de la primera agencia
         USER: user.user || user.dni, // Usuario desde AuthContext
         nro_banco: nroBanco // Agregar el número de banco al enviar los datos
