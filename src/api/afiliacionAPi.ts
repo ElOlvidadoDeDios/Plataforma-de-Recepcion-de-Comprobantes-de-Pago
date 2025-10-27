@@ -71,7 +71,7 @@ const sociospendientesAfiliar = async (): Promise<ApiResponse | AfiliacionSocios
 const afiliarSocioProceso = async (datos: AfiliarSocioRequest): Promise<any> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/afiliarSocio_proceso`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/afiliarSocio_proceso`,
       {
         method: 'POST',
         headers: {
@@ -164,7 +164,7 @@ interface datafamiliar {
 export const familiarSocioProceso = async (datos: datafamiliar): Promise<any> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/insertSocioFamiliar`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/insertSocioFamiliar`,
       {
         method: 'POST',
         headers: {
@@ -219,7 +219,7 @@ export interface FamiliarOpciones {
 export const useComboBoxFamiliarOpcionesData = async (): Promise<FamiliarOpciones | null> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/comboFamiliar`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/comboFamiliar`,
       {
         method: 'GET',
         headers: {
@@ -291,7 +291,7 @@ export const DatosAdicionales_insert = async (
 ): Promise<DatosAdicionalesResponse> => {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api_app_dile_v1_1_dev/api/insertDatosAdicionales`,
+      `${API_BASE_URL}/api_app_dile_v1_1/api/insertDatosAdicionales`,
       {
         method: "POST",
         headers: {

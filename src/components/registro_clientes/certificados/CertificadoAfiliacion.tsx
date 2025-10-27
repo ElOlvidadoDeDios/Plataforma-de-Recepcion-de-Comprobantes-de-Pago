@@ -525,9 +525,6 @@ export function Modal({
         // ✅ MENSAJE SIMPLE Y CLARO - SIN IMPRIMIR EL LOG
         Notification.success("✅ ¡Comprobantes subidos exitosamente!");
         
-        // ✅ Solo para DEBUG en consola (opcional, puedes comentar en producción)
-        console.log("Respuesta de la DB:", result.data);
-        
         // Ejecutar callback para refrescar imágenes
         if (onUploadSuccess) {
           onUploadSuccess();
