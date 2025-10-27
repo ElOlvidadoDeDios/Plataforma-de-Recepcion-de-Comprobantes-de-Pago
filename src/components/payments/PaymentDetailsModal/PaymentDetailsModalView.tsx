@@ -1,6 +1,5 @@
 import React, { useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { AGENCIAS } from '../../../types';
 import { AuthContext } from '../../../contexts/AuthContext';
@@ -41,29 +40,29 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
     paymentDetails,
     setPaymentDetails,
     paymentIndex,
-    setPaymentIndex,
     imageIndex,
     setImageIndex,
     loadingRelated,
     totalAmount,
     modalPayments,
-    removePayment,
     paymentType,
     paymentLimit,
-    handlePaymentTypeChange
+    handlePaymentTypeChange,
+    globalBanco,
+    setGlobalBanco
   } = usePaymentDetailsState(currentPayment, monto, setMonto);
 
-  const handleNextPayment = () => {
-    const nextIndex = (paymentIndex + 1) % modalPayments.length;
-    setPaymentIndex(nextIndex);
-    setImageIndex(0);
-  };
+  // const handleNextPayment = () => {
+  //   const nextIndex = (paymentIndex + 1) % modalPayments.length;
+  //   setPaymentIndex(nextIndex);
+  //   setImageIndex(0);
+  // };
 
-  const handlePrevPayment = () => {
-    const prevIndex = (paymentIndex - 1 + modalPayments.length) % modalPayments.length;
-    setPaymentIndex(prevIndex);
-    setImageIndex(0);
-  };
+  // const handlePrevPayment = () => {
+  //   const prevIndex = (paymentIndex - 1 + modalPayments.length) % modalPayments.length;
+  //   setPaymentIndex(prevIndex);
+  //   setImageIndex(0);
+  // };
 
   const allPayments = modalPayments;
   const displayedPayment = allPayments[paymentIndex];
@@ -116,40 +115,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
 
           {/* Contenido de imagen - 70% del espacio vertical */}
           <div className={`${modalPosition.isMobile ? 'min-h-[85vh]' : 'flex-1'} flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} ${modalPosition.isMobile ? '' : 'overflow-hidden'} relative min-h-0`}>
-            {/* Navegación entre pagos */}
-            {allPayments.length > 1 && (
-              <div className={`absolute ${modalPosition.isMobile ? 'top-1/2 -translate-y-1/2' : 'inset-y-0'} left-0 right-0 flex items-center justify-between px-4 z-50 pointer-events-none`}>
-                <button
-                  onClick={handlePrevPayment}
-                  className={`p-3 bg-white/95 rounded-full shadow-xl hover:bg-white hover:shadow-2xl pointer-events-auto transition-all border border-gray-200 ${modalPosition.isMobile ? 'relative' : ''}`}
-                  style={modalPosition.isMobile ? { transform: 'translateY(-50%)' } : {}}
-                >
-                  <ChevronLeft className="w-6 h-6 text-gray-700" />
-                </button>
-                <button
-                  onClick={handleNextPayment}
-                  className={`p-3 bg-white/95 rounded-full shadow-xl hover:bg-white hover:shadow-2xl pointer-events-auto transition-all border border-gray-200 ${modalPosition.isMobile ? 'relative' : ''}`}
-                  style={modalPosition.isMobile ? { transform: 'translateY(-50%)' } : {}}
-                >
-                  <ChevronRight className="w-6 h-6 text-gray-700" />
-                </button>
-              </div>
-            )}
-            
-            {/* Botón quitar comprobante */}
-            <div className="absolute top-3 right-3 z-30">
-              {paymentIndex > 0 && (
-                <button
-                  onClick={() => removePayment(paymentIndex)}
-                  className="text-gray-500 hover:text-red-500 transition-colors bg-white/95 rounded-full shadow-lg border border-gray-200 p-2"
-                  title="Quitar comprobante"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
+            {/* ✅ NOTA: Navegación y botón quitar comprobante deshabilitados en modo individual */}
+            {/* Ya no se cargan múltiples pagos relacionados, solo el registro seleccionado */}
 
             {/* Tabs móviles */}
             {modalPosition.isMobile && (
@@ -259,7 +226,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                       rejectType: 'partial',
                       selectedRejectReason: '',
                       customReason: '',
-                      totalAmount
+                      totalAmount,
+                      globalBanco
                     });
                     
                     if (error) {
@@ -321,7 +289,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                     customReason,
                     agenciaCode,
                     totalAmount,
-                    userData: user
+                    userData: user,
+                    globalBanco
                   });
                   
                   if (error) {
@@ -343,7 +312,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                     totalAmount,
                     userData: user,
                     paymentType,
-                    paymentLimit
+                    paymentLimit,
+                    globalBanco
                   });
                   
                   if (error) {
@@ -365,6 +335,8 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                 paymentDetails={paymentDetails}
                 userData={user}
                 agenciaCode={agenciaCode}
+                globalBanco={globalBanco}
+                onBancoChange={setGlobalBanco}
               />
             )}
           </div>

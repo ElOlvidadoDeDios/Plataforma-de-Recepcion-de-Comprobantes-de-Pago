@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useContext } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import logger from '../../utils/logger';
 import { PaymentRecord, AgenciaCaja } from '../../types';
-import { fetchPaymentByDNIAndTime, fetchPendingPaymentsByPagare } from '../../api/paymentsApi';
+import { fetchPaymentByDNIAndTime } from '../../api/paymentsApi';
 import toast from 'react-hot-toast';
 import { PaymentCardView } from './PaymentCardView';
 import { PaymentDetailsModal } from './PaymentDetailsModal';
@@ -56,13 +56,15 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
     ) {
       setCurrentPayment(updatedPayment);
     }
-  }, [currentPayment]);
+  }, [currentPayment.dni, currentPayment.fecha, currentPayment.hora]);
 
   useEffect(() => {
     if (socket) {
       socket.on('paymentUpdated', handlePaymentUpdated);
       return () => {
-        socket.off('paymentUpdated', handlePaymentUpdated);
+        if (socket) {
+          socket.off('paymentUpdated', handlePaymentUpdated);
+        }
       };
     }
   }, [socket, handlePaymentUpdated]);
@@ -78,7 +80,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
     return () => {
       window.removeEventListener('closePaymentModal', handleCloseModalEvent);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleOpenModal = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -141,14 +143,8 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
       if (updatedPayment) {
         setCurrentPayment(updatedPayment);
 
-        if ((updatedPayment.estadoGeneral === 'pendiente' || updatedPayment.estadoGeneral === 'parcial') && updatedPayment.creditoId) {
-          const payments = await fetchPendingPaymentsByPagare(updatedPayment.creditoId);
-          const total = payments.reduce(
-            (sum, p) => sum + Number(p.cuotasVencidasTotalAPagar),
-            0
-          );
-          setMonto(total.toString());
-        }
+        // ✅ SOLUCIÓN: Solo usar el monto del comprobante actual, no sumar todos los relacionados
+        setMonto(updatedPayment.cuotasVencidasTotalAPagar);
       }
     } catch (error) {
       toast.error('No se pudo actualizar el comprobante.');

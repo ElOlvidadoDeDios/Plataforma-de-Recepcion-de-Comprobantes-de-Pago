@@ -41,6 +41,7 @@ export interface PaymentDetailsModalProps {
         montoPago: string;
         nroOperacion: string;
         nro_banco: string;
+        banco: string;
         tipoOperacion: string;
         estado?: string;
         _id?: string;

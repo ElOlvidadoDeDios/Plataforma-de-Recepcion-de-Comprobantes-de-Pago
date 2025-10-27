@@ -509,52 +509,42 @@ export function Modal({
     try {
       // ✅ PREPARAR DATOS PARA LA API
       const uploadData: UploadFileData = {
-        DNI_SOCIO: cliente.DOC_IDEN,      // DNI del socio
-        AGENCIA: ageOriginal,             // Agencia original donde se registró
-        ANALISTA: codUserOriginal         // Analista que originalmente registró
+        DNI_SOCIO: cliente.DOC_IDEN,
+        AGENCIA: ageOriginal,
+        ANALISTA: codUserOriginal
       };
 
-      // ✅ SUBIR TODO EN UN SOLO PAYLOAD: datos + todas las imágenes juntas
+      // ✅ SUBIR TODO EN UN SOLO PAYLOAD
       const result = await uploadAllFilesAtOnce(uploadData, {
         dniFrontal: dniFrontalFile,
         dniReverso: dniReversoFile,
         voucher: paymentFile
       });
 
-      
       if (result.success) {
+        // ✅ MENSAJE SIMPLE Y CLARO - SIN IMPRIMIR EL LOG
+        Notification.success("✅ ¡Comprobantes subidos exitosamente!");
         
-        let mensaje = `✅ ¡Comprobantes subidos exitosamente!`;
-
-        // Si la respuesta contiene información adicional, mostrarla
-        if (result.data && Array.isArray(result.data)) {
-          mensaje += `\n\n📊 Respuesta de la DB (${result.data.length} elementos):`;
-          result.data.forEach((item: any, index: number) => {
-            mensaje += `\n• Archivo ${index + 1}: ${JSON.stringify(item)}`;
-          });
-        } else if (result.data) {
-          mensaje += `\n\n📊 Respuesta de la DB:\n${JSON.stringify(result.data, null, 2)}`;
-        }
+        // ✅ Solo para DEBUG en consola (opcional, puedes comentar en producción)
+        console.log("Respuesta de la DB:", result.data);
         
-        Notification.success(mensaje);
-        // Ejecutar callback para refrescar imágenes si existe
+        // Ejecutar callback para refrescar imágenes
         if (onUploadSuccess) {
           onUploadSuccess();
         }
         onClose();
       } else {
-        
-        let mensajeError = `❌ Error subiendo comprobantes:\n${result.error || 'Error desconocido'}`;
-        
-        // Si hay datos adicionales en el error, mostrarlos para debug
-        if (result.data) {
-          mensajeError += `\n\n🔍 Datos de la DB para debug:\n${JSON.stringify(result.data, null, 2)}`;
-        }
-        
-        throw new Error(mensajeError);
+        // ✅ ERROR SIMPLE - SIN IMPRIMIR TODO EL LOG
+        throw new Error(result.error || 'Error desconocido al subir comprobantes');
       }
     } catch (error) {
-      Notification.error(`❌ Error subiendo comprobantes: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      // ✅ Log solo en consola para debug
+      console.error("Error completo:", error);
+      
+      // ✅ Mensaje limpio al usuario
+      Notification.error(
+        `❌ Error al subir comprobantes: ${error instanceof Error ? error.message : 'Error desconocido'}`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -718,10 +708,5 @@ export function Modal({
     document.body
   );
 }
-
-
-
-
-
 
 export default CertificadoAfiliacion;

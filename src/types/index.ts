@@ -29,6 +29,7 @@ export interface PaymentRecord {
     _id?: string;
     nroOperacion?: string;
     nro_banco?: string;
+    banco?: string;
     tipoOperacion?: string;
     monto_pago?: number;
   }>;

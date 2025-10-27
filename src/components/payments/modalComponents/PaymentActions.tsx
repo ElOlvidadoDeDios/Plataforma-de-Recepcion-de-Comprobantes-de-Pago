@@ -35,6 +35,9 @@ interface PaymentActionsProps {
     dni?: string;
   } | null;
   agenciaCode?: string;
+  // Nuevas props para manejo global del banco
+  globalBanco: string;
+  onBancoChange: (banco: string) => void;
 }
 
 export const PaymentActions: React.FC<PaymentActionsProps> = ({
@@ -55,6 +58,8 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   paymentDetails = [],
   userData,
   agenciaCode,
+  globalBanco,
+  onBancoChange,
 }) => {
   const [showTotalRejectModal, setShowTotalRejectModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -64,6 +69,11 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
   const validateRequiredData = (): string | null => {
     if (!agenciaCode || agenciaCode.trim() === '') {
       return 'No se ha seleccionado una agencia. Debe tener una agencia asignada para procesar pagos.';
+    }
+
+    // Validar que se haya seleccionado un banco
+    if (!globalBanco || globalBanco.trim() === '') {
+      return 'Debe seleccionar un banco antes de procesar el pago.';
     }
 
     const codCaja = userData?.agencias?.[0]?.cod_caja || '';
@@ -194,7 +204,10 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
     <>
       <div className="p-2 sm:p-3 border-t border-gray-200 bg-white mt-auto space-y-2 sm:space-y-3">
         {errorMessage && <ErrorMessage message={errorMessage} />}
-        <div className="flex items-center justify-between gap-1 sm:gap-2">
+        
+        {/* Fila con Monto Total y Banco */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+          {/* Monto Total */}
           <div className="flex items-center gap-1 sm:gap-3">
             <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
               Monto Total:
@@ -207,26 +220,52 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               title="El monto total se calcula automáticamente sumando los montos individuales de cada voucher"
             />
           </div>
-          <div className="flex gap-1 sm:gap-2">
-            <button
-              onClick={handleAcceptStatus}
-              className={`bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-green-600 transition-colors ${
-                isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+          
+          {/* Banco Global */}
+          <div className="flex items-center gap-1 sm:gap-3">
+            <label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
+              Banco:
+            </label>
+            <select
+              value={globalBanco}
+              onChange={(e) => onBancoChange(e.target.value)}
+              className={`w-28 sm:w-36 rounded-md border px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm transition-colors outline-none focus:outline-none ${
+                isDisabled
+                  ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                  : 'border-gray-300 focus:ring-2 focus:ring-cyan-500'
               }`}
               disabled={isDisabled}
             >
-              {isDisabled ? 'Procesando...' : totalPayments > 1 ? `Aceptar (${totalPayments})` : 'Aceptar'}
-            </button>
-            <button
-              onClick={handleRejectAll}
-              className={`bg-red-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-red-600 transition-colors ${
-                isDisabled ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              disabled={isDisabled}
-            >
-              {isDisabled ? 'Procesando...' : 'Rechazar Todo'}
-            </button>
+              <option value="">Seleccionar...</option>
+              <option value="1">BBVA</option>
+              <option value="2">SCOTIABANK</option>
+              <option value="3">PLIN - BBVA</option>
+              <option value="4">PLIN - BANBIF</option>
+              <option value="5">PLIN - AREQUIPA</option>
+            </select>
           </div>
+        </div>
+        
+        {/* Fila con botones */}
+        <div className="flex items-center justify-end gap-1 sm:gap-2">
+          <button
+            onClick={handleAcceptStatus}
+            className={`bg-green-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-green-600 transition-colors ${
+              isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            disabled={isDisabled}
+          >
+            {isDisabled ? 'Procesando...' : totalPayments > 1 ? `Aceptar (${totalPayments})` : 'Aceptar'}
+          </button>
+          <button
+            onClick={handleRejectAll}
+            className={`bg-red-500 text-white px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm rounded hover:bg-red-600 transition-colors ${
+              isDisabled ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            disabled={isDisabled}
+          >
+            {isDisabled ? 'Procesando...' : 'Rechazar Todo'}
+          </button>
         </div>
       </div>
 

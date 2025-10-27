@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 interface VoucherDetail {
   montoPago: string;
   nroOperacion: string;
-  nro_banco: string; // Nuevo campo para número de banco
+  nro_banco: string; // Campo para número de banco
   tipoOperacion: string;
   estado: 'pendiente' | 'aceptado' | 'rechazado';
   imageIndex: number; // Índice de la imagen correspondiente
@@ -196,26 +196,6 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
               />
             </div>
 
-            {/* Número de banco */}
-            <div className="flex flex-col gap-1">
-              <label className="text-sm text-center font-medium text-gray-700">
-                Número de banco:
-              </label>
-              <input
-                type="text"
-                className={`w-48 mx-auto rounded-md border px-3 py-2 text-sm text-center transition-colors ${
-                  !isEditable || voucher.estado === 'rechazado'
-                    ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
-                    : 'border-gray-300 focus:ring-2 focus:ring-cyan-500'
-                }`}
-                maxLength={20}
-                value={voucher.nro_banco}
-                onChange={(e) => onUpdateVoucher(index, 'nro_banco', e.target.value)}
-                readOnly={!isEditable || voucher.estado === 'rechazado'}
-                placeholder="Ej: 002, 009, etc."
-              />
-            </div>
-
             {/* Tipo de operación */}
             <div className="flex flex-col gap-1">
               <label className="text-sm text-center font-medium text-gray-700">
@@ -236,6 +216,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 <option value="YAPE">YAPE</option>
                 <option value="TRANSFERENCIA">TRANSFERENCIA</option>
               </select>
+            </div>
+
+            {/* Número de banco */}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm text-center font-medium text-gray-700">
+                Número de banco:
+              </label>
+              <input
+                type="text"
+                className={`w-48 mx-auto rounded-md border px-3 py-2 text-sm text-center transition-colors ${
+                  !isEditable || voucher.estado === 'rechazado'
+                    ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                    : 'border-gray-300 focus:ring-2 focus:ring-cyan-500'
+                }`}
+                maxLength={20}
+                value={voucher.nro_banco}
+                onChange={(e) => onUpdateVoucher(index, 'nro_banco', e.target.value)}
+                readOnly={!isEditable || voucher.estado === 'rechazado'}
+                placeholder="Ej: 002, 009, etc."
+              />
             </div>
           </div>
           

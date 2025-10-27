@@ -608,9 +608,9 @@ const GestionMora = () => {
         const estadoMora = getEstadoMora(parseInt(cliente.CREDITO_MORA.DIAS_ATRASO));
         return (
           <div
-            key={`${cliente.CREDITO_MORA.CUENTA}-${index}`}
-            className={`bg-gradient-to-br ${estadoMora.bgGradient} rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 ${estadoMora.color} overflow-hidden`}
-          >
+           key={`mora-card-${cliente.CREDITO_MORA.CUENTA}-${cliente.CREDITO_MORA.PAGARE}-${index}`}
+           className={`bg-gradient-to-br ${estadoMora.bgGradient} rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 ${estadoMora.color} overflow-hidden`}
+         >
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -723,7 +723,7 @@ const GestionMora = () => {
               filteredClientes.map((cliente, index) => {
                 const estadoMora = getEstadoMora(parseInt(cliente.CREDITO_MORA.DIAS_ATRASO));
                 return (
-                  <tr key={`${cliente.CREDITO_MORA.CUENTA}-${index}`} className="hover:bg-gray-50 transition-colors duration-200">
+                  <tr key={`mora-row-${cliente.CREDITO_MORA.CUENTA}-${cliente.CREDITO_MORA.PAGARE}-${index}`} className="hover:bg-gray-50 transition-colors duration-200">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center">

@@ -136,11 +136,13 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
   // Escuchar actualizaciones por socket
   useEffect(() => {
     if (socket) {
-      socket.on('paymentUpdated', (updatedPayment: PaymentRecord) => {
+      const handlePaymentUpdate = (updatedPayment: PaymentRecord) => {
         updatePayment(updatedPayment);
-      });
+      };
+      
+      socket.on('paymentUpdated', handlePaymentUpdate);
       return () => {
-        socket.off('paymentUpdated');
+        socket.off('paymentUpdated', handlePaymentUpdate);
       };
     }
   }, [socket, updatePayment]);
@@ -468,9 +470,9 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 px-2 sm:px-0">
-                {(searchMode ? filteredDniResults : payments).map((payment) => (
+                {(searchMode ? filteredDniResults : payments).map((payment, index) => (
                   <PaymentCard
-                    key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
+                    key={`${payment.dni}-${payment.fecha}-${payment.hora}-${index}`}
                     payment={payment}
                     socket={socket}
                     agencias={validations.isFullEditMode && (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && selectedAgencia

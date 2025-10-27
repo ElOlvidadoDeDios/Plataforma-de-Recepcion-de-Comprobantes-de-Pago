@@ -15,9 +15,9 @@ export const PaymentList: React.FC<PaymentListProps> = ({ payments, onUpdateStat
     <div>
       <h1 className="text-2xl font-bold mb-4">Lista de Pagos</h1>
       <div className="mt-4">
-        {payments.map((payment) => (
+        {payments.map((payment, index) => (
           <PaymentCard
-            key={`${payment.dni}-${payment.fecha}-${payment.hora}`}
+            key={`${payment.dni}-${payment.fecha}-${payment.hora}-${index}`}
             payment={payment}
             onUpdateStatus={onUpdateStatus}
             socket={socket}

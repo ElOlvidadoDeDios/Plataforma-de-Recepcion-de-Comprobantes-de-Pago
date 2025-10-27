@@ -22,6 +22,7 @@ interface PaymentHandlerProps {
   } | null;
   paymentType?: 'normal' | 'liquidacion';
   paymentLimit?: number;
+  globalBanco?: string;
 }
 
 export const handleUpdateStatus = async (
@@ -39,7 +40,8 @@ export const handleUpdateStatus = async (
     customReason,
     agenciaCode,
     totalAmount,
-    userData
+    userData,
+    globalBanco
   } = props;
 
   const finalReason = selectedRejectReason === "Otro (especificar)"
@@ -66,6 +68,11 @@ export const handleUpdateStatus = async (
 
     if (incompleteVouchers.length > 0) {
       return 'Debe completar los datos de todos los comprobantes pendientes';
+    }
+
+    // VALIDAR BANCO OBLIGATORIO
+    if (!globalBanco || globalBanco.trim() === '') {
+      return 'Debe seleccionar un banco antes de procesar el rechazo';
     }
 
     // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND (RECHAZO TOTAL)
@@ -129,7 +136,8 @@ export const handleUpdateStatus = async (
             montoPago: detail.montoPago || '0',
             nroOperacion: detail.nroOperacion || '',
             tipoOperacion: detail.tipoOperacion || '',
-            nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
+            nro_banco: detail.nro_banco || '',
+            banco: globalBanco || '', // Usar banco global
             estado: 'rechazado',
             _id: comp._id || '',
             motivo_rechazo: finalReason,
@@ -198,6 +206,11 @@ export const handleUpdateStatus = async (
     return 'Debe completar todos los datos del comprobante seleccionado';
   }
 
+  // VALIDAR BANCO OBLIGATORIO
+  if (!globalBanco || globalBanco.trim() === '') {
+    return 'Debe seleccionar un banco antes de procesar el pago';
+  }
+
   // VALIDAR DATOS OBLIGATORIOS ANTES DE ENVIAR AL BACKEND (RECHAZO PARCIAL)
   if (!userData?.agencias || userData.agencias.length === 0) {
     return 'Su usuario no tiene agencias asignadas. Contacte al administrador para configurar su acceso.';
@@ -254,7 +267,8 @@ export const handleUpdateStatus = async (
           montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
-          nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
+          nro_banco: detail.nro_banco || '',
+          banco: globalBanco || '', // Usar banco global
           estado: shouldReject ? 'rechazado' as const : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: shouldReject ? finalReason : detail.motivo_rechazo,
@@ -337,7 +351,8 @@ export const handlePartialAcceptStatus = async (
     agenciaCode,
     userData,
     paymentType,
-    paymentLimit
+    paymentLimit,
+    globalBanco
   } = props;
 
   // Validar estado general del comprobante
@@ -362,6 +377,11 @@ export const handlePartialAcceptStatus = async (
 
   if (!selectedVoucher.montoPago || !selectedVoucher.nroOperacion || !selectedVoucher.tipoOperacion) {
     return 'Debe completar todos los datos del comprobante seleccionado';
+  }
+
+  // VALIDAR BANCO OBLIGATORIO
+  if (!globalBanco || globalBanco.trim() === '') {
+    return 'Debe seleccionar un banco antes de procesar el pago';
   }
 
   // Validar monto individual del voucher
@@ -452,7 +472,8 @@ export const handlePartialAcceptStatus = async (
           montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
-          nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
+          nro_banco: detail.nro_banco || '',
+          banco: globalBanco || '', // Usar banco global
           estado: shouldAccept ? 'aceptado' as const : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: shouldAccept ? '' : detail.motivo_rechazo,
@@ -539,7 +560,8 @@ export const handleAcceptStatus = async (
     agenciaCode,
     userData,
     paymentType,
-    paymentLimit
+    paymentLimit,
+    globalBanco
   } = props;
 
   // Validar estado general del comprobante
@@ -561,6 +583,11 @@ export const handleAcceptStatus = async (
 
   if (incompleteVouchers.length > 0) {
     return 'Debe completar los datos de todos los comprobantes pendientes';
+  }
+
+  // VALIDAR BANCO OBLIGATORIO
+  if (!globalBanco || globalBanco.trim() === '') {
+    return 'Debe seleccionar un banco antes de procesar el pago';
   }
 
   // Calcular el monto total de todos los vouchers pendientes
@@ -655,7 +682,8 @@ export const handleAcceptStatus = async (
           montoPago: detail.montoPago || '0',
           nroOperacion: detail.nroOperacion || '',
           tipoOperacion: detail.tipoOperacion || '',
-          nro_banco: detail.nro_banco || '', // Corregir referencia al campo correcto
+          nro_banco: detail.nro_banco || '',
+          banco: globalBanco || '', // Usar banco global
           estado: detail.estado === 'pendiente' ? 'aceptado' : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: detail.estado === 'pendiente' ? '' : detail.motivo_rechazo,
