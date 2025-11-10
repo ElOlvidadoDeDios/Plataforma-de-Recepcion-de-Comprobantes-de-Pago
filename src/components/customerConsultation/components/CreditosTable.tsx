@@ -370,42 +370,8 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       );
 
       if (result.exists && result.url) {
-        // Si existe, usar la misma lógica de obtenerUrlFirmada para obtener URL pública
-        setLoadingFirma(true);
-        setSelectedCreditoFirma(credito.ID_PRESTAMO);
-
-        try {
-          // Llamar al endpoint para obtener la URL pública del voucher
-          const response = await obtenerUrlFirmada({
-            URL: result.url
-          });
-
-          if (response.success && response.url) {
-            // Abrir la URL pública en una nueva pestaña
-            window.open(response.url, '_blank');
-          } else {
-            // Si no se puede obtener la URL pública, usar la original
-            setNotificationMessage('No se pudo obtener la URL pública. Usando URL original...');
-            setShowNotificationModal(true);
-            setTimeout(() => {
-              if (result.url) {
-                window.open(result.url, '_blank');
-              }
-            }, 1000);
-          }
-        } catch (error) {
-          // En caso de error, usar la URL original
-          setNotificationMessage('Error al obtener URL pública. Usando URL original...');
-          setShowNotificationModal(true);
-          setTimeout(() => {
-            if (result.url) {
-              window.open(result.url, '_blank');
-            }
-          }, 1000);
-        } finally {
-          setLoadingFirma(false);
-          setSelectedCreditoFirma('');
-        }
+        // Si existe, abrir directamente la URL original
+        window.open(result.url, '_blank');
       } else {
         // Si no existe, abrir el modal para subir
         setSelectedCreditoDesembolso(credito);
