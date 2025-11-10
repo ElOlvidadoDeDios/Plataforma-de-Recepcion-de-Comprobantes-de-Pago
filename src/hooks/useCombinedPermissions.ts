@@ -130,6 +130,35 @@ export function useCombinedPermissions() {
     canEditPagoRecaudadores: () => hasPermission(Permission.PAGO_RECAUDADORES_EDIT),
     canViewPagoRecaudadores: () => hasPermission(Permission.PAGO_RECAUDADORES_VIEW),
 
+    // === HISTORIAL DE DESEMBOLSOS ===
+    canAccessHistorialDesembolsos: () => {
+      // Roles con acceso automático sin necesidad de permisos
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_OPERACIONES'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.DISBURSEMENT_HISTORY_VIEW);
+    },
+    canEditHistorialDesembolsos: () => {
+      // Roles con acceso automático sin necesidad de permisos
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_OPERACIONES'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.DISBURSEMENT_HISTORY_EDIT);
+    },
+    canViewHistorialDesembolsos: () => {
+      // Roles con acceso automático sin necesidad de permisos
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_OPERACIONES'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.DISBURSEMENT_HISTORY_VIEW);
+    },
+
     // Método para verificar si es usuario básico
     isBasicUser: () => {
       if (!user || !user.role) return true;

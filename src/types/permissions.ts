@@ -56,6 +56,10 @@ export enum Permission {
   // === PAGO RECAUDADORES ===
   PAGO_RECAUDADORES_VIEW = 'pago_recaudadores:view',
   PAGO_RECAUDADORES_EDIT = 'pago_recaudadores:edit',
+
+  // === HISTORIAL DE DESEMBOLSOS ===
+  DISBURSEMENT_HISTORY_VIEW = 'disbursement_history:view',
+  DISBURSEMENT_HISTORY_EDIT = 'disbursement_history:edit',
 }
 
 export enum UserRole {
@@ -126,6 +130,10 @@ export const PermissionCategories = {
     Permission.PAGO_RECAUDADORES_VIEW,   // Solo ver
     Permission.PAGO_RECAUDADORES_EDIT,   // Editar (incluye gestionar, etc.)
   ],
+  'Historial de Desembolsos': [
+    Permission.DISBURSEMENT_HISTORY_VIEW,   // Solo ver
+    Permission.DISBURSEMENT_HISTORY_EDIT,   // Editar (incluye gestionar, etc.)
+  ],
 
 };
 
@@ -184,6 +192,10 @@ export const PermissionLabels: Record<Permission, string> = {
   // Pago Recaudadores
   [Permission.PAGO_RECAUDADORES_VIEW]: '📊 Ver Pago Recaudadores',
   [Permission.PAGO_RECAUDADORES_EDIT]: '⚙️ Gestionar Pago Recaudadores',
+
+  // Historial de Desembolsos
+  [Permission.DISBURSEMENT_HISTORY_VIEW]: '📊 Ver Historial de Desembolsos',
+  [Permission.DISBURSEMENT_HISTORY_EDIT]: '⚙️ Gestionar Historial de Desembolsos',
 };
 
 /**
@@ -204,6 +216,7 @@ export const LegacyPermissionMapping: Record<string, Permission[]> = {
   'canAccessGeodile': [Permission.GEODILE_VIEW, Permission.GEODILE_EDIT],
   'canAccessReports': [Permission.INSTALLMENTS_VIEW, Permission.INSTALLMENTS_EDIT], // Reportes van con cuotas
   'canAccessPagoRecaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
+  'canAccessHistorialDesembolsos': [Permission.DISBURSEMENT_HISTORY_VIEW, Permission.DISBURSEMENT_HISTORY_EDIT],
   'canAssignRoles': [Permission.USERS_EDIT],
   'canDeleteAccounts': [Permission.USERS_EDIT],
   'canBlockEmails': [Permission.USERS_EDIT],

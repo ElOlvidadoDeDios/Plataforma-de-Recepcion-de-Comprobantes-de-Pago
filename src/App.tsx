@@ -28,6 +28,7 @@ import GeodilePage from './components/Geodile/GeodilePage';
 import AfiliacionSocios from './components/afiliacion_de_socios/pendientesAafiliar';
 import ConsultaCuotasSocios from './components/pagos_recaudadores/pagosRecaudadores';
 import PerfilUsuario from './components/PerfilUsuario';
+import HistorialDesembolsos from './components/hIstorial_de_desembolsos/HistorialDesembolsos';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -223,6 +224,16 @@ function App() {
                   <ProtectedRoute>
                     <PermissionProtectedRoute permission="canAccessPagoRecaudadores">
                       <ConsultaCuotasSocios />
+                    </PermissionProtectedRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/historial-desembolsos"
+                element={
+                  <ProtectedRoute>
+                    <PermissionProtectedRoute permission="canAccessHistorialDesembolsos">
+                      <HistorialDesembolsos />
                     </PermissionProtectedRoute>
                   </ProtectedRoute>
                 }
