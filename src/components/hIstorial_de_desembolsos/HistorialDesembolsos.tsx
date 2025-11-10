@@ -1,0 +1,282 @@
+import React, { useState } from 'react';
+import { DesembolsoRealizado, fetchDesembolsosRealizados } from '../../api/HistorialDesolbolsosAPI';
+import { obtenerUrlFirmada } from '../../api/firmaDigitalApi';
+import Layout from '../Layout';
+
+interface HistorialDesembolsosProps {}
+
+const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
+  const [desembolsos, setDesembolsos] = useState<DesembolsoRealizado[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [imagenModal, setImagenModal] = useState<string | null>(null);
+  const [loadingImagen, setLoadingImagen] = useState<string | null>(null); // Para mostrar loading específico de cada imagen
+
+  // Función para convertir fecha de YYYY-MM-DD a DD/MM/YYYY
+  const convertirFecha = (fechaISO: string): string => {
+    const [year, month, day] = fechaISO.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
+  const handleBuscarDesembolsos = async () => {
+    if (!fecha) {
+      setError('Por favor selecciona una fecha');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Convertir fecha de YYYY-MM-DD a DD/MM/YYYY antes de enviar
+      const fechaFormateada = convertirFecha(fecha);
+
+      const response = await fetchDesembolsosRealizados(fechaFormateada);
+      
+      if (response.status) {
+        setDesembolsos(response.data);
+        setError(null);
+      } else {
+        setError(response.message);
+        setDesembolsos([]);
+      }
+    } catch (err) {
+      setError('Error al cargar los desembolsos');
+      setDesembolsos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatearFecha = (fechaStr: string) => {
+    try {
+      const fecha = new Date(fechaStr);
+      return fecha.toLocaleDateString('es-PE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } catch {
+      return fechaStr;
+    }
+  };
+
+  const abrirImagenModal = async (enlace: string) => {
+    setLoadingImagen(enlace); // Mostrar loading para este enlace específico
+    
+    try {
+      // Enviar solo el enlace relativo (sin construir URL completa)
+      const response = await obtenerUrlFirmada({
+        URL: enlace  // Solo el enlace relativo
+      });
+
+      if (response.success && response.url) {
+        // Usar la URL pública firmada obtenida
+        setImagenModal(response.url);
+      } else {
+        // Si no se puede obtener la URL pública, construir la URL original como respaldo
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
+        const urlCompleta = `${API_BASE_URL}/${enlace}`;
+        console.warn('No se pudo obtener URL pública, usando URL original');
+        setImagenModal(urlCompleta);
+      }
+    } catch (error) {
+      // En caso de error, construir la URL original como respaldo
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
+      const urlCompleta = `${API_BASE_URL}/${enlace}`;
+      console.error('Error al obtener URL pública:', error);
+      setImagenModal(urlCompleta);
+    } finally {
+      setLoadingImagen(null);
+    }
+  };
+
+  const cerrarImagenModal = () => {
+    setImagenModal(null);
+  };
+
+  return (
+    <Layout title="Historial de Desembolsos">
+      <div className="p-6">
+        {/* Filtros */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h3 className="text-lg font-semibold mb-4">Buscar Desembolsos</h3>
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="flex-1">
+              <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha
+              </label>
+              <input
+                type="date"
+                id="fecha"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+            <button
+              onClick={handleBuscarDesembolsos}
+              disabled={loading}
+              className="bg-cyan-600 text-white px-6 py-2 rounded-md hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Buscando...' : 'Buscar'}
+            </button>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Resultados */}
+        {desembolsos.length > 0 && (
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b">
+              <h3 className="text-lg font-semibold">
+                Desembolsos Realizados ({desembolsos.length})
+              </h3>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      DNI
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Cuenta
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Razón Social
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Pagaré
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fecha Otorga
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Monto Neto
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Producto
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Agencia
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Responsable
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Voucher
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {desembolsos.map((desembolso, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {desembolso.DNI}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {desembolso.CUENTA}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {desembolso.RAZON_SOCIAL}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {desembolso.PAGARE}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatearFecha(desembolso.OTORGA)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        S/ {parseFloat(desembolso.MONTO_NETO).toLocaleString('es-PE', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
+                        {desembolso.PRODUCTO}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-900">
+                        {desembolso.AGENCIA}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {desembolso.RESPONSABLE}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-sm">
+                        {desembolso.ENLACE && (
+                          <button
+                            onClick={() => abrirImagenModal(desembolso.ENLACE)}
+                            disabled={loadingImagen === desembolso.ENLACE}
+                            className="bg-blue-500 text-white px-3 py-1 rounded text-xs hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            {loadingImagen === desembolso.ENLACE ? (
+                              <>
+                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                Cargando...
+                              </>
+                            ) : (
+                              'Ver Voucher'
+                            )}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Sin resultados */}
+        {!loading && desembolsos.length === 0 && !error && (
+          <div className="bg-gray-50 rounded-lg p-8 text-center">
+            <p className="text-gray-500">
+              Selecciona una fecha y haz clic en "Buscar" para ver los desembolsos realizados.
+            </p>
+          </div>
+        )}
+
+        {/* Modal para mostrar imagen */}
+        {imagenModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto">
+              <div className="flex justify-between items-center p-4 border-b">
+                <h3 className="text-lg font-medium">Voucher de Desembolso</h3>
+                <button
+                  onClick={cerrarImagenModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-4">
+                <img
+                  src={imagenModal}
+                  alt="Voucher de Desembolso"
+                  className="max-w-full h-auto"
+                  onError={() => {
+                    setError('Error al cargar la imagen del voucher');
+                    cerrarImagenModal();
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+};
+
+export default HistorialDesembolsos;
