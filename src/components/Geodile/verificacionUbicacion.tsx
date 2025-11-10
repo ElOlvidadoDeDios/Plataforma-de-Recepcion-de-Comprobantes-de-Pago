@@ -318,26 +318,22 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         abortControllerRef.current = new AbortController();
 
         try {
-            if (datos === false) {
-                const verificacionData = prepareVerificacionData();
-                if (!verificacionData) return;
+            // Permitir envío en ambos casos (datos === false o datos === true)
+            const verificacionData = prepareVerificacionData();
+            if (!verificacionData) return;
 
-                const formDataWithFiles = crearFormDataVerificacion(verificacionData, image);
-                
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('TIMEOUT_PERSONALIZADO')), 45000)
-                );
-                
-                const result = await Promise.race([
-                    verificarPreDesembolso(formDataWithFiles),
-                    timeoutPromise
-                ]);
-                
-                handleSuccess(result);
-            } else if (datos === true) {
-                resetForm();
-                onClose();
-            }
+            const formDataWithFiles = crearFormDataVerificacion(verificacionData, image);
+            
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('TIMEOUT_PERSONALIZADO')), 45000)
+            );
+            
+            const result = await Promise.race([
+                verificarPreDesembolso(formDataWithFiles),
+                timeoutPromise
+            ]);
+            
+            handleSuccess(result);
         } catch (error: any) {
             if (error.name !== 'AbortError') {
                 handleError(error);
@@ -525,23 +521,32 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                         </div>
 
                         {options.selectedOption && formData.socio && (
-                            datos === true ? (
-                                <div className="grid grid-cols-1 justify-items-center rounded-lg border-2 border-blue-300 p-4 my-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" 
-                                        viewBox="0 0 24 24" 
-                                        className="w-6 h-6 text-orange-500" 
-                                        fill="none" stroke="currentColor" strokeWidth="2">
-                                        <circle cx="12" cy="12" r="10" />
-                                        <line x1="12" y1="8" x2="12" y2="13" />
-                                        <circle cx="12" cy="17" r="1.5" />
-                                    </svg>
-                                    <p className="mt-2 text-blue-800 text-[12px]">
-                                        EL SOCIO YA TIENE UNA VERIFICACIÓN ACTUAL
-                                    </p>
-                                </div>
-                            ) : (
+                            <div className="space-y-3">
+                                {/* Mostrar notificación informativa si ya existe verificación */}
+                                {datos === true && (
+                                    <div className="grid grid-cols-1 justify-items-center rounded-lg border-2 border-orange-300 bg-orange-50 p-3 my-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            className="w-5 h-5 text-orange-600"
+                                            fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="13" />
+                                            <circle cx="12" cy="17" r="1.5" />
+                                        </svg>
+                                        <p className="mt-1 text-orange-800 text-[11px] font-medium text-center">
+                                            ℹ️ SOCIO YA TIENE UNA VERIFICACIÓN DE {options.selectedOption}
+                                        </p>
+                                        <p className="text-orange-700 text-[10px] text-center mt-1">
+                                            Se actualizará la verificación existente
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Formulario siempre visible para ambos casos */}
                                 <div className="grid grid-cols-1 rounded-lg border-2 border-blue-300 p-4 my-2">
-                                    <h3 className="text-blue-800 text-[12px] mb-2">INGRESE DATOS DE {options.selectedOption}</h3>
+                                    <h3 className="text-blue-800 text-[12px] mb-2">
+                                        {datos === true ? `ACTUALIZAR VERIFICACIÓN DE ${options.selectedOption}` : `INGRESE DATOS DE ${options.selectedOption}`}
+                                    </h3>
                                     <div className="grid grid-cols-1 gap-2">
                                         <div>
                                             <label htmlFor={`coords_${options.selectedOption.toLowerCase()}`} className="block mb-1 text-[12px] font-medium text-blue-900">
@@ -572,7 +577,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                                         )}
                                     </div>
                                 </div>
-                            )
+                            </div>
                         )}
 
                         <div className="flex justify-end gap-3 pt-4 border-t-2 border-blue-200">

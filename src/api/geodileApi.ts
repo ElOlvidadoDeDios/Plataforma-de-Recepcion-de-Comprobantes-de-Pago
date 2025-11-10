@@ -187,7 +187,8 @@ export const comprobarSocioEnBD = async (dni: string, tipoUbicacion: string): Pr
             body: JSON.stringify({ dni_socio: dni, tipo_ubicacion: tipoUbicacion })
         });
         const result = await response.json();
-        return result[0]?.status === true;
+        // El endpoint devuelve directamente {status: true/false, message: "..."}
+        return result?.status === true;
     } catch (error) {
         throw error;
     }
