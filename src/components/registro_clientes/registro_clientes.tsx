@@ -188,7 +188,7 @@ export default function PersonaForm() {
   };
   
   return (
-    <Layout title="Registro de Clientes">
+    <Layout title="Registro de Socios">
       <div className="flex flex-col" style={{ height: '100%' }}>
         <div className="flex-grow">
           <div className="bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50 rounded-lg shadow-lg h-full">

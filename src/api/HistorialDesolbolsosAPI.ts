@@ -35,11 +35,8 @@ export const fetchDesembolsosRealizados = async (FECHA: string): Promise<respons
 
         const url = `${API_BASE_URL}/api_app_dile_v1_1/api/listDesembolsoDigitalFecha`;
         
-        // Log para debug
-        console.log('🔍 Fetching desembolsos:', { url, FECHA });
 
         const requestBody = { FECHA };
-        console.log('📤 Request body:', requestBody);
 
         const response = await fetch(url, {
             method: 'POST',
@@ -51,17 +48,14 @@ export const fetchDesembolsosRealizados = async (FECHA: string): Promise<respons
             body: JSON.stringify(requestBody)
         });
 
-        console.log('📥 Response status:', response.status);
+  
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Error response:', errorText);
             throw new Error(`Error ${response.status}: ${response.statusText} - ${errorText}`);
         }
-
         const data = await response.json();
-        console.log('✅ Response data:', data);
-
         // Manejar diferentes estructuras de respuesta
         let desembolsos = [];
         if (data.data && Array.isArray(data.data)) {

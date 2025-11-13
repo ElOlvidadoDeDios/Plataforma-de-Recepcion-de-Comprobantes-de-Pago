@@ -166,7 +166,7 @@ const ConsultaCuotasPage: React.FC = () => {
   );
 
   return (
-    <Layout title="Consultas de Cuotas">
+    <Layout title="Reporte de Consultas de Cuotas">
       <div className="px-4 sm:px-6 py-6">
         {/* Filtros de búsqueda */}
         <div className="mb-6 p-4 bg-white rounded-lg shadow border border-gray-200">
