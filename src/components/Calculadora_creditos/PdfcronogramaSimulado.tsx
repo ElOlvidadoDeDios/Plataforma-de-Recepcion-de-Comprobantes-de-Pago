@@ -468,7 +468,7 @@ export default function CronogramaPagosPDF({ datos }: CronogramaPagosPDFProps) {
               <span>{formatDate(primerRegistro.FECHA)}</span>
             </div>
             <div className="flex justify-between">
-              <span>MESES</span>
+              <span>{primerRegistro.FRECUENCIA || ''}</span>
               <span></span>
             </div>
             <div className="flex justify-between">

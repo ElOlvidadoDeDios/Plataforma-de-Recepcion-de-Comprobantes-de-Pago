@@ -248,16 +248,16 @@ export default function CalculadoraCreditos() {
         }
 
         try {
-            // 🔐 USAR DATOS REALES DEL USUARIO LOGUEADO (como en pendientesAafiliar.tsx líneas 441-444)
-            if (!user || !user.agencias || user.agencias.length === 0) {
-                Notification.error('Usuario no válido o sin agencias asignadas');
+            // 🔐 USAR DATOS REALES DEL USUARIO LOGUEADO - USAR user.id_age NO user.agencias
+            if (!user || !user.id_age) {
+                Notification.error('Usuario no válido o sin código de agencia asignado');
                 return;
             }
             
-            // Aplicar lógica especial para agencias 06 y 07 → 98 (igual que pendientesAafiliar.tsx)
-            const agenciaProcesada = (user.agencias[0].agencia === '06' || user.agencias[0].agencia === '07')
+            // Aplicar lógica especial para agencias 06 y 07 → 98
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
                 ? '98'
-                : user.agencias[0].agencia;
+                : user.id_age;
 
             const requestData: Valor_cuotaRequest = {
                 COD_AGE: agenciaProcesada,
@@ -310,16 +310,16 @@ export default function CalculadoraCreditos() {
         }
 
         try {
-            // 🔐 USAR DATOS REALES DEL USUARIO LOGUEADO para recálculo
-            if (!user || !user.agencias || user.agencias.length === 0) {
-                Notification.error('Usuario no válido o sin agencias asignadas');
+            // 🔐 USAR DATOS REALES DEL USUARIO LOGUEADO para recálculo - USAR user.id_age
+            if (!user || !user.id_age) {
+                Notification.error('Usuario no válido o sin código de agencia asignado');
                 return;
             }
             
             // Aplicar misma lógica de agencias que en cálculo inicial
-            const agenciaProcesada = (user.agencias[0].agencia === '06' || user.agencias[0].agencia === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
                 ? '98'
-                : user.agencias[0].agencia;
+                : user.id_age;
 
             const requestData: Recalcularcuotarequest = {
                 COD_AGE: agenciaProcesada,
@@ -375,9 +375,9 @@ export default function CalculadoraCreditos() {
             return;
         }
 
-        // 🔐 VALIDAR USUARIO LOGUEADO antes de generar cronograma
-        if (!user || !user.agencias || user.agencias.length === 0) {
-            Notification.error('Usuario no válido o sin agencias asignadas');
+        // 🔐 VALIDAR USUARIO LOGUEADO antes de generar cronograma - USAR user.id_age
+        if (!user || !user.id_age) {
+            Notification.error('Usuario no válido o sin código de agencia asignado');
             return;
         }
 
@@ -385,9 +385,9 @@ export default function CalculadoraCreditos() {
             setLoading(true);
             
             // Aplicar misma lógica de agencias para cronograma
-            const agenciaProcesada = (user.agencias[0].agencia === '06' || user.agencias[0].agencia === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
                 ? '98'
-                : user.agencias[0].agencia;
+                : user.id_age;
             
             const requestData: ObtenerCronogramaSimuladoRequest = {
                 COD_AGE: agenciaProcesada,
@@ -470,12 +470,12 @@ export default function CalculadoraCreditos() {
     const loadMontoMinMax = async () => {
         if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo) return;
         try {
-            // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de monto
-            if (!user || !user.agencias || user.agencias.length === 0) return;
+            // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de monto - USAR user.id_age
+            if (!user || !user.id_age) return;
             
-            const agenciaProcesada = (user.agencias[0].agencia === '06' || user.agencias[0].agencia === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
                 ? '98'
-                : user.agencias[0].agencia;
+                : user.id_age;
 
             const requestData: Monto_minimo_maximoRequest = {
                 COD_AGE: agenciaProcesada,
@@ -502,12 +502,12 @@ export default function CalculadoraCreditos() {
     const loadPlazoMinMax = async () => {
         if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo || !formData.Monto_solicitado) return;
         try {
-            // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de plazo
-            if (!user || !user.agencias || user.agencias.length === 0) return;
+            // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de plazo - USAR user.id_age
+            if (!user || !user.id_age) return;
             
-            const agenciaProcesada = (user.agencias[0].agencia === '06' || user.agencias[0].agencia === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
                 ? '98'
-                : user.agencias[0].agencia;
+                : user.id_age;
 
             const requestData: Plazo_minimo_maximoRequest = {
                 COD_AGE: agenciaProcesada,
