@@ -30,10 +30,10 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
           </div>
           <div>
             <h2 className="text-lg md:text-xl font-bold text-gray-800">
-              Ficha de Cliente
+              Ficha de Socio
             </h2>
             <p className="text-xs md:text-sm text-gray-500">
-              ID Cliente: <span className="font-medium text-cyan-600">#{INFO_SOCIO.DATOS_PERSONALES.DNI}</span>
+              ID Socio: <span className="font-medium text-cyan-600">#{INFO_SOCIO.DATOS_PERSONALES.DNI}</span>
             </p>
           </div>
         </div>

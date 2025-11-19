@@ -527,6 +527,7 @@ export const getPaymentsByCreditoId = async (creditoId: string) => {
 // reporte de movimientos diarios
 export interface MovimientoPrestamoDiario   {
     FECHA_MOV: string;
+    CUENTA: string;
     COD_AGENCIA: string;
     COD_CAJA: string;
     NRO_DOC: string;

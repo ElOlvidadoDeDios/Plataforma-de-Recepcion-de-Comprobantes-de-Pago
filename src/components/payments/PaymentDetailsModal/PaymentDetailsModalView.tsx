@@ -200,8 +200,9 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                     setPaymentDetails(newDetails);
 
                     if (field === 'montoPago') {
+                      // Solo sumar vouchers que están pendientes (no procesados)
                       const total = newDetails
-                        .filter(detail => detail.estado !== 'rechazado')
+                        .filter(detail => detail.estado === 'pendiente')
                         .reduce((sum, detail) => sum + (Number(detail.montoPago) || 0), 0)
                         .toFixed(2);
                       setMonto(total);
@@ -226,7 +227,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                       rejectType: 'partial',
                       selectedRejectReason: '',
                       customReason: '',
-                      totalAmount,
                       globalBanco
                     });
                     
@@ -288,7 +288,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                     selectedRejectReason,
                     customReason,
                     agenciaCode,
-                    totalAmount,
                     userData: user,
                     globalBanco
                   });
@@ -309,7 +308,6 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                     selectedRejectReason,
                     customReason,
                     agenciaCode,
-                    totalAmount,
                     userData: user,
                     paymentType,
                     paymentLimit,

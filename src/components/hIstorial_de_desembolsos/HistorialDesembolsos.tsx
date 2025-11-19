@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { DesembolsoRealizado, fetchDesembolsosRealizados } from '../../api/HistorialDesolbolsosAPI';
 import { obtenerUrlFirmada } from '../../api/firmaDigitalApi';
 import Layout from '../Layout';
@@ -410,7 +411,24 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
                         {desembolso.RAZON_SOCIAL}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {desembolso.PAGARE}
+                        {desembolso.ENLACE_FIRM ? (
+                          <button
+                            onClick={() => abrirImagenModal(desembolso.ENLACE_FIRM)}
+                            disabled={loadingImagen === desembolso.ENLACE_FIRM}
+                            className="text-blue-600 hover:text-blue-800 underline cursor-pointer disabled:text-blue-300 disabled:cursor-not-allowed flex items-center gap-1"
+                          >
+                            {loadingImagen === desembolso.ENLACE_FIRM ? (
+                              <>
+                                <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                                {desembolso.PAGARE}
+                              </>
+                            ) : (
+                              desembolso.PAGARE
+                            )}
+                          </button>
+                        ) : (
+                          desembolso.PAGARE
+                        )}
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatearFecha(desembolso.OTORGA)}
@@ -465,34 +483,58 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
           </div>
         )}
 
-        {/* Modal para mostrar imagen */}
-        {imagenModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto">
+        {/* Modal para mostrar documento usando ReactPortal */}
+        {imagenModal && createPortal(
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4">
+            <div className="bg-white rounded-lg max-w-6xl max-h-[95vh] w-full">
               <div className="flex justify-between items-center p-4 border-b">
-                <h3 className="text-lg font-medium">Voucher de Desembolso</h3>
-                <button
-                  onClick={cerrarImagenModal}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <h3 className="text-lg font-medium">Documento de Desembolso</h3>
+                <div className="flex gap-2">
+                  {/* Botón para abrir en nueva ventana */}
+                  <button
+                    onClick={() => window.open(imagenModal, '_blank')}
+                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                  >
+                    Abrir en nueva ventana
+                  </button>
+                  <button
+                    onClick={cerrarImagenModal}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div className="p-4">
-                <img
-                  src={imagenModal}
-                  alt="Voucher de Desembolso"
-                  className="max-w-full h-auto"
-                  onError={() => {
-                    setError('Error al cargar la imagen del voucher');
-                    cerrarImagenModal();
-                  }}
-                />
+              <div className="p-4" style={{ height: 'calc(95vh - 80px)' }}>
+                {imagenModal.toLowerCase().includes('.pdf') ? (
+                  // Para PDFs usar iframe
+                  <iframe
+                    src={imagenModal}
+                    className="w-full h-full border-0"
+                    title="Documento PDF"
+                    onError={() => {
+                      setError('Error al cargar el documento PDF');
+                      cerrarImagenModal();
+                    }}
+                  />
+                ) : (
+                  // Para imágenes usar img
+                  <img
+                    src={imagenModal}
+                    alt="Documento de Desembolso"
+                    className="max-w-full h-auto"
+                    onError={() => {
+                      setError('Error al cargar la imagen del documento');
+                      cerrarImagenModal();
+                    }}
+                  />
+                )}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </Layout>

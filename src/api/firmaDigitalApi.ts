@@ -85,9 +85,10 @@ export const obtenerUrlFirmada = async (data: ObtenerUrlFirmadaRequest): Promise
     // El endpoint retorna directamente la URL como string, no como JSON
     const urlString = await response.text();
     
-    // Limpiar la URL: remover barras invertidas, comillas y espacios
+    // Limpiar la URL: remover barras invertidas escapadas, comillas y espacios
     const cleanUrl = urlString
-      .replace(/\\/g, '')        // Remover barras invertidas
+      .replace(/\\\//g, '/')     // Convertir \/ a /
+      .replace(/\\/g, '')        // Remover otras barras invertidas
       .replace(/"/g, '')         // Remover comillas
       .trim();                   // Remover espacios
 

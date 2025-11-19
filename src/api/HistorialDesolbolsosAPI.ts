@@ -9,6 +9,7 @@ export interface desembolsosRealizados {
     AGENCIA: string;
     RESPONSABLE: string;
     ENLACE: string;
+    ENLACE_FIRM: string;
 }
 
 // Alias para compatibilidad (singular)

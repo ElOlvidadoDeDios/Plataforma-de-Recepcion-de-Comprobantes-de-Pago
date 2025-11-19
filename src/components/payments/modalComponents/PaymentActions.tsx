@@ -217,7 +217,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               value={`S/ ${totalMonto}`}
               readOnly
               className="w-20 sm:w-32 rounded-md border border-gray-300 px-2 sm:px-3 py-1 sm:py-2 text-xs sm:text-sm bg-gray-50 text-gray-700 cursor-not-allowed"
-              title="El monto total se calcula automáticamente sumando los montos individuales de cada voucher"
+              title="El monto total se calcula automáticamente sumando solo los montos de vouchers pendientes (no procesados)"
             />
           </div>
           

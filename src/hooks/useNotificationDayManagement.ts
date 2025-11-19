@@ -90,11 +90,11 @@ export const useNotificationDayManagement = (options: UseNotificationDayManageme
       lastFetchRef.current = Date.now();
 
       if (import.meta.env.DEV) {
-        logger.log('🔔 Notificaciones actualizadas:', {
-          count: newCount,
-          hasNew,
-          timestamp: new Date().toISOString()
-        });
+        // logger.log('🔔 Notificaciones actualizadas:', {
+        //   count: newCount,
+        //   hasNew,
+        //   timestamp: new Date().toISOString()
+        // });
       }
 
       return response;

@@ -65,17 +65,17 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
       // 🔧 Lógica corregida:
       // - Con solo VIEW: NUNCA requiere agencias (acceso directo)
       // - Con EDIT: SÍ requiere agencias para procesar
-      needsAgencySelection: hasEditPermission && isRoleBasedPaymentsUser && !hasAgencias && user?.role !== UserRole.JEFE_OPERACIONES,
+      needsAgencySelection: hasEditPermission && isRoleBasedPaymentsUser && !hasAgencias,
       canAccessWithoutAgency: hasViewPermission,
       
       // Estados de modo
-      isReadOnlyMode: hasViewPermission && !hasEditPermission || user?.role === UserRole.JEFE_OPERACIONES,
+      isReadOnlyMode: hasViewPermission && !hasEditPermission,
       isFullEditMode: hasEditPermission
     };
   }, [canViewPayments, canEditPayments, user]);
 
   // 🔧 Verificar permisos básicos
-  if (!validations.hasAnyPaymentPermission && user?.role !== UserRole.JEFE_OPERACIONES) {
+  if (!validations.hasAnyPaymentPermission) {
     return <Navigate to="/" replace />;
   }
 
@@ -237,7 +237,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
 
   return (
     <Layout title="Gestión de Pagos">
-      {validations.isFullEditMode && validations.isRoleBasedPaymentsUser && !selectedAgencia && validations.hasAgencias && validations.hasEditPermission ? (
+      {validations.isFullEditMode && validations.isRoleBasedPaymentsUser && !selectedAgencia && validations.hasAgencias && validations.hasEditPermission && user?.role !== UserRole.JEFE_OPERACIONES ? (
         <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
           <div className="bg-white rounded-xl shadow-lg p-6 sm:p-8 max-w-md w-full">
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-4 sm:mb-6">Selección de Agencia</h2>
@@ -286,21 +286,21 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     </p>
                   )}
                   {/* 🔧 Indicador de modo solo lectura */}
-                  {validations.isReadOnlyMode && user?.role !== UserRole.JEFE_OPERACIONES && (
+                  {validations.isReadOnlyMode && (
                     <div className="flex items-center gap-2 mt-2">
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        Modo Solo Lectura (JEFE_OPERACIONES)
+                        Modo Solo Lectura
                       </span>
                       <span className="text-xs text-gray-500">Puede ver pagos pero no procesarlos</span>
                     </div>
                   )}
                 </div>
 
-                {validations.isFullEditMode && (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && user?.agencias && user?.agencias.length > 1 && (
+                {validations.isFullEditMode && (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO || user?.role === UserRole.JEFE_OPERACIONES) && user?.agencias && user?.agencias.length > 1 && (
                   <button
                     onClick={() => setSelectedAgencia('')}
                     className="text-cyan-600 hover:text-cyan-700 text-xs sm:text-sm font-medium self-start sm:self-auto whitespace-nowrap"
@@ -475,7 +475,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                     key={`${payment.dni}-${payment.fecha}-${payment.hora}-${index}`}
                     payment={payment}
                     socket={socket}
-                    agencias={validations.isFullEditMode && (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) && selectedAgencia
+                    agencias={validations.isFullEditMode && (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO || user?.role === UserRole.JEFE_OPERACIONES) && selectedAgencia
                       ? [selectedAgencia]
                       : validations.isFullEditMode ? (user?.agencias?.map(ag => ag.agencia) || []) : []}
                     userAgencias={user?.agencias || []}

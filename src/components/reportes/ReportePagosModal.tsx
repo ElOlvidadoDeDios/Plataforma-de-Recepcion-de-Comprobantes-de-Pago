@@ -38,11 +38,12 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
       try {
         const usuarios = await fetchAllUsers();
         const rolesPermitidos = [
-          UserRole.SUPER_ADMIN,
-          UserRole.GERENTE_GENERAL,
+          // UserRole.SUPER_ADMIN,
+          // UserRole.GERENTE_GENERAL,
           UserRole.JEFE_OPERACIONES,
           UserRole.CAJERO,
-          UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+          UserRole.ANALISTA_CREDITOS_PAGO_DIARIO,
+          UserRole.RECAUDADOR
         ];
         let usuariosFiltrados = usuarios.filter(usuario =>
           rolesPermitidos.includes(usuario.role as UserRole)
@@ -53,9 +54,10 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
         } else if (user?.role === UserRole.GERENTE_GENERAL) {
           usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.role !== UserRole.SUPER_ADMIN);
         } else if (user?.role === UserRole.JEFE_OPERACIONES) {
-          usuariosFiltrados = usuariosFiltrados.filter(usuario =>
-            usuario.role !== UserRole.SUPER_ADMIN && usuario.role !== UserRole.GERENTE_GENERAL
-          );
+          // CORREGIDO: Jefe de operaciones puede ver TODOS los usuarios permitidos, incluyendo otros jefes
+          usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.role !== UserRole.SUPER_ADMIN);
+          // Incluir específicamente todos los jefes de operaciones, recaudadores, cajeros, etc.
+          usuariosFiltrados = usuariosFiltrados; // Sin filtros adicionales
         } else if (user?.role === UserRole.CAJERO || user?.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO) {
           usuariosFiltrados = usuariosFiltrados.filter(usuario => usuario.dni === user.dni);
         }
@@ -78,10 +80,16 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
         setAgenciasUsuarioSeleccionado(user.agencias);
       }
     } else if (esAdmin) {
+      // CORREGIDO: Jefe de operaciones también puede seleccionarse a sí mismo por defecto
+      // Todos los administradores pueden auto-seleccionarse, incluyendo JEFE_OPERACIONES
       setUsuarioSeleccionado(user.dni || '');
+      
       if (user.agencias && user.agencias.length > 0) {
         setAgenciasUsuarioSeleccionado(user.agencias);
-        if (user.agencias.length === 1) {
+        // Para jefe de operaciones, SIEMPRE auto-seleccionar la primera agencia para cargar automáticamente
+        if (user.role === UserRole.JEFE_OPERACIONES) {
+          setAgenciaSeleccionada(user.agencias[0].agencia);
+        } else if (user.agencias.length === 1) {
           setAgenciaSeleccionada(user.agencias[0].agencia);
         }
       }
@@ -124,9 +132,19 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
   };
 
   const cargarReporte = async () => {
-    if (!usuarioSeleccionado || !agenciaSeleccionada) {
-      setError('Debe seleccionar usuario y agencia');
-      return;
+    // CORREGIDO: Validaciones mejoradas para jefe de operaciones
+    if (user?.role === UserRole.JEFE_OPERACIONES) {
+      // Jefe de operaciones necesita al menos agencia seleccionada
+      if (!agenciaSeleccionada) {
+        setError('Debe seleccionar al menos una agencia para generar el reporte');
+        return;
+      }
+      // Usuario seleccionado es opcional para jefes - puede ver todos los usuarios de la agencia
+    } else {
+      if (!usuarioSeleccionado || !agenciaSeleccionada) {
+        setError('Debe seleccionar usuario y agencia');
+        return;
+      }
     }
     setLoading(true);
     setError(null);
@@ -137,8 +155,18 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
       if (esCajero) {
         cod_caja = user?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
       } else if (esAdmin) {
-        const selectedUser = usuariosDisponibles.find(u => u.dni === usuarioSeleccionado);
-        cod_caja = selectedUser?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
+        if (usuarioSeleccionado) {
+          // Usuario específico seleccionado
+          const selectedUser = usuariosDisponibles.find(u => u.dni === usuarioSeleccionado);
+          cod_caja = selectedUser?.agencias?.find(ag => ag.agencia === agenciaSeleccionada)?.cod_caja || '';
+        } else if (user?.role === UserRole.JEFE_OPERACIONES) {
+          // Jefe de operaciones: usar la primera caja disponible para mostrar TODO
+          cod_caja = user?.agencias?.[0]?.cod_caja || '';
+          // Si no tiene agencia seleccionada, usar la primera agencia disponible
+          if (!agenciaSeleccionada && user?.agencias && user.agencias.length > 0) {
+            setAgenciaSeleccionada(user.agencias[0].agencia);
+          }
+        }
       }
       const response = await getMovimientosDiarios(fecha, cod_caja, agenciaSeleccionada);
       setReporteData(Array.isArray(response) ? response : []);
@@ -151,10 +179,23 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
   };
 
   useEffect(() => {
-    if (isOpen && usuarioSeleccionado && agenciaSeleccionada) {
-      cargarReporte();
+    if (isOpen) {
+      // Para jefe de operaciones, cargar automáticamente cuando tenga agencia
+      if (user?.role === UserRole.JEFE_OPERACIONES && agenciaSeleccionada) {
+        cargarReporte();
+      } else if (usuarioSeleccionado && agenciaSeleccionada) {
+        cargarReporte();
+      }
     }
   }, [isOpen, usuarioSeleccionado, agenciaSeleccionada, fechaSeleccionada]);
+
+  // UseEffect adicional específico para jefe de operaciones
+  useEffect(() => {
+    if (user?.role === UserRole.JEFE_OPERACIONES && isOpen && agenciaSeleccionada && !loading) {
+      // Cargar inmediatamente cuando se establezca la agencia
+      cargarReporte();
+    }
+  }, [agenciaSeleccionada, isOpen, user?.role]);
 
   const totalGeneral = Array.isArray(reporteData) ? reporteData.reduce((sum, item) => {
     const total = parseFloat(item.TOTAL) || 0;
@@ -172,15 +213,27 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
         const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
         worksheet.addRow(['Agencia:', nombreAgencia]);
       }
-      const usuarioGenerador = esAdmin && usuarioSeleccionado !== user?.dni
-        ? usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)
-        : user;
-      worksheet.addRow(['Usuario del reporte:', `${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`]);
+      let usuarioGenerador;
+      let textoUsuario;
+      if (esAdmin && usuarioSeleccionado && usuarioSeleccionado !== user?.dni) {
+        usuarioGenerador = usuariosDisponibles.find(u => u.dni === usuarioSeleccionado);
+        textoUsuario = `${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`;
+      } else if (user?.role === UserRole.JEFE_OPERACIONES && !usuarioSeleccionado) {
+        if (agenciaSeleccionada) {
+          textoUsuario = `Todos los usuarios de la agencia ${Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0]}`;
+        } else {
+          textoUsuario = "Todos los usuarios de todas las agencias";
+        }
+      } else {
+        usuarioGenerador = user;
+        textoUsuario = `${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`;
+      }
+      worksheet.addRow(['Usuario del reporte:', textoUsuario]);
       worksheet.addRow(['Generado por:', `${user?.razon} - ${user?.cargo || user?.role}`]);
       worksheet.addRow(['Generado el:', new Date().toLocaleString('es-PE')]);
       worksheet.addRow([]);
       const headerRow = worksheet.addRow([
-        'FECHA_MOV', 'COD_AGENCIA', 'COD_CAJA', 'NRO_DOC', 'CAPITAL',
+        'FECHA_MOV', 'CUENTA', 'COD_AGENCIA', 'COD_CAJA', 'NRO_DOC', 'CAPITAL',
         'INTERES', 'MORA', 'SEGURO', 'PORTES', 'DESGRAV', 'APORTE',
         'TOTAL', 'MONEDA', 'TIPO_PAGO', 'GLOSA'
       ]);
@@ -193,6 +246,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
       reporteData.forEach(item => {
         worksheet.addRow([
           item.FECHA_MOV,
+          item.CUENTA,
           item.COD_AGENCIA,
           item.COD_CAJA,
           item.NRO_DOC,
@@ -248,15 +302,27 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
         const nombreAgencia = Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0];
         doc.text(`Agencia: ${nombreAgencia}`, 10, 26);
       }
-      const usuarioGenerador = esAdmin && usuarioSeleccionado !== user?.dni
-        ? usuariosDisponibles.find(u => u.dni === usuarioSeleccionado)
-        : user;
-      doc.text(`Usuario del reporte: ${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`, 10, 34);
+      let usuarioGenerador;
+      let textoUsuario;
+      if (esAdmin && usuarioSeleccionado && usuarioSeleccionado !== user?.dni) {
+        usuarioGenerador = usuariosDisponibles.find(u => u.dni === usuarioSeleccionado);
+        textoUsuario = `${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`;
+      } else if (user?.role === UserRole.JEFE_OPERACIONES && !usuarioSeleccionado) {
+        if (agenciaSeleccionada) {
+          textoUsuario = `Todos los usuarios de la agencia ${Object.entries(AGENCIAS).find(([_, code]) => code === agenciaSeleccionada)?.[0]}`;
+        } else {
+          textoUsuario = "Todos los usuarios de todas las agencias";
+        }
+      } else {
+        usuarioGenerador = user;
+        textoUsuario = `${usuarioGenerador?.razon} - ${usuarioGenerador?.cargo || usuarioGenerador?.role}`;
+      }
+      doc.text(`Usuario del reporte: ${textoUsuario}`, 10, 34);
       doc.text(`Generado por: ${user?.razon} - ${user?.cargo || user?.role}`, 10, 42);
       doc.text(`Generado el: ${new Date().toLocaleString('es-PE')}`, 10, 50);
       let yPosition = 65;
-      const headers = ['FECHA', 'AGENCIA', 'CAJA', 'DOC', 'CAPITAL', 'INTERES', 'MORA', 'SEGURO', 'PORTES', 'DESGRAV', 'APORTE', 'TOTAL', 'MONEDA', 'TIPO', 'GLOSA'];
-      const columnWidths = [14, 12, 10, 12, 11, 11, 9, 11, 9, 11, 11, 12, 10, 14, 22];
+      const headers = ['FECHA','CUENTA', 'AGENCIA', 'CAJA', 'DOC', 'CAPITAL', 'INTERES', 'MORA', 'SEGURO', 'PORTES', 'DESGRAV', 'APORTE', 'TOTAL', 'MONEDA', 'TIPO', 'GLOSA'];
+      const columnWidths = [14, 15, 10, 10, 10, 10, 9, 9, 9, 9, 10, 8, 9, 9, 20, 22];
       doc.setFontSize(5);
       doc.setFont('helvetica', 'bold');
       let xPosition = 10;
@@ -271,6 +337,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
         xPosition = 10;
         const values = [
           item.FECHA_MOV?.substring(0, 10) || '',
+          item.CUENTA || '',
           item.COD_AGENCIA || '',
           item.COD_CAJA || '',
           item.NRO_DOC || '',
@@ -364,6 +431,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
                     setAgenciaUsuarioEspecifica={setAgenciaSeleccionada}
                     esAdmin={esAdmin}
                     esSuperAdmin={user?.role === UserRole.SUPER_ADMIN}
+                    userRole={user?.role}
                   />
                 </div>
               )}
@@ -439,6 +507,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">FECHA_MOV</th>
+                        <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">CUENTA</th>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">COD_AGENCIA</th>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">COD_CAJA</th>
                         <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase">NRO_DOC</th>
@@ -466,6 +535,7 @@ const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }
                         reporteData.map((item, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="px-2 py-1 text-xs text-gray-900">{item.FECHA_MOV}</td>
+                            <td className="px-2 py-1 text-xs text-gray-900">{item.CUENTA}</td>
                             <td className="px-2 py-1 text-xs text-gray-900">{item.COD_AGENCIA}</td>
                             <td className="px-2 py-1 text-xs text-gray-900">{item.COD_CAJA}</td>
                             <td className="px-2 py-1 text-xs text-gray-900">{item.NRO_DOC}</td>

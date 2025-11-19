@@ -1,5 +1,6 @@
 import React from 'react';
 import { AGENCIAS, UserResponse, AgenciaCaja } from '../../../types';
+import { UserRole } from '../../../types/roles';
 
 interface UserFilterProps {
   filtroAgencia: 'mis_pagos' | 'mis_agencias' | 'agencia_especifica' | 'todas' | 'por_usuario' | 'usuario_y_agencia';
@@ -14,6 +15,7 @@ interface UserFilterProps {
   setAgenciaUsuarioEspecifica: (value: string) => void;
   esAdmin: boolean;
   esSuperAdmin: boolean;
+  userRole?: UserRole;
 }
 
 const UserFilter: React.FC<UserFilterProps> = ({
@@ -28,9 +30,13 @@ const UserFilter: React.FC<UserFilterProps> = ({
   agenciaUsuarioEspecifica,
   setAgenciaUsuarioEspecifica,
   esAdmin,
-  esSuperAdmin
+  esSuperAdmin,
+  userRole
 }) => {
-  if (!((filtroAgencia === 'por_usuario' || filtroAgencia === 'usuario_y_agencia') && (esAdmin || esSuperAdmin))) {
+  // Jefe de operaciones debe funcionar igual que super admin y gerente general
+  const esJefeOperaciones = userRole === UserRole.JEFE_OPERACIONES;
+  
+  if (!((filtroAgencia === 'por_usuario' || filtroAgencia === 'usuario_y_agencia') && (esAdmin || esSuperAdmin || esJefeOperaciones))) {
     return null;
   }
 
@@ -57,17 +63,36 @@ const UserFilter: React.FC<UserFilterProps> = ({
             }}
             className="w-full rounded-md border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
           >
-            <option value="">👥 Seleccionar usuario...</option>
-            {usuariosDisponibles
-              .filter(usuario => usuario.dni && usuario.dni.trim() !== '')
-              .sort((a, b) => (a.razon || '').localeCompare(b.razon || ''))
-              .map(usuario => (
-                <option key={usuario._id} value={usuario.dni}>
-                  {usuario.razon || usuario.email} {"<==>"} ({usuario.dni}) {"<==>"} {usuario.role}
-                  {usuario.agencias && usuario.agencias.length > 0 && ` [${usuario.agencias.length} agencias]`}
-                </option>
-              ))
-            }
+            {/* Jefe de operaciones funciona igual que super admin */}
+            {(esSuperAdmin || esJefeOperaciones) ? (
+              <>
+                <option value="">👥 Seleccionar usuario...</option>
+                {usuariosDisponibles
+                  .filter(usuario => usuario.dni && usuario.dni.trim() !== '')
+                  .sort((a, b) => (a.razon || '').localeCompare(b.razon || ''))
+                  .map(usuario => (
+                    <option key={usuario._id} value={usuario.dni}>
+                      {usuario.razon || usuario.email} {"<==>"} ({usuario.dni}) {"<==>"} {usuario.role}
+                      {usuario.agencias && usuario.agencias.length > 0 && ` [${usuario.agencias.length} agencias]`}
+                    </option>
+                  ))
+                }
+              </>
+            ) : (
+              <>
+                <option value="">👥 Seleccionar usuario...</option>
+                {usuariosDisponibles
+                  .filter(usuario => usuario.dni && usuario.dni.trim() !== '')
+                  .sort((a, b) => (a.razon || '').localeCompare(b.razon || ''))
+                  .map(usuario => (
+                    <option key={usuario._id} value={usuario.dni}>
+                      {usuario.razon || usuario.email} {"<==>"} ({usuario.dni}) {"<==>"} {usuario.role}
+                      {usuario.agencias && usuario.agencias.length > 0 && ` [${usuario.agencias.length} agencias]`}
+                    </option>
+                  ))
+                }
+              </>
+            )}
           </select>
           {usuariosDisponibles.length === 0 && !cargandoUsuarios && (
             <p className="text-xs text-amber-600 mt-1">

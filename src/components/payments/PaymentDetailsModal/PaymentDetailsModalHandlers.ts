@@ -14,7 +14,6 @@ interface PaymentHandlerProps {
   selectedRejectReason: string;
   customReason: string;
   agenciaCode: string;
-  totalAmount: string;
   userData: {
     agencias?: { cod_caja: string; user_caja: string }[];
     email?: string;
@@ -39,7 +38,6 @@ export const handleUpdateStatus = async (
     selectedRejectReason,
     customReason,
     agenciaCode,
-    totalAmount,
     userData,
     globalBanco
   } = props;
@@ -240,7 +238,7 @@ export const handleUpdateStatus = async (
   }
 
   const requestData = {
-    montoTotal: totalAmount,
+    montoTotal: selectedVoucher.montoPago, // Solo el monto del voucher seleccionado para rechazo parcial
     tipo_pago: 'rechazo_parcial', // Para rechazo parcial, usar tipo específico
     userData: {
       agencia: agenciaCode,
