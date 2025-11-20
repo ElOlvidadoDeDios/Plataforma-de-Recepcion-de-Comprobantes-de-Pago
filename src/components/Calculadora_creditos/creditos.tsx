@@ -1,124 +1,70 @@
-import { useState, useEffect, useRef, useContext } from "react";
+import { useEffect } from "react";
 import { useNotifications } from "../../hooks/useNotifications";
-import { AuthContext } from '../../contexts/AuthContext';
 import {
     fetchGetNomPrestamo,
     fetchTipodeproductoPrestamo,
     fetchTipoCuota,
     fetchFrecuenciaPago,
     fetchTipoCondicionPago,
-    fetchMontoMinimoMaximo,
-    fetchPlazoMinimoMaximo,
-    //fetchTeaMinimoMaximo,
-    fetchValorCuota,
-    fetchActualizarCuota,
-    fetchObtenerCronogramaSimulado,
-    GetNomPrestamo,
-    TipoProductoPrestamo,
-    Nombrecuota,
-    FrecuenciaPago,
-    Tipocondicionpago,
-    Monto_minimo_maximoRequest,
-    Plazo_minimo_maximoRequest,
-    //Tea_minimo_maximoRequest,
-    Valor_cuotaRequest,
-    Recalcularcuotarequest,
-    ObtenerCronogramaSimuladoRequest,
-    ObtenerCronogramaSimuladoResponse
 } from "../../api/SimuladorApi";
 
 // Importar el componente PDF
 import CronogramaPagosPDF from './PdfcronogramaSimulado';
-
-const Notification = useNotifications();
+// Importar el custom hook
+import { useCalculadoraCreditos } from "./funtionauxiliar";
 
 export default function CalculadoraCreditos() {
-    // 🔐 OBTENER DATOS DEL USUARIO DESDE AUTH CONTEXT (igual que en pendientesAafiliar.tsx línea 422)
-    const { user } = useContext(AuthContext);
-    // Funciones auxiliares para fechas
-    const getTodayDate = () => {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-    };
-    const getTomorrowDate = () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0];
-    };
-
-    // Estado principal del formulario
-    const [formData, setFormData] = useState({
-        moneda: "PEN",
-        moneda_codigo: "S",
-        dni: '12345678',
-        razon_social: '',
-        prestamo: '',
-        prestamo_id: '',
-        prestamo_nombre: '',
-        producto: '',
-        producto_codigo: '',
-        producto_nombre: '',
-        cuota: '',
-        cuota_tipo: '',
-        cuota_nombre: '',
-        frecuencia: '',
-        frecuencia_codigo: '',
-        frecuencia_nombre: '',
-        pago: '',
-        pago_tipo: '',
-        pago_nombre: '',
-        desde: getTodayDate(),
-        fecha_1er_pago: getTomorrowDate(),
-        tipoCalendarioPago: 'DiaFijo',
-        tipoCalendario_codigo: 'F',
-        Monto_solicitado: '',
-        monto_minimo: '1',
-        monto_maximo: '1',
-        Nro_cuotas: '',
-        plazo_maximo: '1',
-        plazo_minimo: '1',
-        valor_cuota: '0.00', // CUOTA_SEGURO (cuota + seguro) - para mostrar al usuario
-        cuota_real: '0.00',  // CUOTA (solo cuota sin seguro) - para cronograma
-        TEA: '0.00',
-        TEM: '0.00',
-        TEM_minimo: '1',
-        TEM_maximo: '1'
-    });
-
-    // Estado para validaciones
-    const [montoError, setMontoError] = useState<string>('');
-    const [plazoError, setPlazoError] = useState<string>('');
-
-    // Estados para opciones de combos
-    const [prestamos, setPrestamos] = useState<GetNomPrestamo[]>([]);
-    const [productos, setProductos] = useState<TipoProductoPrestamo[]>([]);
-    const [cuotas, setCuotas] = useState<Nombrecuota[]>([]);
-    const [frecuencias, setFrecuencias] = useState<FrecuenciaPago[]>([]);
-    const [condicionesPago, setCondicionesPago] = useState<Tipocondicionpago[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    // Estado para controlar si ya se calcularon los valores iniciales
-    const [valoresCalculados, setValoresCalculados] = useState(false);
+    const Notification = useNotifications();
     
-    // Estados para cronograma PDF
-    const [cronogramaData, setCronogramaData] = useState<ObtenerCronogramaSimuladoResponse[] | null>(null);
-    const [mostrarCronograma, setMostrarCronograma] = useState(false);
+    // Usar el custom hook para obtener todos los estados y funciones
+    const {
+        // Estados
+        formData,
+        setFormData,
+        montoError,
+        plazoError,
+        prestamos,
+        setPrestamos,
+        productos,
+        setProductos,
+        cuotas,
+        setCuotas,
+        frecuencias,
+        setFrecuencias,
+        condicionesPago,
+        setCondicionesPago,
+        loading,
+        setLoading,
+        valoresCalculados,
+        cronogramaData,
+        mostrarCronograma,
+        setMostrarCronograma,
+        inputRefs,
+        
+        // Funciones de navegación móvil
+        handleEnter,
+        handleFieldBlur,
+        handleFormKeyDown,
+        handleSelectChangeWithMobileAdvance,
+        handleDNIBlur,
+        
+        // Funciones de manejo del formulario
+        handleInputChange,
+        handleMontoChange,
+        handlePlazoChange,
+        handleTEMChange,
+        
+        // Funciones principales de la calculadora
+        calcularValoresCuota,
+        recalcularValoresPorTEM,
+        generarCronograma,
+        handleMonedaChange,
+        handleTipoCalendarioChange,
+        handleFechaPrimerPagoChange,
+        loadMontoMinMax,
+        loadPlazoMinMax
+    } = useCalculadoraCreditos();
 
-    // Referencias para manejo de enfoque
-    const inputRefs = useRef<(HTMLElement | null)[]>([]);
-
-    // Manejo de evento Enter
-    const handleEnter = (e: React.KeyboardEvent, index: number) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const nextIndex = index + 1;
-            if (nextIndex < inputRefs.current.length && inputRefs.current[nextIndex]) {
-                inputRefs.current[nextIndex]?.focus();
-            } else {
-                handleSubmit();
-            }
-        }
-    };
 
     // Carga inicial de datos por defecto
     useEffect(() => {
@@ -161,403 +107,8 @@ export default function CalculadoraCreditos() {
         loadDefaultData();
     }, []);
 
-    // Manejo de cambios en el formulario
-    const handleInputChange = (field: string, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
+    
 
-    // Validación de monto solicitado
-    const handleMontoChange = (value: string) => {
-        // Actualizar el campo inmediatamente
-        setFormData(prev => ({ ...prev, Monto_solicitado: value }));
-        
-        // Limpiar error si el campo está vacío
-        if (!value.trim()) {
-            setMontoError('');
-            return;
-        }
-        
-        const monto = parseFloat(value);
-        const minimo = parseFloat(formData.monto_minimo);
-        const maximo = parseFloat(formData.monto_maximo);
-        
-        // Validar solo si es un número válido
-        if (!isNaN(monto)) {
-            if (monto < minimo && minimo > 0) {
-                setMontoError(`Monto debe ser mayor o igual a ${formData.monto_minimo}`);
-            } else if (monto > maximo && maximo > 0) {
-                setMontoError(`Monto debe ser menor o igual a ${formData.monto_maximo}`);
-            } else {
-                setMontoError('');
-            }
-        }
-    };
-
-    // Validación de número de cuotas (plazo)
-    const handlePlazoChange = (value: string) => {
-        // Actualizar el campo inmediatamente
-        setFormData(prev => ({ ...prev, Nro_cuotas: value }));
-        
-        // Limpiar error si el campo está vacío
-        if (!value.trim()) {
-            setPlazoError('');
-            return;
-        }
-        
-        const plazo = parseInt(value);
-        const minimo = parseInt(formData.plazo_minimo);
-        const maximo = parseInt(formData.plazo_maximo);
-        
-        // Validar solo si es un número válido
-        if (!isNaN(plazo)) {
-            if (plazo < minimo && minimo > 0) {
-                setPlazoError(`Plazo debe ser mayor o igual a ${formData.plazo_minimo} cuotas`);
-            } else if (plazo > maximo && maximo > 0) {
-                setPlazoError(`Plazo debe ser menor o igual a ${formData.plazo_maximo} cuotas`);
-            } else {
-                setPlazoError('');
-            }
-        }
-    };
-
-    // Manejo de cambio en TEM (para recalcular automáticamente)
-    const handleTEMChange = (value: string) => {
-        setFormData(prev => ({ ...prev, TEM: value }));
-    };
-
-    // Función auxiliar para convertir fecha a formato datetime de SQL Server
-    const formatDateForSQL = (dateString: string): string => {
-        // Parsear directamente del string para evitar problemas de zona horaria
-        const [year, month, day] = dateString.split('-');
-        // Formato para smalldatetime: DD/MM/YYYY HH:mm:ss (zona horaria Lima, Perú)
-        return `${day}/${month}/${year} 00:00:00`;
-    };
-
-    // Calcular valores automáticos (cuota, TEA, TEM)
-    const calcularValoresCuota = async () => {
-        // Verificar que todos los campos necesarios estén completos
-        if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo ||
-            !formData.Monto_solicitado || !formData.Nro_cuotas || !formData.cuota_tipo ||
-            !formData.pago_tipo || !formData.desde || !formData.fecha_1er_pago) {
-            return;
-        }
-
-        // Verificar que no haya errores de validación
-        if (montoError || plazoError) {
-            return;
-        }
-
-        try {
-            // 🔐 USAR DATOS REALES DEL USUARIO LOGUEADO - USAR user.id_age NO user.agencias
-            if (!user || !user.id_age) {
-                Notification.error('Usuario no válido o sin código de agencia asignado');
-                return;
-            }
-            
-            // Aplicar lógica especial para agencias 06 y 07 → 98
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
-                ? '98'
-                : user.id_age;
-
-            const requestData: Valor_cuotaRequest = {
-                COD_AGE: agenciaProcesada,
-                PRES: formData.prestamo_id,
-                PROD: formData.producto_codigo,
-                FRECU: formData.frecuencia_codigo,
-                MONEDA: formData.moneda_codigo,
-                PLAZO: parseInt(formData.Nro_cuotas),
-                MONTO: parseFloat(formData.Monto_solicitado),
-                TIPO_CUOTA: formData.cuota_tipo,
-                FECHA_INICIO: formatDateForSQL(formData.desde),
-                FECHA_PRI: formatDateForSQL(formData.fecha_1er_pago),
-                DIA_FIJO: formData.tipoCalendario_codigo,
-                CUENTA: "123456789", // Valor por defecto
-                INT_PEND: 0, // Sin intereses pendientes
-                TIPO_PAGO: formData.pago_tipo
-                // NOTA: Este endpoint no acepta campo USER, solo COD_AGE se usa del usuario logueado
-            };
-
-            console.log('Enviando datos para calcular valores:', requestData);
-            const valorData = await fetchValorCuota(requestData);
-            console.log('Respuesta del cálculo:', valorData);
-
-            setFormData(prev => ({
-                ...prev,
-                valor_cuota: valorData.CUOTA_SEGURO, // Cuota + seguro (para mostrar)
-                cuota_real: valorData.CUOTA,         // 🔧 GUARDAR CUOTA REAL (sin seguro) para cronograma
-                TEA: valorData.TEA,
-                TEM: valorData.TEM,
-                TEM_minimo: valorData.VARIA.TEM_MIN,
-                TEM_maximo: valorData.VARIA.TEM_MAX
-            }));
-
-            // Marcar que ya se calcularon los valores iniciales
-            setValoresCalculados(true);
-            Notification.success('Valores calculados correctamente');
-        } catch (error) {
-            console.error('Error calculando valores:', error);
-            Notification.error('Error al calcular los valores de la cuota');
-        }
-    };
-
-    // Función para recalcular valores cuando cambie el TEM
-    const recalcularValoresPorTEM = async (nuevoTEM: string) => {
-        // Verificar que todos los campos necesarios estén completos
-        if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo ||
-            !formData.Monto_solicitado || !formData.Nro_cuotas || !formData.cuota_tipo ||
-            !formData.pago_tipo || !formData.desde || !formData.fecha_1er_pago || !valoresCalculados) {
-            return;
-        }
-
-        try {
-            // 🔐 USAR DATOS REALES DEL USUARIO LOGUEADO para recálculo - USAR user.id_age
-            if (!user || !user.id_age) {
-                Notification.error('Usuario no válido o sin código de agencia asignado');
-                return;
-            }
-            
-            // Aplicar misma lógica de agencias que en cálculo inicial
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
-                ? '98'
-                : user.id_age;
-
-            const requestData: Recalcularcuotarequest = {
-                COD_AGE: agenciaProcesada,
-                PRES: formData.prestamo_id,
-                PROD: formData.producto_codigo,
-                FRECU: formData.frecuencia_codigo,
-                MONEDA: formData.moneda_codigo,
-                PLAZO: parseInt(formData.Nro_cuotas),
-                MONTO: parseFloat(formData.Monto_solicitado),
-                TIPO_CUOTA: formData.cuota_tipo,
-                FECHA_INICIO: formatDateForSQL(formData.desde),
-                FECHA_PRI: formatDateForSQL(formData.fecha_1er_pago),
-                DIA_FIJO: formData.tipoCalendario_codigo,
-                CUENTA: "123456789", // Valor por defecto
-                INT_PEND: 0, // Sin intereses pendientes
-                TIPO_PAGO: formData.pago_tipo,
-                TEM: nuevoTEM
-                // NOTA: Este endpoint no acepta campo USER, solo COD_AGE se usa del usuario logueado
-            };
-
-            console.log('Recalculando valores con nuevo TEM:', requestData);
-            const recalculoData = await fetchActualizarCuota(requestData);
-            console.log('Respuesta del recálculo:', recalculoData);
-
-            // Solo actualizar cuota y TEA (no cambiar TEM porque ya lo ingresó el usuario)
-            setFormData(prev => ({
-                ...prev,
-                valor_cuota: recalculoData.CUOTA_SEGURO, // Cuota + seguro (para mostrar)
-                cuota_real: recalculoData.CUOTA,         // 🔧 ACTUALIZAR CUOTA REAL (sin seguro) para cronograma
-                TEA: recalculoData.TEA
-            }));
-
-            Notification.success('Valores recalculados correctamente');
-        } catch (error) {
-            console.error('Error recalculando valores:', error);
-            Notification.error('Error al recalcular los valores');
-        }
-    };
-
-    // Función para generar cronograma de pagos
-    const generarCronograma = async () => {
-        // Verificar que todos los campos necesarios estén completos
-        if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo ||
-            !formData.Monto_solicitado || !formData.Nro_cuotas || !formData.cuota_tipo ||
-            !formData.pago_tipo || !formData.desde || !formData.fecha_1er_pago || !valoresCalculados) {
-            Notification.warning('Complete todos los campos y calcule los valores antes de generar el cronograma');
-            return;
-        }
-
-        // Verificar que no haya errores de validación
-        if (montoError || plazoError) {
-            Notification.warning('Corrija los errores de validación antes de continuar');
-            return;
-        }
-
-        // 🔐 VALIDAR USUARIO LOGUEADO antes de generar cronograma - USAR user.id_age
-        if (!user || !user.id_age) {
-            Notification.error('Usuario no válido o sin código de agencia asignado');
-            return;
-        }
-
-        try {
-            setLoading(true);
-            
-            // Aplicar misma lógica de agencias para cronograma
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
-                ? '98'
-                : user.id_age;
-            
-            const requestData: ObtenerCronogramaSimuladoRequest = {
-                COD_AGE: agenciaProcesada,
-                PRES: formData.prestamo_id,
-                PROD: formData.producto_codigo,
-                FRECU: formData.frecuencia_codigo,
-                MONEDA: formData.moneda_codigo,
-                PLAZO: parseInt(formData.Nro_cuotas),
-                MONTO: parseFloat(formData.Monto_solicitado),
-                TIPO_CUOTA: formData.cuota_tipo,
-                FECHA_INICIO: formatDateForSQL(formData.desde),
-                FECHA_PRI: formatDateForSQL(formData.fecha_1er_pago),
-                DIA_FIJO: formData.tipoCalendario_codigo,
-                CUENTA: "123456789", // Valor por defecto
-                INT_PEND: 0, // Sin intereses pendientes
-                TIPO_PAGO: formData.pago_tipo,
-                TEA: formData.TEA, // Usar TEA en lugar de TEM
-                CUOTA_FIJA: parseFloat(formData.cuota_real), // 🔧 USAR CUOTA REAL (sin seguro) no CUOTA_SEGURO
-                USER: user.user || user.dni, // 🔐 USAR USUARIO REAL DEL CONTEXTO
-                DNI: formData.dni,
-                RAZON: formData.razon_social || formData.dni // 🔧 USAR RAZÓN SOCIAL INGRESADA EN EL FORMULARIO
-            };
-
-            console.log('Generando cronograma con datos:', requestData);
-            const cronogramaResponse = await fetchObtenerCronogramaSimulado(requestData);
-            console.log('Cronograma generado:', cronogramaResponse);
-
-            // Guardar los datos del cronograma y mostrar el PDF
-            setCronogramaData(cronogramaResponse);
-            setMostrarCronograma(true);
-            
-            Notification.success('Cronograma generado correctamente');
-        } catch (error) {
-            console.error('Error generando cronograma:', error);
-            Notification.error('Error al generar el cronograma de pagos');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Manejo de cambio de moneda
-    const handleMonedaChange = (moneda: string) => {
-        setFormData(prev => ({
-            ...prev,
-            moneda,
-            moneda_codigo: moneda === "PEN" ? "S" : "D"
-        }));
-    };
-
-    // Manejo de cambio de tipo de calendario
-    const handleTipoCalendarioChange = (tipo: string) => {
-        const codigoMap: Record<string, string> = {
-            DiaFijo: 'F',
-            DiaVariable: 'V',
-            FinMes: 'M'
-        };
-        setFormData(prev => ({
-            ...prev,
-            tipoCalendarioPago: tipo,
-            tipoCalendario_codigo: codigoMap[tipo] || 'F'
-        }));
-    };
-
-    // Validación de fecha del primer pago
-    const handleFechaPrimerPagoChange = (fecha: string) => {
-        const fechaDesde = new Date(formData.desde);
-        const fechaPago = new Date(fecha);
-        if (fechaPago <= fechaDesde) {
-            const siguienteDia = new Date(fechaDesde);
-            siguienteDia.setDate(siguienteDia.getDate() + 1);
-            const fechaCorregida = siguienteDia.toISOString().split('T')[0];
-            setFormData(prev => ({ ...prev, fecha_1er_pago: fechaCorregida }));
-            Notification.warning('La fecha del primer pago debe ser al menos un día después de la fecha "Desde"');
-        } else {
-            setFormData(prev => ({ ...prev, fecha_1er_pago: fecha }));
-        }
-    };
-
-    // Carga de datos dependientes
-    const loadMontoMinMax = async () => {
-        if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo) return;
-        try {
-            // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de monto - USAR user.id_age
-            if (!user || !user.id_age) return;
-            
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
-                ? '98'
-                : user.id_age;
-
-            const requestData: Monto_minimo_maximoRequest = {
-                COD_AGE: agenciaProcesada,
-                PRES: formData.prestamo_id,
-                PROD: formData.producto_codigo,
-                FRECU: formData.frecuencia_codigo,
-                MONEDA: formData.moneda_codigo
-            };
-            const montoData = await fetchMontoMinimoMaximo(requestData);
-            console.log('Respuesta monto min/max:', montoData);
-            
-            // Manejar respuesta como array o objeto
-            const montoResponse = Array.isArray(montoData) ? montoData[0] : montoData;
-            setFormData(prev => ({
-                ...prev,
-                monto_minimo: montoResponse.DESDE || '0',
-                monto_maximo: montoResponse.HASTA || '0'
-            }));
-        } catch (error) {
-            Notification.error('Error al cargar monto mínimo y máximo');
-        }
-    };
-
-    const loadPlazoMinMax = async () => {
-        if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo || !formData.Monto_solicitado) return;
-        try {
-            // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de plazo - USAR user.id_age
-            if (!user || !user.id_age) return;
-            
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
-                ? '98'
-                : user.id_age;
-
-            const requestData: Plazo_minimo_maximoRequest = {
-                COD_AGE: agenciaProcesada,
-                PRES: formData.prestamo_id,
-                PROD: formData.producto_codigo,
-                FRECU: formData.frecuencia_codigo,
-                MONEDA: formData.moneda_codigo,
-                MONTO: formData.Monto_solicitado
-            };
-            const plazoData = await fetchPlazoMinimoMaximo(requestData);
-            console.log('Respuesta plazo min/max:', plazoData);
-            
-            // Manejar respuesta como array o objeto
-            const plazoResponse = Array.isArray(plazoData) ? plazoData[0] : plazoData;
-            setFormData(prev => ({
-                ...prev,
-                plazo_minimo: plazoResponse.DESDE || '0',
-                plazo_maximo: plazoResponse.HASTA || '0'
-            }));
-        } catch (error) {
-            Notification.error('Error al cargar plazo mínimo y máximo');
-        }
-    };
-
-    // const loadTeaMinMax = async () => {
-    //     if (!formData.prestamo_id || !formData.producto_codigo || !formData.frecuencia_codigo || !formData.Monto_solicitado || !formData.Nro_cuotas) return;
-    //     try {
-    //         const requestData: Tea_minimo_maximoRequest = {
-    //             COD_AGE: "01",
-    //             PRES: formData.prestamo_id,
-    //             PROD: formData.producto_codigo,
-    //             FRECU: formData.frecuencia_codigo,
-    //             MONEDA: formData.moneda_codigo,
-    //             PLAZO: formData.Nro_cuotas,
-    //             MONTO: formData.Monto_solicitado
-    //         };
-    //         const teaData = await fetchTeaMinimoMaximo(requestData);
-    //         console.log('Respuesta TEA min/max:', teaData);
-            
-    //         // Manejar respuesta como array o objeto
-    //         const teaResponse = Array.isArray(teaData) ? teaData[0] : teaData;
-    //         setFormData(prev => ({
-    //             ...prev,
-    //             TEM_minimo: teaResponse.TEM_MIN || '0',
-    //             TEM_maximo: teaResponse.TEM_MAX || '0'
-    //         }));
-    //     } catch (error) {
-    //         Notification.error('Error al cargar TEM mínimo y máximo');
-    //     }
-    // };
 
     // Efectos para carga de datos dependientes
     useEffect(() => { if (formData.prestamo_id && formData.producto_codigo && formData.frecuencia_codigo) loadMontoMinMax(); }, [formData.prestamo_id, formData.producto_codigo, formData.frecuencia_codigo, formData.moneda_codigo]);
@@ -600,13 +151,7 @@ export default function CalculadoraCreditos() {
         }
     }, [formData.TEM]);
 
-    // Carga de préstamos al presionar Enter en DNI
-    const handleDNIEnter = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && formData.dni.trim()) {
-            await loadPrestamos();
-        }
-    };
-
+    // Función para cargar préstamos desde la DB
     const loadPrestamos = async () => {
         try {
             setLoading(true);
@@ -619,7 +164,7 @@ export default function CalculadoraCreditos() {
         }
     };
 
-    // Manejo de selección de préstamo, producto y frecuencia
+    // ✅ CORREGIDO: handlePrestamoChange CON avance automático en móvil
     const handlePrestamoChange = async (prestamoId: string) => {
         const prestamoSeleccionado = prestamos.find(p => p.ID_VALOR === prestamoId);
         if (prestamoSeleccionado) {
@@ -648,6 +193,7 @@ export default function CalculadoraCreditos() {
         }
     };
 
+    // ✅ CORREGIDO: handleProductoChange SIN avance automático forzado en móvil
     const handleProductoChange = async (productoCodigo: string) => {
         const productoSeleccionado = productos.find(p => p.TIPO_PROD === productoCodigo);
         if (productoSeleccionado) {
@@ -661,6 +207,9 @@ export default function CalculadoraCreditos() {
             if (formData.prestamo_id) {
                 await loadFrecuencias(formData.prestamo_id, productoCodigo);
             }
+            
+            // ❌ ELIMINADO: El avance automático en móvil
+            // Los <select> funcionan perfectamente sin forzar el focus
         }
     };
 
@@ -676,6 +225,7 @@ export default function CalculadoraCreditos() {
         }
     };
 
+    // ✅ CORREGIDO: handleFrecuenciaChange SIN avance automático forzado en móvil
     const handleFrecuenciaChange = (frecuenciaCodigo: string) => {
         const frecuenciaSeleccionada = frecuencias.find(f => f.COD_FREC === frecuenciaCodigo);
         if (frecuenciaSeleccionada) {
@@ -684,16 +234,12 @@ export default function CalculadoraCreditos() {
                 frecuencia_codigo: frecuenciaSeleccionada.COD_FREC,
                 frecuencia_nombre: frecuenciaSeleccionada.DES_FREC
             }));
+            
+            // ❌ ELIMINADO: El avance automático en móvil
+            // Los <select> funcionan perfectamente sin forzar el focus
         }
     };
 
-    const handleSubmit = async () => {
-        try {
-            Notification.success('Datos guardados correctamente');
-        } catch (error) {
-            Notification.error('Error al guardar los datos');
-        }
-    };
 
     // Clases para inputs y labels
     const inputClass = "w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
@@ -701,7 +247,10 @@ export default function CalculadoraCreditos() {
 
     // JSX del componente
     return (
-        <div className='w-full h-full p-6 bg-gradient-to-br from-blue-100 to-blue-200 shadow-lg rounded-lg overflow-auto'>
+        <div
+            className='w-full h-full p-6 bg-gradient-to-br from-blue-100 to-blue-200 shadow-lg rounded-lg overflow-auto'
+            onKeyDown={handleFormKeyDown}
+        >
             {/* Sección de Moneda */}
             <div className="bg-blue-400 -mx-6 -mt-6 mb-6 p-4 rounded-t-lg">
                 <div className="flex items-center justify-between text-white">
@@ -744,7 +293,16 @@ export default function CalculadoraCreditos() {
                         type="text"
                         value={formData.dni}
                         onChange={(e) => handleInputChange('dni', e.target.value)}
-                        onKeyDown={(e) => { handleDNIEnter(e); handleEnter(e, 2); }}
+                        onKeyDown={(e) => { 
+                            if (e.key === 'Enter' && formData.dni.trim()) {
+                                loadPrestamos(); // Cargar préstamos al presionar Enter
+                            }
+                            handleEnter(e, 2); 
+                        }}
+                        onBlur={() => {
+                            handleFieldBlur(2, true);
+                            handleDNIBlur(loadPrestamos);
+                        }}
                         className={inputClass}
                         placeholder="Ingrese DNI y presione Enter"
                     />
@@ -757,6 +315,7 @@ export default function CalculadoraCreditos() {
                     className={`${inputClass} w-full`}
                     placeholder="Razón Social"
                     onKeyDown={(e) => handleEnter(e, 3)}
+                    onBlur={() => handleFieldBlur(3, true)}
                 />
                 <button
                     className="px-3 py-2 bg-gray-200 border border-gray-300 rounded text-sm hover:bg-gray-300 transition-colors whitespace-nowrap"
@@ -780,7 +339,12 @@ export default function CalculadoraCreditos() {
                     <select
                         ref={(el) => inputRefs.current[4] = el}
                         value={formData.prestamo_id}
-                        onChange={(e) => handlePrestamoChange(e.target.value)}
+                        onChange={(e) => {
+                            handleSelectChangeWithMobileAdvance(4, () => {
+                                handlePrestamoChange(e.target.value);
+                            });
+                        }}
+                        onBlur={() => handleFieldBlur(4, false)}
                         className={inputClass}
                         disabled={loading || prestamos.length === 0}
                         onKeyDown={(e) => handleEnter(e, 4)}
@@ -800,7 +364,12 @@ export default function CalculadoraCreditos() {
                     <select
                         ref={(el) => inputRefs.current[5] = el}
                         value={formData.producto_codigo}
-                        onChange={(e) => handleProductoChange(e.target.value)}
+                        onChange={(e) => {
+                            handleSelectChangeWithMobileAdvance(5, () => {
+                                handleProductoChange(e.target.value);
+                            });
+                        }}
+                        onBlur={() => handleFieldBlur(5, false)}
                         className={inputClass}
                         disabled={loading || productos.length === 0}
                         onKeyDown={(e) => handleEnter(e, 5)}
@@ -821,19 +390,23 @@ export default function CalculadoraCreditos() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                     <label className={`w-full sm:w-20 ${labelClass}`}>Cuota</label>
+                    {/* ✅ CORREGIDO: onBlur con false para NO validar Enter */}
                     <select
                         ref={(el) => inputRefs.current[6] = el}
                         value={formData.cuota_tipo}
                         onChange={(e) => {
-                            const cuotaSeleccionada = cuotas.find(c => c.TIPO_CUOTA === e.target.value);
-                            if (cuotaSeleccionada) {
-                                setFormData(prev => ({
-                                    ...prev,
-                                    cuota_tipo: cuotaSeleccionada.TIPO_CUOTA,
-                                    cuota_nombre: cuotaSeleccionada.NOM_CUOTA
-                                }));
-                            }
+                            handleSelectChangeWithMobileAdvance(6, () => {
+                                const cuotaSeleccionada = cuotas.find(c => c.TIPO_CUOTA === e.target.value);
+                                if (cuotaSeleccionada) {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        cuota_tipo: cuotaSeleccionada.TIPO_CUOTA,
+                                        cuota_nombre: cuotaSeleccionada.NOM_CUOTA
+                                    }));
+                                }
+                            });
                         }}
+                        onBlur={() => handleFieldBlur(6, false)}
                         className={inputClass}
                         disabled={loading || cuotas.length === 0}
                         onKeyDown={(e) => handleEnter(e, 6)}
@@ -851,7 +424,12 @@ export default function CalculadoraCreditos() {
                     <select
                         ref={(el) => inputRefs.current[7] = el}
                         value={formData.frecuencia_codigo}
-                        onChange={(e) => handleFrecuenciaChange(e.target.value)}
+                        onChange={(e) => {
+                            handleSelectChangeWithMobileAdvance(7, () => {
+                                handleFrecuenciaChange(e.target.value);
+                            });
+                        }}
+                        onBlur={() => handleFieldBlur(7, false)}
                         className={inputClass}
                         disabled={loading || frecuencias.length === 0}
                         onKeyDown={(e) => handleEnter(e, 7)}
@@ -872,19 +450,23 @@ export default function CalculadoraCreditos() {
             <div className="mb-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
                     <label className={`w-full sm:w-20 ${labelClass}`}>Pago</label>
+                    {/* ✅ CORREGIDO: onBlur con false para NO validar Enter */}
                     <select
                         ref={(el) => inputRefs.current[8] = el}
                         value={formData.pago_tipo}
                         onChange={(e) => {
-                            const pagoSeleccionado = condicionesPago.find(p => p.TIPO_CONDIPAGO === e.target.value);
-                            if (pagoSeleccionado) {
-                                setFormData(prev => ({
-                                    ...prev,
-                                    pago_tipo: pagoSeleccionado.TIPO_CONDIPAGO,
-                                    pago_nombre: pagoSeleccionado.NOM_CONDIPAGO
-                                }));
-                            }
+                            handleSelectChangeWithMobileAdvance(8, () => {
+                                const pagoSeleccionado = condicionesPago.find(p => p.TIPO_CONDIPAGO === e.target.value);
+                                if (pagoSeleccionado) {
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        pago_tipo: pagoSeleccionado.TIPO_CONDIPAGO,
+                                        pago_nombre: pagoSeleccionado.NOM_CONDIPAGO
+                                    }));
+                                }
+                            });
                         }}
+                        onBlur={() => handleFieldBlur(8, false)}
                         className={inputClass}
                         disabled={loading || condicionesPago.length === 0}
                         onKeyDown={(e) => handleEnter(e, 8)}
@@ -989,6 +571,7 @@ export default function CalculadoraCreditos() {
                             max={formData.monto_maximo}
                             placeholder="Ej: 5000"
                             onKeyDown={(e) => handleEnter(e, 14)}
+                            onBlur={() => handleFieldBlur(14, true)}
                         />
                         {montoError && (
                             <div className="mt-1 text-xs text-red-600 font-medium">
@@ -1028,6 +611,7 @@ export default function CalculadoraCreditos() {
                             max={formData.plazo_maximo}
                             placeholder="Ej: 24"
                             onKeyDown={(e) => handleEnter(e, 15)}
+                            onBlur={() => handleFieldBlur(15, true)}
                         />
                         {plazoError && (
                             <div className="mt-1 text-xs text-red-600 font-medium">
@@ -1105,6 +689,7 @@ export default function CalculadoraCreditos() {
                             className={`${inputClass} text-center font-semibold ${valoresCalculados ? 'bg-yellow-50 border-yellow-400' : ''}`}
                             step="0.01"
                             onKeyDown={(e) => handleEnter(e, 18)}
+                            onBlur={() => handleFieldBlur(18, false)}
                             min={formData.TEM_minimo}
                             max={formData.TEM_maximo}
                             title={valoresCalculados ? "Campo editable: Los valores se recalcularán automáticamente" : "Calculado automáticamente"}
