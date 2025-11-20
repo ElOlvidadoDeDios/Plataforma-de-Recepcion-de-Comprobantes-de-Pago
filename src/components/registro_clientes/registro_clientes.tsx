@@ -186,7 +186,7 @@ export default function PersonaForm() {
       documentosExistentes={(clienteCompleto as any)?.DOCUMENT || null}
     />,
   };
-  
+
   return (
     <Layout title="Registro de Socios">
       <div className="flex flex-col" style={{ height: '100%' }}>

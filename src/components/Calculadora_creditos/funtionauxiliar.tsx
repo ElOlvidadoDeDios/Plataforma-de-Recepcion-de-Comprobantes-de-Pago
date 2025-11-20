@@ -106,7 +106,6 @@ export const useCalculadoraCreditos = () => {
                         nextField?.click();
                         nextField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     } catch (error) {
-                        console.log('Error focusing field:', error);
                     }
                 }, 150);
                 
@@ -119,7 +118,6 @@ export const useCalculadoraCreditos = () => {
                             }
                         }
                     } catch (error) {
-                        console.log('Second focus attempt failed:', error);
                     }
                 }, 300);
             } else {

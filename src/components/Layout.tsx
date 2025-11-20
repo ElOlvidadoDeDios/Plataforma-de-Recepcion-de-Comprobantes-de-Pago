@@ -149,7 +149,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
         icon: CreditosSectionIcon,
         options: [
           { to: '/geodile', icon: <GeodileIcon className="w-5 h-5" />, label: 'Geodile', permission: permissions.canAccessGeodile() },
-          { to: '/calculadora-creditos', icon: CalculadoraIcon, label: 'Calculadora de Créditos', permission: permissions.canAccessCalculadoraCreditos() },
+          { to: '/calculadora-creditos', icon: CalculadoraIcon, label: 'Calculadora de Créditos', permission: true },
           { to: '/gestion-mora', icon: MoraIcon, label: 'Gestión de Mora', permission: permissions.canAccessGestionMora() },
         ]
       },

@@ -192,9 +192,7 @@ function App() {
                 path="/calculadora-creditos"
                 element={
                   <ProtectedRoute>
-                    <PermissionProtectedRoute permission="canAccessCalculadoraCreditos">
-                      <CalculadoraCreditos />
-                    </PermissionProtectedRoute>
+                    <CalculadoraCreditos />
                   </ProtectedRoute>
                 }
               />
