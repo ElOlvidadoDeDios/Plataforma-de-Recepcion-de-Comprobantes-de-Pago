@@ -174,6 +174,15 @@ export interface ObtenerCronogramaSimuladoResponse {
     ACUINTERES: string;
 }
 
+export interface obtenerfechaPrimerPagoRequest {
+    FECHA_PRI: string;
+    CUOTA_FIJA: string;
+    FRECU: string;
+}
+export interface obtenerfechaPrimerPagoResponse {
+    status: boolean;
+    fecha_pri: string;
+}
 
 // obtener url de los enpoints
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE; 
@@ -448,3 +457,28 @@ export const fetchObtenerCronogramaSimulado = async (requestData: ObtenerCronogr
         throw error;
     }
 }
+
+export const fetchFechaPrimerPago = async (requestData: obtenerfechaPrimerPagoRequest): Promise<obtenerfechaPrimerPagoResponse> => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/cal_pri_pago`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `${API_TOKEN}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
+            
+        if (!response.ok) {
+            throw new Error(`Error en la consulta: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        if (error instanceof Error && error.message) {
+            throw new Error(`Error en la consulta: ${error.message}`);
+        }
+        throw error;
+    }
+};

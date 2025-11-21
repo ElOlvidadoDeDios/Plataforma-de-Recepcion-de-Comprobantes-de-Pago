@@ -61,6 +61,7 @@ export default function CalculadoraCreditos() {
         handleMonedaChange,
         handleTipoCalendarioChange,
         handleFechaPrimerPagoChange,
+        handleFechaDesdeChange,
         loadMontoMinMax,
         loadPlazoMinMax
     } = useCalculadoraCreditos();
@@ -489,7 +490,7 @@ export default function CalculadoraCreditos() {
                         ref={(el) => inputRefs.current[9] = el}
                         type="date"
                         value={formData.desde}
-                        onChange={(e) => handleInputChange('desde', e.target.value)}
+                        onChange={(e) => handleFechaDesdeChange(e.target.value)}
                         className={inputClass}
                         max="2099-12-31"
                         onKeyDown={(e) => handleEnter(e, 9)}

@@ -1,10 +1,29 @@
-import { useContext, useRef, useState } from "react";
-import { fetchActualizarCuota, fetchMontoMinimoMaximo, fetchObtenerCronogramaSimulado, fetchPlazoMinimoMaximo, fetchValorCuota, FrecuenciaPago, GetNomPrestamo, Monto_minimo_maximoRequest, Nombrecuota, ObtenerCronogramaSimuladoRequest, ObtenerCronogramaSimuladoResponse, Plazo_minimo_maximoRequest, Recalcularcuotarequest, Tipocondicionpago, TipoProductoPrestamo, Valor_cuotaRequest } from "../../api/SimuladorApi";
+import { useContext, useRef, useState, useCallback, useEffect } from "react";
+import {
+    fetchActualizarCuota,
+    fetchMontoMinimoMaximo,
+    fetchObtenerCronogramaSimulado,
+    fetchPlazoMinimoMaximo,
+    fetchValorCuota,
+    fetchFechaPrimerPago,
+    FrecuenciaPago,
+    GetNomPrestamo,
+    Monto_minimo_maximoRequest,
+    Nombrecuota,
+    ObtenerCronogramaSimuladoRequest,
+    ObtenerCronogramaSimuladoResponse,
+    Plazo_minimo_maximoRequest,
+    Recalcularcuotarequest,
+    Tipocondicionpago,
+    TipoProductoPrestamo,
+    Valor_cuotaRequest,
+    obtenerfechaPrimerPagoRequest
+} from "../../api/SimuladorApi";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useNotifications } from "../../hooks/useNotifications";
 
 // CUSTOM HOOK PARA CALCULADORA DE CRÉDITOS
-export const useCalculadoraCreditos = () => {
+export function useCalculadoraCreditos() {
     const Notification = useNotifications();
     
     // 🔐 OBTENER DATOS DEL USUARIO DESDE AUTH CONTEXT
@@ -472,7 +491,60 @@ export const useCalculadoraCreditos = () => {
         }));
     };
 
-    // Validación de fecha del primer pago
+    // 🆕 NUEVA FUNCIÓN: Calcular fecha del primer pago automáticamente
+    const calcularFechaPrimerPago = useCallback(async (fechaDesde: string) => {
+        if (!fechaDesde || !formData.frecuencia_codigo) return;
+        
+        try {
+            // Crear fecha de mañana por defecto si no hay frecuencia específica
+            const fechaBase = new Date(fechaDesde);
+            const siguienteDia = new Date(fechaBase);
+            siguienteDia.setDate(siguienteDia.getDate() + 1);
+            
+            // Si hay frecuencia configurada, llamar al endpoint
+            if (formData.frecuencia_codigo && formData.frecuencia_codigo.trim()) {
+                const requestData: obtenerfechaPrimerPagoRequest = {
+                    FECHA_PRI: formatDateForSQL(fechaDesde),
+                    CUOTA_FIJA: formData.tipoCalendario_codigo || "F",
+                    FRECU: formData.frecuencia_codigo
+                };
+                
+                try {
+                    const response = await fetchFechaPrimerPago(requestData);
+                    if (response.status && response.fecha_pri) {
+                        // Convertir fecha de respuesta al formato YYYY-MM-DD
+                        const fechaCalculada = new Date(response.fecha_pri);
+                        const fechaFormateada = fechaCalculada.toISOString().split('T')[0];
+                        setFormData(prev => ({ ...prev, fecha_1er_pago: fechaFormateada }));
+                        return;
+                    }
+                } catch (error) {
+                    console.warn('No se pudo calcular fecha automática, usando día siguiente:', error);
+                }
+            }
+            
+            // Fallback: usar día siguiente
+            const fechaFallback = siguienteDia.toISOString().split('T')[0];
+            setFormData(prev => ({ ...prev, fecha_1er_pago: fechaFallback }));
+            
+        } catch (error) {
+            console.error('Error calculando fecha primer pago:', error);
+            // Fallback silencioso al día siguiente
+            const fechaBase = new Date(fechaDesde);
+            fechaBase.setDate(fechaBase.getDate() + 1);
+            const fechaFallback = fechaBase.toISOString().split('T')[0];
+            setFormData(prev => ({ ...prev, fecha_1er_pago: fechaFallback }));
+        }
+    }, [formData.frecuencia_codigo, formData.valor_cuota]);
+
+    // 🔄 EFECTO: Actualizar fecha primer pago cuando cambie "desde"
+    useEffect(() => {
+        if (formData.desde) {
+            calcularFechaPrimerPago(formData.desde);
+        }
+    }, [formData.desde, calcularFechaPrimerPago]);
+
+    // Validación de fecha del primer pago (MEJORADA)
     const handleFechaPrimerPagoChange = (fecha: string) => {
         const fechaDesde = new Date(formData.desde);
         const fechaPago = new Date(fecha);
@@ -486,6 +558,12 @@ export const useCalculadoraCreditos = () => {
             setFormData(prev => ({ ...prev, fecha_1er_pago: fecha }));
         }
     };
+
+    // 🔄 MANEJO MEJORADO: Actualizar fecha "desde" y recalcular primer pago
+    const handleFechaDesdeChange = useCallback((nuevaFecha: string) => {
+        setFormData(prev => ({ ...prev, desde: nuevaFecha }));
+        // La fecha del primer pago se calculará automáticamente por el useEffect
+    }, []);
 
     // Carga de datos dependientes
     const loadMontoMinMax = async () => {
@@ -603,6 +681,8 @@ export const useCalculadoraCreditos = () => {
         handleMonedaChange,
         handleTipoCalendarioChange,
         handleFechaPrimerPagoChange,
+        handleFechaDesdeChange,
+        calcularFechaPrimerPago,
         loadMontoMinMax,
         loadPlazoMinMax,
         
@@ -613,5 +693,5 @@ export const useCalculadoraCreditos = () => {
         
         // Datos de usuario
         user
-    };
+}
 };
