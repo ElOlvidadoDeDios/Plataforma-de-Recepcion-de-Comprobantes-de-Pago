@@ -3,6 +3,40 @@ import { VoucherDetail } from './PaymentDetailsModalTypes';
 import { procesarComprobantesMasivo } from '../../../api/paymentsApi';
 import toast from 'react-hot-toast';
 
+// Función utilitaria para extraer mensajes de error más específicos de la API
+const extractDetailedErrorMessage = (error: any): string => {
+  // Prioridad 1: Buscar en details.DETALLES[].message (más específico)
+  if (error?.response?.data?.details?.DETALLES && Array.isArray(error.response.data.details.DETALLES)) {
+    const detalles = error.response.data.details.DETALLES;
+    if (detalles.length > 0 && detalles[0]?.message) {
+      return detalles[0].message; // "COD_OPERACION: 421578 YA EXISTE"
+    }
+  }
+
+  // Prioridad 2: Buscar en response.data.error (error específico)
+  if (error?.response?.data?.error) {
+    return error.response.data.error;
+  }
+
+  // Prioridad 3: Buscar en response.data.message (mensaje general)
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+
+  // Prioridad 4: Si data es un string directamente
+  if (error?.response?.data && typeof error.response.data === 'string') {
+    return error.response.data;
+  }
+
+  // Prioridad 5: Error con mensaje directo
+  if (error?.message) {
+    return error.message;
+  }
+
+  // Fallback por defecto
+  return 'Error desconocido al procesar la solicitud';
+};
+
 interface PaymentHandlerProps {
   displayedPayment: PaymentRecord;
   modalPayments: PaymentRecord[];
@@ -168,16 +202,8 @@ export const handleUpdateStatus = async (
         window.dispatchEvent(new CustomEvent('closePaymentModal'));
       }, 1000);
     } catch (error: any) {
-      // Extraer mensaje específico del error
-      let errorMessage = 'Error al procesar el rechazo';
-      
-      if (error?.response?.data?.message) {
-        // Error del backend con mensaje específico
-        errorMessage = error.response.data.message;
-      } else if (error?.message) {
-        // Error con mensaje directo
-        errorMessage = error.message;
-      }
+      // Usar la nueva función para extraer mensaje específico del error
+      const errorMessage = extractDetailedErrorMessage(error);
       
       // Mostrar mensaje específico en el toast
       toast.error(errorMessage);
@@ -317,17 +343,8 @@ export const handleUpdateStatus = async (
       window.dispatchEvent(new CustomEvent('closePaymentModal'));
     }, 1000);
   } catch (error: any) {
-    
-    // Extraer mensaje específico del error
-    let errorMessage = 'Error al procesar el rechazo';
-    
-    if (error?.response?.data?.message) {
-      // Error del backend con mensaje específico
-      errorMessage = error.response.data.message;
-    } else if (error?.message) {
-      // Error con mensaje directo
-      errorMessage = error.message;
-    }
+    // Usar la nueva función para extraer mensaje específico del error
+    const errorMessage = extractDetailedErrorMessage(error);
     
     // Mostrar mensaje específico en el toast
     toast.error(errorMessage);
@@ -501,44 +518,33 @@ export const handlePartialAcceptStatus = async (
     }),
   };
 
-  const updatedDetails = paymentDetails.map(detail => {
-    if (detail === selectedVoucher) {
-      return {
-        ...detail,
-        estado: 'aceptado' as const,
-        motivo_rechazo: ''
-      };
-    }
-    return detail;
-  });
-
-  setPaymentDetails(updatedDetails);
-  
-  
   try {
+    // ✅ PRIMERO: Llamar a la API
     await procesarComprobantesMasivo(requestData);
+    
+    // ✅ SEGUNDO: Solo si la API fue exitosa, actualizar el estado visual
+    const updatedDetails = paymentDetails.map(detail => {
+      if (detail === selectedVoucher) {
+        return {
+          ...detail,
+          estado: 'aceptado' as const,
+          motivo_rechazo: ''
+        };
+      }
+      return detail;
+    });
+
+    setPaymentDetails(updatedDetails);
+    
     toast.success('Comprobante aceptado exitosamente');
     
-    // Cerrar modal después del éxito - usar setTimeout para permitir que se complete el toast
+    // Cerrar modal después del éxito
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('closePaymentModal'));
     }, 1000);
   } catch (error: any) {
-  
-    // Extraer mensaje específico del error
-    let errorMessage = 'Error al procesar el pago parcial';
-    
-    if (error?.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error?.response?.data?.error) {
-      errorMessage = error.response.data.error;
-    } else if (error?.response?.data) {
-      if (typeof error.response.data === 'string') {
-        errorMessage = error.response.data;
-      }
-    } else if (error?.message) {
-      errorMessage = error.message;
-    }
+    // ✅ Si hay error, NO cambiar el estado visual y mostrar mensaje específico
+    const errorMessage = extractDetailedErrorMessage(error);
     
     toast.error(errorMessage);
     throw error;
@@ -691,48 +697,34 @@ export const handleAcceptStatus = async (
     }))
   };
 
-  // Actualizar solo los detalles de los pagos que están en modalPayments
-  const updatedDetails = paymentDetails.map(detail => {
-    if (modalPayments[detail.paymentIndex] && detail.estado === 'pendiente') {
-      return {
-        ...detail,
-        estado: 'aceptado' as const,
-        motivo_rechazo: ''
-      };
-    }
-    return detail;
-  });
-
-  setPaymentDetails(updatedDetails);
-
   try {
+    // ✅ PRIMERO: Llamar a la API
     await procesarComprobantesMasivo(requestData);
+    
+    // ✅ SEGUNDO: Solo si la API fue exitosa, actualizar el estado visual
+    const updatedDetails = paymentDetails.map(detail => {
+      if (modalPayments[detail.paymentIndex] && detail.estado === 'pendiente') {
+        return {
+          ...detail,
+          estado: 'aceptado' as const,
+          motivo_rechazo: ''
+        };
+      }
+      return detail;
+    });
+
+    setPaymentDetails(updatedDetails);
+    
     toast.success('Comprobantes aceptados exitosamente');
     
-    // Cerrar modal después del éxito - usar setTimeout para permitir que se complete el toast
+    // Cerrar modal después del éxito
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('closePaymentModal'));
     }, 1000);
   } catch (error: any) {
+    // ✅ Si hay error, NO cambiar el estado visual y mostrar mensaje específico
+    const errorMessage = extractDetailedErrorMessage(error);
     
-    // Extraer mensaje específico del error - MÁS OPCIONES
-    let errorMessage = 'Error al procesar la aceptación';
-    
-    if (error?.response?.data?.message) {
-      // Error del backend con mensaje específico (formato estándar)
-      errorMessage = error.response.data.message;
-    } else if (error?.response?.data?.error) {
-      // Error del backend con campo 'error'
-      errorMessage = error.response.data.error;
-    } else if (error?.response?.data) {
-      // Si data es un string directamente
-      if (typeof error.response.data === 'string') {
-        errorMessage = error.response.data;
-      }
-    } else if (error?.message) {
-      // Error con mensaje directo
-      errorMessage = error.message;
-    }
     // Mostrar mensaje específico en el toast
     toast.error(errorMessage);
     throw error;

@@ -29,6 +29,7 @@ import AfiliacionSocios from './components/afiliacion_de_socios/pendientesAafili
 import ConsultaCuotasSocios from './components/pagos_recaudadores/pagosRecaudadores';
 import PerfilUsuario from './components/PerfilUsuario';
 import HistorialDesembolsos from './components/hIstorial_de_desembolsos/HistorialDesembolsos';
+import VercuotasMora from './components/cuotas_mora/VercuotasMora';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -236,6 +237,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+            <Route
+              path="/ver-cuotas-mora"
+              element={
+                <ProtectedRoute>
+                  <VercuotasMora />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/perfil-usuario"
               element={

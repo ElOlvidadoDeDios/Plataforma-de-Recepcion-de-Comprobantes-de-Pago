@@ -479,10 +479,31 @@ export const procesarComprobantesMasivo = async (data: {
 }) => {
   try {
     const response = await axiosInstance.post('/api/comprobantes/procesar-masivo', data);
+    
+    // ✅ VERIFICAR SI LA API DEVOLVIÓ success: false
+    if (response.data && response.data.success === false) {
+      // ENFOQUE DIRECTO: Extraer el mensaje específico inmediatamente
+      const detalles = response.data?.details?.DETALLES;
+      if (detalles && detalles[0] && detalles[0].message) {
+        // Usar directamente el mensaje específico de los DETALLES
+        throw new APIError(detalles[0].message, 400);
+      }
+      
+      // Si no hay detalles, usar el error principal
+      const errorMessage = response.data.error || response.data.message || 'Error al procesar comprobantes masivos';
+      throw new APIError(errorMessage, 400);
+    }
+    
     return response.data;
   } catch (error) {
+    // ✅ VERIFICAR SI ES NUESTRO APIError ESPECÍFICO
+    if (error instanceof APIError) {
+      // Re-lanzar nuestro error específico sin modificar
+      throw error;
+    }
+    
     if (error instanceof AxiosError) {
-      // Extraer mensaje específico del backend
+      // Extraer mensaje específico del backend solo para errores de red/HTTP
       const backendMessage = error.response?.data?.message ||
                            error.response?.data?.error ||
                            'Error al procesar comprobantes masivos';

@@ -282,6 +282,7 @@ const Welcome: React.FC = () => {
       ...(permissions.canAccessBotInteractions() ? [{ title: 'Interacciones del Bot', description: 'Analiza las interacciones con el bot', onClick: () => navigate('/bot-interactions'), icon: '🤖' }] : []),
       ...(permissions.canAccessConsultaCuotas() ? [{ title: 'Reporte de Consulta de Cuotas', description: 'Revisa el estado de las cuotas', onClick: () => navigate('/consultas-cuotas'), icon: '📊' }] : []),
       ...(permissions.canAccessConsultaSocios() ? [{ title: 'Consultar socios', description: 'Gestiona tu base de clientes', onClick: () => navigate('/consulta-clientes'), icon: '👥' }] : []),
+      { title: 'Ver Cuotas en Mora', description: 'Visualiza las cuotas pendientes y en mora de los socios', onClick: () => navigate('/ver-cuotas-mora'), icon: '👁️' },
       ...(permissions.canAccessRegistroClientes() ? [{ title: 'Registro de Socios', description: 'Registra y gestiona información de clientes', onClick: () => navigate('/registro-clientes'), icon: '👤' }] : []),
       ...(permissions.canManageUsers() ? [{ title: 'Gestión de Usuarios', description: 'Administra los usuarios del sistema', onClick: () => navigate('/user-management'), icon: '👤' }] : []),
       ...(permissions.canAccessGestionMora() ? [{ title: 'Gestión de Mora', description: 'Gestiona clientes en mora y seguimiento', onClick: () => navigate('/gestion-mora'), icon: '📋' }] : []),

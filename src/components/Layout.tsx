@@ -57,6 +57,8 @@ const GlobalMenuIcon = (
   </svg>
 );
 
+const CuotasMoraIcon = <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
+
 
 // Íconos para secciones padre (nuevos, acordes)
 const OperacionesSectionIcon = <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
@@ -131,6 +133,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
           { to: '/pendientes-desembolsar', icon: PendientesIcon, label: 'Pendientes a Desembolsar', permission: permissions.canAccessPendientesDesembolsar() },
           { to: '/pago-recaudadores', icon: RecaudadoresIcon, label: 'Pago Recaudadores', permission: permissions.canAccessPagoRecaudadores() },
           { to: '/afiliacion-socios', icon: AfiliacionIcon, label: 'Afiliación de Socios', permission: permissions.canAccessAffiliationSocios() },
+          { to: '/ver-cuotas-mora', icon: CuotasMoraIcon, label: 'Ver Cuotas en Mora', permission: true },
         ]
       },
       {
@@ -224,8 +227,13 @@ const GlobalMenu = React.memo(() => {
     setIsOpen(!isOpen);
   };
 
-  const handleNavigate = () => {
+  const handleNavigateToConsulta = () => {
     navigate('/consulta-clientes');
+    setIsOpen(false);
+  };
+
+  const handleNavigateToCuotas = () => {
+    navigate('/ver-cuotas-mora');
     setIsOpen(false);
   };
 
@@ -240,11 +248,11 @@ const GlobalMenu = React.memo(() => {
       </button>
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-[45] sm:hidden" 
+          <div
+            className="fixed inset-0 z-[45] sm:hidden"
             onClick={() => setIsOpen(false)}
           />
-          <div 
+          <div
             className={`
               fixed sm:absolute left-1/2 -translate-x-1/2 sm:right-0 sm:left-auto sm:translate-x-0
               mt-2 w-[calc(100vw-2rem)] sm:w-56 bg-white rounded-lg shadow-xl z-50 overflow-hidden
@@ -252,10 +260,11 @@ const GlobalMenu = React.memo(() => {
             `}
           >
             <button
-              onClick={handleNavigate}
+              onClick={handleNavigateToConsulta}
               className="
-                w-full text-left px-3 sm:px-4 py-3 hover:bg-blue-50 transition-colors 
+                w-full text-left px-3 sm:px-4 py-3 hover:bg-blue-50 transition-colors
                 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 text-gray-700
+                border-b border-gray-100
               "
             >
               <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -263,6 +272,20 @@ const GlobalMenu = React.memo(() => {
               </svg>
               <span className="text-sm sm:text-base break-words whitespace-normal">
                 Consultar Socios
+              </span>
+            </button>
+            <button
+              onClick={handleNavigateToCuotas}
+              className="
+                w-full text-left px-3 sm:px-4 py-3 hover:bg-blue-50 transition-colors
+                flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 text-gray-700
+              "
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-sm sm:text-base break-words whitespace-normal">
+                Ver Cuotas en Mora
               </span>
             </button>
           </div>
