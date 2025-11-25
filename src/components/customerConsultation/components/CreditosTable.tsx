@@ -1157,6 +1157,18 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
                                   <p className="text-xs text-red-600 mt-1">{comprobante.motivo_rechazo}</p>
                                 </div>
                               )}
+                              {comprobante.fechamodificacion && (
+                                <div className="mt-2">
+                                  <span className="text-xs font-medium text-red-600">Fecha transacción:</span>
+                                  <p className="text-xs font-medium text-blue-600 mt-1">{comprobante.fechamodificacion}</p>
+                                </div>
+                              )}
+                              {comprobante.horamodificacion && (
+                                <div className="mt-2">
+                                  <span className="text-xs font-medium text-red-600">Hora transacción:</span>
+                                  <p className="text-xs  font-medium text-blue-600 mt-1">{comprobante.horamodificacion}</p>
+                                </div>
+                              )}                    
                             </div>
                           </div>
                         ))}
