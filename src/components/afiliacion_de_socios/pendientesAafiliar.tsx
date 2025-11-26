@@ -455,8 +455,16 @@ export default function AfiliacionSociosComponent() {
 
 
       // 🚀 LLAMAR AL ENDPOINT REAL
-      await afiliacionAPI.afiliarSocioProceso(datosAfiliacion);
+      const resultado = await afiliacionAPI.afiliarSocioProceso(datosAfiliacion);
 
+      // ✅ VERIFICAR SI LA AFILIACIÓN FUE EXITOSA
+      if (resultado.status === false) {
+        // ❌ ERROR: El endpoint retornó false - mostrar el mensaje de error
+        Notification.error(`❌ ${resultado.message || 'Error en la afiliación'}`);
+        return; // No proceder con el resto de la lógica
+      }
+
+      // ✅ AFILIACIÓN EXITOSA
       Notification.success('✅ Afiliación procesada exitosamente');
 
       // Actualizar estado en la lista principal

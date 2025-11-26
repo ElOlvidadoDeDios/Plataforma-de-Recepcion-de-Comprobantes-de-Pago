@@ -7,6 +7,7 @@ import { PaymentRecord } from '../../../types';
 import ComprobanteDesembolsoModal from './ComprobanteDesembolsoModal';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { Permission, UserRole } from '../../../types/permissions';
+import { logContractGenerationInfo, logDocumentVerificationInfo, captureDeviceInfo } from '../../../utils/deviceInfo';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 // const PagosPrestamoModal = lazy(() => import('./PagosPrestamoModal'));
@@ -161,6 +162,9 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       try {
           setLoadingFirma(true);
           setSelectedCreditoFirma(credito.ID_PRESTAMO);
+
+          // 🔍 Capturar información del dispositivo al generar contrato
+          await logContractGenerationInfo(credito.ID_PRESTAMO);
   
           const response = await generarContrato({
               PAGARE: credito.ID_PRESTAMO,
@@ -231,11 +235,19 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       setLoadingFirma(true);
       setSelectedCreditoFirma(credito.ID_PRESTAMO);
 
+      // 🔍 Capturar información del dispositivo al verificar firma
+      await logDocumentVerificationInfo(credito.ID_PRESTAMO, credito.FIRM_DIGITAL.ID_DOCUMENT);
+
+      // Capturar información del dispositivo para el endpoint
+      const deviceInfo = await captureDeviceInfo(`verificacion_documento_${credito.ID_PRESTAMO}`);
+
       const response = await verificarDocumentoFirmado({
         ID_DOCUMENT_FIRM: credito.FIRM_DIGITAL.ID_DOCUMENT,
         PAGARE: credito.ID_PRESTAMO,
-        AGENCIA: credito.AGENCIA
-      });
+        AGENCIA: credito.AGENCIA,
+        USER: user?.dni || 'dni no identificado',
+        INFO_DESK: [deviceInfo]
+      } as any);
 
       if (response.success) {
         // Verificar el estado de la respuesta del endpoint
@@ -1168,7 +1180,15 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
                                   <span className="text-xs font-medium text-red-600">Hora transacción:</span>
                                   <p className="text-xs  font-medium text-blue-600 mt-1">{comprobante.horamodificacion}</p>
                                 </div>
-                              )}                    
+                              )}
+                              {
+                                comprobante.user_caja && (
+                                  <div className="mt-2">
+                                    <span className="text-xs font-medium text-red-600">Usuario:</span>
+                                    <p className="text-xs font-medium text-blue-600 mt-1">{comprobante.user_caja}</p>
+                                  </div>
+                                )
+                              }                    
                             </div>
                           </div>
                         ))}
