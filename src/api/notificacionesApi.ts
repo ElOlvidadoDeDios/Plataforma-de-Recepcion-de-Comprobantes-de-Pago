@@ -99,7 +99,7 @@ export const fetchNotificacionesDayManagement = async (responsable?: string, age
     };
     
     const response = await notificacionesApiInstance.post<NotificacionGestionDiaria[] | NotificacionesResponse>(
-      '/api_mongo_firm_easy/api/notificacitonDayManagement',
+      '/api_mongo_firm_easy/api/notificacitonDayManagement_P',
       requestBody
     );
 
