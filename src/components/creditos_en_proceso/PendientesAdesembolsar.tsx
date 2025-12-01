@@ -220,29 +220,29 @@ const PendientesAdesembolsar: React.FC = () => {
                       </p>
                     </div>
                     <div>
-                      <span className="text-xs text-blue-600 font-medium">Email:</span>
-                      <p className="text-sm font-medium text-blue-700">
-                        {credito.DATOS_FIRMA.EMAIL}
-                      </p>
-                    </div>
+                        <span className="text-xs text-blue-600 font-medium">Estado:</span>
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                          credito.DATOS_FIRMA.STATUS === 'signed'
+                            ? 'bg-green-100 text-green-800'
+                            : credito.DATOS_FIRMA.STATUS === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {credito.DATOS_FIRMA.STATUS === 'signed'
+                            ? 'FIRMADO'
+                            : credito.DATOS_FIRMA.STATUS === 'pending'
+                            ? 'PENDIENTE'
+                            : 'SIN GENERAR'}
+                        </span>
+                      </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <span className="text-xs text-blue-600 font-medium">Estado:</span>
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                        credito.DATOS_FIRMA.STATUS === 'signed'
-                          ? 'bg-green-100 text-green-800'
-                          : credito.DATOS_FIRMA.STATUS === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {credito.DATOS_FIRMA.STATUS === 'signed'
-                          ? 'FIRMADO'
-                          : credito.DATOS_FIRMA.STATUS === 'pending'
-                          ? 'PENDIENTE'
-                          : 'SIN GENERAR'}
-                      </span>
+                      <span className="text-xs text-blue-600 font-medium">Email:</span>
+                      <p className="text-sm font-medium text-blue-700">
+                        {credito.DATOS_FIRMA.EMAIL}
+                      </p>
                     </div>
                   </div>
                   

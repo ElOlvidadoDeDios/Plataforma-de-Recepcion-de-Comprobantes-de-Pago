@@ -34,6 +34,7 @@ export interface PaymentRecord {
     monto_pago?: number;
     fechamodificacion?: string;
     horamodificacion?: string;
+    user_caja?: string;
   }>;
   estadoGeneral: 'pendiente' | 'parcial' | 'atendido';
   fecha: string;

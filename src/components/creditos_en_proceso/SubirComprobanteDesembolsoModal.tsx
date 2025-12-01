@@ -88,8 +88,8 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
       const nombreAgencia = obtenerNombreAgencia(user.id_age || '');
       
       const voucherData = {
-        DNI_SOCIO: credito.DATOS_SOCIO.DNI,
-        PAGARE: credito.CREDITO_DESEMBOLSO.PAGARE,
+        DNI_SOCIO: credito.DATOS_SOCIO.DNI_SOCIO,
+        PAGARE: credito.DATOS_DESEMBOLSO.PAGARE,
         AGENCIA: nombreAgencia, // ✅ CORREGIDO: usar nombre de agencia, no hardcodeado
         ANALISTA: user.dni
       };
@@ -122,10 +122,10 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
                 📤 Subir Comprobante de Desembolso
               </h2>
               <p className="text-sm text-gray-600">
-                Pagaré: {credito.CREDITO_DESEMBOLSO.PAGARE}
+                Pagaré: {credito.DATOS_DESEMBOLSO.PAGARE}
               </p>
               <p className="text-sm text-gray-600">
-                Cliente: {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
+                Cliente: {credito.DATOS_SOCIO.RAZON}
               </p>
             </div>
             <button
@@ -189,11 +189,11 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="text-sm font-semibold text-blue-700 mb-2">Datos que se enviarán:</h3>
               <div className="text-xs text-blue-600 space-y-1">
-                <p>• DNI Socio: {credito.DATOS_SOCIO.DNI}</p>
-                <p>• Pagaré: {credito.CREDITO_DESEMBOLSO.PAGARE}</p>
+                <p>• DNI Socio: {credito.DATOS_SOCIO.DNI_SOCIO}</p>
+                <p>• Pagaré: {credito.DATOS_DESEMBOLSO.PAGARE}</p>
                 <p>• Agencia: {obtenerNombreAgencia(user?.id_age || '')}</p>
                 <p>• Analista: {user?.dni || 'No disponible'}</p>
-                <p>• Monto: S/ {credito.CREDITO_DESEMBOLSO.MONTO_APRO}</p>
+                <p>• Monto: S/ {credito.DATOS_DESEMBOLSO.MONTO_APROB}</p>
                 <p>• Archivo: png o jpg</p>
               </div>
             </div>
