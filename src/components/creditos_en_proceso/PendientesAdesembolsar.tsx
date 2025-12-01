@@ -60,7 +60,7 @@ const PendientesAdesembolsar: React.FC = () => {
   const creditosConDatosBancarios = creditos.filter(tieneDatosBancariosCompletos).length;
   const creditosSinDatosBancarios = totalCreditos - creditosConDatosBancarios;
   const montoTotal = creditos.reduce((total, credito) => {
-    const monto = parseFloat(credito.CREDITO_DESEMBOLSO.MONTO_APRO.replace(/[^\d.]/g, '')) || 0;
+    const monto = parseFloat(credito.DATOS_DESEMBOLSO.MONTO_APROB.replace(/[^\d.]/g, '')) || 0;
     return total + monto;
   }, 0);
 
@@ -123,9 +123,16 @@ const PendientesAdesembolsar: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <h3 className="text-base font-semibold text-gray-900">
-              {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
+              {credito.DATOS_SOCIO.RAZON}
             </h3>
-            <p className="text-sm text-gray-500">DNI: {credito.DATOS_SOCIO.DNI}</p>
+            <p className="text-sm text-gray-500">
+              DNI: {credito.DATOS_SOCIO.DNI_SOCIO}
+              {credito.DATOS_RESPONSABLE?.AGENCIA && (
+                <span className="ml-3 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                  Agencia: {credito.DATOS_RESPONSABLE.AGENCIA}
+                </span>
+              )}
+            </p>
           </div>
           {getEstadoBadge(credito)}
         </div>
@@ -143,37 +150,131 @@ const PendientesAdesembolsar: React.FC = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Pagaré:</span>
                 <span className="text-sm font-normal text-gray-900">
-                  {credito.CREDITO_DESEMBOLSO.PAGARE}
+                  {credito.DATOS_DESEMBOLSO.PAGARE}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Producto:</span>
                 <span className="text-sm font-normal text-gray-900">
-                  {credito.CREDITO_DESEMBOLSO.PRODUCTO}
+                  {credito.DATOS_DESEMBOLSO.NOM_PROD}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Monto Aprobado:</span>
                 <span className="text-sm font-normal text-gray-600">
-                  S/ {formatearMonto(credito.CREDITO_DESEMBOLSO.MONTO_APRO)}
+                  S/ {formatearMonto(credito.DATOS_DESEMBOLSO.MONTO_APROB)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Monto a Desembolsar:</span>
                 <span className="text-sm font-bold text-green-600">
-                 S/ {credito.CREDITO_DESEMBOLSO.MONTO_NETO}
+                 S/ {credito.DATOS_DESEMBOLSO.MONTO_NETO}
                 </span>
               </div>
+              {credito.DATOS_RESPONSABLE && (
+                <>
+                  {credito.DATOS_RESPONSABLE.ANALISTA && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Analista:</span>
+                      <span className="text-sm font-normal text-gray-900">
+                        {credito.DATOS_RESPONSABLE.ANALISTA}
+                      </span>
+                    </div>
+                  )}
+                  {(credito.DATOS_RESPONSABLE as any).CELULAR && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Tel. Analista:</span>
+                      <span className="text-sm font-normal text-blue-600">
+                        {(credito.DATOS_RESPONSABLE as any).CELULAR}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
-          {/* Datos Bancarios - AHORA DEBAJO DE LA INFORMACIÓN DEL CRÉDITO */}
+          {/* Datos de Firma Digital - NUEVA SECCIÓN */}
+          <div className="space-y-3">
+            <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide flex items-center">
+              <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Estado de Firma Digital
+            </h4>
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+              {!credito.DATOS_FIRMA?.FIRMANTE ? (
+                <div className="text-center py-2">
+                  <svg className="w-6 h-6 text-orange-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-sm text-orange-600 font-medium">Sin firma digital</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-xs text-blue-600 font-medium">Firmante:</span>
+                      <p className="text-sm font-semibold text-blue-800">
+                        {credito.DATOS_FIRMA.FIRMANTE}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-blue-600 font-medium">Email:</span>
+                      <p className="text-sm font-medium text-blue-700">
+                        {credito.DATOS_FIRMA.EMAIL}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-xs text-blue-600 font-medium">Estado:</span>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                        credito.DATOS_FIRMA.STATUS === 'signed'
+                          ? 'bg-green-100 text-green-800'
+                          : credito.DATOS_FIRMA.STATUS === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {credito.DATOS_FIRMA.STATUS === 'signed'
+                          ? 'FIRMADO'
+                          : credito.DATOS_FIRMA.STATUS === 'pending'
+                          ? 'PENDIENTE'
+                          : 'SIN GENERAR'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 border-t border-blue-200 pt-3">
+                    <div>
+                      <span className="text-xs text-blue-600 font-medium">Fecha Creación:</span>
+                      <p className="text-xs text-blue-700">
+                        {credito.DATOS_FIRMA.FECHA_CREA} {credito.DATOS_FIRMA.HORA_CREA}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-blue-600 font-medium">Fecha Validación:</span>
+                      <p className="text-xs text-blue-700">
+                        {credito.DATOS_FIRMA.FECHA_VALIDA ?
+                          `${credito.DATOS_FIRMA.FECHA_VALIDA} ${credito.DATOS_FIRMA.HORA_VALIDA}` :
+                          'Pendiente'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Datos Bancarios - AHORA DEBAJO DE LA INFORMACIÓN DE FIRMA */}
           <div className="space-y-3">
             <h4 className="font-medium text-gray-700 text-sm uppercase tracking-wide">
               Datos Bancarios
             </h4>
             <div className="bg-gray-50 rounded-lg p-4">
-              {!credito.DATOS_BANCARIOS.BANCO ? (
+              {!credito.DATOS_BANCO.BANCO ? (
                 <div className="text-center py-4">
                   <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -185,25 +286,25 @@ const PendientesAdesembolsar: React.FC = () => {
                   <div>
                     <span className="text-xs text-gray-500">Titular:</span>
                     <p className="text-sm font-medium text-gray-900">
-                      {credito.DATOS_BANCARIOS.TITULAR || 'Sin titular'}
+                      {credito.DATOS_BANCO.TITULAR || 'Sin titular'}
                     </p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500">Banco:</span>
                     <p className="text-sm font-medium text-gray-900">
-                      {credito.DATOS_BANCARIOS.BANCO}
+                      {credito.DATOS_BANCO.BANCO}
                     </p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500">Tipo de Cuenta:</span>
                     <p className="text-sm font-medium text-gray-900">
-                      {credito.DATOS_BANCARIOS.TIPO_CUENTA}
+                      {credito.DATOS_BANCO.TIPO_CUENTA}
                     </p>
                   </div>
                   <div>
                     <span className="text-xs text-gray-500">Número de Cuenta:</span>
                     <p className="text-sm font-medium text-gray-900">
-                      {credito.DATOS_BANCARIOS.NUM_CUENTA || 'Sin número'}
+                      {credito.DATOS_BANCO.NUM_CUENTA || 'Sin número'}
                     </p>
                   </div>
                 </div>
@@ -243,6 +344,9 @@ const PendientesAdesembolsar: React.FC = () => {
               Crédito
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Firma Digital
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Datos Bancarios
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -255,20 +359,20 @@ const PendientesAdesembolsar: React.FC = () => {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {creditos.map((credito) => (
-            <tr key={`${credito.DATOS_SOCIO.DNI}-${credito.CREDITO_DESEMBOLSO.PAGARE}`} className="hover:bg-gray-50">
+            <tr key={`${credito.DATOS_SOCIO.DNI_SOCIO}-${credito.DATOS_DESEMBOLSO.PAGARE}`} className="hover:bg-gray-50">
               <td className="px-6 py-4">
                 <div className="flex items-center">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-                    <span className="text-white font-medium text-sm">
-                      {credito.DATOS_SOCIO.NOMBRES.charAt(0)}{credito.DATOS_SOCIO.APE_PAT.charAt(0)}
-                    </span>
-                  </div>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900">
-                      {credito.DATOS_SOCIO.NOMBRE_COMPLETO}
+                      {credito.DATOS_SOCIO.RAZON}
                     </div>
                     <div className="text-sm text-gray-500">
-                      DNI: {credito.DATOS_SOCIO.DNI}
+                      DNI: {credito.DATOS_SOCIO.DNI_SOCIO}
+                      {credito.DATOS_RESPONSABLE?.AGENCIA && (
+                        <span className="ml-3 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                          Agencia: {credito.DATOS_RESPONSABLE.AGENCIA}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -276,29 +380,74 @@ const PendientesAdesembolsar: React.FC = () => {
               <td className="px-6 py-4">
                 <div className="text-sm">
                   <div className="font-medium text-gray-900 mb-1">
-                    {credito.CREDITO_DESEMBOLSO.PAGARE}
+                    {credito.DATOS_DESEMBOLSO.PAGARE}
                   </div>
                   <div className="text-gray-600 mb-1">
-                    {credito.CREDITO_DESEMBOLSO.PRODUCTO}
+                    {credito.DATOS_DESEMBOLSO.NOM_PROD}
                   </div>
                   <div className="font-semibold text-green-600">
-                    S/ {formatearMonto(credito.CREDITO_DESEMBOLSO.MONTO_APRO)}
+                    S/ {formatearMonto(credito.DATOS_DESEMBOLSO.MONTO_APROB)}
                   </div>
+                  {credito.DATOS_RESPONSABLE?.ANALISTA && (
+                    <div className="text-gray-500 text-xs">
+                      Analista: {credito.DATOS_RESPONSABLE.ANALISTA}
+                      {(credito.DATOS_RESPONSABLE as any).CELULAR && (
+                        <span className="ml-2 text-blue-600">
+                          Tel: {(credito.DATOS_RESPONSABLE as any).CELULAR}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </td>
               <td className="px-6 py-4">
-                {!credito.DATOS_BANCARIOS.BANCO ? (
+                {!credito.DATOS_FIRMA?.FIRMANTE ? (
+                  <div className="text-sm text-orange-600 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Sin firma
+                  </div>
+                ) : (
+                  <div className="text-sm space-y-1">
+                    <div className="flex items-center">
+                      <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                        credito.DATOS_FIRMA.STATUS === 'signed'
+                          ? 'bg-green-400'
+                          : credito.DATOS_FIRMA.STATUS === 'pending'
+                          ? 'bg-yellow-400'
+                          : 'bg-gray-400'
+                      }`}></span>
+                      <span className="font-medium text-gray-800">
+                        {credito.DATOS_FIRMA.FIRMANTE}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 text-xs">
+                      {credito.DATOS_FIRMA.EMAIL}
+                    </div>
+                    <div className="text-gray-500 text-xs">
+                      {credito.DATOS_FIRMA.STATUS === 'signed'
+                        ? 'FIRMADO'
+                        : credito.DATOS_FIRMA.STATUS === 'pending'
+                        ? 'PENDIENTE'
+                        : 'SIN GENERAR'} - {credito.DATOS_FIRMA.FECHA_CREA}
+                    </div>
+                  </div>
+                )}
+              </td>
+              <td className="px-6 py-4">
+                {!credito.DATOS_BANCO.BANCO ? (
                   <div className="text-sm text-gray-500 italic">Sin datos bancarios</div>
                 ) : (
                   <div className="text-sm">
                     <div className="font-medium text-gray-800">
-                      {credito.DATOS_BANCARIOS.TITULAR || 'Sin titular'}
+                      {credito.DATOS_BANCO.TITULAR || 'Sin titular'}
                     </div>
                     <div className="text-gray-600">
-                      {credito.DATOS_BANCARIOS.BANCO} - {credito.DATOS_BANCARIOS.TIPO_CUENTA}
+                      {credito.DATOS_BANCO.BANCO} - {credito.DATOS_BANCO.TIPO_CUENTA}
                     </div>
                     <div className="text-gray-500">
-                      {credito.DATOS_BANCARIOS.NUM_CUENTA || 'Sin número'}
+                      {credito.DATOS_BANCO.NUM_CUENTA || 'Sin número'}
                     </div>
                   </div>
                 )}
@@ -462,7 +611,7 @@ const PendientesAdesembolsar: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {creditos.map((credito) => (
                     <CreditoCard 
-                      key={`${credito.DATOS_SOCIO.DNI}-${credito.CREDITO_DESEMBOLSO.PAGARE}`} 
+                      key={`${credito.DATOS_SOCIO.DNI_SOCIO}-${credito.DATOS_DESEMBOLSO.PAGARE}`} 
                       credito={credito} 
                     />
                   ))}

@@ -2,11 +2,8 @@ import { SessionManager } from '../utils/sessionManager';
 
 // Interfaces para los datos del endpoint de desembolsos
 export interface DatosSocio {
-  DNI: string;
-  NOMBRES: string;
-  APE_PAT: string;
-  APE_MAT: string;
-  NOMBRE_COMPLETO: string;
+  DNI_SOCIO: string;//DNI
+  RAZON: string;//NOMBRE_COMPLETO
 }
 
 export interface DatosBancariosDesembolso {
@@ -16,19 +13,42 @@ export interface DatosBancariosDesembolso {
   TIPO_CUENTA: string | null;
   NUM_CUENTA: string | null;
   ESTADO: string | null;
+  
 }
 
 export interface CreditoDesembolso {
+  NRO_DI: string;
   PAGARE: string;
-  PRODUCTO: string;
-  MONTO_APRO: string;
+  OTORGA: string;
+  CUENTA: string;
   MONTO_NETO: string;
+  MONTO_SOL: string;
+  MONTO_APROB: string
+  NOM_PROD: string;
+  
 }
-
+export interface DatosFirma {
+    DNI_SOCIO: string;
+    NOMBRES: string;
+    EMAIL: string;
+    FIRMANTE: string;
+    STATUS: string;
+    FECHA_CREA: string;
+    HORA_CREA: string;
+    FECHA_VALIDA: string;
+    HORA_VALIDA: string;
+}
+export interface DatosResponsable{
+  ANALISTA: string;
+  AGENCIA: string;
+  CELULAR: string;
+}
 export interface ClienteDesembolso {
   DATOS_SOCIO: DatosSocio;
-  DATOS_BANCARIOS: DatosBancariosDesembolso;
-  CREDITO_DESEMBOLSO: CreditoDesembolso;
+  DATOS_DESEMBOLSO: CreditoDesembolso;
+  DATOS_BANCO: DatosBancariosDesembolso;
+  DATOS_FIRMA: DatosFirma;
+  DATOS_RESPONSABLE: DatosResponsable;
 }
 
 export interface DesembolsosResponse {
@@ -75,12 +95,12 @@ export const obtenerCreditosPendientesDesembolsar = async (): Promise<ClienteDes
 
 // Función para verificar si un cliente tiene datos bancarios completos
 export const tieneDatosBancariosCompletos = (cliente: ClienteDesembolso): boolean => {
-  const { DATOS_BANCARIOS } = cliente;
+  const { DATOS_BANCO } = cliente;
   return !!(
-    DATOS_BANCARIOS.BANCO &&
-    DATOS_BANCARIOS.TIPO_CUENTA &&
-    DATOS_BANCARIOS.NUM_CUENTA &&
-    DATOS_BANCARIOS.TITULAR
+    DATOS_BANCO.BANCO &&
+    DATOS_BANCO.TIPO_CUENTA &&
+    DATOS_BANCO.NUM_CUENTA &&
+    DATOS_BANCO.TITULAR
   );
 };
 
@@ -88,7 +108,7 @@ export const tieneDatosBancariosCompletos = (cliente: ClienteDesembolso): boolea
 export const getEstadoDatosBancarios = (cliente: ClienteDesembolso): string => {
   if (tieneDatosBancariosCompletos(cliente)) {
     return 'COMPLETO';
-  } else if (cliente.DATOS_BANCARIOS.BANCO || cliente.DATOS_BANCARIOS.NUM_CUENTA) {
+  } else if (cliente.DATOS_BANCO.BANCO || cliente.DATOS_BANCO.NUM_CUENTA) {
     return 'INCOMPLETO';
   } else {
     return 'FALTA';
