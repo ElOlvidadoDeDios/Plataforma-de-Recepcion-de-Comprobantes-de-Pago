@@ -7,7 +7,7 @@ import { useCombinedPermissions } from '../hooks/useCombinedPermissions';
 import { UserChangePasswordModal } from './gestion_usuarios';
 import { useAuth } from '../hooks/useAuth';
 import { useAutoLogout } from '../hooks/useAutoLogout';
-import { NotificationBell } from './NotificationBell';
+//import { NotificationBell } from './NotificationBell';
 import logo from '../logo_dile.webp';
 
 // Interfaz para las props del Layout
@@ -360,7 +360,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
                   </motion.div>
                   <div className="flex-shrink-0 flex items-center space-x-3">
                     <GlobalMenu />
-                    <NotificationBell />
+                    {/*<NotificationBell />*/}
                     <UserInfo />
                   </div>
                 </div>

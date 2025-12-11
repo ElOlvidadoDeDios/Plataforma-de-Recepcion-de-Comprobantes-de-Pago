@@ -20,7 +20,7 @@ import NonBasicUserRoute from './components/NonBasicUserRoute';
 import PermissionProtectedRoute from './components/PermissionProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
-import { NotificationsProvider } from './contexts/NotificationsContext';
+//import { NotificationsProvider } from './contexts/NotificationsContext';
 import { useSocket } from './hooks/useSocket';
 import RegistroClientes from './components/registro_clientes/registro_clientes';
 import CalculadoraCreditos from './components/Calculadora_creditos/cal_creditos';
@@ -51,7 +51,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <NotificationsProvider>
+        {/*<NotificationsProvider>*/}
           <SocketProvider>
             <Router>
             <Routes>
@@ -258,7 +258,7 @@ function App() {
             </Router>
             <Toaster position="top-right" />
           </SocketProvider>
-        </NotificationsProvider>
+        {/*</NotificationsProvider>*/}
       </AuthProvider>
     </QueryClientProvider>
   );
