@@ -12,6 +12,7 @@ export interface DatosBancariosDesembolso {
   BANCO: string | null;
   TIPO_CUENTA: string | null;
   NUM_CUENTA: string | null;
+  CCI: string | null;
   ESTADO: string | null;
   
 }
@@ -100,6 +101,7 @@ export const tieneDatosBancariosCompletos = (cliente: ClienteDesembolso): boolea
     DATOS_BANCO.BANCO &&
     DATOS_BANCO.TIPO_CUENTA &&
     DATOS_BANCO.NUM_CUENTA &&
+    DATOS_BANCO.CCI &&
     DATOS_BANCO.TITULAR
   );
 };
@@ -108,7 +110,7 @@ export const tieneDatosBancariosCompletos = (cliente: ClienteDesembolso): boolea
 export const getEstadoDatosBancarios = (cliente: ClienteDesembolso): string => {
   if (tieneDatosBancariosCompletos(cliente)) {
     return 'COMPLETO';
-  } else if (cliente.DATOS_BANCO.BANCO || cliente.DATOS_BANCO.NUM_CUENTA) {
+  } else if (cliente.DATOS_BANCO.BANCO || cliente.DATOS_BANCO.NUM_CUENTA || cliente.DATOS_BANCO.CCI) {
     return 'INCOMPLETO';
   } else {
     return 'FALTA';

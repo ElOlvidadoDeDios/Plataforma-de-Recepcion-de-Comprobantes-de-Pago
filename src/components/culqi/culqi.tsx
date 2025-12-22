@@ -21,6 +21,47 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vistaActual, setVistaActual] = useState<'tabla' | 'estadisticas'>('tabla');
+  const [busqueda, setBusqueda] = useState('');
+
+  // Función para imprimir la tabla
+  const imprimirTabla = () => {
+    const contenidoImprimir = document.getElementById('tabla-imprimible');
+    if (!contenidoImprimir) return;
+
+    const ventanaImprimir = window.open('', '', 'height=600,width=800');
+    if (!ventanaImprimir) return;
+
+    ventanaImprimir.document.write('<html><head><title>Culquis Pendientes - Reporte</title>');
+    ventanaImprimir.document.write('<style>');
+    ventanaImprimir.document.write(`
+      body { font-family: Arial, sans-serif; margin: 20px; }
+      h1 { color: #1e40af; font-size: 24px; margin-bottom: 10px; }
+      .info { color: #666; margin-bottom: 20px; font-size: 14px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th { background-color: #f3f4f6; padding: 12px; text-align: left; border: 1px solid #ddd; font-size: 12px; }
+      td { padding: 10px; border: 1px solid #ddd; font-size: 11px; }
+      tr:nth-child(even) { background-color: #f9fafb; }
+      .monto { font-weight: bold; color: #059669; }
+      .estado-activo { background-color: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 12px; font-size: 10px; }
+      .estado-inactivo { background-color: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 12px; font-size: 10px; }
+      .fecha { text-align: right; color: #666; font-size: 12px; margin-top: 20px; }
+      @media print {
+        button { display: none; }
+      }
+    `);
+    ventanaImprimir.document.write('</style></head><body>');
+    ventanaImprimir.document.write(contenidoImprimir.innerHTML);
+    ventanaImprimir.document.write('<div class="fecha">Fecha de impresión: ' + new Date().toLocaleString('es-PE') + '</div>');
+    ventanaImprimir.document.write('</body></html>');
+    
+    ventanaImprimir.document.close();
+    ventanaImprimir.focus();
+    
+    setTimeout(() => {
+      ventanaImprimir.print();
+      ventanaImprimir.close();
+    }, 250);
+  };
 
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -102,6 +143,29 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
   const totalSocios = contarTotalSocios(data);
   const montoTotal = calcularMontoTotal(data);
 
+  // Función para filtrar socios según búsqueda
+  const filtrarSocios = (socios: any[]) => {
+    if (!busqueda.trim()) return socios;
+    
+    const busquedaLower = busqueda.toLowerCase().trim();
+    return socios.filter(socio => 
+      socio.RAZON_SOCIAL?.toLowerCase().includes(busquedaLower) ||
+      socio.CUENTA?.toString().includes(busquedaLower)
+    );
+  };
+
+  // Aplicar filtro a todos los socios
+  const todosSociosFiltrados = filtrarSocios(todosSocios);
+  
+  // Aplicar filtro a socios por agencia
+  const sociosPorAgenciaFiltrados = Object.entries(sociosPorAgencia).reduce((acc, [agencia, socios]) => {
+    const sociosFiltrados = filtrarSocios(socios as any[]);
+    if (sociosFiltrados.length > 0) {
+      acc[agencia] = sociosFiltrados;
+    }
+    return acc;
+  }, {} as Record<string, any[]>);
+
   // Componente para mostrar estadísticas resumen
   const ResumenEstadisticas = () => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -154,68 +218,20 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
     if (!infoUsuario.esSuperAdmin) {
       // Vista normal para no SuperAdmin
       return (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {infoUsuario.esAdminAgencia ? `Socios de ${infoUsuario.agencia}` :
-               `Mis Socios Asignados - ${infoUsuario.agencia}`}
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuenta</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Razón Social</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Analista</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {todosSocios.map((socio, index) => (
-                  <tr key={`${socio.CUENTA}-${index}`} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{socio.CUENTA}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{socio.RAZON_SOCIAL}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                      S/ {formatearMonto(socio.MONTO_APROBADO).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        socio.ESTADO === 'ACTIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {socio.ESTADO}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{socio.ANA_ACTUAL}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    }
-
-    // Vista organizada por agencias para SuperAdmin
-    return (
-      <div className="space-y-6">
-        {Object.entries(sociosPorAgencia).map(([agencia, socios]) => (
-          <div key={agencia} className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">🏢 {agencia}</h3>
-                <div className="flex gap-4 text-sm text-gray-600">
-                  <span className="bg-blue-100 px-3 py-1 rounded-full">
-                    <span className="font-medium">{socios.length}</span> socios
-                  </span>
-                  <span className="bg-green-100 px-3 py-1 rounded-full">
-                    <span className="font-medium">S/ {socios.reduce((sum, s) => sum + formatearMonto(s.MONTO_APROBADO), 0).toLocaleString('es-PE', { minimumFractionDigits: 0 })}</span>
-                  </span>
-                </div>
-              </div>
+        <>
+          {/* Versión visible en pantalla */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {infoUsuario.esAdminAgencia ? `Socios de ${infoUsuario.agencia}` :
+                 `Mis Socios Asignados - ${infoUsuario.agencia}`}
+              </h3>
+              {busqueda && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Mostrando {todosSociosFiltrados.length} de {todosSocios.length} socios
+                </p>
+              )}
             </div>
-            
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -228,29 +244,188 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {socios.map((socio, index) => (
-                    <tr key={`${socio.CUENTA}-${index}`} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{socio.CUENTA}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{socio.RAZON_SOCIAL}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                        S/ {formatearMonto(socio.MONTO_APROBADO).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                  {todosSociosFiltrados.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                        No se encontraron socios que coincidan con "{busqueda}"
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          socio.ESTADO === 'ACTIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
+                    </tr>
+                  ) : (
+                    todosSociosFiltrados.map((socio, index) => (
+                      <tr key={`${socio.CUENTA}-${index}`} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{socio.CUENTA}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{socio.RAZON_SOCIAL}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                          S/ {formatearMonto(socio.MONTO_APROBADO).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            socio.ESTADO === 'ACTIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {socio.ESTADO}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{socio.ANA_ACTUAL}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Versión oculta para impresión */}
+          <div id="tabla-imprimible" style={{ display: 'none' }}>
+            <h1>Culquis Pendientes - {infoUsuario.esAdminAgencia ? `${infoUsuario.agencia}` : `Analista ${infoUsuario.agencia}`}</h1>
+            <div className="info">
+              <strong>Total de socios:</strong> {todosSociosFiltrados.length} | 
+              <strong> Monto total:</strong> S/ {todosSociosFiltrados.reduce((sum, s) => sum + formatearMonto(s.MONTO_APROBADO), 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+              {busqueda && <span> | <strong>Filtrado por:</strong> "{busqueda}"</span>}
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Cuenta</th>
+                  <th>Razón Social</th>
+                  <th>Monto Aprobado</th>
+                  <th>Estado</th>
+                  <th>Analista</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todosSociosFiltrados.map((socio, index) => (
+                  <tr key={`print-${socio.CUENTA}-${index}`}>
+                    <td>{socio.CUENTA}</td>
+                    <td>{socio.RAZON_SOCIAL}</td>
+                    <td className="monto">S/ {formatearMonto(socio.MONTO_APROBADO).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</td>
+                    <td>
+                      <span className={socio.ESTADO === 'ACTIVO' ? 'estado-activo' : 'estado-inactivo'}>
+                        {socio.ESTADO}
+                      </span>
+                    </td>
+                    <td>{socio.ANA_ACTUAL}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      );
+    }
+
+    // Vista organizada por agencias para SuperAdmin
+    const agenciasMostrar = Object.entries(sociosPorAgenciaFiltrados);
+    
+    return (
+      <>
+        {/* Versión visible en pantalla */}
+        <div className="space-y-6">
+          {agenciasMostrar.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
+              No se encontraron socios que coincidan con "{busqueda}"
+            </div>
+          ) : (
+            agenciasMostrar.map(([agencia, socios]) => (
+              <div key={agencia} className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">🏢 {agencia}</h3>
+                    <div className="flex gap-4 text-sm text-gray-600">
+                      <span className="bg-blue-100 px-3 py-1 rounded-full">
+                        <span className="font-medium">{socios.length}</span> socios
+                      </span>
+                      <span className="bg-green-100 px-3 py-1 rounded-full">
+                        <span className="font-medium">S/ {socios.reduce((sum, s) => sum + formatearMonto(s.MONTO_APROBADO), 0).toLocaleString('es-PE', { minimumFractionDigits: 0 })}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cuenta</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Razón Social</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Analista</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {socios.map((socio, index) => (
+                        <tr key={`${socio.CUENTA}-${index}`} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{socio.CUENTA}</td>
+                          <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{socio.RAZON_SOCIAL}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                            S/ {formatearMonto(socio.MONTO_APROBADO).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              socio.ESTADO === 'ACTIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {socio.ESTADO}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-900">{socio.ANA_ACTUAL}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Versión oculta para impresión */}
+        <div id="tabla-imprimible" style={{ display: 'none' }}>
+          <h1>Culquis Pendientes - Vista SuperAdmin</h1>
+          <div className="info">
+            <strong>Total de socios:</strong> {Object.values(sociosPorAgenciaFiltrados).flat().length} | 
+            <strong> Agencias:</strong> {agenciasMostrar.length}
+            {busqueda && <span> | <strong>Filtrado por:</strong> "{busqueda}"</span>}
+          </div>
+          
+          {agenciasMostrar.map(([agencia, socios]) => (
+            <div key={`print-${agencia}`} style={{ marginBottom: '30px', pageBreakInside: 'avoid' }}>
+              <h2 style={{ color: '#1e40af', fontSize: '18px', marginTop: '20px', marginBottom: '10px' }}>
+                🏢 {agencia}
+              </h2>
+              <div className="info" style={{ marginBottom: '10px' }}>
+                <strong>{socios.length} socios</strong> | 
+                <strong> Total:</strong> S/ {socios.reduce((sum, s) => sum + formatearMonto(s.MONTO_APROBADO), 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Cuenta</th>
+                    <th>Razón Social</th>
+                    <th>Monto Aprobado</th>
+                    <th>Estado</th>
+                    <th>Analista</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {socios.map((socio, index) => (
+                    <tr key={`print-${agencia}-${socio.CUENTA}-${index}`}>
+                      <td>{socio.CUENTA}</td>
+                      <td>{socio.RAZON_SOCIAL}</td>
+                      <td className="monto">S/ {formatearMonto(socio.MONTO_APROBADO).toLocaleString('es-PE', { minimumFractionDigits: 2 })}</td>
+                      <td>
+                        <span className={socio.ESTADO === 'ACTIVO' ? 'estado-activo' : 'estado-inactivo'}>
                           {socio.ESTADO}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">{socio.ANA_ACTUAL}</td>
+                      <td>{socio.ANA_ACTUAL}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </>
     );
   };
 
@@ -388,6 +563,14 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
               >
                 📊 Análisis
               </button>
+              {vistaActual === 'tabla' && (
+                <button
+                  onClick={imprimirTabla}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  🖨️ Imprimir
+                </button>
+              )}
               <button
                 onClick={cargarDatos}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
@@ -401,6 +584,36 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
 
         {/* Resumen de estadísticas */}
         <ResumenEstadisticas />
+
+        {/* Buscador */}
+        {vistaActual === 'tabla' && (
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                placeholder="Buscar por razón social o número de cuenta..."
+                className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              />
+              {busqueda && (
+                <button
+                  onClick={() => setBusqueda('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Contenido principal */}
         {vistaActual === 'tabla' ? <TablaSociosOrganizada /> : <EstadisticasConGrafico />}

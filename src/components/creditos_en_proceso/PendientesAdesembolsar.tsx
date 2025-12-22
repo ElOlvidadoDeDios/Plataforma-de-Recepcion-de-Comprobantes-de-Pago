@@ -307,6 +307,12 @@ const PendientesAdesembolsar: React.FC = () => {
                       {credito.DATOS_BANCO.NUM_CUENTA || 'Sin número'}
                     </p>
                   </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Número de Cuenta CCI:</span>
+                    <p className="text-sm font-medium text-gray-900">
+                      {credito.DATOS_BANCO.CCI || 'Sin número'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

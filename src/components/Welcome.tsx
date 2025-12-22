@@ -303,8 +303,8 @@ const Welcome: React.FC = () => {
         icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
       }] : []),
       ...(permissions.canAccessCulqui() ? [{
-        title: 'Culqi Pendientes',
-        description: 'Gestiona pagos pendientes de Culqi',
+        title: 'Culqis',
+        description: 'Gestión de créditos calificados por Culqi',
         onClick: () => navigate('/culqui-pendientes'),
         icon: '💳'
       }] : []),
