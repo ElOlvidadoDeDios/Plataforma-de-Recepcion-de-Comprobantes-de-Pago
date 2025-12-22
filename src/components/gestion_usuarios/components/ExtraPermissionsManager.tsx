@@ -8,8 +8,16 @@ interface PermissionsManagerProps {
     disabled?: boolean;
 }
 
+// Roles que pueden tener permisos de Culqi
+const rolesConAccesoCulqui = [
+    UserRole.SUPER_ADMIN,
+    UserRole.ADMINISTRADOR,
+    UserRole.ANALISTA_CREDITOS_I,
+    UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+];
+
 // Sistema SIMPLIFICADO: Solo 2 permisos por pantalla (VER y EDITAR)
-const SIMPLIFIED_MODULES = {
+const getSimplifiedModules = (userRole: UserRole) => ({
     'Gestión de Usuarios': {
         icon: '👥',
         description: 'Administra los usuarios del sistema',
@@ -82,8 +90,17 @@ const SIMPLIFIED_MODULES = {
         viewPermission: Permission.AFFILIATION_SOCIOS_VIEW,
         editPermission: Permission.AFFILIATION_SOCIOS_EDIT,
     },
+    // Solo agregar Culqi si el rol tiene acceso
+    ...(rolesConAccesoCulqui.includes(userRole) ? {
+        'Culqi Pendientes': {
+            icon: '💳',
+            description: 'Gestiona pagos pendientes de Culqi',
+            viewPermission: Permission.CULQI_VIEW,
+            editPermission: Permission.CULQI_EDIT,
+        },
+    } : {}),
 
-};
+});
 
 const PermissionsManager: React.FC<PermissionsManagerProps> = ({
     userRole,
@@ -147,6 +164,9 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({
             </div>
         );
     }
+
+    // Obtener módulos según el rol
+    const SIMPLIFIED_MODULES = getSimplifiedModules(userRole);
 
     return (
         <div className="space-y-4">
@@ -350,7 +370,7 @@ const PermissionsManager: React.FC<PermissionsManagerProps> = ({
                     </div>
                     <div className="text-center">
                         <div className="text-2xl font-bold text-orange-600">
-                            {Math.round((currentPermissions.length / 22) * 100)}%
+                            {Math.round((currentPermissions.length / (rolesConAccesoCulqui.includes(userRole) ? 24 : 22)) * 100)}%
                         </div>
                         <div className="text-gray-600">Cobertura</div>
                     </div>

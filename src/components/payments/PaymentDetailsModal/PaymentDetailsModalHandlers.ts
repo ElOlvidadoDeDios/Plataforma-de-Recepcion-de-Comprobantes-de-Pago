@@ -173,6 +173,7 @@ export const handleUpdateStatus = async (
             estado: 'rechazado',
             _id: comp._id || '',
             motivo_rechazo: finalReason,
+            fecha_voucher: detail.fecha_voucher || '',
           };
         }).filter((d): d is NonNullable<typeof d> => d !== null)
       }))
@@ -296,6 +297,7 @@ export const handleUpdateStatus = async (
           estado: shouldReject ? 'rechazado' as const : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: shouldReject ? finalReason : detail.motivo_rechazo,
+          fecha_voucher: detail.fecha_voucher || '',
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null);
 
@@ -489,6 +491,7 @@ export const handlePartialAcceptStatus = async (
           tipoOperacion: detail.tipoOperacion || '',
           nro_banco: detail.nro_banco || '',
           banco: globalBanco || '', // Usar banco global
+          fecha_voucher: detail.fecha_voucher || '',
           estado: shouldAccept ? 'aceptado' as const : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: shouldAccept ? '' : detail.motivo_rechazo,
@@ -692,6 +695,7 @@ export const handleAcceptStatus = async (
           _id: comp._id || '',
           motivo_rechazo: detail.estado === 'pendiente' ? '' : detail.motivo_rechazo,
           monto_pago: parseFloat(detail.montoPago) || 0,  // ✅ AGREGAR COMO NÚMERO
+          fecha_voucher: detail.fecha_voucher || '',
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null)
     }))

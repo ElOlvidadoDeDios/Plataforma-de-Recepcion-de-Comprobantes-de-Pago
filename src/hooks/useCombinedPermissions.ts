@@ -159,6 +159,35 @@ export function useCombinedPermissions() {
       return hasPermission(Permission.DISBURSEMENT_HISTORY_VIEW);
     },
 
+    // === CULQI PENDIENTES ===
+    canAccessCulqui: () => {
+      // Roles con acceso automático: SuperAdmin, Analistas y Administradores
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'ADMINISTRADOR', 'ANALISTA_CREDITOS_I', 'ANALISTA_CREDITOS_PAGO_DIARIO'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.CULQI_VIEW);
+    },
+    canEditCulqui: () => {
+      // Roles con acceso automático: SuperAdmin, Analistas y Administradores
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'ADMINISTRADOR', 'ANALISTA_CREDITOS_I', 'ANALISTA_CREDITOS_PAGO_DIARIO'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.CULQI_EDIT);
+    },
+    canViewCulqui: () => {
+      // Roles con acceso automático: SuperAdmin, Analistas y Administradores
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'ADMINISTRADOR', 'ANALISTA_CREDITOS_I', 'ANALISTA_CREDITOS_PAGO_DIARIO'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.CULQI_VIEW);
+    },
+
     // Método para verificar si es usuario básico
     isBasicUser: () => {
       if (!user || !user.role) return true;

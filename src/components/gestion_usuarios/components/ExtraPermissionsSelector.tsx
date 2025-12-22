@@ -48,10 +48,20 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         [Permission.AFFILIATION_SOCIOS_EDIT]: '⚙️ Gestionar Reporte de Afiliación',
         [Permission.PAGO_RECAUDADORES_EDIT]: '⚙️ Gestionar Pagos Recaudadores',
         [Permission.PAGO_RECAUDADORES_VIEW]: '📊 Ver Pagos Recaudadores',
+        [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
+        [Permission.CULQI_EDIT]: '⚙️ Gestionar Culqi Pendientes',
     };
 
+    // Roles que pueden tener permisos de Culqi
+    const rolesConAccesoCulqui = [
+        UserRole.SUPER_ADMIN,
+        UserRole.ADMINISTRADOR,
+        UserRole.ANALISTA_CREDITOS_I,
+        UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+    ];
+
     // Permisos organizados por secciones simplificadas
-    const permissionsByCategory = {
+    const permissionsByCategory: Record<string, Permission[]> = {
         'Gestión de Usuarios': [Permission.USERS_VIEW, Permission.USERS_EDIT],
         'Pagos': [Permission.PAYMENTS_VIEW, Permission.PAYMENTS_EDIT],
         'Créditos': [Permission.CREDITS_VIEW, Permission.CREDITS_EDIT],
@@ -66,6 +76,10 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Módulo Geodile': [Permission.GEODILE_VIEW, Permission.GEODILE_EDIT],
         'Afiliación de socios': [Permission.AFFILIATION_SOCIOS_VIEW, Permission.AFFILIATION_SOCIOS_EDIT],
         'Pagos Recaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
+        // Solo agregar Culqi si el rol tiene acceso
+        ...(rolesConAccesoCulqui.includes(selectedRole) ? {
+            'Culqi Pendientes': [Permission.CULQI_VIEW, Permission.CULQI_EDIT]
+        } : {})
     };
 
     // Todos los permisos disponibles (solo SUPER_ADMIN no necesita permisos extra)

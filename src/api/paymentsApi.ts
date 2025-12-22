@@ -32,6 +32,7 @@ export interface PaymentHistoryRecord {
       motivo_rechazo?: string;
       monto_pago: number;
       ruta_comprobante: string;
+      fecha_voucher: string;
     }>;
   };
 }
@@ -197,7 +198,8 @@ export const updatePaymentStatus = async (
   monto?: number | null,
   dni_usuario?: string,
   email?: string,
-  indice: number = 0
+  indice: number = 0,
+  fecha_voucher?: string
 ) => {
   try {
     const requestBody = {
@@ -207,6 +209,7 @@ export const updatePaymentStatus = async (
       motivo_rechazo: motivo_Rechazo || null,
       monto: nuevoEstado === 'aceptado' ? monto : null,
       indice,
+      fecha_voucher,
       userData: {
         ...(agenciaData && {
           agencia: agenciaData.agencia,
@@ -474,6 +477,7 @@ export const procesarComprobantesMasivo = async (data: {
       estado: string;
       _id: string;
       motivo_rechazo?: string;
+      fecha_voucher: string;
     }>;
   }>;
 }) => {

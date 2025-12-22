@@ -60,6 +60,10 @@ export enum Permission {
   // === HISTORIAL DE DESEMBOLSOS ===
   DISBURSEMENT_HISTORY_VIEW = 'disbursement_history:view',
   DISBURSEMENT_HISTORY_EDIT = 'disbursement_history:edit',
+
+  // === CULQI PENDIENTES ===
+  CULQI_VIEW = 'culqi:view',
+  CULQI_EDIT = 'culqi:edit',
 }
 
 export enum UserRole {
@@ -134,6 +138,10 @@ export const PermissionCategories = {
     Permission.DISBURSEMENT_HISTORY_VIEW,   // Solo ver
     Permission.DISBURSEMENT_HISTORY_EDIT,   // Editar (incluye gestionar, etc.)
   ],
+  'Culqi Pendientes': [
+    Permission.CULQI_VIEW,   // Solo ver
+    Permission.CULQI_EDIT,   // Editar (incluye gestionar, etc.)
+  ],
 
 };
 
@@ -196,6 +204,10 @@ export const PermissionLabels: Record<Permission, string> = {
   // Historial de Desembolsos
   [Permission.DISBURSEMENT_HISTORY_VIEW]: '📊 Ver Historial de Desembolsos',
   [Permission.DISBURSEMENT_HISTORY_EDIT]: '⚙️ Gestionar Historial de Desembolsos',
+
+  // Culqi Pendientes
+  [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
+  [Permission.CULQI_EDIT]: '⚙️ Gestionar Culqi Pendientes',
 };
 
 /**
@@ -217,6 +229,7 @@ export const LegacyPermissionMapping: Record<string, Permission[]> = {
   'canAccessReports': [Permission.INSTALLMENTS_VIEW, Permission.INSTALLMENTS_EDIT], // Reportes van con cuotas
   'canAccessPagoRecaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
   'canAccessHistorialDesembolsos': [Permission.DISBURSEMENT_HISTORY_VIEW, Permission.DISBURSEMENT_HISTORY_EDIT],
+  'canAccessCulqui': [Permission.CULQI_VIEW, Permission.CULQI_EDIT],
   'canAssignRoles': [Permission.USERS_EDIT],
   'canDeleteAccounts': [Permission.USERS_EDIT],
   'canBlockEmails': [Permission.USERS_EDIT],

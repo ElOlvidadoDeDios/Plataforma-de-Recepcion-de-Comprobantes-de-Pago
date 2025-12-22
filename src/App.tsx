@@ -30,6 +30,7 @@ import ConsultaCuotasSocios from './components/pagos_recaudadores/pagosRecaudado
 import PerfilUsuario from './components/PerfilUsuario';
 import HistorialDesembolsos from './components/hIstorial_de_desembolsos/HistorialDesembolsos';
 import VercuotasMora from './components/cuotas_mora/VercuotasMora';
+import CulquiPendientes from './components/culqi/culqi';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -237,6 +238,16 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+            <Route
+              path="/culqui-pendientes"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canAccessCulqui">
+                    <CulquiPendientes />
+                  </PermissionProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/ver-cuotas-mora"
               element={

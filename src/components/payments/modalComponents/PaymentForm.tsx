@@ -8,6 +8,7 @@ interface VoucherDetail {
   estado: 'pendiente' | 'aceptado' | 'rechazado';
   imageIndex: number; // Índice de la imagen correspondiente
   ruta: string; // Ruta de la imagen
+  fecha_voucher: string; // Nueva propiedad para la fecha de pago
 }
 
 interface PaymentFormProps {
@@ -98,7 +99,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                     }
 
                     const currentVoucher = vouchers[index];
-                    if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion) {
+                    if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion || !currentVoucher.fecha_voucher) {
                       setErrorMessage('Debe completar todos los datos del comprobante antes de aceptarlo');
                       setLoading(false);
                       return;
@@ -140,7 +141,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                   }
 
                   const currentVoucher = vouchers[index];
-                  if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion) {
+                  if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion || !currentVoucher.fecha_voucher) {
                     setErrorMessage('Debe completar todos los datos del comprobante antes de rechazarlo');
                     return;
                   }
@@ -235,6 +236,26 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 onChange={(e) => onUpdateVoucher(index, 'nro_banco', e.target.value)}
                 readOnly={!isEditable || voucher.estado === 'rechazado'}
                 placeholder="Ej: 002, 009, etc."
+              />
+            </div>
+            {/* FECHA DE PAGO */}
+            <div className="flex flex-col">
+              <label className="text-sm text-center font-medium text-gray-700">Fecha de pago</label>
+
+              <input
+                type="date"
+                className={`mt-4 block w1/2 mx-auto text-center rounded-md border-gray-300 shadow-sm
+                  focus:border-cyan-500 focus:ring-cyan-500 sm:text-sm
+                  ${!isEditable || voucher.estado === 'rechazado'
+                    ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                    : 'border-gray-300 focus:ring-2 focus:ring-cyan-500'
+                  }`}
+                
+                /* ✅ CORREGIDO: usar value directamente ya que siempre tendrá valor desde PaymentDetailsModalState */
+                value={voucher.fecha_voucher}
+
+                onChange={(e) => onUpdateVoucher(index, 'fecha_voucher', e.target.value)}
+                readOnly={!isEditable || voucher.estado === 'rechazado'}
               />
             </div>
           </div>

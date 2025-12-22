@@ -35,6 +35,7 @@ export interface PaymentRecord {
     fechamodificacion?: string;
     horamodificacion?: string;
     user_caja?: string;
+    fecha_voucher?: string;
   }>;
   estadoGeneral: 'pendiente' | 'parcial' | 'atendido';
   fecha: string;

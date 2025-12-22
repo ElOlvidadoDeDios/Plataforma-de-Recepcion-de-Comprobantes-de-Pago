@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { DatosBancarios, guardarDatosBancarios } from '../../../api/customerConsultationAPI';
-
 interface DatosBancariosFormProps {
   dni: string;
   nombreCompleto: string;
@@ -20,6 +19,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
     BANCO: '',
     TIPO_CUENTA: '',
     NUM_CUENTA: '',
+    NUM_CUENTA_CCI: '',
     DNI_SOCIO: dni,
     CUENTA_DILE: cuentaDile,
     DNI_TITULAR: '',
@@ -206,7 +206,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
   };
 
   // Función para determinar si es BBVA
-  const esBBVA = formData.BANCO === 'BBVA - Banco Continental';
+  //const esBBVA = formData.BANCO === 'BBVA - Banco Continental';
   
   // Obtener bancos disponibles según el tipo de cuenta
   const bancosDisponibles = formData.TIPO_CUENTA ? bancosPorTipo[formData.TIPO_CUENTA as keyof typeof bancosPorTipo] || [] : [];
@@ -340,11 +340,11 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
               </select>
             </div>
 
-            {/* Campo: CCI o Número de Cuenta según el banco */}
+            {/*ingresar numero de cuenta */}
             {formData.BANCO && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {esBBVA ? 'Número de Cuenta *' : 'CCI (Código de Cuenta Interbancario) *'}
+                  Número de cuenta *
                 </label>
                 <input
                   type="text"
@@ -352,22 +352,40 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                   value={formData.NUM_CUENTA || ''}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                  placeholder={esBBVA ? 'Número de cuenta BBVA' : 'Ingrese el CCI por favor'}
+                  placeholder={'Ingrese el número de cuenta por favor'}
                   required
                 />
-                {!esBBVA && (
+                { (
                   <p className="text-xs text-gray-500 mt-1">
-                    El CCI es un código de 20 dígitos que identifica de manera única su cuenta bancaria
-                  </p>
-                )}
-                {esBBVA && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Ingrese el número de cuenta de BBVA Continental
+                    El número de cuenta es el número de cuenta bancaria asignado por su banco
                   </p>
                 )}
               </div>
             )}
 
+            {/* Campo: CCI o Número de Cuenta según el banco */}
+            {formData.BANCO && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Número de Cuenta CCI *
+                </label>
+                <input
+                  type="text"
+                  name="NUM_CUENTA_CCI"
+                  value={formData.NUM_CUENTA_CCI || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  placeholder={'Ingrese el CCI por favor'}
+                  required
+                />
+                { (
+                  <p className="text-xs text-gray-500 mt-1">
+                    El CCI es un código de 20 dígitos que identifica de manera única su cuenta bancaria
+                  </p>
+                )}
+              </div>
+            )}
+             
             {/* Buttons */}
             <div className="flex justify-end space-x-3 pt-4">
               <button
