@@ -120,7 +120,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
             numero_cuenta_cci: credito.DATOS_BANCO.CCI,
             fecha_desembolso: FECHA_DESEMBOLSO,
             hora_desembolso: HORA_DESEMBOLSO
-  }
+        }
       
       };
 

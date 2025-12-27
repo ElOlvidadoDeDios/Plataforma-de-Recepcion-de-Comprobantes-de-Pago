@@ -357,6 +357,7 @@ export const uploadVoucher = async (
     
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+      
     }
 
     
