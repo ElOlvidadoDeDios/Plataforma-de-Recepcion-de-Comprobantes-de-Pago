@@ -133,6 +133,7 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
                         ? 'CELULAR' : 'NÚMERO CUENTA'
                     } value={cuenta.NUM_CUENTA || 'No especificado'} />
                     <DataField label="ESTADO" value={cuenta.ESTADO || 'No especificado'} />
+                    <DataField label="NÚMERO CUENTA CCI" value={cuenta.NUM_CCI || 'No especificado'} />
                   </div>
                 </div>
               )

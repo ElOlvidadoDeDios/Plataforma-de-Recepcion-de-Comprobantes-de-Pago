@@ -87,11 +87,41 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
       // Obtener el nombre de la agencia desde el id_age del usuario
       const nombreAgencia = obtenerNombreAgencia(user.id_age || '');
       
+      // Obtener fecha y hora actual
+      const ahora = new Date();
+      const FECHA_DESEMBOLSO = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+      const HORA_DESEMBOLSO = ahora.toTimeString().split(' ')[0]; // HH:MM:SS
+      
       const voucherData = {
         DNI_SOCIO: credito.DATOS_SOCIO.DNI_SOCIO,
         PAGARE: credito.DATOS_DESEMBOLSO.PAGARE,
         AGENCIA: nombreAgencia, // ✅ CORREGIDO: usar nombre de agencia, no hardcodeado
-        ANALISTA: user.dni
+        ANALISTA: user.dni,
+        DATA: {
+            nombre: credito.DATOS_SOCIO.RAZON,
+            dni: credito.DATOS_SOCIO.DNI_SOCIO,
+            pagare: credito.DATOS_DESEMBOLSO.PAGARE,
+            agencia: credito.DATOS_RESPONSABLE.AGENCIA,
+            producto: credito.DATOS_DESEMBOLSO.NOM_PROD,
+            monto_aprobado: credito.DATOS_DESEMBOLSO.MONTO_APROB,
+            monto_desembolsar: credito.DATOS_DESEMBOLSO.MONTO_NETO,
+            analista: credito.DATOS_RESPONSABLE.ANALISTA,
+            firmante: credito.DATOS_FIRMA.FIRMANTE,
+            estado_firma: credito.DATOS_FIRMA.STATUS,
+            email: credito.DATOS_FIRMA.EMAIL,
+            fecha_creacion: credito.DATOS_FIRMA.FECHA_CREA,
+            hora_creacion: credito.DATOS_FIRMA.HORA_CREA,
+            fecha_validacion: credito.DATOS_FIRMA.FECHA_VALIDA,
+            hora_validacion: credito.DATOS_FIRMA.HORA_VALIDA,
+            titular_cuenta: credito.DATOS_BANCO.TITULAR,
+            banco: credito.DATOS_BANCO.BANCO,
+            tipo_cuenta: credito.DATOS_BANCO.TIPO_CUENTA,
+            numero_cuenta: credito.DATOS_BANCO.NUM_CUENTA,
+            numero_cuenta_cci: credito.DATOS_BANCO.CCI,
+            fecha_desembolso: FECHA_DESEMBOLSO,
+            hora_desembolso: HORA_DESEMBOLSO
+  }
+      
       };
 
       const result = await uploadVoucher(voucherData, selectedFile);

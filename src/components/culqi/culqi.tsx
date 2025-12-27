@@ -91,7 +91,7 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
   // Renderizar estados de carga y error
   if (loading) {
     return (
-      <Layout title="Culquis Pendientes">
+      <Layout title="Qullquis Pendientes">
         <div className="p-6 flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -104,7 +104,7 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
 
   if (error) {
     return (
-      <Layout title="Culquis Pendientes">
+      <Layout title="Qullquis Pendientes">
         <div className="p-6">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
             <div className="flex items-center">
@@ -127,7 +127,7 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
 
   if (!data) {
     return (
-      <Layout title="Culquis Pendientes">
+      <Layout title="Qullquis Pendientes">
         <div className="p-6 text-center text-gray-500">
           No hay datos disponibles
         </div>
@@ -276,7 +276,7 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
 
           {/* Versión oculta para impresión */}
           <div id="tabla-imprimible" style={{ display: 'none' }}>
-            <h1>Culquis Pendientes - {infoUsuario.esAdminAgencia ? `${infoUsuario.agencia}` : `Analista ${infoUsuario.agencia}`}</h1>
+            <h1>Qullquis  Pendientes - {infoUsuario.esAdminAgencia ? `${infoUsuario.agencia}` : `Analista ${infoUsuario.agencia}`}</h1>
             <div className="info">
               <strong>Total de socios:</strong> {todosSociosFiltrados.length} | 
               <strong> Monto total:</strong> S/ {todosSociosFiltrados.reduce((sum, s) => sum + formatearMonto(s.MONTO_APROBADO), 0).toLocaleString('es-PE', { minimumFractionDigits: 2 })}
@@ -380,7 +380,7 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
 
         {/* Versión oculta para impresión */}
         <div id="tabla-imprimible" style={{ display: 'none' }}>
-          <h1>Culquis Pendientes - Vista SuperAdmin</h1>
+          <h1>Qullquis  Pendientes - Vista SuperAdmin</h1>
           <div className="info">
             <strong>Total de socios:</strong> {Object.values(sociosPorAgenciaFiltrados).flat().length} | 
             <strong> Agencias:</strong> {agenciasMostrar.length}
@@ -526,7 +526,7 @@ const CulquiPendientes: React.FC<CulquiPendientesProps> = () => {
   };
 
   return (
-    <Layout title="Culquis Pendientes">
+    <Layout title="Qullquis  Pendientes">
       <div className="p-6">
         {/* Header con información del usuario y controles */}
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border">

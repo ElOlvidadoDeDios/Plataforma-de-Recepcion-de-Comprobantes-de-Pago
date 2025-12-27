@@ -53,7 +53,7 @@ export interface DatosBancarios {
   BANCO: string | null;
   TIPO_CUENTA: string | null;
   NUM_CUENTA: string | null;
-  NUM_CUENTA_CCI: string | null;
+  NUM_CCI: string | null;
   DNI_SOCIO: string | null;
   CUENTA_DILE: string | null;
   DNI_TITULAR: string | null;
@@ -229,7 +229,7 @@ export const guardarDatosBancarios = async (
       BANCO: datosBancarios.BANCO,
       TIPO_CUENTA: datosBancarios.TIPO_CUENTA,
       NUM_CUENTA: datosBancarios.NUM_CUENTA,
-      NUM_CUENTA_CCI: datosBancarios.NUM_CUENTA_CCI,
+      NUM_CCI: datosBancarios.NUM_CCI,
       DNI_SOCIO: datosBancarios.DNI_SOCIO,
       CUENTA_DILE: datosBancarios.CUENTA_DILE,
       DNI_TITULAR: datosBancarios.DNI_TITULAR,
@@ -301,6 +301,30 @@ export const checkVoucherExists = async (
     };
   }
 };
+export interface DataVoucherDto {
+  nombre: string;
+  dni: string;
+  pagare: string;
+  agencia: string;
+  producto: string;
+  monto_aprobado: string;
+  monto_desembolsar: string;
+  analista: string;
+  firmante: string | null;
+  estado_firma: string | null;
+  email: string | null;
+  fecha_creacion: string | null;
+  hora_creacion: string | null;
+  fecha_validacion: string | null;
+  hora_validacion: string | null;
+  titular_cuenta: string | null;
+  banco: string | null;
+  tipo_cuenta: string | null;
+  numero_cuenta: string | null;
+  numero_cuenta_cci: string | null;
+  fecha_desembolso: string;
+  hora_desembolso: string;
+}
 
 // Función para subir comprobante de desembolso - Ahora usa el backend NestJS
 export const uploadVoucher = async (
@@ -309,15 +333,22 @@ export const uploadVoucher = async (
     PAGARE: string;
     AGENCIA: string;
     ANALISTA: string;
+    DATA: DataVoucherDto
   },
   file: File
 ): Promise<{ status: boolean; message: string; data?: any }> => {
   try {
+
+    
     const formData = new FormData();
     formData.append('DNI_SOCIO', voucherData.DNI_SOCIO);
     formData.append('PAGARE', voucherData.PAGARE);
     formData.append('AGENCIA', voucherData.AGENCIA);
     formData.append('ANALISTA', voucherData.ANALISTA);
+    
+    // Agregar el campo DATA como JSON string
+    const dataAsString = JSON.stringify(voucherData.DATA);
+    formData.append('DATA', dataAsString);
     formData.append('file', file);
 
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -327,6 +358,7 @@ export const uploadVoucher = async (
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
+
     
     const response = await fetch(`${API_BASE_URL}/api/consulta-clientes/upload-voucher`, {
       method: 'POST',
@@ -334,7 +366,10 @@ export const uploadVoucher = async (
       body: formData
     });
 
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error del servidor:', errorText);
       throw new Error(`Error del servidor: ${response.status}`);
     }
 
@@ -347,6 +382,7 @@ export const uploadVoucher = async (
     };
 
   } catch (error) {
+    console.error('❌ Error en uploadVoucher frontend:', error);
     return {
       status: false,
       message: 'Error al enviar el comprobante de desembolso'

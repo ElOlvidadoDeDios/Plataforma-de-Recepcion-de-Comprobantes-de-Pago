@@ -8,6 +8,7 @@ import { AuthContext } from '../../contexts/AuthContext';
 import SearchBar from '../customerConsultation/components/SearchBar';
 import { CuotaDto, fetchCuotasPorDNI, PagoRequestDto, procesarPago } from '../../api/pagos_recaudadoresApi';
 import { generateVoucherPDF } from './vaucher_pdf';
+import ReportePagosModal from '../reportes/ReportePagosModal';
 
 const ConsultaCuotasSocios: React.FC = () => {
   // Estados
@@ -27,7 +28,7 @@ const ConsultaCuotasSocios: React.FC = () => {
   const [position, setPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [, setLocationError] = useState<string | null>(null);
   const [, setIsGettingLocation] = useState(false);
-
+  const [isReporteModalOpen, setIsReporteModalOpen] = useState(false);
   // Refs
   const montoInputRef = useRef<HTMLInputElement>(null);
   const paymentInProgress = useRef(false);
@@ -534,7 +535,6 @@ const ConsultaCuotasSocios: React.FC = () => {
     <Layout title="Consulta y Pago de Cuotas">
       <div className="h-full w-full p-3 md:p-6 bg-gray-50">
         <h1 className="text-xl md:text-2xl font-bold text-center mb-4 md:mb-6 text-gray-800">Consulta y Pago de Cuotas</h1>
-
         <div className="bg-white p-3 rounded-lg shadow mb-4">
           <SearchBar
             searchQuery={searchQuery}
@@ -542,6 +542,25 @@ const ConsultaCuotasSocios: React.FC = () => {
             onSearchChange={setSearchQuery}
             onTipoDocumentoChange={setTipoDocumento}
           />
+          <button
+          onClick={() => setIsReporteModalOpen(true)}
+          className=" 
+              flex items-center justify-center gap-2
+              bg-white text-blue-600
+              border border-blue-600
+              hover:bg-blue-50
+              rounded-md
+              px-4 py-2
+              transition-all
+              w-full sm:w-auto
+              whitespace-nowrap
+            "
+          >
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            <span>Reporte de Pagos</span>
+          </button>
         </div>
 
         {isLoading && !clientData ? (
@@ -647,6 +666,11 @@ const ConsultaCuotasSocios: React.FC = () => {
           </div>
         )}
       </div>
+      {/* Modal de Reporte de Pagos */}
+      <ReportePagosModal
+        isOpen={isReporteModalOpen}
+        onClose={() => setIsReporteModalOpen(false)}
+      />
     </Layout>
   );
 };
