@@ -53,7 +53,7 @@ export interface DatosBancarios {
   BANCO: string | null;
   TIPO_CUENTA: string | null;
   NUM_CUENTA: string | null;
-  NUM_CCI: string | null;
+  NUM_CUENTA_CCI: string | null;
   DNI_SOCIO: string | null;
   CUENTA_DILE: string | null;
   DNI_TITULAR: string | null;
@@ -229,7 +229,7 @@ export const guardarDatosBancarios = async (
       BANCO: datosBancarios.BANCO,
       TIPO_CUENTA: datosBancarios.TIPO_CUENTA,
       NUM_CUENTA: datosBancarios.NUM_CUENTA,
-      NUM_CCI: datosBancarios.NUM_CCI,
+      NUM_CUENTA_CCI: datosBancarios.NUM_CUENTA_CCI,
       DNI_SOCIO: datosBancarios.DNI_SOCIO,
       CUENTA_DILE: datosBancarios.CUENTA_DILE,
       DNI_TITULAR: datosBancarios.DNI_TITULAR,

@@ -86,12 +86,14 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.BANCO || !formData.NUM_CUENTA) {
+      console.warn('❌ Faltan campos requeridos: BANCO o NUM_CUENTA');
       return;
     }
 
     if (!esTitular && (!formData.DNI_TITULAR || !formData.NOMBRE_TITULAR)) {
+      console.warn('❌ No es titular pero faltan datos del titular');
       return;
     }
 
@@ -104,8 +106,10 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
       if (response.status) {
         onSave();
       } else {
+        console.error('❌ Error al guardar:', response.message);
       }
     } catch (error) {
+      console.error('❌ Error en handleSubmit:', error);
     } finally {
       setIsLoading(false);
     }
