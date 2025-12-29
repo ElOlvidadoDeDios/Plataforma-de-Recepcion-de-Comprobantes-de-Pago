@@ -38,6 +38,7 @@ export interface DatosFirma {
     HORA_CREA: string;
     FECHA_VALIDA: string;
     HORA_VALIDA: string;
+    CELULAR: string;
 }
 export interface DatosResponsable{
   ANALISTA: string;

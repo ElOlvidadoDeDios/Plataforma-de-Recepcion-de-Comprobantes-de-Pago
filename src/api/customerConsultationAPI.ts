@@ -310,6 +310,7 @@ export interface DataVoucherDto {
   monto_aprobado: string;
   monto_desembolsar: string;
   analista: string;
+  numero_cel_analista: string | null;
   firmante: string | null;
   estado_firma: string | null;
   email: string | null;
@@ -318,6 +319,7 @@ export interface DataVoucherDto {
   fecha_validacion: string | null;
   hora_validacion: string | null;
   titular_cuenta: string | null;
+  numero_cel_socio: string | null;
   banco: string | null;
   tipo_cuenta: string | null;
   numero_cuenta: string | null;

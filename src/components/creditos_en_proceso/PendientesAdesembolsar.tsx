@@ -245,6 +245,15 @@ const PendientesAdesembolsar: React.FC = () => {
                       </p>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-xs text-blue-600 font-medium">numero cel. socio:</span>
+                      <p className="text-sm font-medium text-blue-700">
+                        {credito.DATOS_FIRMA.CELULAR}
+                      </p>
+                    </div>
+                  </div>
                   
                   <div className="grid grid-cols-2 gap-3 border-t border-blue-200 pt-3">
                     <div>
