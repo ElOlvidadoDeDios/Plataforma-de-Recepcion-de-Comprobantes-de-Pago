@@ -19,7 +19,7 @@ const Notification=useNotifications();
 
 const ReportePagosModal: React.FC<ReportePagosModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
-  const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date().toISOString().split('T')[0]);
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }));
   const [agenciaSeleccionada, setAgenciaSeleccionada] = useState('');
   const [reporteData, setReporteData] = useState<MovimientoPrestamoDiario[]>([]);
   const [agenciasUsuarioSeleccionado, setAgenciasUsuarioSeleccionado] = useState<AgenciaCaja[]>([]);

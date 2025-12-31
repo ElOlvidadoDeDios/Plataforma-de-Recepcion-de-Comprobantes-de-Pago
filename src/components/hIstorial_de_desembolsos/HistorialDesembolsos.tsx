@@ -25,7 +25,7 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
   const [desembolsos, setDesembolsos] = useState<DesembolsoRealizado[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
+  const [fecha, setFecha] = useState(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }));
   const [imagenModal, setImagenModal] = useState<string | null>(null);
   const [loadingImagen, setLoadingImagen] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);

@@ -32,12 +32,12 @@ export function useCalculadoraCreditos() {
     // Funciones auxiliares para fechas
     const getTodayDate = () => {
         const today = new Date();
-        return today.toISOString().split('T')[0];
+        return today.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
     };
     const getTomorrowDate = () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0];
+        return tomorrow.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
     };
 
     // Estado principal del formulario
@@ -514,7 +514,7 @@ export function useCalculadoraCreditos() {
                     if (response.status && response.fecha_pri) {
                         // Convertir fecha de respuesta al formato YYYY-MM-DD
                         const fechaCalculada = new Date(response.fecha_pri);
-                        const fechaFormateada = fechaCalculada.toISOString().split('T')[0];
+                        const fechaFormateada = fechaCalculada.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
                         setFormData(prev => ({ ...prev, fecha_1er_pago: fechaFormateada }));
                         return;
                     }
@@ -524,7 +524,7 @@ export function useCalculadoraCreditos() {
             }
             
             // Fallback: usar día siguiente
-            const fechaFallback = siguienteDia.toISOString().split('T')[0];
+            const fechaFallback = siguienteDia.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
             setFormData(prev => ({ ...prev, fecha_1er_pago: fechaFallback }));
             
         } catch (error) {
@@ -532,7 +532,7 @@ export function useCalculadoraCreditos() {
             // Fallback silencioso al día siguiente
             const fechaBase = new Date(fechaDesde);
             fechaBase.setDate(fechaBase.getDate() + 1);
-            const fechaFallback = fechaBase.toISOString().split('T')[0];
+            const fechaFallback = fechaBase.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
             setFormData(prev => ({ ...prev, fecha_1er_pago: fechaFallback }));
         }
     }, [formData.frecuencia_codigo, formData.valor_cuota]);
@@ -551,7 +551,7 @@ export function useCalculadoraCreditos() {
         if (fechaPago <= fechaDesde) {
             const siguienteDia = new Date(fechaDesde);
             siguienteDia.setDate(siguienteDia.getDate() + 1);
-            const fechaCorregida = siguienteDia.toISOString().split('T')[0];
+            const fechaCorregida = siguienteDia.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
             setFormData(prev => ({ ...prev, fecha_1er_pago: fechaCorregida }));
             Notification.warning('La fecha del primer pago debe ser al menos un día después de la fecha "Desde"');
         } else {

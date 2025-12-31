@@ -7,7 +7,7 @@ import Layout from './Layout';
 import { DateRangePicker } from './DateRangePicker';
 
 const formatDate = (date: Date) => {
-  return date.toISOString().split('T')[0];
+  return date.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
 };
 
 

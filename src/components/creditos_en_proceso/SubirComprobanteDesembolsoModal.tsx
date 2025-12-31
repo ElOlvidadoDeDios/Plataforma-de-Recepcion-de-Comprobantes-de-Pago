@@ -89,7 +89,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
       
       // Obtener fecha y hora actual
       const ahora = new Date();
-      const FECHA_DESEMBOLSO = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
+      const FECHA_DESEMBOLSO = ahora.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }); // YYYY-MM-DD
       const HORA_DESEMBOLSO = ahora.toTimeString().split(' ')[0]; // HH:MM:SS
       
       const voucherData = {

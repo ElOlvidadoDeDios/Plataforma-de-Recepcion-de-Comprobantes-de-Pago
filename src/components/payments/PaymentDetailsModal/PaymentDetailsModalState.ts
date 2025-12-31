@@ -68,7 +68,7 @@ export const usePaymentDetailsState = (
         nroOperacion: comp.nroOperacion || '', // ✅ Precargar si ya existe
         nro_banco: comp.nro_banco || '', // ✅ Precargar si ya existe
         tipoOperacion: comp.tipoOperacion || '', // ✅ Precargar si ya existe
-        fecha_voucher: comp.fecha_voucher || new Date().toISOString().split('T')[0], // ✅ Precargar si ya existe o fecha actual
+        fecha_voucher: comp.fecha_voucher || new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }), // ✅ Precargar si ya existe o fecha actual en hora peruana
         estado: comp.estado,
         imageIndex: idx,
         ruta: comp.ruta,

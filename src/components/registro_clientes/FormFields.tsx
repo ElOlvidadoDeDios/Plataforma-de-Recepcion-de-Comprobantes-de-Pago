@@ -647,7 +647,7 @@ export const createInitialPersonData = (overrides?: Partial<PersonData>): Person
     APE_PAT: '',
     APE_MAT: '',
     NOMBRES: '',
-    FECHA_APERT: new Date().toISOString().split('T')[0],
+    FECHA_APERT: new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }),
     FECHA_NAC: '',
     LUGAR_NAC: '',
     TIPO_PERSONA: '',
