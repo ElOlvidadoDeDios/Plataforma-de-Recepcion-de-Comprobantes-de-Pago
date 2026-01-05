@@ -261,7 +261,7 @@ export const creditAttentionApi = {
     // Enviar mensaje de WhatsApp
     sendWhatsAppMessage: async (messageData: WhatsAppMessageRequest): Promise<WhatsAppMessageResponse> => {
         try {
-            const response = await axios.post('https://n70fhxk0-3008.brs.devtunnels.ms/v1/send-media', messageData);
+            const response = await axiosInstance.post('/api/gestion-mora/send-media', messageData);
             return response.data;
         } catch (error: any) {
             throw new Error('Error al enviar mensaje de WhatsApp');
