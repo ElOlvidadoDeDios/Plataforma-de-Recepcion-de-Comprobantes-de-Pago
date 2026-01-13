@@ -175,16 +175,21 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       if (response.success) {
         // Verificar el estado de la respuesta del endpoint
         if (response.data && response.data.status === false) {
-          // El endpoint devolvió un error (DNI/PAGARE incorrecto, etc.)
-          setNotificationMessage(response.data.message || 'Error al generar el contrato');
+          // El endpoint devolvió un error con status false
+          // Esto puede ser por horario de atención, DNI/PAGARE incorrecto, etc.
+          const errorMessage = response.data.message || 'Error al generar el contrato';
+          setNotificationMessage(errorMessage);
           setShowNotificationModal(true);
-        } else {
-          // El contrato se generó exitosamente
+          
+          // No actualizar el estado del crédito cuando hay error
+          return;
+        } else if (response.data && response.data.status === true) {
+          // El contrato se generó exitosamente con status true
           setNotificationMessage('Contrato generado exitosamente. El documento está listo para firmar.');
           setShowNotificationModal(true);
           
           // Actualizar inmediatamente el estado local del crédito
-          if (response.data && response.data.ID_DOCUMENT) {
+          if (response.data.ID_DOCUMENT) {
             updateLocalCredito(credito.ID_PRESTAMO, {
               FIRM_DIGITAL: {
                 ESTADO: 'PENDIENTE',
@@ -208,6 +213,26 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
             setTimeout(() => {
               onRefreshData();
             }, 500); // Reducir tiempo de espera
+          }
+        } else {
+          // Respuesta exitosa pero sin estructura esperada
+          setNotificationMessage('Contrato generado exitosamente. El documento está listo para firmar.');
+          setShowNotificationModal(true);
+          
+          // Actualizar el estado como antes para compatibilidad con versiones anteriores
+          updateLocalCredito(credito.ID_PRESTAMO, {
+            FIRM_DIGITAL: {
+              ESTADO: 'PENDIENTE',
+              ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+              URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
+            }
+          });
+          
+          // Refrescar los datos para obtener el estado actualizado del servidor
+          if (onRefreshData) {
+            setTimeout(() => {
+              onRefreshData();
+            }, 500);
           }
         }
       } else {
