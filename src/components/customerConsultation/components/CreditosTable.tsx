@@ -158,6 +158,28 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
           setShowNotificationModal(true);
           return;
       }
+
+      // Validar que tenga datos bancarios completos (cuenta y CCI)
+      const datosBancarios = clientData.INFO_SOCIO["DATOS BANCARIOS"];
+      if (!datosBancarios || datosBancarios.length === 0) {
+          setNotificationMessage('No se puede generar el contrato: faltan datos bancarios. Por favor, complete la información de cuenta bancaria y CCI.');
+          setShowNotificationModal(true);
+          return;
+      }
+
+      const primerDatoBancario = datosBancarios[0];
+      const tieneNumCuenta = primerDatoBancario.NUM_CUENTA && primerDatoBancario.NUM_CUENTA.trim() !== '';
+      const tieneCCI = primerDatoBancario.NUM_CUENTA_CCI && primerDatoBancario.NUM_CUENTA_CCI.trim() !== '';
+
+      if (!tieneNumCuenta || !tieneCCI) {
+          const camposFaltantes = [];
+          if (!tieneNumCuenta) camposFaltantes.push('número de cuenta');
+          if (!tieneCCI) camposFaltantes.push('CCI');
+          
+          setNotificationMessage(`No se puede generar el contrato: faltan los siguientes datos bancarios: ${camposFaltantes.join(' y ')}. Por favor, complete esta información antes de continuar.`);
+          setShowNotificationModal(true);
+          return;
+      }
   
       try {
           setLoadingFirma(true);

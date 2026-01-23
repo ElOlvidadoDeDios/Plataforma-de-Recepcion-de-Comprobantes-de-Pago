@@ -1,4 +1,6 @@
 // API para funcionalidades de Geodile
+
+
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL_GEODILE}/api-mongo/api`;
 
 //importamos  la variable de entorno
