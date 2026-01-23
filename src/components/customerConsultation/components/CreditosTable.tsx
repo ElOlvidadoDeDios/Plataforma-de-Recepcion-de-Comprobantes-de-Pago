@@ -167,9 +167,9 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
           return;
       }
 
-      const primerDatoBancario = datosBancarios[0];
+      const primerDatoBancario = datosBancarios[0] as any; // Cast porque la API externa devuelve NUM_CCI
       const tieneNumCuenta = primerDatoBancario.NUM_CUENTA && primerDatoBancario.NUM_CUENTA.trim() !== '';
-      const tieneCCI = primerDatoBancario.NUM_CUENTA_CCI && primerDatoBancario.NUM_CUENTA_CCI.trim() !== '';
+      const tieneCCI = primerDatoBancario.NUM_CCI && primerDatoBancario.NUM_CCI.trim() !== '';
 
       if (!tieneNumCuenta || !tieneCCI) {
           const camposFaltantes = [];
