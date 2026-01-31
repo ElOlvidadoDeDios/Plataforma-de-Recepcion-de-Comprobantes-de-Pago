@@ -50,6 +50,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         [Permission.PAGO_RECAUDADORES_VIEW]: '📊 Ver Pagos Recaudadores',
         [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
         [Permission.CULQI_EDIT]: '⚙️ Gestionar Culqi Pendientes',
+        [Permission.DISBURSEMENTS_TODAY_VIEW]: '📈 Ver Seguimiento Desembolsos Hoy',
     };
 
     // // Roles que pueden tener permisos de Culqi
@@ -70,6 +71,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Registro de Clientes': [Permission.CLIENTS_VIEW, Permission.CLIENTS_EDIT],
         'Gestión de Mora': [Permission.MORA_VIEW, Permission.MORA_EDIT],
         'Pendientes a Desembolsar': [Permission.DISBURSEMENTS_VIEW, Permission.DISBURSEMENTS_EDIT],
+        'Seguimiento Desembolsos Hoy': [Permission.DISBURSEMENTS_TODAY_VIEW],
         'Historial de Desembolsos': [Permission.DISBURSEMENT_HISTORY_VIEW, Permission.DISBURSEMENT_HISTORY_EDIT],
         'Interacciones del Bot': [Permission.BOT_VIEW, Permission.BOT_EDIT],
         'Calculadora de Créditos': [Permission.CALCULATOR_VIEW, Permission.CALCULATOR_EDIT],

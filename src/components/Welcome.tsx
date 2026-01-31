@@ -288,6 +288,7 @@ const Welcome: React.FC = () => {
       ...(permissions.canAccessGestionMora() ? [{ title: 'Gestión de Mora', description: 'Gestiona clientes en mora y seguimiento', onClick: () => navigate('/gestion-mora'), icon: '📋' }] : []),
       ...(permissions.canAccessPendientesDesembolsar() ? [{ title: 'Pendientes a Desembolsar', description: 'Gestiona créditos pendientes de desembolso', onClick: () => navigate('/pendientes-desembolsar'), icon: '💳' }] : []),
       ...(permissions.canAccessHistorialDesembolsos() ? [{ title: 'Historial de Desembolsos', description: 'Consulta el historial de desembolsos realizados', onClick: () => navigate('/historial-desembolsos'), icon: '📋' }] : []),
+      ...(permissions.canAccessSeguimientoDesembolsosHoy() ? [{ title: 'Seguimiento Desembolsos Hoy', description: 'Monitorea los créditos desembolsados en el día actual', onClick: () => navigate('/seguimiento-desembolsos-hoy'), icon: '📈' }] : []),
       { title: 'Calculadora de Créditos', description: 'Calcula el monto de crédito para un cliente', onClick: () => navigate('/calculadora-creditos'), icon: '📊' },
       ...(permissions.canAccessPagoRecaudadores() ? [{ title: 'Pago Recaudadores', description: 'Gestiona pagos a recaudadores', onClick: () => navigate('/pago-recaudadores'), icon: '🏦' }] : []),
       ...(permissions.canAccessGeodile() ? [{

@@ -31,6 +31,7 @@ import PerfilUsuario from './components/PerfilUsuario';
 import HistorialDesembolsos from './components/hIstorial_de_desembolsos/HistorialDesembolsos';
 import VercuotasMora from './components/cuotas_mora/VercuotasMora';
 import CulquiPendientes from './components/culqi/culqi';
+import SeguimientoDesembolso from './components/desembolsos-fecha-hoy/seguimientoDesembolso';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -261,6 +262,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PerfilUsuario />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/seguimiento-desembolsos-hoy"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canAccessSeguimientoDesembolsosHoy">
+                    <SeguimientoDesembolso />
+                  </PermissionProtectedRoute>
                 </ProtectedRoute>
               }
             />

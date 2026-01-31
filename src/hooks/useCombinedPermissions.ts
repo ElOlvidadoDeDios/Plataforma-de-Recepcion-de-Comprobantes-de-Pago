@@ -188,6 +188,17 @@ export function useCombinedPermissions() {
       return hasPermission(Permission.CULQI_VIEW);
     },
 
+    // === SEGUIMIENTO DESEMBOLSOS HOY ===
+    canAccessSeguimientoDesembolsosHoy: () => {
+      // Roles con acceso automático sin necesidad de permisos
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_OPERACIONES', 'ADMINISTRADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.DISBURSEMENTS_TODAY_VIEW);
+    },
+
     // Método para verificar si es usuario básico
     isBasicUser: () => {
       if (!user || !user.role) return true;

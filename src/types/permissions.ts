@@ -61,6 +61,9 @@ export enum Permission {
   DISBURSEMENT_HISTORY_VIEW = 'disbursement_history:view',
   DISBURSEMENT_HISTORY_EDIT = 'disbursement_history:edit',
 
+  // === SEGUIMIENTO DESEMBOLSOS HOY ===
+  DISBURSEMENTS_TODAY_VIEW = 'disbursements_today:view',
+
   // === CULQI PENDIENTES ===
   CULQI_VIEW = 'culqi:view',
   CULQI_EDIT = 'culqi:edit',
@@ -204,6 +207,9 @@ export const PermissionLabels: Record<Permission, string> = {
   // Historial de Desembolsos
   [Permission.DISBURSEMENT_HISTORY_VIEW]: '📊 Ver Historial de Desembolsos',
   [Permission.DISBURSEMENT_HISTORY_EDIT]: '⚙️ Gestionar Historial de Desembolsos',
+
+  // Seguimiento Desembolsos Hoy
+  [Permission.DISBURSEMENTS_TODAY_VIEW]: '📈 Ver Seguimiento Desembolsos Hoy',
 
   // Culqi Pendientes
   [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
