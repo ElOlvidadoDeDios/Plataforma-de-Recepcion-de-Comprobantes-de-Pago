@@ -3,6 +3,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    host: '0.0.0.0', // Permite conexiones desde cualquier IP
+    port: 5173,      // Puerto específico
+    strictPort: false // Permite usar otro puerto si 5173 está ocupado
+  },
   build: {
     chunkSizeWarningLimit: 1600,
     rollupOptions: {

@@ -60,7 +60,8 @@ const PendientesAdesembolsar: React.FC = () => {
   const creditosConDatosBancarios = creditos.filter(tieneDatosBancariosCompletos).length;
   const creditosSinDatosBancarios = totalCreditos - creditosConDatosBancarios;
   const montoTotal = creditos.reduce((total, credito) => {
-    const monto = parseFloat(credito.DATOS_DESEMBOLSO.MONTO_APROB.replace(/[^\d.]/g, '')) || 0;
+    const montoStr = credito?.DATOS_DESEMBOLSO.MONTO_APROB ?? '0';
+    const monto = parseFloat(montoStr.replace(/[^\d.]/g, '')) || 0;
     return total + monto;
   }, 0);
 

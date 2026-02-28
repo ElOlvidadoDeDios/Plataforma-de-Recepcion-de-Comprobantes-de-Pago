@@ -120,9 +120,8 @@ const SeguimientoDesembolso: React.FC = () => {
                                 <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Monto Neto</th>
                                 <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Agencia</th>
                                 <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">ID Payout</th>
-                                <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado Firma</th>
-                                <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado Creación</th>
-                                <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado Payout</th>
+                                <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado global</th>
+                                <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado Detalle</th>
                                 <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Acciones</th>
                             </tr>
                         </thead>
@@ -146,24 +145,15 @@ const SeguimientoDesembolso: React.FC = () => {
                                         <td className="px-4 py-3 border-b text-sm text-gray-700">{desembolso.ID_PAYOUT}</td>
                                         <td className="px-4 py-3 border-b text-sm">
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                desembolso.STATUS_FIRM === 'FIRMADO'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-yellow-100 text-yellow-800'
+                                                desembolso.STATUS_GLOBAL === 'COMPLETO'
+                                                    ? 'bg-green-500 text-white'
+                                                    : 'bg-orange-500 text-white'
                                             }`}>
-                                                {desembolso.STATUS_FIRM}
+                                                {desembolso.STATUS_GLOBAL}
                                             </span>
                                         </td>
                                         <td className="px-4 py-3 border-b text-sm text-gray-700">
-                                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                                desembolso.STATUS_CREATED === 1
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
-                                            }`}>
-                                                {desembolso.STATUS_CREATED === 1 ? 'CREADO' : 'NO CREADO'}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 border-b text-sm text-gray-700">
-                                            {desembolso.STATUS_PAYOUT || 'N/A'}
+                                            {desembolso.STATUS_DETALLE || 'N/A'}
                                         </td>
 
                                         <td className="flex items-center gap-2">

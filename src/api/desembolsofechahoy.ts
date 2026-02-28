@@ -7,9 +7,9 @@ export interface dataResponseApi {
     MONTO_NETO: string,
     AGENCIA: string,  // 👈 Este es el que usarás para filtrar
     ID_PAYOUT: string,
-    STATUS_FIRM: string,
+    STATUS_GLOBAL: string,
     STATUS_CREATED: number,
-    STATUS_PAYOUT: string | null
+    STATUS_DETALLE: string | null
 }
 
 // Primera función - obtiene TODOS los desembolsos
@@ -38,6 +38,8 @@ export const getListadoPorAgencias = async (idAgencia: string): Promise<dataResp
   const todosLosDesembolsos = await desembolsosFechaHoy();
   
   // 2. Filtrar por la agencia específica (ej: "01")
+
+
   const desembolsosFiltrados = todosLosDesembolsos.filter(
     desembolso => desembolso.AGENCIA === idAgencia
   );

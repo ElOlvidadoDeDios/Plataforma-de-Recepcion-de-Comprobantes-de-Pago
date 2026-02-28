@@ -328,3 +328,8 @@ export async function fetchUserDataByDni(dni: string) {
     throw error;
   }
 }
+
+
+
+
+
