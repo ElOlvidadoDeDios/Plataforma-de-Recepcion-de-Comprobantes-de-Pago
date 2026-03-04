@@ -434,6 +434,18 @@ export default function AfiliacionSociosComponent() {
       return;
     }
 
+    // Verificar que el usuario tenga un código de usuario válido
+    if (!user.user || user.user.trim() === '') {
+      Notification.error('❌ Error: El usuario no tiene un código de usuario válido. Contacte al administrador.');
+      console.error('🔍 DEBUG - Datos del usuario:', {
+        user: user.user,
+        dni: user.dni,
+        email: user.email,
+        agencias: user.agencias
+      });
+      return;
+    }
+
     try {
       setProcesandoAfiliacion(true);
 
@@ -449,7 +461,7 @@ export default function AfiliacionSociosComponent() {
         NRO_DOC: selectedSocio.DATOS.NRO_DI,
         AGENCIA: agenciaFinal, // Usar agencia procesada (98 si era 06 o 07)
         COD_CAJA: user.agencias[0].cod_caja, // Código de caja de la primera agencia
-        USER: user.user || user.dni, // Usuario desde AuthContext
+        USER: user.user, // Usuario desde AuthContext (ya validado)
         nro_banco: nroBanco // Agregar el número de banco al enviar los datos
       };
 
@@ -920,10 +932,15 @@ export default function AfiliacionSociosComponent() {
               {/* 🔍 INFO DE DEBUG PARA VER DATOS DEL USUARIO */}
               {user && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs">
-                  <p><strong>👤 Usuario:</strong> {user.user || user.dni}</p>
+                  <p><strong>👤 Código Usuario:</strong> <span className={!user.user ? 'text-red-600 font-bold' : 'text-green-600'}>{user.user || '❌ NO DEFINIDO'}</span></p>
+                  <p><strong>📧 Email:</strong> {user.email}</p>
+                  <p><strong>🆔 DNI:</strong> {user.dni}</p>
                   <p><strong>🏢 Agencias:</strong> {user.agencias?.length || 0}</p>
                   {user.agencias && user.agencias.length > 0 && (
                     <p><strong>📊 Agencia activa:</strong> {user.agencias[0].agencia} (Caja: {user.agencias[0].cod_caja})</p>
+                  )}
+                  {!user.user && (
+                    <p className="text-red-600 font-bold mt-2">⚠️ PROBLEMA: El código de usuario no está definido. Contacte al administrador.</p>
                   )}
                 </div>
               )}
