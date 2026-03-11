@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { UserRole } from '../../types/roles';
 import Layout from '../Layout';
-import { 
-  ClienteDesembolso, 
-  obtenerCreditosPendientesDesembolsar, 
-  formatearMonto, 
-  getEstadoDatosBancarios, 
-  tieneDatosBancariosCompletos 
+import {
+  ClienteDesembolso,
+  obtenerCreditosPendientesDesembolsar,
+  formatearMonto,
+  getEstadoDatosBancarios,
+  tieneDatosBancariosCompletos,
 } from '../../api/desembolsosApi';
 import SubirComprobanteDesembolsoModal from './SubirComprobanteDesembolsoModal';
 
@@ -60,7 +60,7 @@ const PendientesAdesembolsar: React.FC = () => {
   const creditosConDatosBancarios = creditos.filter(tieneDatosBancariosCompletos).length;
   const creditosSinDatosBancarios = totalCreditos - creditosConDatosBancarios;
   const montoTotal = creditos.reduce((total, credito) => {
-    const montoStr = credito?.DATOS_DESEMBOLSO.MONTO_APROB ?? '0';
+    const montoStr = credito?.DATOS_DESEMBOLSO?.MONTO_APROB ?? '0';
     const monto = parseFloat(montoStr.replace(/[^\d.]/g, '')) || 0;
     return total + monto;
   }, 0);
@@ -148,30 +148,44 @@ const PendientesAdesembolsar: React.FC = () => {
               Información del Crédito
             </h4>
             <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Pagaré:</span>
-                <span className="text-sm font-normal text-gray-900">
-                  {credito.DATOS_DESEMBOLSO.PAGARE}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Producto:</span>
-                <span className="text-sm font-normal text-gray-900">
-                  {credito.DATOS_DESEMBOLSO.NOM_PROD}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Monto Aprobado:</span>
-                <span className="text-sm font-normal text-gray-600">
-                  S/ {formatearMonto(credito.DATOS_DESEMBOLSO.MONTO_APROB)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Monto a Desembolsar:</span>
-                <span className="text-sm font-bold text-green-600">
-                 S/ {credito.DATOS_DESEMBOLSO.MONTO_NETO}
-                </span>
-              </div>
+              {credito.DATOS_DESEMBOLSO === null ? (
+                <div className="text-center py-4">
+                  <div className="bg-orange-100 border border-orange-200 rounded-lg p-4">
+                    <svg className="w-8 h-8 text-orange-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-orange-700 font-semibold text-sm">Validado fuera de tiempo</p>
+                    <p className="text-orange-600 text-xs mt-1">Los datos de desembolso no están disponibles</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Pagaré:</span>
+                    <span className="text-sm font-normal text-gray-900">
+                      {credito.DATOS_DESEMBOLSO.PAGARE}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Producto:</span>
+                    <span className="text-sm font-normal text-gray-900">
+                      {credito.DATOS_DESEMBOLSO.NOM_PROD}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Monto Aprobado:</span>
+                    <span className="text-sm font-normal text-gray-600">
+                      S/ {formatearMonto(credito.DATOS_DESEMBOLSO.MONTO_APROB)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Monto a Desembolsar:</span>
+                    <span className="text-sm font-bold text-green-600">
+                     S/ {credito.DATOS_DESEMBOLSO.MONTO_NETO}
+                    </span>
+                  </div>
+                </>
+              )}
               {credito.DATOS_RESPONSABLE && (
                 <>
                   {credito.DATOS_RESPONSABLE.ANALISTA && (
@@ -333,15 +347,27 @@ const PendientesAdesembolsar: React.FC = () => {
       {/* Acciones */}
       <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
         <div className="flex justify-between items-center">
-          <button
-            onClick={() => abrirModal(credito)}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            Subir Comprobante
-          </button>
+          {credito.DATOS_DESEMBOLSO === null ? (
+            <button
+              disabled
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+              </svg>
+              No disponible
+            </button>
+          ) : (
+            <button
+              onClick={() => abrirModal(credito)}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              Subir Comprobante
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -374,8 +400,8 @@ const PendientesAdesembolsar: React.FC = () => {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {creditos.map((credito) => (
-            <tr key={`${credito.DATOS_SOCIO.DNI_SOCIO}-${credito.DATOS_DESEMBOLSO.PAGARE}`} className="hover:bg-gray-50">
+          {creditos.map((credito, index) => (
+            <tr key={`${credito.DATOS_SOCIO.DNI_SOCIO}-${credito.DATOS_DESEMBOLSO?.PAGARE || index}`} className="hover:bg-gray-50">
               <td className="px-6 py-4">
                 <div className="flex items-center">
                   <div className="ml-4">
@@ -394,27 +420,36 @@ const PendientesAdesembolsar: React.FC = () => {
                 </div>
               </td>
               <td className="px-6 py-4">
-                <div className="text-sm">
-                  <div className="font-medium text-gray-900 mb-1">
-                    {credito.DATOS_DESEMBOLSO.PAGARE}
-                  </div>
-                  <div className="text-gray-600 mb-1">
-                    {credito.DATOS_DESEMBOLSO.NOM_PROD}
-                  </div>
-                  <div className="font-semibold text-green-600">
-                    S/ {formatearMonto(credito.DATOS_DESEMBOLSO.MONTO_APROB)}
-                  </div>
-                  {credito.DATOS_RESPONSABLE?.ANALISTA && (
-                    <div className="text-gray-500 text-xs">
-                      Analista: {credito.DATOS_RESPONSABLE.ANALISTA}
-                      {(credito.DATOS_RESPONSABLE as any).CELULAR && (
-                        <span className="ml-2 text-blue-600">
-                          Tel: {(credito.DATOS_RESPONSABLE as any).CELULAR}
-                        </span>
-                      )}
+                {credito.DATOS_DESEMBOLSO === null ? (
+                  <div className="text-center py-2">
+                    <div className="bg-orange-100 border border-orange-200 rounded-lg p-3">
+                      <p className="text-orange-700 font-semibold text-sm">Validado fuera de tiempo</p>
+                      <p className="text-orange-600 text-xs mt-1">Datos no disponibles</p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900 mb-1">
+                      {credito.DATOS_DESEMBOLSO.PAGARE}
+                    </div>
+                    <div className="text-gray-600 mb-1">
+                      {credito.DATOS_DESEMBOLSO.NOM_PROD}
+                    </div>
+                    <div className="font-semibold text-green-600">
+                      S/ {formatearMonto(credito.DATOS_DESEMBOLSO.MONTO_APROB)}
+                    </div>
+                    {credito.DATOS_RESPONSABLE?.ANALISTA && (
+                      <div className="text-gray-500 text-xs">
+                        Analista: {credito.DATOS_RESPONSABLE.ANALISTA}
+                        {(credito.DATOS_RESPONSABLE as any).CELULAR && (
+                          <span className="ml-2 text-blue-600">
+                            Tel: {(credito.DATOS_RESPONSABLE as any).CELULAR}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </td>
               <td className="px-6 py-4">
                 {!credito.DATOS_FIRMA?.FIRMANTE ? (
@@ -473,12 +508,18 @@ const PendientesAdesembolsar: React.FC = () => {
               </td>
               <td className="px-6 py-4">
                 <div className="flex space-x-2">
-                  <button
-                    onClick={() => abrirModal(credito)}
-                    className="text-gray-600 hover:text-gray-900 transition-colors text-sm"
-                  >
-                    Subir Comprobante
-                  </button>
+                  {credito.DATOS_DESEMBOLSO === null ? (
+                    <span className="text-gray-400 text-sm cursor-not-allowed">
+                      No disponible
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => abrirModal(credito)}
+                      className="text-gray-600 hover:text-gray-900 transition-colors text-sm"
+                    >
+                      Subir Comprobante
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
@@ -625,10 +666,10 @@ const PendientesAdesembolsar: React.FC = () => {
             <>
               {viewMode === 'cards' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {creditos.map((credito) => (
-                    <CreditoCard 
-                      key={`${credito.DATOS_SOCIO.DNI_SOCIO}-${credito.DATOS_DESEMBOLSO.PAGARE}`} 
-                      credito={credito} 
+                  {creditos.map((credito, index) => (
+                    <CreditoCard
+                      key={`${credito.DATOS_SOCIO.DNI_SOCIO}-${credito.DATOS_DESEMBOLSO?.PAGARE || index}`}
+                      credito={credito}
                     />
                   ))}
                 </div>

@@ -26,7 +26,6 @@ export interface CreditoDesembolso {
   MONTO_SOL: string;
   MONTO_APROB: string
   NOM_PROD: string;
-  
 }
 export interface DatosFirma {
     DNI_SOCIO: string;
@@ -47,7 +46,7 @@ export interface DatosResponsable{
 }
 export interface ClienteDesembolso {
   DATOS_SOCIO: DatosSocio;
-  DATOS_DESEMBOLSO: CreditoDesembolso;
+  DATOS_DESEMBOLSO: CreditoDesembolso | null;
   DATOS_BANCO: DatosBancariosDesembolso;
   DATOS_FIRMA: DatosFirma;
   DATOS_RESPONSABLE: DatosResponsable;
@@ -58,6 +57,21 @@ export interface DesembolsosResponse {
   status: boolean;
   message?: string;
 }
+
+// Función para verificar si los datos de desembolso están disponibles
+export const validarDatosDesembolso = (cliente: ClienteDesembolso): { esValido: boolean; mensaje: string } => {
+  if (cliente.DATOS_DESEMBOLSO === null) {
+    return {
+      esValido: false,
+      mensaje: "Validado fuera de tiempo"
+    };
+  }
+  
+  return {
+    esValido: true,
+    mensaje: "Datos disponibles"
+  };
+};
 
 // Función para obtener los créditos pendientes a desembolsar
 export const obtenerCreditosPendientesDesembolsar = async (): Promise<ClienteDesembolso[]> => {
