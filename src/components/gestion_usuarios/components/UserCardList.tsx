@@ -119,7 +119,9 @@ const UserCardList: React.FC<UserCardListProps> = ({
                     user.role === UserRole.GERENTE_GENERAL ||
                     user.role === UserRole.JEFE_OPERACIONES ||
                     user.role === UserRole.SUPER_ADMIN ||
-                    user.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+                    user.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ||
+                    user.role === UserRole.JEFE_RECUPERACIONES ||
+                    user.role === UserRole.RECUPERADOR
                   ) && agenciasValidas.length > 0 && (
                     <div className="w-full bg-gray-50 rounded-lg p-3 border border-gray-200 mb-4">
                       <div className="text-xs font-medium text-gray-700 mb-2">
@@ -187,6 +189,8 @@ const UserCardList: React.FC<UserCardListProps> = ({
                                role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
                                role === UserRole.BASIC_USER ? 'Usuario Básico' :
                                role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? 'Analista de Créditos PagoDíario' :
+                               role === UserRole.JEFE_RECUPERACIONES ? 'Jefe de Recuperaciones' :
+                               role === UserRole.RECUPERADOR ? 'Recuperador' :
                                ''}
                             </option>
                           ))}
@@ -208,6 +212,8 @@ const UserCardList: React.FC<UserCardListProps> = ({
                          user.role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
                          user.role === UserRole.BASIC_USER ? 'Usuario Básico' :
                          user.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? 'Analista de Créditos PagoDíario' :
+                         user.role === UserRole.JEFE_RECUPERACIONES ? 'Jefe de Recuperaciones' :
+                         user.role === UserRole.RECUPERADOR ? 'Recuperador' :
                          user.role}
                       </div>
                     )}

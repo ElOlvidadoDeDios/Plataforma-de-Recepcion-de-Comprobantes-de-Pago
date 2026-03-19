@@ -87,7 +87,9 @@ export const useUserManagement = () => {
       UserRole.JEFE_OPERACIONES,
       UserRole.BASIC_USER,
       UserRole.ANALISTA_CREDITOS_PAGO_DIARIO,
-      UserRole.RECAUDADOR
+      UserRole.RECAUDADOR,
+      UserRole.JEFE_RECUPERACIONES,
+      UserRole.RECUPERADOR
     ];
     if (isSuperAdmin) {
       return [UserRole.SUPER_ADMIN, ...baseRoles];

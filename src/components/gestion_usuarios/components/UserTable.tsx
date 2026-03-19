@@ -63,7 +63,9 @@ const UserTable: React.FC<UserTableProps> = ({
       [UserRole.GERENTE_GENERAL]: { color: 'bg-indigo-100 text-indigo-700 border-indigo-200', icon: '🎯' },
       [UserRole.JEFE_OPERACIONES]: { color: 'bg-teal-100 text-teal-700 border-teal-200', icon: '⚡' },
       [UserRole.BASIC_USER]: { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: '👤' },
-      [UserRole.ANALISTA_CREDITOS_PAGO_DIARIO]: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: '📊' }
+      [UserRole.ANALISTA_CREDITOS_PAGO_DIARIO]: { color: 'bg-amber-100 text-amber-700 border-amber-200', icon: '📊' },
+      [UserRole.JEFE_RECUPERACIONES]: { color: 'bg-orange-100 text-orange-700 border-orange-200', icon: '⚠️' },
+      [UserRole.RECUPERADOR]: { color: 'bg-green-100 text-green-700 border-green-200', icon: '💰' }
     };
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig[UserRole.BASIC_USER];
     const roleName = {
@@ -75,7 +77,9 @@ const UserTable: React.FC<UserTableProps> = ({
       [UserRole.GERENTE_GENERAL]: 'Gerente General',
       [UserRole.JEFE_OPERACIONES]: 'Jefe de Operaciones',
       [UserRole.BASIC_USER]: 'Usuario Básico',
-      [UserRole.ANALISTA_CREDITOS_PAGO_DIARIO]: 'Analista de Créditos PagoDíario'
+      [UserRole.ANALISTA_CREDITOS_PAGO_DIARIO]: 'Analista de Créditos PagoDíario',
+      [UserRole.JEFE_RECUPERACIONES]: 'Jefe de Recuperaciones',
+      [UserRole.RECUPERADOR]: 'Recuperador'
     }[role] || role;
 
     return (
@@ -190,7 +194,9 @@ const UserTable: React.FC<UserTableProps> = ({
                           user.role === UserRole.GERENTE_GENERAL ||
                           user.role === UserRole.JEFE_OPERACIONES ||
                           user.role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ||
-                          user.role === UserRole.SUPER_ADMIN
+                          user.role === UserRole.SUPER_ADMIN ||
+                          user.role === UserRole.JEFE_RECUPERACIONES ||
+                          user.role === UserRole.RECUPERADOR
                         ) && agenciasValidas.length > 0 && (
                           <div className="mt-2">
                             <div className="flex items-center mb-1">
@@ -291,7 +297,8 @@ const UserTable: React.FC<UserTableProps> = ({
                                role === UserRole.JEFE_OPERACIONES ? '⚡ Jefe de Operaciones' :
                                role === UserRole.BASIC_USER ? '👤 Usuario Básico' :
                                role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? '📊 Analista de Créditos PagoDíario' :
-                               
+                               role === UserRole.JEFE_RECUPERACIONES ? '⚠️ Jefe de Recuperaciones' :
+                               role === UserRole.RECUPERADOR ? '💰 Recuperador' :
                                ''}
                             </option>
                           ))}

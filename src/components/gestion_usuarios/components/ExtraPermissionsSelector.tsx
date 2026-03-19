@@ -51,6 +51,8 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
         [Permission.CULQI_EDIT]: '⚙️ Gestionar Culqi Pendientes',
         [Permission.DISBURSEMENTS_TODAY_VIEW]: '📈 Ver Seguimiento Desembolsos Hoy',
+        [Permission.RECUPERACIONES_VIEW]: '💳 Ver Recuperaciones',
+        [Permission.RECUPERACIONES_EDIT]: '⚙️ Gestionar Recuperaciones',
     };
 
     // // Roles que pueden tener permisos de Culqi
@@ -79,6 +81,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Afiliación de socios': [Permission.AFFILIATION_SOCIOS_VIEW, Permission.AFFILIATION_SOCIOS_EDIT],
         'Pagos Recaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
         'Culqi Pendientes': [Permission.CULQI_VIEW, Permission.CULQI_EDIT],
+        'Recuperaciones': [Permission.RECUPERACIONES_VIEW, Permission.RECUPERACIONES_EDIT],
         // // Solo agregar Culqi si el rol tiene acceso
         // ...(rolesConAccesoCulqui.includes(selectedRole) ? {
         //     'Culqi Pendientes': [Permission.CULQI_VIEW, Permission.CULQI_EDIT]

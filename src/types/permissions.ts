@@ -67,6 +67,10 @@ export enum Permission {
   // === CULQI PENDIENTES ===
   CULQI_VIEW = 'culqi:view',
   CULQI_EDIT = 'culqi:edit',
+
+  // === RECUPERACIONES ===
+  RECUPERACIONES_VIEW = 'recuperaciones:view',
+  RECUPERACIONES_EDIT = 'recuperaciones:edit',
 }
 
 export enum UserRole {
@@ -79,6 +83,8 @@ export enum UserRole {
   ANALISTA_CREDITOS_PAGO_DIARIO = 'ANALISTA_CREDITOS_PAGO_DIARIO',
   BASIC_USER = 'BASIC_USER',
   RECAUDADOR = 'RECAUDADOR',
+  JEFE_RECUPERACIONES = 'JEFE_RECUPERACIONES',
+  RECUPERADOR = 'RECUPERADOR',
 }
 
 /**
@@ -140,6 +146,10 @@ export const PermissionCategories = {
   'Historial de Desembolsos': [
     Permission.DISBURSEMENT_HISTORY_VIEW,   // Solo ver
     Permission.DISBURSEMENT_HISTORY_EDIT,   // Editar (incluye gestionar, etc.)
+  ],
+  'Recuperaciones': [
+    Permission.RECUPERACIONES_VIEW,   // Solo ver
+    Permission.RECUPERACIONES_EDIT,   // Editar (incluye gestionar, etc.)
   ],
   'Culqi Pendientes': [
     Permission.CULQI_VIEW,   // Solo ver
@@ -214,6 +224,10 @@ export const PermissionLabels: Record<Permission, string> = {
   // Culqi Pendientes
   [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
   [Permission.CULQI_EDIT]: '⚙️ Gestionar Culqi Pendientes',
+
+  // Recuperaciones
+  [Permission.RECUPERACIONES_VIEW]: '💳 Ver Recuperaciones',
+  [Permission.RECUPERACIONES_EDIT]: '⚙️ Gestionar Recuperaciones',
 };
 
 /**
@@ -239,6 +253,7 @@ export const LegacyPermissionMapping: Record<string, Permission[]> = {
   'canAssignRoles': [Permission.USERS_EDIT],
   'canDeleteAccounts': [Permission.USERS_EDIT],
   'canBlockEmails': [Permission.USERS_EDIT],
+  'canAccessRecuperaciones': [Permission.RECUPERACIONES_VIEW, Permission.RECUPERACIONES_EDIT],
 };
 
 /**
@@ -259,6 +274,8 @@ export const RolePermissionTemplates: Record<UserRole, Permission[]> = {
   [UserRole.ANALISTA_CREDITOS_PAGO_DIARIO]: [],
   [UserRole.BASIC_USER]: [],
   [UserRole.RECAUDADOR]: [],
+  [UserRole.JEFE_RECUPERACIONES]: [],
+  [UserRole.RECUPERADOR]: [],
 };
 
 /**

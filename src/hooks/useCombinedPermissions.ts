@@ -199,6 +199,35 @@ export function useCombinedPermissions() {
       return hasPermission(Permission.DISBURSEMENTS_TODAY_VIEW);
     },
 
+    canAccessRecuperaciones: () => {
+      // Roles con acceso automático sin necesidad de permisos
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_RECUPERACIONES', 'RECUPERADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.RECUPERACIONES_VIEW);
+    },
+
+    canEditRecuperaciones: () => {
+      // Roles con acceso automático sin necesidad de permisos
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_RECUPERACIONES', 'RECUPERADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.RECUPERACIONES_EDIT);
+    },
+    canViewRecuperaciones: () => {
+      // Roles con acceso automático sin necesidad de permisos
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_RECUPERACIONES', 'RECUPERADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.RECUPERACIONES_VIEW);
+    },
+
     // Método para verificar si es usuario básico
     isBasicUser: () => {
       if (!user || !user.role) return true;

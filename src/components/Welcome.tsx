@@ -286,6 +286,7 @@ const Welcome: React.FC = () => {
       ...(permissions.canAccessRegistroClientes() ? [{ title: 'Registro de Socios', description: 'Registra y gestiona información de clientes', onClick: () => navigate('/registro-clientes'), icon: '👤' }] : []),
       ...(permissions.canManageUsers() ? [{ title: 'Gestión de Usuarios', description: 'Administra los usuarios del sistema', onClick: () => navigate('/user-management'), icon: '👤' }] : []),
       ...(permissions.canAccessGestionMora() ? [{ title: 'Gestión de Mora', description: 'Gestiona clientes en mora y seguimiento', onClick: () => navigate('/gestion-mora'), icon: '📋' }] : []),
+      ...(permissions.canAccessRecuperaciones() ? [{ title: 'Gestión de Recuperadores', description: 'Gestiona recuperadores y socios en mora', onClick: () => navigate('/gestion-recuperadores'), icon: '🔄' }] : []),
       ...(permissions.canAccessPendientesDesembolsar() ? [{ title: 'Pendientes a Desembolsar', description: 'Gestiona créditos pendientes de desembolso', onClick: () => navigate('/pendientes-desembolsar'), icon: '💳' }] : []),
       ...(permissions.canAccessHistorialDesembolsos() ? [{ title: 'Historial de Desembolsos', description: 'Consulta el historial de desembolsos realizados', onClick: () => navigate('/historial-desembolsos'), icon: '📋' }] : []),
       ...(permissions.canAccessSeguimientoDesembolsosHoy() ? [{ title: 'Seguimiento Desembolsos Hoy', description: 'Monitorea los créditos desembolsados en el día actual', onClick: () => navigate('/seguimiento-desembolsos-hoy'), icon: '📈' }] : []),

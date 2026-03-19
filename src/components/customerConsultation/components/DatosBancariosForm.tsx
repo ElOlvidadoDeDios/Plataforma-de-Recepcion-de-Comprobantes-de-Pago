@@ -88,12 +88,10 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
     e.preventDefault();
 
     if (!formData.BANCO || !formData.NUM_CUENTA) {
-      console.warn('❌ Faltan campos requeridos: BANCO o NUM_CUENTA');
+ 
       return;
     }
-
     if (!esTitular && (!formData.DNI_TITULAR || !formData.NOMBRE_TITULAR)) {
-      console.warn('❌ No es titular pero faltan datos del titular');
       return;
     }
 

@@ -38,6 +38,7 @@ interface GenerarContratoResponse {
   success: boolean;
   data?: any;
   message?: string;
+  errorDetails?: any;
 }
 
 interface VerificarDocumentoResponse {
@@ -67,11 +68,22 @@ export const generarContrato = async (data: GenerarContratoRequest): Promise<Gen
       body: JSON.stringify(data)
     });
 
-    if (!response.ok) {
-      throw new Error(`Error en el servidor: ${response.status}`);
-    }
+    const result = await response.json(); // leer siempre la respuesta
 
-    const result = await response.json();
+    if (!response.ok) {
+      // Mostrar el error completo que retorna el servidor
+      console.error('Error del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: result
+      });
+      
+      return {
+        success: false,
+        message: result?.message || result?.error || result || `Error ${response.status}: ${response.statusText}`,
+        errorDetails: result // Agregar los detalles completos del error
+      };
+    }
 
     return {
       success: true,
@@ -79,9 +91,12 @@ export const generarContrato = async (data: GenerarContratoRequest): Promise<Gen
     };
 
   } catch (error) {
+    console.error('Error de conexión:', error);
+    
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Error desconocido'
+      message: error instanceof Error ? error.message : 'Error de conexión',
+      errorDetails: error
     };
   }
 };

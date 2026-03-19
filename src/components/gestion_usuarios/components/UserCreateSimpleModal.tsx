@@ -48,7 +48,9 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
       UserRole.ADMINISTRADOR,
       UserRole.GERENTE_GENERAL,
       UserRole.JEFE_OPERACIONES,
-      UserRole.ANALISTA_CREDITOS_PAGO_DIARIO
+      UserRole.ANALISTA_CREDITOS_PAGO_DIARIO,
+      UserRole.JEFE_RECUPERACIONES,
+      UserRole.RECUPERADOR
     ];
 
     if (isSuperAdmin) {
@@ -371,6 +373,8 @@ const UserCreateSimpleModal: React.FC<UserCreateSimpleModalProps> = ({
                    role === UserRole.JEFE_OPERACIONES ? 'Jefe de Operaciones' :
                    role === UserRole.BASIC_USER ? 'Usuario Básico' :
                    role === UserRole.ANALISTA_CREDITOS_PAGO_DIARIO ? 'Analista de Créditos PagoDíario' :
+                   role === UserRole.JEFE_RECUPERACIONES ? 'Jefe de Recuperaciones' :
+                   role === UserRole.RECUPERADOR ? 'Recuperador' : 
                    ''}
                 </option>
               ))}

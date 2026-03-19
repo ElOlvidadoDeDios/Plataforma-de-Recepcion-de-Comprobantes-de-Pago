@@ -15,6 +15,7 @@ import { PaymentsPanel } from './components/pagos/panel-pagos';
 import CustomerConsultation from './components/customerConsultation/customerConsultation';
 import HistorialAtencionCreditos from './components/historial_de_Atencion_Creditos/historialAtencionCreditos';
 import GestionMora from './components/gestion_mora/GestionMora';
+import GestionRecuperadoresPage from './components/modulo_recuperadores/gestionrecuperadorepage';
 import PendientesAdesembolsar from './components/creditos_en_proceso/PendientesAdesembolsar';
 import NonBasicUserRoute from './components/NonBasicUserRoute';
 import PermissionProtectedRoute from './components/PermissionProtectedRoute';
@@ -135,6 +136,16 @@ function App() {
                   <ProtectedRoute>
                     <NonBasicUserRoute>
                       <GestionMora />
+                    </NonBasicUserRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/gestion-recuperadores"
+                element={
+                  <ProtectedRoute>
+                    <NonBasicUserRoute>
+                      <GestionRecuperadoresPage />
                     </NonBasicUserRoute>
                   </ProtectedRoute>
                 }
