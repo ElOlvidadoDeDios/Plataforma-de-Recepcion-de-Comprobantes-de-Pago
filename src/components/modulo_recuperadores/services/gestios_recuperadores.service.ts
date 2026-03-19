@@ -254,3 +254,30 @@ export const getReporteMora = async (AGENCIA: string): Promise<ReporteMoraData> 
     }
 };
 
+// Función para guardar gestión de mora
+export const saveGestionMora = async (gestionData: SaveGestionDto): Promise<{ status: boolean; message: string }> => {
+  const { data } = await axiosInstance.post('api/gestion-mora/save', gestionData);
+  return data;
+};
+
+//funcion para  exatrer  gestion de mora  general 
+
+export const getGestionesXEstadosGeneral = async ():Promise<ReporteMoraData> => {
+  try{
+    const response = await fetch(`${API_BASE_URL_Di}/api_app_dile_v1_1/api/getGestionesRecuperadores`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${API_BASE_URL_TOKEN}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};

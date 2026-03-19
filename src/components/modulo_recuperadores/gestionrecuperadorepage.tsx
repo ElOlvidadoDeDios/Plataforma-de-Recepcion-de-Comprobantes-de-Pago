@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../Layout';
 import { ClipboardList, ChevronRight, Eye, FileEdit, MessageCircle, BarChart2, X } from 'lucide-react';
 import { useGestionMora } from './hooks/userecuperador';
@@ -9,14 +9,13 @@ import { SocioMora } from './services/gestios_recuperadores.service';
 
 const GestionRecuperadoresPage = () => {
   const {
-    user,
     isSuperOrGerente,
-    isJefeRecuperaciones,
     isRecuperador,
     administradores, loadingAdmins,
     selectedAdmin, setSelectedAdmin,
     analistas, loadingAnalistas,
     selectedAnalista, setSelectedAnalista,
+    miAnalistaPropio,
     sociosMora, loadingSocios,
     gestionesXEstados,
   } = useGestionMora();
@@ -24,6 +23,8 @@ const GestionRecuperadoresPage = () => {
   const [modal, setModal] = useState<'ver' | 'gestionar' | 'whatsapp' | null>(null);
   const [selectedSocio, setSelectedSocio] = useState<SocioMora | null>(null);
   const [showGestiones, setShowGestiones] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const openModal = (socio: SocioMora, type: 'ver' | 'gestionar' | 'whatsapp') => {
     setSelectedSocio(socio);
@@ -34,6 +35,17 @@ const GestionRecuperadoresPage = () => {
     setModal(null);
     setSelectedSocio(null);
   };
+
+  // Lógica de paginación
+  const totalPages = Math.ceil(sociosMora.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const sociosPaginados = sociosMora.slice(startIndex, endIndex);
+
+  // Reset página cuando cambie el analista
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedAnalista]);
 
   return (
     <>
@@ -52,7 +64,7 @@ const GestionRecuperadoresPage = () => {
         </div>
 
         {/* Botón Ver Reportes de Mora */}
-        {isSuperOrGerente && gestionesXEstados && (
+        {(isSuperOrGerente || isRecuperador) && gestionesXEstados && (
           <button
             onClick={() => setShowGestiones(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg text-sm font-medium hover:bg-cyan-600 transition-colors shadow-sm"
@@ -62,6 +74,107 @@ const GestionRecuperadoresPage = () => {
           </button>
         )}
       </div>
+
+      {/* Selector de analistas para RECUPERADOR */}
+      {isRecuperador && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+            <span className="font-medium text-gray-800">Seleccionar Analista</span>
+            {selectedAnalista && (
+              <>
+                <ChevronRight className="w-4 h-4" />
+                <span className="font-medium text-blue-600">SOCIOS EN MORA</span>
+              </>
+            )}
+          </div>
+
+          {!selectedAnalista ? (
+            loadingAnalistas ? (
+              <p className="text-xs text-gray-400">Cargando analistas de tu agencia...</p>
+            ) : (
+              <>
+                {/* Vista móvil - Tarjetas */}
+                <div className="block md:hidden space-y-2">
+                  {analistas.map((analista) => (
+                    <button
+                      key={analista.ID_ANA}
+                      onClick={() => setSelectedAnalista(analista)}
+                      className="w-full text-left p-3 bg-gray-50 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <span className="text-green-600 text-xs font-semibold">
+                            {analista.ANA_ACTUAL.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-700 truncate">{analista.ANA_ACTUAL}</p>
+                          <p className="text-xs text-gray-400">{analista.AGENCIA}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  {/* Botón Mis Moras para RECUPERADOR en vista móvil */}
+                  {miAnalistaPropio && (
+                    <button
+                      onClick={() => setSelectedAnalista(miAnalistaPropio)}
+                      className="w-full text-center p-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-all"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <span>📋</span>
+                        <span className="text-sm font-medium">Mis Moras</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+
+                {/* Vista desktop - Grid */}
+                <div className="hidden md:grid grid-cols-2 gap-2">
+                  {analistas.map((analista) => (
+                    <button
+                      key={analista.ID_ANA}
+                      onClick={() => setSelectedAnalista(analista)}
+                      className="text-left p-3 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all"
+                    >
+                      <p className="text-sm font-medium text-gray-700 truncate">{analista.ANA_ACTUAL}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{analista.AGENCIA}</p>
+                    </button>
+                  ))}
+                  {/* Botón Mis Moras para RECUPERADOR en vista desktop */}
+                  {miAnalistaPropio && (
+                    <button
+                      onClick={() => setSelectedAnalista(miAnalistaPropio)}
+                      className="col-span-2 text-center p-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-all"
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <span>📋</span>
+                        <span className="text-sm font-medium">Mis Moras</span>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </>
+            )
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400">Analista seleccionado</p>
+                  <p className="text-sm font-medium text-gray-700">{selectedAnalista.ANA_ACTUAL}</p>
+                  <p className="text-xs text-gray-500">Agencia: {selectedAnalista.AGENCIA}</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => setSelectedAnalista(null)}
+                className="px-3 py-2 text-xs bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors flex items-center justify-center gap-1"
+              >
+                <span>👥</span> Cambiar Analista
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Selector admin → analista (super/gerente/admin) */}
       {isSuperOrGerente && (
@@ -174,6 +287,18 @@ const GestionRecuperadoresPage = () => {
                         </div>
                       </button>
                     ))}
+                    {/* Botón Mis Moras para RECUPERADOR en vista móvil */}
+                    {isRecuperador && miAnalistaPropio && (
+                      <button
+                        onClick={() => setSelectedAnalista(miAnalistaPropio)}
+                        className="w-full text-center p-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-all"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <span>📋</span>
+                          <span className="text-sm font-medium">Mis Moras</span>
+                        </div>
+                      </button>
+                    )}
                   </div>
 
                   {/* Vista desktop - Grid */}
@@ -188,6 +313,18 @@ const GestionRecuperadoresPage = () => {
                         <p className="text-xs text-gray-400 mt-0.5">{analista.AGENCIA}</p>
                       </button>
                     ))}
+                    {/* Botón Mis Moras para RECUPERADOR en vista desktop */}
+                    {isRecuperador && miAnalistaPropio && (
+                      <button
+                        onClick={() => setSelectedAnalista(miAnalistaPropio)}
+                        className="col-span-2 text-center p-3 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-all"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <span>📋</span>
+                          <span className="text-sm font-medium">Mis Moras</span>
+                        </div>
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -218,9 +355,36 @@ const GestionRecuperadoresPage = () => {
                 >
                   <span>↺</span> Cambiar Recuperador
                 </button>
+                {isRecuperador && miAnalistaPropio && (
+                  <button
+                    onClick={() => setSelectedAnalista(miAnalistaPropio)}
+                    className="flex-1 px-3 py-2 text-xs bg-cyan-500 text-white hover:bg-cyan-600 rounded-lg transition-colors flex items-center justify-center gap-1"
+                  >
+                    <span>📋</span> Mis Moras
+                  </button>
+                )}
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Botón Mis Moras para recuperadores cuando están viendo socios de otro analista */}
+      {isRecuperador && selectedAnalista && miAnalistaPropio && selectedAnalista.ID_ANA !== miAnalistaPropio.ID_ANA && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-gray-400">Viendo socios de</p>
+              <p className="text-sm font-medium text-gray-700">{selectedAnalista.ANA_ACTUAL}</p>
+              <p className="text-xs text-gray-500">Agencia: {selectedAnalista.AGENCIA}</p>
+            </div>
+            <button
+              onClick={() => setSelectedAnalista(miAnalistaPropio)}
+              className="px-4 py-2 text-sm bg-cyan-500 text-white hover:bg-cyan-600 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <span>📋</span> Mis Moras
+            </button>
+          </div>
         </div>
       )}
 
@@ -239,7 +403,7 @@ const GestionRecuperadoresPage = () => {
             <>
               {/* Vista móvil - Tarjetas */}
               <div className="block md:hidden space-y-3 p-4">
-                {sociosMora.map((socio, i) => {
+                {sociosPaginados.map((socio, i) => {
                   const diasAtraso = Number(socio.CREDITO_MORA.DIAS_ATRASO);
                   return (
                     <div key={i} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
@@ -317,7 +481,7 @@ const GestionRecuperadoresPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {sociosMora.map((socio, i) => {
+                    {sociosPaginados.map((socio, i) => {
                       const diasAtraso = Number(socio.CREDITO_MORA.DIAS_ATRASO);
                       return (
                         <tr key={i} className="hover:bg-gray-50 transition-colors">
@@ -375,6 +539,69 @@ const GestionRecuperadoresPage = () => {
                 </table>
               </div>
             </>
+          )}
+          
+          {/* Paginación */}
+          {sociosMora.length > itemsPerPage && (
+            <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Mostrando {startIndex + 1} - {Math.min(endIndex, sociosMora.length)} de {sociosMora.length} socios
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 text-sm rounded ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  }`}
+                >
+                  Anterior
+                </button>
+                
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = index + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = index + 1;
+                    } else if (currentPage > totalPages - 3) {
+                      pageNum = totalPages - 4 + index;
+                    } else {
+                      pageNum = currentPage - 2 + index;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1 text-sm rounded ${
+                          pageNum === currentPage
+                            ? 'bg-cyan-500 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 text-sm rounded ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  }`}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}

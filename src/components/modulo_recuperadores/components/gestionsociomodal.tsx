@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-//import { useGestionMora } from '../hooks/userecuperador';
 import { useAuth } from '../../../hooks/useAuth';
 import type { SocioMora } from '../services/gestios_recuperadores.service';
+import { saveGestionMora } from '../services/gestios_recuperadores.service';
+import { AGENCIAS } from '../../../types';
 
 interface Props {
   socio: SocioMora;
@@ -11,15 +12,11 @@ interface Props {
 }
 
 const GestionarSocioModal = ({ socio, onClose }: Props) => {
-  // Como saveGestion no está implementado en el hook, lo manejamos localmente
-  const [isSaving, setIsSaving] = useState(false);
-  const saveGestion = async (data: any) => {
-    setIsSaving(true);
-    console.log('Gestión guardada:', data);
-    setTimeout(() => setIsSaving(false), 1000);
-  };
   const { user } = useAuth();
   const { CREDITO_MORA } = socio;
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -31,22 +28,44 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError(null); // Limpiar errores al cambiar valores
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await saveGestion({
-      PAGARE: CREDITO_MORA.PAGARE,
-      CUENTA: CREDITO_MORA.CUENTA,
-      OTORGA: CREDITO_MORA.OTORGA,
-      MOTIVO: form.MOTIVO,
-      COMPROMISO: form.COMPROMISO,
-      FECHA_COMPROMISO: form.FECHA_COMPROMISO,
-      REGISTRADOR: user?.dni || '',
-      NOMBRE_A: user?.razon || '',
-      AGENCIA: user?.id_age || '',
-    });
-    onClose();
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      const gestionData = {
+        PAGARE: CREDITO_MORA.PAGARE,
+        CUENTA: CREDITO_MORA.CUENTA,
+        OTORGA: CREDITO_MORA.OTORGA,
+        MOTIVO: form.MOTIVO,
+        COMPROMISO: form.COMPROMISO,
+        FECHA_COMPROMISO: form.FECHA_COMPROMISO,
+        REGISTRADOR: user?.dni || '', // Enviar DNI del responsable
+        NOMBRE_A: user?.razon || '',
+        AGENCIA: Object.keys(AGENCIAS).find((key) => AGENCIAS[key as keyof typeof AGENCIAS] === user?.id_age) || user?.id_age || '',
+      };
+
+      console.log('Enviando datos de gestión:', gestionData);
+      const response = await saveGestionMora(gestionData);
+      
+      if (response.status) {
+        setSuccess(true);
+        setTimeout(() => {
+          onClose();
+        }, 1500); // Cerrar después de mostrar éxito
+      } else {
+        setError(response.message || 'Error al guardar la gestión');
+      }
+    } catch (err: any) {
+      console.error('Error al guardar gestión:', err);
+      setError(err.response?.data?.message || err.message || 'Error al guardar la gestión');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return createPortal(
@@ -63,6 +82,20 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Mensaje de error */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          {/* Mensaje de éxito */}
+          {success && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-600">✅ Gestión guardada exitosamente</p>
+            </div>
+          )}
+
           <div>
             <label className="text-xs font-medium text-gray-600 block mb-1">Motivo de retraso *</label>
             <textarea
@@ -73,6 +106,7 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
               rows={3}
               placeholder="Describe el motivo del retraso..."
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              disabled={isSaving || success}
             />
           </div>
 
@@ -86,6 +120,7 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
               rows={3}
               placeholder="¿Qué compromiso asume el socio?..."
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              disabled={isSaving || success}
             />
           </div>
 
@@ -98,6 +133,7 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
               onChange={handleChange}
               required
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isSaving || success}
             />
           </div>
 
@@ -106,15 +142,16 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50"
+              disabled={isSaving}
             >
-              Cancelar
+              {success ? 'Cerrar' : 'Cancelar'}
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || success}
               className="flex-1 px-4 py-2 bg-[#0f2d5e] text-white rounded-lg text-sm font-medium hover:bg-blue-800 disabled:opacity-50"
             >
-              {isSaving ? 'Guardando...' : 'Registrar'}
+              {isSaving ? 'Guardando...' : success ? 'Completado' : 'Registrar'}
             </button>
           </div>
         </form>

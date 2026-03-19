@@ -9,7 +9,8 @@ import {
   recuperador,
   getRecuperadores,
   getAnalistasByAgencia,
-  getReporteMora
+  getReporteMora,
+  getGestionesXEstadosGeneral
 } from '../services/gestios_recuperadores.service';
 
 
@@ -34,22 +35,28 @@ export const useGestionMora = () => {
   const [periodo, setPeriodo] = useState(getCurrentPeriodo());
   const [selectedAdmin, setSelectedAdmin] = useState<recuperador | null>(null);
   const [selectedAnalista, setSelectedAnalista] = useState<Analista | null>(null);
+  const [miAnalistaPropio, setMiAnalistaPropio] = useState<Analista | null>(null);
 
-  // Si es analista, setear directamente sus datos
+  // Si es analista o recuperador, setear directamente sus datos
   useEffect(() => {
-    if (isAnalista && user) {
-      setSelectedAnalista({
+    if ((isAnalista || isRecuperador) && user) {
+      const miAnalista = {
         ID_ANA: user.id_ana || '',
         CARGO: user.cargo || '',
         ANA_ACTUAL: user.razon || '',
         AGENCIA: user.id_age || '',
-      });
+      };
+      setSelectedAnalista(miAnalista);
+      // Si es recuperador, guardar como su analista propio
+      if (isRecuperador) {
+        setMiAnalistaPropio(miAnalista);
+      }
     }
-  }, [isAnalista, user]);
+  }, [isAnalista, isRecuperador, user]);
 
-  // Si es admin, configurar automáticamente su agencia
+  // Si es admin o recuperador, configurar automáticamente su agencia
   useEffect(() => {
-    if (isAdmin && user) {
+    if ((isAdmin || isRecuperador) && user) {
       setSelectedAdmin({
         NUM: 1, // Valor por defecto
         NOM_ADMI: user.razon || '',
@@ -59,11 +66,11 @@ export const useGestionMora = () => {
         COD_AGE: user.id_age || '',
       });
     }
-  }, [isAdmin, user]);
+  }, [isAdmin, isRecuperador, user]);
 
   // Cuando se selecciona un recuperador, automáticamente cargar su gestión de mora
   useEffect(() => {
-    if (selectedAdmin && (isSuperOrGerente || isJefeRecuperaciones)) {
+    if (selectedAdmin && (isSuperOrGerente || isJefeRecuperaciones || isRecuperador)) {
       setSelectedAnalista({
         ID_ANA: selectedAdmin.ID_ANA,
         CARGO: selectedAdmin.CARGO,
@@ -71,7 +78,7 @@ export const useGestionMora = () => {
         AGENCIA: selectedAdmin.AGENCIA,
       });
     }
-  }, [selectedAdmin, isSuperOrGerente, isJefeRecuperaciones]);
+  }, [selectedAdmin, isSuperOrGerente, isJefeRecuperaciones, isRecuperador]);
   // Recuperadores (para SUPER_ADMIN, JEFE_RECUPERACIONES 
   const { data: administradores = [], isLoading: loadingAdmins } = useQuery({
     queryKey: ['recuperadores'],
@@ -118,11 +125,17 @@ export const useGestionMora = () => {
 //     onError: () => toast.error('Error al registrar gestión'),
 //   });
 
-  // Gestiones por estados (usando el reporte de mora)
+  // Gestiones por estados - condicional:
+  // - Para SUPER_ADMIN y JEFE_RECUPERACIONES sin seleccionar recuperador: reporte general
+  // - Para otros casos o cuando ya seleccionaron recuperador: reporte por agencia
+  const shouldUseGeneralReport = (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.JEFE_RECUPERACIONES) && !selectedAdmin;
+  
   const { data: gestionesXEstados } = useQuery({
-    queryKey: ['gestiones-estados', selectedAdmin?.AGENCIA],
-    queryFn: () => getReporteMora(selectedAdmin?.AGENCIA || user?.id_age || ''),
-    enabled: isSuperOrGerente && (!!selectedAdmin || !!user?.id_age),
+    queryKey: shouldUseGeneralReport ? ['gestiones-estados-general'] : ['gestiones-estados', selectedAdmin?.AGENCIA],
+    queryFn: shouldUseGeneralReport
+      ? () => getGestionesXEstadosGeneral()
+      : () => getReporteMora(selectedAdmin?.AGENCIA || user?.id_age || ''),
+    enabled: (isSuperOrGerente || isRecuperador) && (shouldUseGeneralReport || !!selectedAdmin || !!user?.id_age),
   });
 
   return {
@@ -142,6 +155,7 @@ export const useGestionMora = () => {
     loadingAnalistas,
     selectedAnalista,
     setSelectedAnalista,
+    miAnalistaPropio,
     sociosMora,
     loadingSocios,
     gestionesXEstados,
