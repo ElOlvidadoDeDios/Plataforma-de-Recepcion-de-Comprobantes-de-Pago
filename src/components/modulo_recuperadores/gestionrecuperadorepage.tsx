@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../Layout';
 import { ClipboardList, ChevronRight, Eye, FileEdit, MessageCircle, BarChart2, X } from 'lucide-react';
 import { useGestionMora } from './hooks/userecuperador';
 import VerSocioModal from './components/versociomodal';
 import GestionarSocioModal from './components/gestionsociomodal';
 import GestionesXEstados from './components/gestionXestados';
+import BuscadorSocios from './components/BuscadorSocios';
 import { SocioMora } from './services/gestios_recuperadores.service';
 
 const GestionRecuperadoresPage = () => {
@@ -26,6 +27,7 @@ const GestionRecuperadoresPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
+
   const openModal = (socio: SocioMora, type: 'ver' | 'gestionar' | 'whatsapp') => {
     setSelectedSocio(socio);
     setModal(type);
@@ -36,11 +38,26 @@ const GestionRecuperadoresPage = () => {
     setSelectedSocio(null);
   };
 
-  // Lógica de paginación
-  const totalPages = Math.ceil(sociosMora.length / itemsPerPage);
+  // Función para manejar selección de socio desde componente BuscadorSocios
+  const handleSocioSelect = (socio: SocioMora, action: 'ver' | 'gestionar' | 'whatsapp') => {
+    // Abrir el modal con la acción especificada
+    openModal(socio, action);
+  };
+
+  // Determinar qué socios mostrar (solo de la gestión normal)
+  const sociosToShow = sociosMora || [];
+
+  // Lógica de paginación con useMemo
+  const sociosPaginados = useMemo(() => {
+    if (!Array.isArray(sociosToShow)) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return sociosToShow.slice(startIndex, endIndex);
+  }, [sociosToShow, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil((sociosToShow?.length || 0) / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const sociosPaginados = sociosMora.slice(startIndex, endIndex);
 
   // Reset página cuando cambie el analista
   useEffect(() => {
@@ -56,9 +73,9 @@ const GestionRecuperadoresPage = () => {
         <div className="flex items-center justify-center gap-2 mb-2">
           <ClipboardList className="w-5 h-5 text-[#0f2d5e]" />
           <h1 className="text-lg font-bold text-gray-800">Gestión de Recuperadores</h1>
-          {sociosMora.length > 0 && (
-            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
-              {sociosMora.length} socios
+          {sociosToShow.length > 0 && (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">
+              {sociosToShow.length} socio{sociosToShow.length !== 1 ? 's' : ''} en mora
             </span>
           )}
         </div>
@@ -74,6 +91,11 @@ const GestionRecuperadoresPage = () => {
           </button>
         )}
       </div>
+
+      {/* Buscador de Socios */}
+      <BuscadorSocios
+        onSocioSelect={handleSocioSelect}
+      />
 
       {/* Selector de analistas para RECUPERADOR */}
       {isRecuperador && (
@@ -211,7 +233,7 @@ const GestionRecuperadoresPage = () => {
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{admin.NOM_ADMI}</p>
+                          <p className="text-sm font-semibold text-gray-800">{admin.NOM_ADMI}</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1">
                             <span>📍</span> {admin.AGENCIA}
                           </p>
@@ -395,7 +417,7 @@ const GestionRecuperadoresPage = () => {
             <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
               Cargando socios en mora...
             </div>
-          ) : sociosMora.length === 0 ? (
+          ) : sociosToShow.length === 0 ? (
             <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
               Sin socios en mora para este periodo
             </div>
@@ -486,7 +508,7 @@ const GestionRecuperadoresPage = () => {
                       return (
                         <tr key={i} className="hover:bg-gray-50 transition-colors">
                           <td className="px-4 py-3">
-                            <p className="font-medium text-gray-800 truncate max-w-[160px]">{socio.CREDITO_MORA.SOCIO}</p>
+                            <p className="font-medium text-gray-800">{socio.CREDITO_MORA.SOCIO}</p>
                             <p className="text-xs text-gray-400">{socio.CREDITO_MORA.PRODUCTO}</p>
                           </td>
                           <td className="px-4 py-3 text-xs text-gray-500">{socio.CREDITO_MORA.PAGARE}</td>
@@ -712,7 +734,7 @@ const GestionRecuperadoresPage = () => {
                           >
                             <td className="px-2 py-1.5 text-xs font-medium text-gray-900 flex items-center">
                               <span className="bg-cyan-500 w-1.5 h-3 rounded-full mr-1.5"></span>
-                              <span className="truncate max-w-[120px]">{responsable}</span>
+                              <span>{responsable}</span>
                             </td>
                             <td className="px-2 py-1.5 text-center">
                               <span className="bg-gray-100 px-2 py-0.5 rounded-full text-xs font-medium">{data.total_gestiones}</span>

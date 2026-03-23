@@ -60,6 +60,19 @@ export interface CreditoMora {
   CELULAR: string;
 }
 
+export interface CreditoMoraBusqueda {
+  CUENTA: string;
+  OTORGA: string;
+  PAGARE: string;
+  RAZON_SOCIAL: string;
+  POR_PAGAR: number;
+  CUOTAS_PAGAR: number;
+  SALDO_PRESENTE: string;
+  DIAS_ATRASO: string;
+  PRODUCTO: string;
+  CELULAR: string;
+  NRO_DI: string;
+}
 export interface GestionMora {
   ID_GESTION: string;
   MOTIVO_RETRASO: string;
@@ -94,6 +107,12 @@ export interface GestionMora {
 
 export interface SocioMora {
   CREDITO_MORA: CreditoMora;
+  GESTION_MORA: GestionMora[];
+}
+
+
+export interface SocioMoraBusqueda {
+  CREDITO_MORA: CreditoMoraBusqueda;
   GESTION_MORA: GestionMora[];
 }
 
@@ -152,7 +171,7 @@ export const getCurrentPeriodo = (): string => {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   return `${year}${month}`;
 };
-
+// lista de analistas por agencia y periodo
 export const getAnalistasByAgencia = async (agencia: string, periodo: string): Promise<Analista[]> => {
   const { data } = await axiosInstance.post('m-recuperacion/analistas-by-agencia', {
     PERIODO: periodo,
@@ -160,6 +179,44 @@ export const getAnalistasByAgencia = async (agencia: string, periodo: string): P
   });
   return data;
 };
+
+// Función para transformar SocioMoraBusqueda a SocioMora (compatible)
+const transformarSocioMoraBusqueda = (apiResponse: any): SocioMora[] => {
+  // La API devuelve un objeto con estructura { status, count, data }
+  if (!apiResponse || !apiResponse.data || !Array.isArray(apiResponse.data)) {
+    console.warn('La respuesta de la API no tiene el formato esperado:', apiResponse);
+    return [];
+  }
+
+  return apiResponse.data.map((socio: any) => ({
+    CREDITO_MORA: {
+      CUENTA: socio.CREDITO_MORA.CUENTA,
+      OTORGA: socio.CREDITO_MORA.OTORGA,
+      PAGARE: socio.CREDITO_MORA.PAGARE,
+      SOCIO: socio.CREDITO_MORA.RAZON_SOCIAL, // Mapear RAZON_SOCIAL a SOCIO
+      POR_PAGAR: socio.CREDITO_MORA.POR_PAGAR,
+      CUOTAS_PAGAR: socio.CREDITO_MORA.CUOTAS_PAGAR,
+      SALDO_PRESENTE: socio.CREDITO_MORA.SALDO_PRESENTE,
+      DIAS_ATRASO: socio.CREDITO_MORA.DIAS_ATRASO,
+      PRODUCTO: socio.CREDITO_MORA.PRODUCTO,
+      CELULAR: socio.CREDITO_MORA.CELULAR
+    },
+    GESTION_MORA: socio.GESTIONES || [] // Mapear GESTIONES a GESTION_MORA
+  }));
+};
+
+// Consultar socio en mora POR DNI O RAZON SOCIAL  TIPO_DOC: 01 AND DNI: 0123456789 TIPO_DOC: 02 AND NOMBRE
+export const consultarSocioEnMora = async (tipo_doc: string, razon: string): Promise<SocioMora[]> => {
+  const { data } = await axiosInstance.post('m-recuperacion/consultar-socio-en-mora', {
+    tipo_doc,
+    razon: razon.trim()
+  });
+  
+  // Transformar los datos de búsqueda al formato compatible
+  return transformarSocioMoraBusqueda(data);
+}
+
+
 
 //reporte de mroa por agencia 
 export interface ReporteMoraData {
@@ -281,3 +338,4 @@ export const getGestionesXEstadosGeneral = async ():Promise<ReporteMoraData> => 
     throw error;
   }
 };
+

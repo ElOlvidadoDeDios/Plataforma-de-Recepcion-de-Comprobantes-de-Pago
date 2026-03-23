@@ -17,7 +17,7 @@ const GestionesXEstados = ({ data }: Props) => {
   const detalles = data.detalles?.[activeTab] || [];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden min-w-[800px] max-w-full">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100">
         <h2 className="text-sm font-semibold text-gray-700">Gestiones por estado</h2>
@@ -46,7 +46,7 @@ const GestionesXEstados = ({ data }: Props) => {
                     <div className="w-6 h-6 bg-[#0f2d5e] rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                       {nombre.charAt(0)}
                     </div>
-                    <span className="font-medium text-gray-700 truncate max-w-[140px]">{nombre}</span>
+                    <span className="font-medium text-gray-700">{nombre}</span>
                   </div>
                 </td>
                 <td className="px-3 py-2 text-gray-500">
@@ -113,14 +113,14 @@ const GestionesXEstados = ({ data }: Props) => {
               {detalles.map((item: any, i: number) => (
                 <tr key={i} className="hover:bg-gray-50 transition-colors">
                   <td className="px-3 py-2 font-medium text-gray-700">{item.PAGARE}</td>
-                  <td className="px-3 py-2 text-gray-600 max-w-[140px] truncate" title={item.DETALLE_GESTION.MOTIVO_RETRASO}>
+                  <td className="px-3 py-2 text-gray-600" title={item.DETALLE_GESTION.MOTIVO_RETRASO}>
                     {item.DETALLE_GESTION.MOTIVO_RETRASO}
                   </td>
-                  <td className="px-3 py-2 text-gray-600 max-w-[140px] truncate" title={item.DETALLE_GESTION.COMPROMISO}>
+                  <td className="px-3 py-2 text-gray-600" title={item.DETALLE_GESTION.COMPROMISO}>
                     {item.DETALLE_GESTION.COMPROMISO}
                   </td>
                   <td className="px-3 py-2 text-gray-500">{item.DETALLE_GESTION.FECHA_COMPROMISO}</td>
-                  <td className="px-3 py-2 text-gray-600 max-w-[120px] truncate" title={item.DETALLE_GESTION.RESPONSABLE}>
+                  <td className="px-3 py-2 text-gray-600" title={item.DETALLE_GESTION.RESPONSABLE}>
                     {item.DETALLE_GESTION.RESPONSABLE}
                   </td>
                   <td className="px-3 py-2 text-center">

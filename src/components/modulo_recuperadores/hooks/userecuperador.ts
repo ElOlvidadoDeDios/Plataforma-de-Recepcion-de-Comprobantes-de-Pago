@@ -24,13 +24,14 @@ export const useGestionMora = () => {
   const isAdmin = user?.role === UserRole.ADMINISTRADOR;
   const isRecuperador = user?.role === UserRole.RECUPERADOR;
   const isJefeRecuperaciones = user?.role === UserRole.JEFE_RECUPERACIONES;
+
   const isSuperOrGerente = user?.role === UserRole.SUPER_ADMIN ||
     user?.role === UserRole.GERENTE_GENERAL ||
     user?.role === UserRole.ADMINISTRADOR ||
     user?.role === UserRole.JEFE_RECUPERACIONES;
   const canSeeAdministradores = user?.role === UserRole.SUPER_ADMIN ||
     user?.role === UserRole.GERENTE_GENERAL ||
-    user?.role === UserRole.JEFE_RECUPERACIONES;
+    user?.role === UserRole.JEFE_RECUPERACIONES ;
 
   const [periodo, setPeriodo] = useState(getCurrentPeriodo());
   const [selectedAdmin, setSelectedAdmin] = useState<recuperador | null>(null);
@@ -128,7 +129,7 @@ export const useGestionMora = () => {
   // Gestiones por estados - condicional:
   // - Para SUPER_ADMIN y JEFE_RECUPERACIONES sin seleccionar recuperador: reporte general
   // - Para otros casos o cuando ya seleccionaron recuperador: reporte por agencia
-  const shouldUseGeneralReport = (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.JEFE_RECUPERACIONES) && !selectedAdmin;
+  const shouldUseGeneralReport = (user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.JEFE_RECUPERACIONES || user?.role === UserRole.GERENTE_GENERAL) && !selectedAdmin;
   
   const { data: gestionesXEstados } = useQuery({
     queryKey: shouldUseGeneralReport ? ['gestiones-estados-general'] : ['gestiones-estados', selectedAdmin?.AGENCIA],
