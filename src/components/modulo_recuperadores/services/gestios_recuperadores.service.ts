@@ -126,6 +126,7 @@ export interface SaveGestionDto {
   REGISTRADOR: string;
   NOMBRE_A: string;
   AGENCIA: string;
+  SITUACION_SOCIO?: string;
 }
 
 export interface GestionXEstados {

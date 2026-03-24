@@ -24,9 +24,10 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
     MOTIVO: '',
     COMPROMISO: '',
     FECHA_COMPROMISO: today,
+    SITUACION_SOCIO: 'HABIDO', // Valor por defecto
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError(null); // Limpiar errores al cambiar valores
   };
@@ -44,12 +45,12 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
         MOTIVO: form.MOTIVO,
         COMPROMISO: form.COMPROMISO,
         FECHA_COMPROMISO: form.FECHA_COMPROMISO,
+        SITUACION_SOCIO: form.SITUACION_SOCIO, // Nuevo campo agregado
         REGISTRADOR: user?.dni || '', // Enviar DNI del responsable
-        NOMBRE_A: user?.razon || '',
+        NOMBRE_A: (user?.razon || '').replace(/,/g, ''), // Remover comas del nombre
         AGENCIA: Object.keys(AGENCIAS).find((key) => AGENCIAS[key as keyof typeof AGENCIAS] === user?.id_age) || user?.id_age || '',
       };
 
-      console.log('Enviando datos de gestión:', gestionData);
       const response = await saveGestionMora(gestionData);
       
       if (response.status) {
@@ -71,12 +72,43 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
   return createPortal(
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 md:p-4">
       <div className="bg-white rounded-2xl w-full max-w-full md:max-w-2xl shadow-xl">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <div>
-            <h2 className="font-bold text-gray-800">Registrar gestión</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{CREDITO_MORA.SOCIO} · {CREDITO_MORA.PAGARE}</p>
+        <div className="flex items-start justify-between p-5 border-b border-gray-100">
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-bold text-gray-800">Registrar gestión</h2>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-600">Situación del socio:</span>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, SITUACION_SOCIO: 'HABIDO' })}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                      form.SITUACION_SOCIO === 'HABIDO'
+                        ? 'bg-green-500 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                    disabled={isSaving || success}
+                  >
+                    ✅ HABIDO
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, SITUACION_SOCIO: 'NO HABIDO' })}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                      form.SITUACION_SOCIO === 'NO HABIDO'
+                        ? 'bg-red-500 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                    disabled={isSaving || success}
+                  >
+                    ❌ NO HABIDO
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">{CREDITO_MORA.SOCIO} · {CREDITO_MORA.PAGARE}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-4">
             <X className="w-5 h-5" />
           </button>
         </div>
