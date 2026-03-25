@@ -19,6 +19,10 @@ const GestionRecuperadoresPage = () => {
     miAnalistaPropio,
     sociosMora, loadingSocios,
     gestionesXEstados,
+    // ── nuevas props del filtro de fecha ──
+    fechaFiltro,
+    setFechaFiltro,
+    loadingGestiones,
   } = useGestionMora();
 
   const [modal, setModal] = useState<'ver' | 'gestionar' | 'whatsapp' | null>(null);
@@ -36,7 +40,15 @@ const GestionRecuperadoresPage = () => {
     setModal(null);
     setSelectedSocio(null);
   };
+  const handleOpenGestiones = () => {
+    setFechaFiltro('');        // ← limpia fecha al abrir
+    setShowGestiones(true);
+  };
 
+  const handleCloseGestiones = () => {
+    setFechaFiltro('');        // ← limpia fecha al cerrar
+    setShowGestiones(false);
+  };
   const handleSocioSelect = (socio: SocioMora, action: 'ver' | 'gestionar' | 'whatsapp') => {
     openModal(socio, action);
   };
@@ -77,7 +89,7 @@ const GestionRecuperadoresPage = () => {
 
           {(isSuperOrGerente || isRecuperador) && gestionesXEstados && (
             <button
-              onClick={() => setShowGestiones(true)}
+              onClick={handleOpenGestiones}
               className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg text-sm font-medium hover:bg-cyan-600 transition-colors shadow-sm"
             >
               <BarChart2 className="w-4 h-4" />
@@ -642,7 +654,7 @@ const GestionRecuperadoresPage = () => {
         </div>
       )}
 
-      {/* ── Modal Reporte de Gestiones ── solo header + GestionesXEstados */}
+      {/* ── Modal Reporte de Gestiones ── */}
       {showGestiones && gestionesXEstados && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 md:p-4">
           <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-lg shadow-2xl w-full max-w-full md:max-w-8xl max-h-[98vh] overflow-hidden border border-cyan-200">
@@ -653,7 +665,7 @@ const GestionRecuperadoresPage = () => {
                   <p className="text-cyan-100 text-xs mt-1">Agencia: {gestionesXEstados.AGENCIA}</p>
                 </div>
                 <button
-                  onClick={() => setShowGestiones(false)}
+                  onClick={handleCloseGestiones}
                   className="text-white hover:text-cyan-200 transition-colors duration-200 bg-white bg-opacity-20 rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-30"
                 >
                   <span className="text-lg font-bold">×</span>
@@ -661,7 +673,13 @@ const GestionRecuperadoresPage = () => {
               </div>
             </div>
             <div className="p-2 md:p-4 overflow-y-auto max-h-[calc(95vh-80px)]">
-              <GestionesXEstados data={gestionesXEstados} />
+              {/* ✅ Ahora con las 3 props del filtro de fecha */}
+              <GestionesXEstados
+                data={gestionesXEstados}
+                fechaFiltro={fechaFiltro}
+                setFechaFiltro={setFechaFiltro}
+                loadingGestiones={loadingGestiones}
+              />
             </div>
           </div>
         </div>

@@ -24,16 +24,36 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
     MOTIVO: '',
     COMPROMISO: '',
     FECHA_COMPROMISO: today,
-    SITUACION_SOCIO: 'HABIDO', // Valor por defecto
+    SITUACION_SOCIO: 'HABIDO',
   });
+
+  // ✅ Si es HABIDO los campos son obligatorios, caso contrario son opcionales
+  const isHabido = form.SITUACION_SOCIO === 'HABIDO';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    setError(null); // Limpiar errores al cambiar valores
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validación manual solo si es HABIDO
+    if (isHabido) {
+      if (!form.MOTIVO.trim()) {
+        setError('El motivo de retraso es obligatorio cuando el socio está HABIDO.');
+        return;
+      }
+      if (!form.COMPROMISO.trim()) {
+        setError('El compromiso es obligatorio cuando el socio está HABIDO.');
+        return;
+      }
+      if (!form.FECHA_COMPROMISO) {
+        setError('La fecha de compromiso es obligatoria cuando el socio está HABIDO.');
+        return;
+      }
+    }
+
     setIsSaving(true);
     setError(null);
 
@@ -42,22 +62,22 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
         PAGARE: CREDITO_MORA.PAGARE,
         CUENTA: CREDITO_MORA.CUENTA,
         OTORGA: CREDITO_MORA.OTORGA,
-        MOTIVO: form.MOTIVO,
-        COMPROMISO: form.COMPROMISO,
-        FECHA_COMPROMISO: form.FECHA_COMPROMISO,
-        SITUACION_SOCIO: form.SITUACION_SOCIO, // Nuevo campo agregado
-        REGISTRADOR: user?.dni || '', // Enviar DNI del responsable
-        NOMBRE_A: (user?.razon || '').replace(/,/g, ''), // Remover comas del nombre
+        MOTIVO: form.MOTIVO || '',
+        COMPROMISO: form.COMPROMISO || ' ',
+        FECHA_COMPROMISO: form.FECHA_COMPROMISO || '',
+        SITUACION_SOCIO: form.SITUACION_SOCIO,
+        REGISTRADOR: user?.dni || '',
+        NOMBRE_A: (user?.razon || '').replace(/,/g, ''),
         AGENCIA: Object.keys(AGENCIAS).find((key) => AGENCIAS[key as keyof typeof AGENCIAS] === user?.id_age) || user?.id_age || '',
       };
 
       const response = await saveGestionMora(gestionData);
-      
+
       if (response.status) {
         setSuccess(true);
         setTimeout(() => {
           onClose();
-        }, 1500); // Cerrar después de mostrar éxito
+        }, 1500);
       } else {
         setError(response.message || 'Error al guardar la gestión');
       }
@@ -78,32 +98,17 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
               <h2 className="font-bold text-gray-800">Registrar gestión</h2>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-600">Situación del socio:</span>
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, SITUACION_SOCIO: 'HABIDO' })}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                      form.SITUACION_SOCIO === 'HABIDO'
-                        ? 'bg-green-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                    disabled={isSaving || success}
-                  >
-                    ✅ HABIDO
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setForm({ ...form, SITUACION_SOCIO: 'NO HABIDO' })}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                      form.SITUACION_SOCIO === 'NO HABIDO'
-                        ? 'bg-red-500 text-white shadow-sm'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                    disabled={isSaving || success}
-                  >
-                    ❌ NO HABIDO
-                  </button>
-                </div>
+                <select
+                  name="SITUACION_SOCIO"
+                  value={form.SITUACION_SOCIO}
+                  onChange={handleChange}
+                  className="px-3 py-1 text-xs font-medium rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={isSaving || success}
+                >
+                  <option value="HABIDO">✅ HABIDO</option>
+                  <option value="NO HABIDO">❌ NO HABIDO</option>
+                  <option value="NO UBICADO">⚠️ NO UBICADO</option>
+                </select>
               </div>
             </div>
             <p className="text-xs text-gray-400">{CREDITO_MORA.SOCIO} · {CREDITO_MORA.PAGARE}</p>
@@ -129,12 +134,14 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
           )}
 
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Motivo de retraso *</label>
+            {/* Etiqueta con indicador de obligatorio según situación */}
+            <label className="text-xs font-medium text-gray-600 block mb-1">
+              Motivo de retraso {isHabido ? <span className="text-red-500">*</span> : <span className="text-gray-400">(opcional)</span>}
+            </label>
             <textarea
               name="MOTIVO"
               value={form.MOTIVO}
               onChange={handleChange}
-              required
               rows={3}
               placeholder="Describe el motivo del retraso..."
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -143,12 +150,13 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Compromiso *</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">
+              Compromiso {isHabido ? <span className="text-red-500">*</span> : <span className="text-gray-400">(opcional)</span>}
+            </label>
             <textarea
               name="COMPROMISO"
               value={form.COMPROMISO}
               onChange={handleChange}
-              required
               rows={3}
               placeholder="¿Qué compromiso asume el socio?..."
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -157,13 +165,14 @@ const GestionarSocioModal = ({ socio, onClose }: Props) => {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Fecha de compromiso *</label>
+            <label className="text-xs font-medium text-gray-600 block mb-1">
+              Fecha de compromiso {isHabido ? <span className="text-red-500">*</span> : <span className="text-gray-400">(opcional)</span>}
+            </label>
             <input
               type="date"
               name="FECHA_COMPROMISO"
               value={form.FECHA_COMPROMISO}
               onChange={handleChange}
-              required
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isSaving || success}
             />

@@ -145,7 +145,84 @@ export interface GestionXEstados {
     INCUMPLIDOS: any[];
   };
 }
+  //reporte de mroa por agencia 
+  export interface ReporteMoraData {
+    AGENCIA: string;
+    status: boolean;
+    message: string;
+    resumen: {
+      total_pending: number;
+      total_cumplido: number;
+      total_incumplido: number;
+      TOTAL_GESTIONES: number;
+    };
+    resumen_responsables: {
+      [key: string]: {
+        total_gestiones: number;
+        por_estado: {
+          PENDING: number;
+          CUMPLIDO: number;
+          INCUMPLIMIENTO: number;
+        };
+        agencias: string[];
+      };
+    };
+    detalles: {
+      PENDIENTE: Array<{
+        PAGARE: string;
+        CUENTA: string;
+        OTORGA: string;
+        PERIODO: string;
+        DETALLE_GESTION: {
+          ID_DETALLE: string;
+          MOTIVO_RETRASO: string;
+          COMPROMISO: string;
+          FECHA_COMPROMISO: string;
+          RESPONSABLE: string;
+          AGENCIA: string;
+          ESTADO: string;
+        };
+      }>;
+      CUMPLIDO: Array<{
+        PAGARE: string;
+        CUENTA: string;
+        OTORGA: string;
+        PERIODO: string;
+        DETALLE_GESTION: {
+          ID_DETALLE: string;
+          MOTIVO_RETRASO: string;
+          COMPROMISO: string;
+          FECHA_COMPROMISO: string;
+          RESPONSABLE: string;
+          AGENCIA: string;
+          ESTADO: string;
+        };
+      }>;
+      INCUMPLIDOS: Array<{
+        PAGARE: string;
+        CUENTA: string;
+        OTORGA: string;
+        PERIODO: string;
+        DETALLE_GESTION: {
+          ID_DETALLE: string;
+          MOTIVO_RETRASO: string;
+          COMPROMISO: string;
+          FECHA_COMPROMISO: string;
+          RESPONSABLE: string;
+          AGENCIA: string;
+          ESTADO: string;
+        };
+      }>;
+    };
+  }
 
+// lista de de gestiones por fecha
+export const getGestionesFecha = async (FECHA: string): Promise<ReporteMoraData> => {
+  const { data } = await axiosInstance.post('m-recuperacion/filtrar-gestiones-por-fecha', {
+    FECHA: FECHA
+  });
+  return data;
+};
 
 // lista de recuperadores 
 export const getRecuperadores = async (): Promise<recuperador[]> => {
@@ -219,76 +296,6 @@ export const consultarSocioEnMora = async (tipo_doc: string, razon: string): Pro
 
 
 
-//reporte de mroa por agencia 
-export interface ReporteMoraData {
-  AGENCIA: string;
-  status: boolean;
-  message: string;
-  resumen: {
-    total_pending: number;
-    total_cumplido: number;
-    total_incumplido: number;
-    TOTAL_GESTIONES: number;
-  };
-  resumen_responsables: {
-    [key: string]: {
-      total_gestiones: number;
-      por_estado: {
-        PENDING: number;
-        CUMPLIDO: number;
-        INCUMPLIMIENTO: number;
-      };
-      agencias: string[];
-    };
-  };
-  detalles: {
-    PENDIENTE: Array<{
-      PAGARE: string;
-      CUENTA: string;
-      OTORGA: string;
-      PERIODO: string;
-      DETALLE_GESTION: {
-        ID_DETALLE: string;
-        MOTIVO_RETRASO: string;
-        COMPROMISO: string;
-        FECHA_COMPROMISO: string;
-        RESPONSABLE: string;
-        AGENCIA: string;
-        ESTADO: string;
-      };
-    }>;
-    CUMPLIDO: Array<{
-      PAGARE: string;
-      CUENTA: string;
-      OTORGA: string;
-      PERIODO: string;
-      DETALLE_GESTION: {
-        ID_DETALLE: string;
-        MOTIVO_RETRASO: string;
-        COMPROMISO: string;
-        FECHA_COMPROMISO: string;
-        RESPONSABLE: string;
-        AGENCIA: string;
-        ESTADO: string;
-      };
-    }>;
-    INCUMPLIDOS: Array<{
-      PAGARE: string;
-      CUENTA: string;
-      OTORGA: string;
-      PERIODO: string;
-      DETALLE_GESTION: {
-        ID_DETALLE: string;
-        MOTIVO_RETRASO: string;
-        COMPROMISO: string;
-        FECHA_COMPROMISO: string;
-        RESPONSABLE: string;
-        AGENCIA: string;
-        ESTADO: string;
-      };
-    }>;
-  };
-}
 // lista de  gestion de mora por estado
 export const getReporteMora = async (AGENCIA: string): Promise<ReporteMoraData> => {
     try {

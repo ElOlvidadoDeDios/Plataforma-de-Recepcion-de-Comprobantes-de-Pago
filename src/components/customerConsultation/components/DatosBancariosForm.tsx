@@ -55,6 +55,16 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
+    // Solo permitir dígitos (sin espacios ni otros caracteres) en campos numéricos
+    if (name === 'NUM_CUENTA' || name === 'NUM_CUENTA_CCI') {
+      const soloNumeros = value.replace(/\D/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: soloNumeros
+      }));
+      return;
+    }
+
     // Si cambia el tipo de cuenta, limpiar campos relacionados
     if (name === 'TIPO_CUENTA') {
       setFormData(prev => ({
@@ -211,9 +221,6 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
     ]
   };
 
-  // Función para determinar si es BBVA
-  //const esBBVA = formData.BANCO === 'BBVA - Banco Continental';
-  
   // Obtener bancos disponibles según el tipo de cuenta
   const bancosDisponibles = formData.TIPO_CUENTA ? bancosPorTipo[formData.TIPO_CUENTA as keyof typeof bancosPorTipo] || [] : [];
 
@@ -310,7 +317,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                   <option 
                     key={tipo} 
                     value={tipo}
-                    disabled={tipo === 'BILLETERA_DIGITAL'} // Deshabilitar solo billetera digital
+                    disabled={tipo === 'BILLETERA_DIGITAL'}
                   >
                     {tipo === 'BILLETERA_DIGITAL' ? 'Billetera Digital (Temporalmente no disponible)' : 
                      tipo === 'PLAZO_FIJO' ? 'Cuenta a Plazo Fijo' :
@@ -346,7 +353,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
               </select>
             </div>
 
-            {/*ingresar numero de cuenta */}
+            {/* Número de Cuenta */}
             {formData.BANCO && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -358,18 +365,17 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                   value={formData.NUM_CUENTA || ''}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                  placeholder={'Ingrese el número de cuenta por favor'}
+                  placeholder="Solo números, sin espacios"
+                  inputMode="numeric"
                   required
                 />
-                { (
-                  <p className="text-xs text-gray-500 mt-1">
-                    El número de cuenta es el número de cuenta bancaria asignado por su banco
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  El número de cuenta es el número bancario asignado por su banco (solo dígitos)
+                </p>
               </div>
             )}
 
-            {/* Campo: CCI o Número de Cuenta según el banco */}
+            {/* Número de Cuenta CCI */}
             {formData.BANCO && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -381,14 +387,14 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                   value={formData.NUM_CUENTA_CCI || ''}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                  placeholder={'Ingrese el CCI por favor'}
+                  placeholder="20 dígitos, sin espacios"
+                  inputMode="numeric"
+                  maxLength={20}
                   required
                 />
-                { (
-                  <p className="text-xs text-gray-500 mt-1">
-                    El CCI es un código de 20 dígitos que identifica de manera única su cuenta bancaria
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  El CCI es un código de 20 dígitos que identifica de manera única su cuenta bancaria (solo dígitos)
+                </p>
               </div>
             )}
              

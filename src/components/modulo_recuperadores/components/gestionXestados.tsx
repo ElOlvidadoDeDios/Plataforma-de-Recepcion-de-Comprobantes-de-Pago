@@ -4,16 +4,30 @@ import { GestionXEstados } from '../services/gestios_recuperadores.service';
 
 interface Props {
   data: GestionXEstados;
+  // ── nuevas props para el filtro de fecha ──
+  fechaFiltro: string;
+  setFechaFiltro: (fecha: string) => void;
+  loadingGestiones?: boolean;
 }
 
-const GestionesXEstados = ({ data }: Props) => {
+const GestionesXEstados = ({ data, fechaFiltro, setFechaFiltro, loadingGestiones }: Props) => {
   const [activeTab, setActiveTab] = useState<'PENDIENTE' | 'CUMPLIDO' | 'INCUMPLIDOS'>('PENDIENTE');
   const [selectedResponsable, setSelectedResponsable] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
+  const today = new Date().toISOString().split('T')[0];
+
   const handleResponsableClick = (responsable: string) => {
     setSelectedResponsable(responsable);
     setShowModal(true);
+  };
+
+  const handleFechaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFechaFiltro(e.target.value); // formato "YYYY-MM-DD" — exacto al que espera el endpoint
+  };
+
+  const handleLimpiarFecha = () => {
+    setFechaFiltro('');
   };
 
   const getFilteredGestionsByResponsable = () => {
@@ -68,6 +82,46 @@ const GestionesXEstados = ({ data }: Props) => {
 
   return (
     <div className="space-y-3">
+
+      {/* ── Filtro por Fecha ── */}
+      <div className="bg-white rounded-lg p-3 shadow-sm border border-cyan-200">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center gap-2 flex-1">
+            <span className="bg-cyan-500 w-1.5 h-5 rounded-full shrink-0"></span>
+            <span className="text-sm font-semibold text-gray-700">Filtrar por fecha</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={fechaFiltro}
+              max={today}
+              onChange={handleFechaChange}
+              className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            />
+            {fechaFiltro && (
+              <button
+                onClick={handleLimpiarFecha}
+                className="px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Limpiar
+              </button>
+            )}
+            {/* Indicador de qué datos se están mostrando */}
+            <span className={`px-2 py-1 rounded-full text-[10px] font-medium border ${
+              fechaFiltro
+                ? 'bg-cyan-50 text-cyan-700 border-cyan-300'
+                : 'bg-gray-50 text-gray-500 border-gray-200'
+            }`}>
+              {fechaFiltro ? `📅 ${fechaFiltro}` : '📊 General'}
+            </span>
+          </div>
+        </div>
+
+        {/* Loading state mientras carga por fecha */}
+        {loadingGestiones && (
+          <p className="text-xs text-cyan-500 mt-2 animate-pulse">Cargando gestiones...</p>
+        )}
+      </div>
 
       {/* ── Resumen General ── */}
       <div className="bg-white rounded-lg p-3 shadow-sm border border-cyan-200">
@@ -254,25 +308,16 @@ const GestionesXEstados = ({ data }: Props) => {
                 {detalles.map((item: any, i: number) => (
                   <tr key={i} className="hover:bg-cyan-50 transition-colors">
                     <td className="px-3 py-2 font-medium text-gray-700">{item.PAGARE}</td>
-                    <td
-                      className="px-3 py-2 text-gray-600"
-                      title={item.DETALLE_GESTION.MOTIVO_RETRASO}
-                    >
+                    <td className="px-3 py-2 text-gray-600" title={item.DETALLE_GESTION.MOTIVO_RETRASO}>
                       {item.DETALLE_GESTION.MOTIVO_RETRASO}
                     </td>
-                    <td
-                      className="px-3 py-2 text-gray-600"
-                      title={item.DETALLE_GESTION.COMPROMISO}
-                    >
+                    <td className="px-3 py-2 text-gray-600" title={item.DETALLE_GESTION.COMPROMISO}>
                       {item.DETALLE_GESTION.COMPROMISO}
                     </td>
                     <td className="px-3 py-2 text-gray-500">
                       {item.DETALLE_GESTION.FECHA_COMPROMISO}
                     </td>
-                    <td
-                      className="px-3 py-2 text-gray-600"
-                      title={item.DETALLE_GESTION.RESPONSABLE}
-                    >
+                    <td className="px-3 py-2 text-gray-600" title={item.DETALLE_GESTION.RESPONSABLE}>
                       {item.DETALLE_GESTION.RESPONSABLE}
                     </td>
                     <td className="px-3 py-2 text-center">
@@ -353,16 +398,10 @@ const GestionesXEstados = ({ data }: Props) => {
                               {detalle.DETALLE_GESTION.ESTADO}
                             </span>
                           </td>
-                          <td
-                            className="px-2 py-1.5"
-                            title={detalle.DETALLE_GESTION.MOTIVO_RETRASO}
-                          >
+                          <td className="px-2 py-1.5" title={detalle.DETALLE_GESTION.MOTIVO_RETRASO}>
                             {detalle.DETALLE_GESTION.MOTIVO_RETRASO}
                           </td>
-                          <td
-                            className="px-2 py-1.5"
-                            title={detalle.DETALLE_GESTION.COMPROMISO}
-                          >
+                          <td className="px-2 py-1.5" title={detalle.DETALLE_GESTION.COMPROMISO}>
                             {detalle.DETALLE_GESTION.COMPROMISO}
                           </td>
                           <td className="px-2 py-1.5">
