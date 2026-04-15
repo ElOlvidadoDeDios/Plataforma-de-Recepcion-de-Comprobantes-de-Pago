@@ -54,6 +54,7 @@ export interface DatosBancarios {
   TIPO_CUENTA: string | null;
   NUM_CUENTA: string | null;
   NUM_CUENTA_CCI: string | null;
+  NUM_CCI?: string | null; // Alias usado en consultas
   DNI_SOCIO: string | null;
   CUENTA_DILE: string | null;
   DNI_TITULAR: string | null;

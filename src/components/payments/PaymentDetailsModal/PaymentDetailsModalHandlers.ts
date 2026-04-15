@@ -152,6 +152,7 @@ export const handleUpdateStatus = async (
           fecha: payment.fecha,
           hora: payment.hora,
           estadoGeneral: 'atendido',
+          //origen: payment.origen,
         },
         detalles: payment.comprobantebase_64.map((comp, idx) => {
           // Buscar el detalle correspondiente
@@ -174,6 +175,7 @@ export const handleUpdateStatus = async (
             _id: comp._id || '',
             motivo_rechazo: finalReason,
             fecha_voucher: detail.fecha_voucher || '',
+            origen: detail.origen || '',
           };
         }).filter((d): d is NonNullable<typeof d> => d !== null)
       }))
@@ -298,6 +300,7 @@ export const handleUpdateStatus = async (
           _id: comp._id || '',
           motivo_rechazo: shouldReject ? finalReason : detail.motivo_rechazo,
           fecha_voucher: detail.fecha_voucher || '',
+          origen: detail.origen || '',
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null);
 
@@ -314,6 +317,7 @@ export const handleUpdateStatus = async (
           dni: payment.dni,
           fecha: payment.fecha,
           hora: payment.hora,
+          //origen: payment.origen,
           estadoGeneral,
         },
         detalles: voucherDetails,
@@ -492,6 +496,7 @@ export const handlePartialAcceptStatus = async (
           nro_banco: detail.nro_banco || '',
           banco: globalBanco || '', // Usar banco global
           fecha_voucher: detail.fecha_voucher || '',
+          origen: detail.origen || '',
           estado: shouldAccept ? 'aceptado' as const : detail.estado,
           _id: comp._id || '',
           motivo_rechazo: shouldAccept ? '' : detail.motivo_rechazo,
@@ -514,6 +519,7 @@ export const handlePartialAcceptStatus = async (
           dni: payment.dni,
           fecha: payment.fecha,
           hora: payment.hora,
+          //origen: payment.origen,
           estadoGeneral,
         },
         detalles: voucherDetails,
@@ -672,6 +678,7 @@ export const handleAcceptStatus = async (
         dni: payment.dni,
         fecha: payment.fecha,
         hora: payment.hora,
+        //origen: payment.origen,
         estadoGeneral: 'atendido',
       },
       detalles: payment.comprobantebase_64.map((comp, idx) => {
@@ -696,6 +703,7 @@ export const handleAcceptStatus = async (
           motivo_rechazo: detail.estado === 'pendiente' ? '' : detail.motivo_rechazo,
           monto_pago: parseFloat(detail.montoPago) || 0,  // ✅ AGREGAR COMO NÚMERO
           fecha_voucher: detail.fecha_voucher || '',
+          origen: detail.origen || '',
         };
       }).filter((d): d is NonNullable<typeof d> => d !== null)
     }))

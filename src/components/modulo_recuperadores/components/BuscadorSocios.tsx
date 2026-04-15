@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { SocioMora, consultarSocioEnMora } from '../services/gestios_recuperadores.service';
 
 interface BuscadorSociosProps {
@@ -42,6 +43,13 @@ const BuscadorSocios: React.FC<BuscadorSociosProps> = ({ onSocioSelect }) => {
   const selectSocio = (socio: SocioMora, action: 'ver' | 'gestionar' | 'whatsapp') => {
     onSocioSelect(socio, action);
     // Removido clearSearch() para mantener los resultados visibles
+  };
+
+  // Función para abrir Google Maps con la URL del socio
+  const handleOpenMaps = (socio: SocioMora) => {
+    if (socio.CREDITO_MORA.URL_MAPS) {
+      window.open(socio.CREDITO_MORA.URL_MAPS, '_blank');
+    }
   };
 
   // Función para manejar Enter en el input
@@ -213,6 +221,16 @@ const BuscadorSocios: React.FC<BuscadorSociosProps> = ({ onSocioSelect }) => {
                             <span>📝</span>
                             Gestionar
                           </button>
+                          {socio.CREDITO_MORA.URL_MAPS && (
+                            <button
+                              onClick={() => handleOpenMaps(socio)}
+                              className="px-2 py-1 bg-purple-500 text-white text-xs rounded hover:bg-purple-600 transition-colors flex items-center gap-1"
+                              title="Ver ubicación en Google Maps"
+                            >
+                              <MapPin className="w-3 h-3" />
+                              Mapa
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

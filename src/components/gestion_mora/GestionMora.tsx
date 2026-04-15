@@ -113,6 +113,7 @@ const GestionMora = () => {
       'AGENCIA QUILLABAMBA': '03',
       'AGENCIA TICA TICA': '08',
       'AGENCIA JULIACA': '98',
+      'AGENCIA MAGISTERIO': '09'
     };
     return mapeoAgencias[nombreAgencia] || '01';
   };
@@ -126,6 +127,7 @@ const GestionMora = () => {
       '01': 'OFICINA PRINCIPAL',
       '03': 'AGENCIA QUILLABAMBA',
       '08': 'AGENCIA TICA TICA',
+      '09': 'AGENCIA MAGISTERIO'
     };
     return mapeoInverso[codigo] || codigo;
   };

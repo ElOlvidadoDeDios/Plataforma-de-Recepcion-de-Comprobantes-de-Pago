@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { verificarOrigen, RespuestaValidacionOrigen, EstadoValidacion } from '../../../api/verificarOrigenPagoApi';
 
 interface VoucherDetail {
   montoPago: string;
@@ -9,6 +10,14 @@ interface VoucherDetail {
   imageIndex: number; // Índice de la imagen correspondiente
   ruta: string; // Ruta de la imagen
   fecha_voucher: string; // Nueva propiedad para la fecha de pago
+  origen: string; // Nueva propiedad para el origen del pago
+}
+
+// Estado de validación por voucher
+interface OrigenValidationState {
+  loading: boolean;
+  resultado: RespuestaValidacionOrigen | null;
+  error: string | null;
 }
 
 interface PaymentFormProps {
@@ -24,6 +33,7 @@ interface PaymentFormProps {
     dni?: string;
   } | null;
   agenciaCode?: string;
+  creditoId?: string; // ID del crédito para validar origen
 }
 
 interface ErrorMessageProps {
@@ -36,6 +46,110 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => (
   </div>
 );
 
+// Componente para mostrar el resultado de validación de origen
+interface OrigenValidationMessageProps {
+  validationState: OrigenValidationState;
+}
+
+const OrigenValidationMessage: React.FC<OrigenValidationMessageProps> = ({ validationState }) => {
+  if (validationState.loading) {
+    return (
+      <div className="mt-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-xs text-gray-500 flex items-center gap-2">
+        <svg className="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Validando origen...
+      </div>
+    );
+  }
+
+  if (validationState.error) {
+    return (
+      <div className="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-600">
+        ❌ {validationState.error}
+      </div>
+    );
+  }
+
+  if (!validationState.resultado) return null;
+
+  const { estado, mensaje, infoPagador, ultimoPago, socioEncontrado, advertencia } = validationState.resultado;
+
+  // Determinar estilo según el estado
+  const getEstiloMensaje = (estado: EstadoValidacion) => {
+    switch (estado) {
+      case 'APROBADO_ORIGEN_COINCIDE':
+      case 'APROBADO_SOCIO_PAGO_DIRECTO':
+        return 'bg-green-50 border-green-200 text-green-700';
+      case 'APROBADO_PAGADOR_HABITUAL_NO_TITULAR':
+        return 'bg-blue-50 border-blue-200 text-blue-700';
+      case 'APROBADO_ORIGEN_NUEVO':
+        return 'bg-yellow-50 border-yellow-200 text-yellow-700';
+      case 'ALERTA_ORIGEN_DE_OTRO_SOCIO':
+        return 'bg-orange-50 border-orange-200 text-orange-700';
+      case 'ALERTA_ORIGEN_NO_COINCIDE_SOCIO':
+      case 'ERROR_CREDITO_NO_ENCONTRADO':
+        return 'bg-red-50 border-red-200 text-red-700';
+      default:
+        return 'bg-gray-50 border-gray-200 text-gray-700';
+    }
+  };
+
+  const estiloClase = getEstiloMensaje(estado);
+  const esAlerta = estado.startsWith('ALERTA_') || estado === 'ERROR_CREDITO_NO_ENCONTRADO';
+
+  return (
+    <div className={`mt-2 px-3 py-2 border rounded-md text-xs ${estiloClase}`}>
+      {/* Mensaje principal */}
+      <p className="font-medium">{mensaje}</p>
+      
+      {/* Info adicional para pagador habitual no titular */}
+      {infoPagador && (
+        <div className="mt-1 pt-1 border-t border-current/20">
+          <p>👤 Pagador: <strong>{infoPagador.pagadorRegistrado}</strong></p>
+          <p>📋 Titular: <strong>{infoPagador.titularCredito}</strong></p>
+          {infoPagador.nota && <p className="italic mt-1">{infoPagador.nota}</p>}
+        </div>
+      )}
+
+      {/* Info de último pago */}
+      {ultimoPago && !infoPagador && (
+        <div className="mt-1 pt-1 border-t border-current/20">
+          <p>📅 Último pago: <strong>{ultimoPago.fechaUltimoPago}</strong> - S/ {ultimoPago.montoUltimoPago}</p>
+          <p>👤 Socio: <strong>{ultimoPago.nombreSocio}</strong></p>
+        </div>
+      )}
+
+      {/* Alerta si pagó a otro socio */}
+      {socioEncontrado && (
+        <div className="mt-1 pt-1 border-t border-current/20">
+          <p>⚠️ Este origen ya pagó al socio: <strong>{socioEncontrado.nombreSocio}</strong></p>
+          <p>🆔 Crédito: {socioEncontrado.creditoId}</p>
+          <p>📅 Fecha: {socioEncontrado.fechaPago}</p>
+        </div>
+      )}
+
+      {/* Advertencia de origen no reconocido */}
+      {advertencia && (
+        <div className="mt-1 pt-1 border-t border-current/20">
+          <p>⚠️ Origen recibido: <strong>{advertencia.origenRecibido}</strong></p>
+          <p>👤 Titular esperado: <strong>{advertencia.socioEsperado}</strong></p>
+          <p className="italic">{advertencia.razon}</p>
+        </div>
+      )}
+
+      {/* Indicador visual para alertas */}
+      {esAlerta && (
+        <div className="mt-2 flex items-center gap-1 text-xs font-bold">
+          <span>⚠️</span>
+          <span>VERIFICAR ANTES DE PROCEDER</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const PaymentForm: React.FC<PaymentFormProps> = ({
   vouchers,
   onUpdateVoucher,
@@ -43,10 +157,108 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   onAcceptVoucher,
   isEditable,
   userData,
-  agenciaCode
+  agenciaCode,
+  creditoId
 }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Estado de validación por imageIndex del voucher (clave única)
+  const [origenValidations, setOrigenValidations] = useState<Record<number, OrigenValidationState>>({});
+  
+  // Refs para debounce
+  const debounceTimers = useRef<Record<number, NodeJS.Timeout>>({});
+  
+  // Ref para trackear el origen anterior por voucher
+  const prevOrigenes = useRef<Record<number, string>>({});
+
+  // Función para validar origen con debounce
+  // Usa imageIndex como identificador único del voucher
+  const validarOrigenDebounced = useCallback((imageIndex: number, origen: string) => {
+    // Limpiar timer anterior si existe
+    if (debounceTimers.current[imageIndex]) {
+      clearTimeout(debounceTimers.current[imageIndex]);
+    }
+
+    // Si no hay creditoId o el origen está vacío, limpiar validación
+    if (!creditoId || !origen.trim()) {
+      setOrigenValidations(prev => ({
+        ...prev,
+        [imageIndex]: { loading: false, resultado: null, error: null }
+      }));
+      prevOrigenes.current[imageIndex] = '';
+      return;
+    }
+
+    // Si el origen no cambió, no revalidar
+    if (prevOrigenes.current[imageIndex] === origen.trim()) {
+      return;
+    }
+
+    // Establecer estado de carga
+    setOrigenValidations(prev => ({
+      ...prev,
+      [imageIndex]: { loading: true, resultado: null, error: null }
+    }));
+
+    // Debounce de 800ms
+    debounceTimers.current[imageIndex] = setTimeout(async () => {
+      try {
+        const resultado = await verificarOrigen({
+          creditoId: creditoId,
+          origen: origen.trim()
+        });
+        
+        prevOrigenes.current[imageIndex] = origen.trim();
+        setOrigenValidations(prev => ({
+          ...prev,
+          [imageIndex]: { loading: false, resultado, error: null }
+        }));
+      } catch (error: any) {
+        setOrigenValidations(prev => ({
+          ...prev,
+          [imageIndex]: {
+            loading: false,
+            resultado: null,
+            error: error.message || 'Error al validar origen'
+          }
+        }));
+      }
+    }, 800);
+  }, [creditoId]);
+
+  // Limpiar timers al desmontar
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
+    };
+  }, []);
+
+  // Limpiar validaciones cuando cambian los vouchers (nuevo pago seleccionado)
+  useEffect(() => {
+    // Obtener los imageIndex actuales de los vouchers
+    const currentImageIndexes = new Set(vouchers.map(v => v.imageIndex));
+    
+    // Limpiar validaciones de vouchers que ya no están
+    setOrigenValidations(prev => {
+      const newValidations: Record<number, OrigenValidationState> = {};
+      Object.keys(prev).forEach(key => {
+        const idx = parseInt(key);
+        if (currentImageIndexes.has(idx)) {
+          newValidations[idx] = prev[idx];
+        }
+      });
+      return newValidations;
+    });
+    
+    // Limpiar también los origenes previos
+    Object.keys(prevOrigenes.current).forEach(key => {
+      const idx = parseInt(key);
+      if (!currentImageIndexes.has(idx)) {
+        delete prevOrigenes.current[idx];
+      }
+    });
+  }, [vouchers]);
 
   // Función para validar datos obligatorios
   const validateRequiredData = (): string | null => {
@@ -99,7 +311,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                     }
 
                     const currentVoucher = vouchers[index];
-                    if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion || !currentVoucher.fecha_voucher) {
+                    if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion || !currentVoucher.fecha_voucher || !currentVoucher.origen) {
                       setErrorMessage('Debe completar todos los datos del comprobante antes de aceptarlo');
                       setLoading(false);
                       return;
@@ -141,7 +353,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                   }
 
                   const currentVoucher = vouchers[index];
-                  if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion || !currentVoucher.fecha_voucher) {
+                  if (!currentVoucher.montoPago || !currentVoucher.nroOperacion || !currentVoucher.nro_banco || !currentVoucher.tipoOperacion || !currentVoucher.fecha_voucher || !currentVoucher.origen) {
                     setErrorMessage('Debe completar todos los datos del comprobante antes de rechazarlo');
                     return;
                   }
@@ -163,7 +375,46 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
             </div>
           )}
 
+
           <div className="flex flex-col gap-4 mt-4">
+            {/* pagador origen */}
+            <div className="mt-4 flex flex-col items-center">
+              <label className="text-sm font-medium text-gray-700 mb-1">
+                Origen pagador:
+              </label>
+
+              <input
+                type="text"
+                className={`w-48 rounded-md border px-3 py-2 text-sm text-center transition-colors ${
+                  !isEditable || voucher.estado === 'rechazado'
+                    ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                    : origenValidations[voucher.imageIndex]?.resultado?.estado?.startsWith('ALERTA_')
+                      ? 'border-orange-400 bg-orange-50 focus:ring-2 focus:ring-orange-500'
+                      : origenValidations[voucher.imageIndex]?.resultado?.estado?.startsWith('APROBADO_')
+                        ? 'border-green-400 bg-green-50 focus:ring-2 focus:ring-green-500'
+                        : 'border-gray-300 focus:ring-2 focus:ring-cyan-500'
+                }`}
+                value={voucher.origen || ""}
+                onChange={(e) => {
+                  onUpdateVoucher(index, 'origen', e.target.value);
+                  // Validar origen con debounce usando imageIndex como identificador único
+                  validarOrigenDebounced(voucher.imageIndex, e.target.value);
+                }}
+                onBlur={(e) => {
+                  // Validar inmediatamente al perder foco si hay valor
+                  if (e.target.value.trim() && creditoId) {
+                    validarOrigenDebounced(voucher.imageIndex, e.target.value);
+                  }
+                }}
+                readOnly={!isEditable || voucher.estado === 'rechazado'}
+                placeholder="Nombre del pagador"
+              />
+              
+              {/* Mensaje de validación de origen */}
+              {creditoId && origenValidations[voucher.imageIndex] && (
+                <OrigenValidationMessage validationState={origenValidations[voucher.imageIndex]} />
+              )}
+            </div>
             {/* Monto */}
             <div className="flex flex-col gap-1">
               <label className="text-sm text-center font-medium text-gray-700">
@@ -258,8 +509,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 readOnly={!isEditable || voucher.estado === 'rechazado'}
               />
             </div>
-          </div>
-          
+          </div>  
           {/* Indicador del comprobante en la parte inferior */}
           <div className="mt-4 pt-2 border-t border-gray-100">
             <p className="text-xs text-gray-500 text-center">

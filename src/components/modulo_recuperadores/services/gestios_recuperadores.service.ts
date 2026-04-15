@@ -52,6 +52,9 @@ export interface CreditoMora {
   OTORGA: string;
   PAGARE: string;
   SOCIO: string;
+  DIRECCION_SICOOP?: string;
+  DIRECCION_GEODILE?: string;
+  URL_MAPS?: string;
   POR_PAGAR: number;
   CUOTAS_PAGAR: number;
   SALDO_PRESENTE: string;
@@ -123,6 +126,8 @@ export interface SaveGestionDto {
   MOTIVO: string;
   COMPROMISO: string;
   FECHA_COMPROMISO: string;
+  INTENCION_PAGO: string;
+  OBSERVACION: string;
   REGISTRADOR: string;
   NOMBRE_A: string;
   AGENCIA: string;
@@ -230,7 +235,7 @@ export const getRecuperadores = async (): Promise<recuperador[]> => {
   );
   return data;
 };
-
+// lista de socios en mora 
 export const getSociosMora = async (params: {
   ID_ANA: string;
   CARGO: string;
@@ -277,7 +282,10 @@ const transformarSocioMoraBusqueda = (apiResponse: any): SocioMora[] => {
       SALDO_PRESENTE: socio.CREDITO_MORA.SALDO_PRESENTE,
       DIAS_ATRASO: socio.CREDITO_MORA.DIAS_ATRASO,
       PRODUCTO: socio.CREDITO_MORA.PRODUCTO,
-      CELULAR: socio.CREDITO_MORA.CELULAR
+      CELULAR: socio.CREDITO_MORA.CELULAR,
+      DIRECCION_SICOOP: socio.CREDITO_MORA.DIRECCION_SICOOP,
+      DIRECCION_GEODILE: socio.CREDITO_MORA.DIRECCION_GEODILE,
+      URL_MAPS: socio.CREDITO_MORA.URL_MAPS
     },
     GESTION_MORA: socio.GESTIONES || [] // Mapear GESTIONES a GESTION_MORA
   }));
@@ -293,7 +301,6 @@ export const consultarSocioEnMora = async (tipo_doc: string, razon: string): Pro
   // Transformar los datos de búsqueda al formato compatible
   return transformarSocioMoraBusqueda(data);
 }
-
 
 
 // lista de  gestion de mora por estado

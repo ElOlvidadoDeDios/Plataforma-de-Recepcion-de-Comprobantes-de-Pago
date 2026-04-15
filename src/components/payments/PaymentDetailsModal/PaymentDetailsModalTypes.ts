@@ -35,6 +35,7 @@ export interface PaymentDetailsModalProps {
         fecha: string;
         hora: string;
         estadoGeneral?: string;
+        //origen: string;
       };
       detalles: {
         indice: number;
@@ -44,6 +45,7 @@ export interface PaymentDetailsModalProps {
         banco: string;
         tipoOperacion: string;
         fecha_voucher: string;
+        origen: string;
         estado?: string;
         _id?: string;
         motivo_rechazo?: string;
@@ -65,4 +67,5 @@ export interface VoucherDetail {
   motivo_rechazo?: string;
   paymentIndex: number;
   fecha_voucher: string;
+  origen: string;
 }

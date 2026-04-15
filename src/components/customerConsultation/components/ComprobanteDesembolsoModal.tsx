@@ -34,9 +34,6 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
         clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
         credito.ID_PRESTAMO
       );
-
-
-
       // Si la API devuelve exists: true, significa que el voucher existe
       if (result.exists) {
         setVoucherExists(true);
@@ -116,11 +113,45 @@ const ComprobanteDesembolsoModal: React.FC<ComprobanteDesembolsoModalProps> = ({
     setIsLoading(true);
 
     try {
+      // Obtener datos bancarios del cliente (primer registro si existe)
+      const datosBancarios = clientData.INFO_SOCIO["DATOS BANCARIOS"]?.[0] || null;
+      
+      // Obtener fecha y hora actual
+      const now = new Date();
+      const fechaDesembolso = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const horaDesembolso = now.toTimeString().split(' ')[0]; // HH:MM:SS
+
       const voucherData = {
         DNI_SOCIO: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
         PAGARE: credito.ID_PRESTAMO,
         AGENCIA: credito.AGENCIA,
-        ANALISTA: user.dni
+        ANALISTA: user.dni,
+        DATA: {
+          nombre: clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO,
+          dni: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
+          pagare: credito.ID_PRESTAMO,
+          agencia: credito.AGENCIA,
+          producto: credito.PRODUCTO,
+          monto_aprobado: credito.MONTO,
+          monto_desembolsar: credito.MONTO,
+          analista: credito.ANALISTA,
+          numero_cel_analista: null,
+          firmante: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+          estado_firma: credito.FIRM_DIGITAL?.ESTADO || null,
+          email: clientData.INFO_SOCIO.CONTACTO.EMAIL || null,
+          fecha_creacion: null,
+          hora_creacion: null,
+          fecha_validacion: null,
+          hora_validacion: null,
+          titular_cuenta: datosBancarios?.NOMBRE_TITULAR || datosBancarios?.TITULAR || null,
+          numero_cel_socio: clientData.INFO_SOCIO.CONTACTO.CELULAR || null,
+          banco: datosBancarios?.BANCO || null,
+          tipo_cuenta: datosBancarios?.TIPO_CUENTA || null,
+          numero_cuenta: datosBancarios?.NUM_CUENTA || null,
+          numero_cuenta_cci: datosBancarios?.NUM_CUENTA_CCI || null,
+          fecha_desembolso: fechaDesembolso,
+          hora_desembolso: horaDesembolso
+        }
       };
 
       const result = await uploadVoucher(voucherData, selectedFile);

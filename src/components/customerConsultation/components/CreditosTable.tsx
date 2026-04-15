@@ -153,6 +153,14 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
 
   // Función para generar contrato cuando el estado es FIRMAR
   const handleGenerarContrato = async (credito: DetalleCredito) => {
+      // Validar que tenga número de celular
+      const celular = clientData.INFO_SOCIO.CONTACTO.CELULAR;
+      if (!celular || celular.trim() === '') {
+          setNotificationMessage('No se puede generar el contrato: el campo de número de celular está vacío. Por favor, complete esta información antes de continuar.');
+          setShowNotificationModal(true);
+          return;
+      }
+
       if (!clientData.INFO_SOCIO.CONTACTO.EMAIL) {
           setNotificationMessage('No se puede firmar: el campo de correo electrónico está vacío.');
           setShowNotificationModal(true);

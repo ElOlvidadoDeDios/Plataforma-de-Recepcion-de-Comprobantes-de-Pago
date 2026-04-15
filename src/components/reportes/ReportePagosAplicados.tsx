@@ -92,6 +92,7 @@ interface DatosPagoAplicado {
     motivo_rechazo: string;
     ruta_comprobante: string;
     fecha_voucher: string;
+    origen: string;
   }>;
 }
 
@@ -247,6 +248,7 @@ const ReportePagosAplicados: React.FC = () => {
             tipo_operacion: v.tipoOperacion || 'N/A',
             monto: v.monto_pago || 0,
             fecha_voucher: v.fecha_voucher || '',
+            origen: v.origen || '',
             estado: v.estado_nuevo,
             estado_anterior: v.estado_anterior || '',
             motivo_rechazo: v.motivo_rechazo || '',

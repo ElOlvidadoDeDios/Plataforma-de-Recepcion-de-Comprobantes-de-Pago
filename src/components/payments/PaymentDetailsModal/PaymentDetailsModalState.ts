@@ -70,6 +70,7 @@ export const usePaymentDetailsState = (
         tipoOperacion: comp.tipoOperacion || '', // ✅ Precargar si ya existe
         fecha_voucher: comp.fecha_voucher || new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }), // ✅ Precargar si ya existe o fecha actual en hora peruana
         estado: comp.estado,
+        origen: comp.origen,
         imageIndex: idx,
         ruta: comp.ruta,
         motivo_rechazo: comp.motivo_rechazo,

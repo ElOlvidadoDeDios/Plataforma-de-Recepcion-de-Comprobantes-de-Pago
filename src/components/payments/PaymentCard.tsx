@@ -188,6 +188,7 @@ export const PaymentCard: React.FC<PaymentCardProps> = ({
           fecha: string;
           hora: string;
           estadoGeneral?: string;
+          //origen: string;
         };
         detalles: {
           indice: number;

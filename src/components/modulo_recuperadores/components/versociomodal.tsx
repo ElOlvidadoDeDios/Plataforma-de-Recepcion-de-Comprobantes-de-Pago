@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, MapPin, Home, Building } from 'lucide-react';
 import type { SocioMora } from '../services/gestios_recuperadores.service';
 
 
@@ -59,6 +59,56 @@ const VerSocioModal = ({ socio, onClose }: Props) => {
               </div>
             ))}
           </div>
+
+          {/* Sección de Ubicaciones */}
+          {(CREDITO_MORA.DIRECCION_SICOOP || CREDITO_MORA.DIRECCION_GEODILE || CREDITO_MORA.URL_MAPS) && (
+            <div className="mt-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> Información de Ubicación
+              </p>
+              <div className="space-y-2">
+                {CREDITO_MORA.DIRECCION_SICOOP && (
+                  <div className="bg-blue-50 rounded-lg px-3 py-2 border border-blue-100">
+                    <div className="flex items-start gap-2">
+                      <Home className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-600">Dirección SICOOP</p>
+                        <p className="text-sm text-gray-700 mt-0.5">{CREDITO_MORA.DIRECCION_SICOOP}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {CREDITO_MORA.DIRECCION_GEODILE && (
+                  <div className="bg-green-50 rounded-lg px-3 py-2 border border-green-100">
+                    <div className="flex items-start gap-2">
+                      <Building className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-green-600">Dirección GEODILE</p>
+                        <p className="text-sm text-gray-700 mt-0.5">{CREDITO_MORA.DIRECCION_GEODILE}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {CREDITO_MORA.URL_MAPS && (
+                  <div className="bg-red-50 rounded-lg px-3 py-2 border border-red-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-red-600 flex-shrink-0" />
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-red-600">Ver en Google Maps</p>
+                      </div>
+                      <button
+                        onClick={() => window.open(CREDITO_MORA.URL_MAPS, '_blank')}
+                        className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
+                      >
+                        <MapPin className="w-3 h-3" />
+                        Abrir Mapa
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Selector periodo */}
           <div>

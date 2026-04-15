@@ -33,6 +33,7 @@ export interface PaymentHistoryRecord {
       monto_pago: number;
       ruta_comprobante: string;
       fecha_voucher: string;
+      origen: string;
     }>;
   };
 }
@@ -478,6 +479,7 @@ export const procesarComprobantesMasivo = async (data: {
       _id: string;
       motivo_rechazo?: string;
       fecha_voucher: string;
+      origen: string;
     }>;
   }>;
 }) => {

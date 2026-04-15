@@ -242,6 +242,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
                   }
                   userData={user}
                   agenciaCode={agenciaCode}
+                  creditoId={displayedPayment.creditoId}
                 />
               </div>
             </div>

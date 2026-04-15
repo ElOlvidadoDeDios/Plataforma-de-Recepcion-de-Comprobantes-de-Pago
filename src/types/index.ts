@@ -36,10 +36,12 @@ export interface PaymentRecord {
     horamodificacion?: string;
     user_caja?: string;
     fecha_voucher?: string;
+    origen: string;
   }>;
   estadoGeneral: 'pendiente' | 'parcial' | 'atendido';
   fecha: string;
   hora: string;
+
 }
 
 export interface AgenciaCaja {
@@ -79,5 +81,7 @@ export const AGENCIAS = {
   "AGENCIA SANTIAGO": "05",
   "AGENCIA SICUANI": "04",
   "AGENCIA TICA TICA": "08",
-  "OFICINA PRINCIPAL": "01"
+  "OFICINA PRINCIPAL": "01",
+  "AGENCIA MAGISTERIO": "09",
+
 } as const;

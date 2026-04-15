@@ -36,6 +36,7 @@ const COORDENADAS_AGENCIAS: Record<string, [number, number]> = {
     "AGENCIA LIMA": [-77.045958, -11.927218],
     "AGENCIA JULIACA": [-70.1276368, -15.4878517],  //-15.4878517,-70.1276368,17
     "AGENCIA TICA TICA": [-71.996139, -13.506889],
+    "AGENCIA MAGISTERIO": [-71.996139, -13.506889],
 } as const;
 
 // CORRECCIÓN 1: Función mejorada para manejar permisos

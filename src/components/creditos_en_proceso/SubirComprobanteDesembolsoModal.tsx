@@ -92,6 +92,12 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
       const FECHA_DESEMBOLSO = ahora.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }); // YYYY-MM-DD
       const HORA_DESEMBOLSO = ahora.toTimeString().split(' ')[0]; // HH:MM:SS
       
+      // Validar que DATOS_DESEMBOLSO no sea null antes de proceder
+      if (!credito.DATOS_DESEMBOLSO) {
+        Notification.error('Los datos de desembolso no están disponibles');
+        return;
+      }
+
       const voucherData = {
         DNI_SOCIO: credito.DATOS_SOCIO.DNI_SOCIO,
         PAGARE: credito.DATOS_DESEMBOLSO.PAGARE,
@@ -154,7 +160,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
                 📤 Subir Comprobante de Desembolso
               </h2>
               <p className="text-sm text-gray-600">
-                Pagaré: {credito.DATOS_DESEMBOLSO.PAGARE}
+                Pagaré: {credito.DATOS_DESEMBOLSO?.PAGARE || 'No disponible'}
               </p>
               <p className="text-sm text-gray-600">
                 Cliente: {credito.DATOS_SOCIO.RAZON}
@@ -222,10 +228,10 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
               <h3 className="text-sm font-semibold text-blue-700 mb-2">Datos que se enviarán:</h3>
               <div className="text-xs text-blue-600 space-y-1">
                 <p>• DNI Socio: {credito.DATOS_SOCIO.DNI_SOCIO}</p>
-                <p>• Pagaré: {credito.DATOS_DESEMBOLSO.PAGARE}</p>
+                <p>• Pagaré: {credito.DATOS_DESEMBOLSO?.PAGARE || 'No disponible'}</p>
                 <p>• Agencia: {obtenerNombreAgencia(user?.id_age || '')}</p>
                 <p>• Analista: {user?.dni || 'No disponible'}</p>
-                <p>• Monto: S/ {credito.DATOS_DESEMBOLSO.MONTO_APROB}</p>
+                <p>• Monto: S/ {credito.DATOS_DESEMBOLSO?.MONTO_APROB || '0.00'}</p>
                 <p>• Archivo: png o jpg</p>
               </div>
             </div>

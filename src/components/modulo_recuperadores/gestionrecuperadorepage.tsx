@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import  { useState, useEffect, useMemo } from 'react';
 import Layout from '../Layout';
-import { ClipboardList, ChevronRight, Eye, FileEdit, MessageCircle, BarChart2, X } from 'lucide-react';
+import { ClipboardList, ChevronRight, Eye, FileEdit, MessageCircle, BarChart2, X, MapPin } from 'lucide-react';
 import { useGestionMora } from './hooks/userecuperador';
 import VerSocioModal from './components/versociomodal';
 import GestionarSocioModal from './components/gestionsociomodal';
@@ -51,6 +51,16 @@ const GestionRecuperadoresPage = () => {
   };
   const handleSocioSelect = (socio: SocioMora, action: 'ver' | 'gestionar' | 'whatsapp') => {
     openModal(socio, action);
+  };
+
+  // Función para abrir Google Maps con la URL del socio
+  const handleOpenMaps = (socio: SocioMora) => {
+    const urlMaps = socio.CREDITO_MORA.URL_MAPS;
+    if (urlMaps && urlMaps.trim() !== '') {
+      window.open(urlMaps, '_blank');
+    } else {
+      alert('No hay ubicación disponible para este socio');
+    }
   };
 
   const sociosToShow = sociosMora || [];
@@ -478,6 +488,15 @@ const GestionRecuperadoresPage = () => {
                             >
                               <MessageCircle className="w-4 h-4" />
                             </button>
+                            {socio.CREDITO_MORA.URL_MAPS && (
+                              <button
+                                onClick={() => handleOpenMaps(socio)}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Ver ubicación en Google Maps"
+                              >
+                                <MapPin className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -548,6 +567,15 @@ const GestionRecuperadoresPage = () => {
                                 >
                                   <MessageCircle className="w-3.5 h-3.5" />
                                 </button>
+                                {socio.CREDITO_MORA.URL_MAPS && (
+                                  <button
+                                    onClick={() => handleOpenMaps(socio)}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Ver ubicación en Google Maps"
+                                  >
+                                    <MapPin className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
