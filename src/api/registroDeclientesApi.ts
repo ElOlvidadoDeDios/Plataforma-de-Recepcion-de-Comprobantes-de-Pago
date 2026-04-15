@@ -512,7 +512,7 @@ export const uploadAllFilesAtOnce = async (
     formData.append('dni_frontal', files.dniFrontal);
     formData.append('dni_reverso', files.dniReverso);
     formData.append('voucher', files.voucher);
-    const response = await fetch(`${API_BASE_URL}/api_mongo_firm_easy/api/load_file_preAfilia_A`, {
+    const response = await fetch(`${API_BASE_URL}/api_mongo_firm_easy/api/load_file_preAfilia`, {
       method: 'POST',
       headers: {
         'Authorization': `${API_BASE_URL_TOKEN}`,
@@ -575,7 +575,7 @@ export const uploadPreAfiliaFile = async (
     formData.append('file', file);
 
 
-    const response = await fetch(`${API_BASE_URL}/api_mongo_firm_easy/api/load_file_preAfilia_A`, {
+    const response = await fetch(`${API_BASE_URL}/api_mongo_firm_easy/api/load_file_preAfilia`, {
       method: 'POST',
       headers: {
         'Authorization': `${API_BASE_URL_TOKEN}`,
