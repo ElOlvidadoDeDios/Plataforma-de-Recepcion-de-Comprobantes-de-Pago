@@ -290,7 +290,7 @@ const GestionesXEstados = ({ data, fechaFiltro, setFechaFiltro, loadingGestiones
             <table className="w-full min-w-[700px] text-xs">
               <thead>
                 <tr className="bg-gradient-to-r from-cyan-500 to-blue-600">
-                  {['Pagaré', 'Motivo', 'Compromiso', 'F. Compromiso', 'Responsable', 'Estado'].map(
+                  {['Nombre','Pagaré', 'Motivo', 'Compromiso', 'F. Compromiso', 'Responsable', 'Estado'].map(
                     (h, i, arr) => (
                       <th
                         key={h}
@@ -307,6 +307,7 @@ const GestionesXEstados = ({ data, fechaFiltro, setFechaFiltro, loadingGestiones
               <tbody className="divide-y divide-gray-100">
                 {detalles.map((item: any, i: number) => (
                   <tr key={i} className="hover:bg-cyan-50 transition-colors">
+                    <td className="px-3 py-2 font-medium text-gray-700">{item.NOMBRE_SOCIO}</td>
                     <td className="px-3 py-2 font-medium text-gray-700">{item.PAGARE}</td>
                     <td className="px-3 py-2 text-gray-600" title={item.DETALLE_GESTION.MOTIVO_RETRASO}>
                       {item.DETALLE_GESTION.MOTIVO_RETRASO}
@@ -366,7 +367,7 @@ const GestionesXEstados = ({ data, fechaFiltro, setFechaFiltro, loadingGestiones
                   <table className="w-full min-w-[700px] text-xs">
                     <thead>
                       <tr className="bg-gradient-to-r from-cyan-500 to-blue-600">
-                        {['Pagaré', 'Cuenta', 'Otorga', 'Estado', 'Motivo', 'Compromiso', 'Fecha Compromiso'].map(
+                        {['Nombre','Pagaré', 'Cuenta', 'Otorga', 'Estado', 'Motivo', 'Compromiso', 'Fecha Compromiso'].map(
                           (h, i, arr) => (
                             <th
                               key={h}
@@ -386,6 +387,7 @@ const GestionesXEstados = ({ data, fechaFiltro, setFechaFiltro, loadingGestiones
                           key={`${detalle.PAGARE}-${index}`}
                           className="hover:bg-cyan-50 transition-colors"
                         >
+                          <td className="px-2 py-1.5 font-medium">{detalle.NOMBRE_SOCIO}</td>
                           <td className="px-2 py-1.5 font-medium">{detalle.PAGARE}</td>
                           <td className="px-2 py-1.5">{detalle.CUENTA}</td>
                           <td className="px-2 py-1.5">{detalle.OTORGA}</td>

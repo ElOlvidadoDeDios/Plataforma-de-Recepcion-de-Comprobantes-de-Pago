@@ -177,6 +177,7 @@ export interface GestionXEstados {
         PAGARE: string;
         CUENTA: string;
         OTORGA: string;
+        NOMBRE_SOCIO: string;
         PERIODO: string;
         DETALLE_GESTION: {
           ID_DETALLE: string;
@@ -192,6 +193,7 @@ export interface GestionXEstados {
         PAGARE: string;
         CUENTA: string;
         OTORGA: string;
+        NOMBRE_SOCIO: string;
         PERIODO: string;
         DETALLE_GESTION: {
           ID_DETALLE: string;
