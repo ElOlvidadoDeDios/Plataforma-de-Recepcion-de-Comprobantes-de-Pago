@@ -622,8 +622,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
     }
 
     // Si el estado es PENDIENTE, mostrar botón para verificar (documento generado pero no firmado)
-    // TEMPORALMENTE COMENTADO - BOTÓN DE VALIDAR FIRMA DESHABILITADO
-    /* if (firmDigital.ESTADO === 'PENDIENTE') {
+    if (firmDigital.ESTADO === 'PENDIENTE') {
       return (
         <button
           onClick={() => handleVerificarFirma(credito)}
@@ -643,12 +642,11 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
           )}
         </button>
       );
-    } */
+    }
 
     // ULTIMO: Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
     // Solo aplica después de verificar todos los estados específicos
-    // TEMPORALMENTE COMENTADO - BOTÓN DE VALIDAR FIRMA DESHABILITADO
-    /* if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
+    if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
       return (
         <button
           onClick={() => handleVerificarFirma(credito)}
@@ -668,7 +666,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
           )}
         </button>
       );
-    } */
+    }
 
     // Estado por defecto
     return (
@@ -856,8 +854,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
     }
 
     // Si el estado es PENDIENTE, mostrar botón para verificar (documento generado pero no firmado)
-    // TEMPORALMENTE COMENTADO - BOTÓN DE VALIDAR FIRMA DESHABILITADO
-    /* if (firmDigital.ESTADO === 'PENDIENTE') {
+    if (firmDigital.ESTADO === 'PENDIENTE') {
       return (
         <button
           onClick={() => handleVerificarFirma(credito)}
@@ -877,12 +874,11 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
           )}
         </button>
       );
-    } */
+    }
 
     // ULTIMO: Si hay ID_DOCUMENT pero no URL_SIGNED_FILE (caso de respaldo)
     // Solo aplica después de verificar todos los estados específicos
-    // TEMPORALMENTE COMENTADO - BOTÓN DE VALIDAR FIRMA DESHABILITADO
-    /* if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
+    if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
       return (
         <button
           onClick={() => handleVerificarFirma(credito)}
@@ -902,7 +898,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
           )}
         </button>
       );
-    } */
+    }
 
     // Estado por defecto
     return (
