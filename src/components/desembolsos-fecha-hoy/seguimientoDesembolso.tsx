@@ -36,7 +36,7 @@ const SeguimientoDesembolso: React.FC = () => {
         if (!user || !user.id_age) return null;
         
         // Buscar el nombre de la agencia usando el código id_age
-        const agenciaEncontrada = Object.entries(AGENCIAS).find(([nombre, codigo]) => codigo === user.id_age);
+        const agenciaEncontrada = Object.entries(AGENCIAS).find(([_, codigo]) => codigo === user.id_age);
         return agenciaEncontrada ? agenciaEncontrada[0] : null;
     };
 
@@ -147,6 +147,8 @@ const SeguimientoDesembolso: React.FC = () => {
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${
                                                 desembolso.STATUS_GLOBAL === 'COMPLETO'
                                                     ? 'bg-green-500 text-white'
+                                                    : desembolso.STATUS_GLOBAL === 'EXTORNADO'
+                                                    ? 'bg-red-500 text-white'
                                                     : 'bg-orange-500 text-white'
                                             }`}>
                                                 {desembolso.STATUS_GLOBAL}
