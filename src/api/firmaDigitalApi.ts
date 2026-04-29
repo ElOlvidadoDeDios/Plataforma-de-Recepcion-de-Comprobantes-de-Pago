@@ -57,7 +57,6 @@ interface ObtenerUrlFirmadaResponse {
 // Usar la misma base URL que el resto de la aplicación
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const AGENCY_API_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
-
 export const generarContrato = async (data: GenerarContratoRequest): Promise<GenerarContratoResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/firma-digital/generar-contrato`, {
@@ -140,6 +139,7 @@ export const obtenerUrlFirmada = async (data: ObtenerUrlFirmadaRequest): Promise
   }
 };
 
+
 export const verificarDocumentoFirmado = async (data: VerificarDocumentoRequest): Promise<VerificarDocumentoResponse> => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/firma-digital/verificar-documento`, {
@@ -168,3 +168,79 @@ export const verificarDocumentoFirmado = async (data: VerificarDocumentoRequest)
     };
   }
 };
+
+// api_app_dile_v1_1/api/VER_DOCUMENTO_FIRMADO
+
+export const verDocumentoFirmado = async (data: VerificarDocumentoRequest): Promise<VerificarDocumentoResponse> => {
+  try {
+    const response = await fetch(`${AGENCY_API_URL}/api_app_dile_v1_1/api/VER_DOCUMENTO_FIRMADO`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en el servidor: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    return {
+      success: true,
+      data: result
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    };
+  }
+} 
+// https://192.168.3.206/api_mongo_firm_easy/api/disable_document_firm
+export interface DeshabilitarDocumentoFirmadoRequest {
+  PAGARE: string;
+  ID_DOCUMENT: string;
+}
+
+interface DeshabilitarDocumentoFirmadoResponse {
+  success: boolean;
+  data?: any;
+  message?: string;
+  errorDetails?: any;
+}
+
+export const deshabilitarDocumentoFirmado = async (data: DeshabilitarDocumentoFirmadoRequest): Promise<DeshabilitarDocumentoFirmadoResponse> => {
+  try {
+    const response = await fetch(`${AGENCY_API_URL}/api_mongo_firm_easy/api/disable_document_firm`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN}`
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en el servidor: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    return {
+      success: true,
+      data: result
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    };
+  }
+}
+// {
+//     "PAGARE":"01-0035599-26",
+//     "ID_DOCUMENT":"a1a7ace0-7a8b-4535-b891-461b8c76f60e"
+// }

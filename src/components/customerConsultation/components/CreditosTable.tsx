@@ -2,12 +2,13 @@ import { useState, lazy, Suspense, useEffect, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import { DetalleCredito, ClienteResponse, checkVoucherExists } from '../../../api/customerConsultationAPI';
 import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
-import { generarContrato, verificarDocumentoFirmado, obtenerUrlFirmada } from '../../../api/firmaDigitalApi';
+import { generarContrato, obtenerUrlFirmada } from '../../../api/firmaDigitalApi';
 import { PaymentRecord } from '../../../types';
 import ComprobanteDesembolsoModal from './ComprobanteDesembolsoModal';
+import ValidarContratoModal from './ValidarContratoModal';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { Permission, UserRole } from '../../../types/permissions';
-import { logContractGenerationInfo, logDocumentVerificationInfo, captureDeviceInfo } from '../../../utils/deviceInfo';
+import { logContractGenerationInfo } from '../../../utils/deviceInfo';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 // const PagosPrestamoModal = lazy(() => import('./PagosPrestamoModal'));
@@ -43,6 +44,9 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
   const [selectedCreditoDesembolso, setSelectedCreditoDesembolso] = useState<DetalleCredito | null>(null);
   // Estado para rastrear qué vouchers existen
   const [vouchersExistentes, setVouchersExistentes] = useState<Record<string, boolean>>({});
+  // Estados para el modal de validación de contrato
+  const [showValidarContratoModal, setShowValidarContratoModal] = useState(false);
+  const [selectedCreditoValidar, setSelectedCreditoValidar] = useState<DetalleCredito | null>(null);
 
   // Sincronizar el estado local con los props cuando cambien
   useEffect(() => {
@@ -278,82 +282,82 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
     }
   };
 
-  // Función para verificar si el documento ya fue firmado
-  const handleVerificarFirma = async (credito: DetalleCredito) => {
-    if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
-      setNotificationMessage('No hay documento para verificar');
-      setShowNotificationModal(true);
-      return;
-    }
+  // // Función para verificar si el documento ya fue firmado
+  // const handleVerificarFirma = async (credito: DetalleCredito) => {
+  //   if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
+  //     setNotificationMessage('No hay documento para verificar');
+  //     setShowNotificationModal(true);
+  //     return;
+  //   }
 
-    try {
-      setLoadingFirma(true);
-      setSelectedCreditoFirma(credito.ID_PRESTAMO);
+  //   try {
+  //     setLoadingFirma(true);
+  //     setSelectedCreditoFirma(credito.ID_PRESTAMO);
 
-      // 🔍 Capturar información del dispositivo al verificar firma
-      await logDocumentVerificationInfo(credito.ID_PRESTAMO, credito.FIRM_DIGITAL.ID_DOCUMENT);
+  //     // 🔍 Capturar información del dispositivo al verificar firma
+  //     await logDocumentVerificationInfo(credito.ID_PRESTAMO, credito.FIRM_DIGITAL.ID_DOCUMENT);
 
-      // Capturar información del dispositivo para el endpoint
-      const deviceInfo = await captureDeviceInfo(`verificacion_documento_${credito.ID_PRESTAMO}`);
+  //     // Capturar información del dispositivo para el endpoint
+  //     const deviceInfo = await captureDeviceInfo(`verificacion_documento_${credito.ID_PRESTAMO}`);
 
-      const response = await verificarDocumentoFirmado({
-        ID_DOCUMENT_FIRM: credito.FIRM_DIGITAL.ID_DOCUMENT,
-        PAGARE: credito.ID_PRESTAMO,
-        AGENCIA: credito.AGENCIA,
-        USER: user?.dni || 'dni no identificado',
-        INFO_DESK: [deviceInfo]
-      } as any);
+  //     const response = await verificarDocumentoFirmado({
+  //       ID_DOCUMENT_FIRM: credito.FIRM_DIGITAL.ID_DOCUMENT,
+  //       PAGARE: credito.ID_PRESTAMO,
+  //       AGENCIA: credito.AGENCIA,
+  //       USER: user?.dni || 'dni no identificado',
+  //       INFO_DESK: [deviceInfo]
+  //     } as any);
 
-      if (response.success) {
-        // Verificar el estado de la respuesta del endpoint
-        if (response.data && response.data.status === false) {
-          // El documento aún no está firmado
-          setNotificationMessage(response.data.message || 'El documento aún no ha sido firmado');
-          setShowNotificationModal(true);
-        } else {
-          // El documento ya fue firmado
-          setNotificationMessage('Documento firmado exitosamente. Los datos se actualizarán automáticamente.');
-          setShowNotificationModal(true);
+  //     if (response.success) {
+  //       // Verificar el estado de la respuesta del endpoint
+  //       if (response.data && response.data.status === false) {
+  //         // El documento aún no está firmado
+  //         setNotificationMessage(response.data.message || 'El documento aún no ha sido firmado');
+  //         setShowNotificationModal(true);
+  //       } else {
+  //         // El documento ya fue firmado
+  //         setNotificationMessage('Documento firmado exitosamente. Los datos se actualizarán automáticamente.');
+  //         setShowNotificationModal(true);
           
-          // Actualizar inmediatamente el estado local del crédito
-          if (response.data && response.data.URL_SIGNED_FILE) {
-            updateLocalCredito(credito.ID_PRESTAMO, {
-              FIRM_DIGITAL: {
-                ESTADO: 'FIRMADO',
-                ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
-                URL_SIGNED_FILE: response.data.URL_SIGNED_FILE
-              }
-            });
-          } else {
-            // Si no hay URL en la respuesta, solo cambiar el estado
-            updateLocalCredito(credito.ID_PRESTAMO, {
-              FIRM_DIGITAL: {
-                ESTADO: 'FIRMADO',
-                ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
-                URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
-              }
-            });
-          }
+  //         // Actualizar inmediatamente el estado local del crédito
+  //         if (response.data && response.data.URL_SIGNED_FILE) {
+  //           updateLocalCredito(credito.ID_PRESTAMO, {
+  //             FIRM_DIGITAL: {
+  //               ESTADO: 'FIRMADO',
+  //               ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+  //               URL_SIGNED_FILE: response.data.URL_SIGNED_FILE
+  //             }
+  //           });
+  //         } else {
+  //           // Si no hay URL en la respuesta, solo cambiar el estado
+  //           updateLocalCredito(credito.ID_PRESTAMO, {
+  //             FIRM_DIGITAL: {
+  //               ESTADO: 'FIRMADO',
+  //               ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+  //               URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
+  //             }
+  //           });
+  //         }
           
-          // Refrescar los datos para obtener el estado actualizado del servidor
-          if (onRefreshData) {
-            setTimeout(() => {
-              onRefreshData();
-            }, 500); // Reducir tiempo de espera
-          }
-        }
-      } else {
-        setNotificationMessage(`Error al verificar el documento: ${response.message}`);
-        setShowNotificationModal(true);
-      }
-    } catch (error) {
-      setNotificationMessage('Error al verificar el estado de la firma');
-      setShowNotificationModal(true);
-    } finally {
-      setLoadingFirma(false);
-      setSelectedCreditoFirma('');
-    }
-  };
+  //         // Refrescar los datos para obtener el estado actualizado del servidor
+  //         if (onRefreshData) {
+  //           setTimeout(() => {
+  //             onRefreshData();
+  //           }, 500); // Reducir tiempo de espera
+  //         }
+  //       }
+  //     } else {
+  //       setNotificationMessage(`Error al verificar el documento: ${response.message}`);
+  //       setShowNotificationModal(true);
+  //     }
+  //   } catch (error) {
+  //     setNotificationMessage('Error al verificar el estado de la firma');
+  //     setShowNotificationModal(true);
+  //   } finally {
+  //     setLoadingFirma(false);
+  //     setSelectedCreditoFirma('');
+  //   }
+  // };
 
   // Función para manejar el clic en contrato firmado y obtener URL pública
   const handleVerContratoFirmado = async (credito: DetalleCredito) => {
@@ -449,6 +453,12 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       setSelectedCreditoDesembolso(credito);
       setShowComprobanteModal(true);
     }
+  };
+
+  // Función para abrir el modal de validación de contrato (estado PENDIENTE - azul)
+  const handleAbrirValidarContrato = (credito: DetalleCredito) => {
+    setSelectedCreditoValidar(credito);
+    setShowValidarContratoModal(true);
   };
 
   // Función para renderizar el botón de contrato según el estado de firma digital
@@ -621,14 +631,14 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       );
     }
 
-    // Si el estado es PENDIENTE, mostrar botón para verificar (documento generado pero no firmado)
+    // Si el estado es PENDIENTE, mostrar botón para abrir modal de validación (documento generado pero no firmado)
     if (firmDigital.ESTADO === 'PENDIENTE') {
       return (
         <button
-          onClick={() => handleVerificarFirma(credito)}
+          onClick={() => handleAbrirValidarContrato(credito)}
           disabled={isLoading}
           className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
-          title="Verificar estado de firma - Documento pendiente de firma"
+          title="Validar contrato - Documento pendiente de firma"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -649,10 +659,10 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
     if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
       return (
         <button
-          onClick={() => handleVerificarFirma(credito)}
+          onClick={() => handleAbrirValidarContrato(credito)}
           disabled={isLoading}
           className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
-          title="Verificar estado de firma"
+          title="Validar contrato"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -853,14 +863,14 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       );
     }
 
-    // Si el estado es PENDIENTE, mostrar botón para verificar (documento generado pero no firmado)
+    // Si el estado es PENDIENTE, mostrar botón para abrir modal de validación (documento generado pero no firmado)
     if (firmDigital.ESTADO === 'PENDIENTE') {
       return (
         <button
-          onClick={() => handleVerificarFirma(credito)}
+          onClick={() => handleAbrirValidarContrato(credito)}
           disabled={isLoading}
           className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
-          title="Verificar estado de firma - Documento pendiente de firma"
+          title="Validar contrato - Documento pendiente de firma"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -881,10 +891,10 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
     if (firmDigital.ID_DOCUMENT && !firmDigital.URL_SIGNED_FILE) {
       return (
         <button
-          onClick={() => handleVerificarFirma(credito)}
+          onClick={() => handleAbrirValidarContrato(credito)}
           disabled={isLoading}
           className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors disabled:bg-blue-300"
-          title="Verificar estado de firma"
+          title="Validar contrato"
         >
           {isLoading ? (
             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -1315,6 +1325,35 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
             
             setSelectedCreditoDesembolso(null);
           }}
+        />
+      )}
+
+      {/* Modal para validar contrato (estado PENDIENTE) */}
+      {showValidarContratoModal && selectedCreditoValidar && (
+        <ValidarContratoModal
+          isOpen={showValidarContratoModal}
+          onClose={() => {
+            setShowValidarContratoModal(false);
+            setSelectedCreditoValidar(null);
+          }}
+          credito={selectedCreditoValidar}
+          clientData={clientData}
+          userDni={user?.dni || ''}
+          onValidar={(credito) => {
+            // Actualizar el estado local del crédito cuando se valida
+            updateLocalCredito(credito.ID_PRESTAMO, {
+              FIRM_DIGITAL: {
+                ESTADO: 'FIRMADO',
+                ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
+                URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
+              }
+            });
+          }}
+          onRechazar={(credito, motivo) => {
+            //console.log('Contrato rechazado:', credito.ID_PRESTAMO, 'Motivo:', motivo);
+            // Aquí se podría agregar lógica adicional para el rechazo
+          }}
+          onRefreshData={onRefreshData}
         />
       )}
     </div>

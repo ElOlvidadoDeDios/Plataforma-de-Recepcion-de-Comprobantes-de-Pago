@@ -169,7 +169,7 @@ const ConsultaClientes = () => {
   return (
     <Layout title="Consulta de socios">
       <div className="h-full w-full bg-gradient-to-r from-cyan-50 to-teal-50">
-        <h1 className="text-2xl md:text-3xl font-bold text-center mb-4 text-white bg-gradient-to-r from-cyan-500 to-blue-500 py-3 rounded-lg shadow-lg">
+        <h1 className="<text-2xl md:text-3xl font-bold text-center mb-4 text-white bg-gradient-to-r from-cyan-500 to-blue-500 py-3 rounded-lg shadow-lg>">
           Consultar Socio
         </h1>
 
