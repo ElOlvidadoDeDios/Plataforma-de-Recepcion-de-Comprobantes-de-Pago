@@ -61,6 +61,7 @@ export interface DatosBancarios {
   NOMBRE_TITULAR: string | null;
   TITULAR: string | null;
   ESTADO: string | null;
+  OBSERVACION?: string | null; // Estado de validación de los datos bancarios
 }
 
 export interface Otros {

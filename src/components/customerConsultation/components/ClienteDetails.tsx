@@ -17,6 +17,26 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
 
   const cuentasBancarias = INFO_SOCIO["DATOS BANCARIOS"] || [];
   const tieneCuentas = cuentasBancarias.length > 0 && cuentasBancarias.some(cuenta => cuenta.BANCO || cuenta.NUM_CUENTA);
+  
+  // Determinar el estado general de validación de los datos bancarios
+  const getObservacionGeneral = () => {
+    if (cuentasBancarias.length === 0) return undefined;
+    
+    // Si todas las cuentas tienen observación "VALIDO", entonces es VALIDO
+    const cuentasConObservacion = cuentasBancarias.filter(cuenta => cuenta.OBSERVACION);
+    if (cuentasConObservacion.length > 0) {
+      const todasValidas = cuentasConObservacion.every(cuenta => cuenta.OBSERVACION === 'VALIDO');
+      if (todasValidas) return 'VALIDO';
+      
+      // Si hay al menos una cuenta con observación diferente a VALIDO, retornar la primera no válida
+      const cuentaNoValida = cuentasConObservacion.find(cuenta => cuenta.OBSERVACION !== 'VALIDO');
+      return cuentaNoValida?.OBSERVACION || undefined;
+    }
+    
+    return undefined;
+  };
+
+  const observacionGeneral = getObservacionGeneral();
 
   return (
     <div className="mb-4 bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 transform hover:shadow-xl">
@@ -95,14 +115,37 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
       </div>
 
       {/* Datos Bancarios */}
-      <div className="mb-4 px-4">
+      <div className={`mb-4 px-4 rounded-lg ${
+        observacionGeneral === 'VALIDO'
+          ? 'bg-green-50 border-2 border-green-200'
+          : observacionGeneral && observacionGeneral !== 'VALIDO'
+          ? 'bg-orange-50 border-2 border-orange-200'
+          : ''
+      }`}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-md md:text-lg font-semibold text-cyan-500 pb-2 border-b-4 border-cyan-500 flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-            </svg>
-            DATOS BANCARIOS ({cuentasBancarias.length})
-          </h3>
+          <div className="flex items-center">
+            <h3 className={`text-md md:text-lg font-semibold pb-2 border-b-4 flex items-center ${
+              observacionGeneral === 'VALIDO'
+                ? 'text-green-600 border-green-500'
+                : observacionGeneral && observacionGeneral !== 'VALIDO'
+                ? 'text-orange-600 border-orange-500'
+                : 'text-cyan-500 border-cyan-500'
+            }`}>
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              DATOS BANCARIOS ({cuentasBancarias.length})
+              {observacionGeneral && (
+                <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                  observacionGeneral === 'VALIDO'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-orange-100 text-orange-700'
+                }`}>
+                  {observacionGeneral === 'VALIDO' ? '✓ VÁLIDO' : `⚠️ ${observacionGeneral}`}
+                </span>
+              )}
+            </h3>
+          </div>
           <button
             onClick={handleAgregarCuenta}
             className="bg-cyan-500 hover:bg-cyan-600 text-white px-3 py-1 rounded-md text-sm transition-colors flex items-center"
@@ -118,11 +161,26 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
           <div className="space-y-4">
             {cuentasBancarias.map((cuenta, index) => (
               (cuenta.BANCO || cuenta.NUM_CUENTA) && (
-                <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <div className="mb-3">
+                <div key={index} className={`rounded-lg p-4 border-2 ${
+                  cuenta.OBSERVACION === 'VALIDO'
+                    ? 'bg-green-50 border-green-200'
+                    : cuenta.OBSERVACION && cuenta.OBSERVACION !== 'VALIDO'
+                    ? 'bg-orange-50 border-orange-200'
+                    : 'bg-gray-50 border-gray-200'
+                }`}>
+                  <div className="mb-3 flex items-center justify-between">
                     <h4 className="text-sm font-semibold text-gray-700">
                       Cuenta #{index + 1} - {cuenta.BANCO || 'Sin especificar'}
                     </h4>
+                    {cuenta.OBSERVACION && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        cuenta.OBSERVACION === 'VALIDO'
+                          ? 'bg-green-100 text-green-700 border border-green-300'
+                          : 'bg-orange-100 text-orange-700 border border-orange-300'
+                      }`}>
+                        {cuenta.OBSERVACION === 'VALIDO' ? '✓ VÁLIDO' : `⚠️ ${cuenta.OBSERVACION}`}
+                      </span>
+                    )}
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                     <DataField label="TITULAR" value={cuenta.TITULAR || cuenta.NOMBRE_TITULAR || 'No especificado'} />
@@ -171,6 +229,7 @@ const ClienteDetails = ({ clientData, onRefreshData }: ClienteDetailsProps) => {
           dni={INFO_SOCIO.DATOS_PERSONALES.DNI}
           nombreCompleto={INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO}
           cuentaDile={INFO_SOCIO.OTROS.CUENTA_DILE}
+          observacion={observacionGeneral}
           onSave={() => {
             setShowDatosBancariosForm(false);
             if (onRefreshData) {

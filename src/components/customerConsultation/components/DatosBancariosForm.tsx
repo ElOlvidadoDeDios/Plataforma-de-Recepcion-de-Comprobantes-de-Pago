@@ -6,6 +6,7 @@ interface DatosBancariosFormProps {
   cuentaDile: string;
   onSave: () => void;
   onCancel: () => void;
+  observacion?: string; // Estado de validación de los datos bancarios
 }
 
 const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
@@ -13,7 +14,8 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
   nombreCompleto,
   cuentaDile,
   onSave,
-  onCancel
+  onCancel,
+  observacion
 }) => {
   const [formData, setFormData] = useState<DatosBancarios>({
     BANCO: '',
@@ -29,6 +31,34 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [esTitular, setEsTitular] = useState(true);
+
+  // Determinar colores basados en el estado de observación
+  const getContainerStyles = () => {
+    if (observacion === 'VALIDO') {
+      return {
+        containerBg: 'bg-green-50',
+        borderColor: 'border-green-200',
+        headerBg: 'from-green-500 to-emerald-500',
+        accentColor: 'focus:ring-green-500 focus:border-green-500'
+      };
+    } else if (observacion && observacion !== 'VALIDO') {
+      return {
+        containerBg: 'bg-orange-50',
+        borderColor: 'border-orange-200',
+        headerBg: 'from-orange-500 to-amber-500',
+        accentColor: 'focus:ring-orange-500 focus:border-orange-500'
+      };
+    }
+    // Estado por defecto (sin validación)
+    return {
+      containerBg: 'bg-white',
+      borderColor: 'border-gray-200',
+      headerBg: 'from-cyan-500 to-blue-500',
+      accentColor: 'focus:ring-cyan-500 focus:border-cyan-500'
+    };
+  };
+
+  const styles = getContainerStyles();
 
   // El formulario siempre es para agregar nuevas cuentas
   // No cargamos datos existentes porque el endpoint es solo para insertar
@@ -171,7 +201,7 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className={`${styles.containerBg} rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 ${styles.borderColor}`}>
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
@@ -180,6 +210,19 @@ const DatosBancariosForm: React.FC<DatosBancariosFormProps> = ({
                 Agregar Datos Bancarios
               </h2>
               <p className="text-sm text-gray-600">Socio: {nombreCompleto} - DNI: {dni}</p>
+              {/* Estado de validación */}
+              {observacion && (
+                <div className={`mt-2 px-3 py-1 rounded-full text-xs font-medium ${
+                  observacion === 'VALIDO'
+                    ? 'bg-green-100 text-green-700 border border-green-200'
+                    : 'bg-orange-100 text-orange-700 border border-orange-200'
+                }`}>
+                  {observacion === 'VALIDO'
+                    ? '✓ Datos bancarios válidos'
+                    : `⚠️ ${observacion} - Revisar datos bancarios`
+                  }
+                </div>
+              )}
             </div>
             <button
               onClick={onCancel}
