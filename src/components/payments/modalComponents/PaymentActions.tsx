@@ -239,10 +239,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
               <option value="">Seleccionar...</option>
               <option value="1">BBVA</option>
               <option value="2">SCOTIABANK</option>
-              <option value="3">PLIN - BBVA</option>
-              <option value="4">PLIN - BANBIF</option>
-              <option value="5">PLIN - AREQUIPA</option>
-              <option value="6">CAJA CUSCO</option>
+              <option value="3">CAJA CUSCO</option>
 
             </select>
           </div>

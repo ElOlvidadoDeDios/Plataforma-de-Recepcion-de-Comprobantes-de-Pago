@@ -134,7 +134,7 @@ const SeguimientoDesembolso: React.FC = () => {
                                 </tr>
                             ) : (
                                 desembolsosFiltrados.map((desembolso, index) => (
-                                    <tr key={desembolso.ID_PAYOUT || index} className="hover:bg-gray-50">
+                                    <tr key={`${desembolso.DNI}_${desembolso.PAGARE}_${index}`} className="hover:bg-gray-50">
                                         <td className="px-4 py-3 border-b text-sm text-gray-700">{desembolso.DNI}</td>
                                         <td className="px-4 py-3 border-b text-sm text-gray-700">{desembolso.CUENTA}</td>
                                         <td className="px-4 py-3 border-b text-sm text-gray-700">{desembolso.RAZON_SOCIAL}</td>

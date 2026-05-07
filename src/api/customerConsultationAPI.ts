@@ -330,6 +330,11 @@ export interface DataVoucherDto {
   hora_desembolso: string;
 }
 
+export interface PayoutDto {
+  PAGARE: string; // ID del préstamo
+  USER: string; // DNI del usuario que ejecuta la acción
+}
+
 // Función para subir comprobante de desembolso - Ahora usa el backend NestJS
 export const uploadVoucher = async (
   voucherData: {
@@ -401,5 +406,42 @@ export const actualizarDatosBancarios = async (
   datosBancarios: DatosBancarios
 ): Promise<{ status: boolean; message: string }> => {
   return await guardarDatosBancarios(dni, datosBancarios);
+};
+
+// Función para procesar payout cuando hay error en datos bancarios
+export const procesarPayoutKambia = async (
+  payoutData: PayoutDto
+): Promise<{ status: boolean; message: string; data?: any }> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
+    const token_A = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+    const response = await fetch(`${API_BASE_URL}/api_app_dile_v1_1/api/PAYOUT_KAMBIA`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `${token_A}`
+      },
+      body: JSON.stringify(payoutData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error en payout: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    return {
+      status: true,
+      message: result.message || 'Payout procesado exitosamente',
+      data: result.data
+    };
+
+  } catch (error) {
+    console.error('❌ Error en procesarPayoutKambia:', error);
+    return {
+      status: false,
+      message: 'Error al procesar el payout'
+    };
+  }
 };
 

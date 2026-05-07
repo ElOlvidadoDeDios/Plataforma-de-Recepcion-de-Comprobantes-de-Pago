@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense, useEffect, useContext } from 'react';
 import { createPortal } from 'react-dom';
-import { DetalleCredito, ClienteResponse, checkVoucherExists } from '../../../api/customerConsultationAPI';
+import { DetalleCredito, ClienteResponse, checkVoucherExists, procesarPayoutKambia, PayoutDto } from '../../../api/customerConsultationAPI';
 import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
 import { generarContrato, obtenerUrlFirmada } from '../../../api/firmaDigitalApi';
 import { PaymentRecord } from '../../../types';
@@ -47,6 +47,9 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
   // Estados para el modal de validación de contrato
   const [showValidarContratoModal, setShowValidarContratoModal] = useState(false);
   const [selectedCreditoValidar, setSelectedCreditoValidar] = useState<DetalleCredito | null>(null);
+  // Estados para Payout Kambia
+  const [loadingPayout, setLoadingPayout] = useState(false);
+  const [selectedCreditoPayout, setSelectedCreditoPayout] = useState<string>('');
 
   // Sincronizar el estado local con los props cuando cambien
   useEffect(() => {
@@ -459,6 +462,83 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
   const handleAbrirValidarContrato = (credito: DetalleCredito) => {
     setSelectedCreditoValidar(credito);
     setShowValidarContratoModal(true);
+  };
+
+  // Función para manejar Payout Kambia cuando hay error en datos bancarios
+  const handlePayoutKambia = async (credito: DetalleCredito) => {
+    try {
+      setLoadingPayout(true);
+      setSelectedCreditoPayout(credito.ID_PRESTAMO);
+
+      const payoutData: PayoutDto = {
+        PAGARE: credito.ID_PRESTAMO,
+        USER: user?.dni || 'usuario_no_identificado'
+      };
+
+      const response = await procesarPayoutKambia(payoutData);
+
+      if (response.status) {
+        setNotificationMessage('Payout procesado exitosamente');
+        setShowNotificationModal(true);
+      } else {
+        setNotificationMessage(`Error al procesar payout: ${response.message}`);
+        setShowNotificationModal(true);
+      }
+    } catch (error) {
+      setNotificationMessage('Error al procesar el payout');
+      setShowNotificationModal(true);
+    } finally {
+      setLoadingPayout(false);
+      setSelectedCreditoPayout('');
+    }
+  };
+
+  // Función para determinar si mostrar el botón de Payout Kambia
+  const shouldShowPayoutButton = (credito: DetalleCredito): boolean => {
+    const datosBancarios = clientData.INFO_SOCIO["DATOS BANCARIOS"];
+    const firmDigital = credito.FIRM_DIGITAL;
+    
+    // Condiciones para mostrar el botón:
+    // 1. OBSERVACION === "ERROR" O "pending" en datos bancarios
+    // 2. La firma está validada (verde, estado FIRMADO)
+    // 3. NO se ha subido el comprobante de pago (voucher pendiente)
+    
+    const tieneObservacionErrorOPending = Boolean(
+      datosBancarios &&
+      datosBancarios.some(cuenta =>
+        cuenta.OBSERVACION === 'ERROR' || cuenta.OBSERVACION === 'PENDING'
+      )
+    );
+    const firmaValidada = Boolean(firmDigital && firmDigital.ESTADO === 'FIRMADO');
+    const voucherNoPendiente = Boolean(!vouchersExistentes[credito.ID_PRESTAMO]);
+    
+    return tieneObservacionErrorOPending && firmaValidada && voucherNoPendiente;
+  };
+
+  // Función para renderizar el botón de Payout Kambia
+  const renderPayoutButton = (credito: DetalleCredito) => {
+    if (!shouldShowPayoutButton(credito)) {
+      return null;
+    }
+
+    const isLoading = loadingPayout && selectedCreditoPayout === credito.ID_PRESTAMO;
+
+    return (
+      <button
+        onClick={() => handlePayoutKambia(credito)}
+        disabled={isLoading}
+        className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors disabled:bg-purple-300"
+        title="Procesar Payout Kambia - Error en datos bancarios"
+      >
+        {isLoading ? (
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+          </svg>
+        )}
+      </button>
+    );
   };
 
   // Función para renderizar el botón de contrato según el estado de firma digital
@@ -1020,6 +1100,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
                           <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
                       </button>
+                      {renderPayoutButton(credito)}
                     </div>
                   )}
                 </td>
@@ -1095,6 +1176,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
                     <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 </button>
+                {renderPayoutButton(credito)}
               </div>
             )}
           </div>
