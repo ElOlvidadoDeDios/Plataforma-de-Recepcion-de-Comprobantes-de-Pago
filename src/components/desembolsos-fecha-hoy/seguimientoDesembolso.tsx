@@ -5,7 +5,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { UserRole } from '../../types/permissions';
 import { AGENCIAS } from '../../types';
 import { useCombinedPermissions } from '../../hooks/useCombinedPermissions';
-import { Eye, Info, RotateCcw } from 'lucide-react';
 
 const SeguimientoDesembolso: React.FC = () => {
     const { user } = useAuth();
@@ -121,14 +120,16 @@ const SeguimientoDesembolso: React.FC = () => {
                                 <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Agencia</th>
                                 <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">ID Payout</th>
                                 <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado global</th>
-                                <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado Detalle</th>
-                                <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Acciones</th>
+                                {/* Columna Estado Detalle solo visible para SUPER_ADMIN */}
+                                {user?.role === UserRole.SUPER_ADMIN && (
+                                    <th className="px-4 py-3 border-b text-left text-sm font-semibold text-gray-700">Estado Detalle</th>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
                             {desembolsosFiltrados.length === 0 ? (
                                 <tr>
-                                    <td colSpan={11} className="px-4 py-6 text-center text-gray-500">
+                                    <td colSpan={user?.role === UserRole.SUPER_ADMIN ? 10 : 9} className="px-4 py-6 text-center text-gray-500">
                                         No hay desembolsos para hoy
                                     </td>
                                 </tr>
@@ -154,32 +155,12 @@ const SeguimientoDesembolso: React.FC = () => {
                                                 {desembolso.STATUS_GLOBAL}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 border-b text-sm text-gray-700">
-                                            {desembolso.STATUS_DETALLE || 'N/A'}
-                                        </td>
-
-                                        <td className="flex items-center gap-2">
-                                            <button
-                                                title="Reintentar"
-                                                className="p-1 text-gray-600 hover:text-orange-600 transition-colors"
-                                            >
-                                                <RotateCcw size={18} />
-                                            </button>
-
-                                            <button
-                                                title="Ver vouchers"
-                                                className="p-1 text-gray-600 hover:text-blue-600 transition-colors"
-                                            >
-                                                <Eye size={18} />
-                                            </button>
-
-                                            <button
-                                                title="Detalles"
-                                                className="p-1 text-gray-600 hover:text-green-600 transition-colors"
-                                            >
-                                                <Info size={18} />
-                                            </button>
-                                        </td>  
+                                        {/* Columna Estado Detalle solo visible para SUPER_ADMIN */}
+                                        {user?.role === UserRole.SUPER_ADMIN && (
+                                            <td className="px-4 py-3 border-b text-sm text-gray-700">
+                                                {desembolso.STATUS_DETALLE || 'N/A'}
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             )}
