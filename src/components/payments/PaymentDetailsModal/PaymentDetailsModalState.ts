@@ -8,7 +8,7 @@ import { VoucherDetail } from './PaymentDetailsModalTypes';
 const BANCO_NAME_TO_ID: { [key: string]: string } = {
   'BBVA': '1',
   'SCOTIABANK': '2',
-  'CAJA CUSCO': '3'
+  'CAJA CUSCO': '6'
 };
 
 // Función para convertir nombre a ID (para mostrar en dropdown)
