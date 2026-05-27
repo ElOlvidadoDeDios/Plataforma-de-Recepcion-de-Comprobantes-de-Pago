@@ -24,7 +24,7 @@ export interface responseDesembolsosRealizados {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
 const API_TOKEN = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 
-export const fetchDesembolsosRealizados = async (FECHA: string): Promise<responseDesembolsosRealizados> => {
+export const fetchDesembolsosRealizados = async (FECHA_INICIO: string, FECHA_FIN: string): Promise<responseDesembolsosRealizados> => {
     try {
         // Validar variables de entorno
         if (!API_BASE_URL) {
@@ -37,7 +37,7 @@ export const fetchDesembolsosRealizados = async (FECHA: string): Promise<respons
         const url = `${API_BASE_URL}/api_app_dile_v1_1/api/listDesembolsoDigitalFecha`;
         
 
-        const requestBody = { FECHA };
+        const requestBody = { FECHA_INICIO, FECHA_FIN };
 
         const response = await fetch(url, {
             method: 'POST',

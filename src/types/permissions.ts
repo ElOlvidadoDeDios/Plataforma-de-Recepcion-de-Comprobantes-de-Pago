@@ -17,6 +17,14 @@ export enum Permission {
   CREDITS_VIEW = 'credits:view',      // Ver créditos
   CREDITS_EDIT = 'credits:edit',      // Editar créditos (incluye crear, aprobar, rechazar, etc.)
 
+  // === APROBACIÓN DE CRÉDITO ===
+  CREDIT_APPROVAL_VIEW = 'credit_approval:view',      // Ver aprobación de crédito
+  CREDIT_APPROVAL_APPROVE = 'credit_approval:approve', // Aprobar crédito
+
+  // === SOLICITUD DE CRÉDITO ===
+  CREDIT_REQUEST_VIEW = 'credit_request:view',      // Ver solicitud de crédito
+  CREDIT_REQUEST_EDIT = 'credit_request:edit',      // Hacer solicitud de crédito
+
   // === CONSULTA DE CUOTAS ===
   INSTALLMENTS_VIEW = 'installments:view',  // Ver cuotas
   INSTALLMENTS_EDIT = 'installments:edit',  // Editar cuotas
@@ -99,6 +107,14 @@ export const PermissionCategories = {
     Permission.CREDITS_VIEW,     // Solo ver
     Permission.CREDITS_EDIT,     // Editar (incluye todo: crear, aprobar, rechazar, etc.)
   ],
+  'Aprobación de Crédito': [
+    Permission.CREDIT_APPROVAL_VIEW,     // Ver aprobación
+    Permission.CREDIT_APPROVAL_APPROVE,  // Aprobar
+  ],
+  'Solicitud de Crédito': [
+    Permission.CREDIT_REQUEST_VIEW,     // Ver solicitud
+    Permission.CREDIT_REQUEST_EDIT,     // Hacer solicitud
+  ],
   'Interacciones del Bot': [
     Permission.BOT_VIEW,         // Solo ver
     Permission.BOT_EDIT,         // Editar (incluye gestionar, configurar, etc.)
@@ -173,6 +189,14 @@ export const PermissionLabels: Record<Permission, string> = {
   // Créditos
   [Permission.CREDITS_VIEW]: '📝 Ver Créditos',
   [Permission.CREDITS_EDIT]: '✏️ Gestionar Créditos',
+
+  // Aprobación de Crédito
+  [Permission.CREDIT_APPROVAL_VIEW]: '📋 Ver Aprobación de Crédito',
+  [Permission.CREDIT_APPROVAL_APPROVE]: '✅ Aprobar Crédito',
+
+  // Solicitud de Crédito
+  [Permission.CREDIT_REQUEST_VIEW]: '📋 Ver Solicitud de Crédito',
+  [Permission.CREDIT_REQUEST_EDIT]: '📝 Hacer Solicitud de Crédito',
 
   // Consulta de Cuotas
   [Permission.INSTALLMENTS_VIEW]: '📊 Ver Cuotas',

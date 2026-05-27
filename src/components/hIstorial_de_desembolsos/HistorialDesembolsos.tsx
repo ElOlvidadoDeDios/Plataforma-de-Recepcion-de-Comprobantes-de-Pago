@@ -25,7 +25,8 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
   const [desembolsos, setDesembolsos] = useState<DesembolsoRealizado[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fecha, setFecha] = useState(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }));
+  const [fechaInicio, setFechaInicio] = useState(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }));
+  const [fechaFin, setFechaFin] = useState(new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Lima' }));
   const [imagenModal, setImagenModal] = useState<string | null>(null);
   const [loadingImagen, setLoadingImagen] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
@@ -37,16 +38,24 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
   };
 
   const handleBuscarDesembolsos = async () => {
-    if (!fecha) {
-      setError('Por favor selecciona una fecha');
+    if (!fechaInicio || !fechaFin) {
+      setError('Por favor selecciona ambas fechas');
       return;
     }
+
+    // Validar que fecha inicio no sea mayor que fecha fin
+    if (new Date(fechaInicio) > new Date(fechaFin)) {
+      setError('La fecha de inicio no puede ser mayor que la fecha de fin');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const fechaFormateada = convertirFecha(fecha);
-      const response = await fetchDesembolsosRealizados(fechaFormateada);
+      const fechaInicioFormateada = convertirFecha(fechaInicio);
+      const fechaFinFormateada = convertirFecha(fechaFin);
+      const response = await fetchDesembolsosRealizados(fechaInicioFormateada, fechaFinFormateada);
 
       if (response.status) {
         setDesembolsos(response.data);
@@ -155,8 +164,10 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
       setError('No hay datos para exportar a PDF');
       return;
     }
-    const fechaFormateada = convertirFecha(fecha);
-    exportDesembolsosToPDF({ desembolsos, fecha: fechaFormateada });
+    const fechaInicioFormateada = convertirFecha(fechaInicio);
+    const fechaFinFormateada = convertirFecha(fechaFin);
+    const fechaRango = `${fechaInicioFormateada} - ${fechaFinFormateada}`;
+    exportDesembolsosToPDF({ desembolsos, fecha: fechaRango });
   }
 
   function handleExportarExcel(event: React.MouseEvent<HTMLButtonElement>): void {
@@ -165,8 +176,10 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
       setError('No hay datos para exportar a Excel');
       return;
     }
-    const fechaFormateada = convertirFecha(fecha);
-    exportDesembolsosToExcel({ desembolsos, fecha: fechaFormateada });
+    const fechaInicioFormateada = convertirFecha(fechaInicio);
+    const fechaFinFormateada = convertirFecha(fechaFin);
+    const fechaRango = `${fechaInicioFormateada} - ${fechaFinFormateada}`;
+    exportDesembolsosToExcel({ desembolsos, fecha: fechaRango });
   }
 
   return (
@@ -177,14 +190,26 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
           <h3 className="text-lg font-semibold mb-4">Buscar Desembolsos</h3>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1">
-              <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha
+              <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha Inicio
               </label>
               <input
                 type="date"
-                id="fecha"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
+                id="fechaInicio"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="fechaFin" className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha Fin
+              </label>
+              <input
+                type="date"
+                id="fechaFin"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-cyan-500"
               />
             </div>
@@ -478,7 +503,7 @@ const HistorialDesembolsos: React.FC<HistorialDesembolsosProps> = () => {
         {!loading && desembolsos.length === 0 && !error && (
           <div className="bg-gray-50 rounded-lg p-8 text-center">
             <p className="text-gray-500">
-              Selecciona una fecha y haz clic en "Buscar" para ver los desembolsos realizados.
+              Selecciona un rango de fechas y haz clic en "Buscar" para ver los desembolsos realizados.
             </p>
           </div>
         )}

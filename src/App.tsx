@@ -33,6 +33,7 @@ import HistorialDesembolsos from './components/hIstorial_de_desembolsos/Historia
 import VercuotasMora from './components/cuotas_mora/VercuotasMora';
 import CulquiPendientes from './components/culqi/culqi';
 import SeguimientoDesembolso from './components/desembolsos-fecha-hoy/seguimientoDesembolso';
+import { AprobacionCreditosTable, SolicitudCreditoTable } from './components/aprobacion_creditos/pages';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -282,6 +283,26 @@ function App() {
                 <ProtectedRoute>
                   <PermissionProtectedRoute permission="canAccessSeguimientoDesembolsosHoy">
                     <SeguimientoDesembolso />
+                  </PermissionProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/aprobacion-creditos"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canViewCreditApproval">
+                    <AprobacionCreditosTable />
+                  </PermissionProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/solicitud-credito"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canViewCreditRequest">
+                    <SolicitudCreditoTable />
                   </PermissionProtectedRoute>
                 </ProtectedRoute>
               }

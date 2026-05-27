@@ -71,6 +71,12 @@ const PermissionProtectedRoute: React.FC<PermissionProtectedRouteProps> = ({
     case 'canAccessRecuperaciones':
       hasPermission = permissions.canAccessRecuperaciones();
       break;
+    case 'canViewCreditApproval':
+      hasPermission = permissions.canViewCreditApproval();
+      break;
+    case 'canViewCreditRequest':
+      hasPermission = permissions.canViewCreditRequest();
+      break;
     
     default:
       hasPermission = false;

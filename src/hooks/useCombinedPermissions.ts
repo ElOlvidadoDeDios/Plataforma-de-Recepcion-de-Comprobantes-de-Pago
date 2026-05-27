@@ -73,6 +73,62 @@ export function useCombinedPermissions() {
     canViewCredits: () => hasPermission(Permission.CREDITS_VIEW),
     canEditCredits: () => hasPermission(Permission.CREDITS_EDIT),
     canAccessCredits: () => hasPermission(Permission.CREDITS_VIEW), // Legacy compatibility
+
+    // === APROBACIÓN DE CRÉDITO ===
+    canViewCreditApproval: () => {
+      // SUPER_ADMIN siempre tiene acceso
+      if (user?.role === 'SUPER_ADMIN') {
+        return true;
+      }
+      // Roles con acceso automático
+      const rolesConAccesoAutomatico = ['ADMINISTRADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.CREDIT_APPROVAL_VIEW);
+    },
+    canApproveCreditApproval: () => {
+      // SUPER_ADMIN siempre tiene acceso
+      if (user?.role === 'SUPER_ADMIN') {
+        return true;
+      }
+      // Roles con acceso automático
+      const rolesConAccesoAutomatico = ['ADMINISTRADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.CREDIT_APPROVAL_APPROVE);
+    },
+
+    // === SOLICITUD DE CRÉDITO ===
+    canViewCreditRequest: () => {
+      // SUPER_ADMIN siempre tiene acceso
+      if (user?.role === 'SUPER_ADMIN') {
+        return true;
+      }
+      // Roles con acceso automático
+      const rolesConAccesoAutomatico = ['ADMINISTRADOR', 'ANALISTA_CREDITOS_I'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.CREDIT_REQUEST_VIEW);
+    },
+    canMakeCreditRequest: () => {
+      // SUPER_ADMIN siempre tiene acceso
+      if (user?.role === 'SUPER_ADMIN') {
+        return true;
+      }
+      // Roles con acceso automático
+      const rolesConAccesoAutomatico = ['ADMINISTRADOR', 'ANALISTA_CREDITOS_I'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      // Para otros roles, verificar permisos específicos
+      return hasPermission(Permission.CREDIT_REQUEST_EDIT);
+    },
     
     // === CONSULTA DE CUOTAS ===
     canViewInstallments: () => hasPermission(Permission.INSTALLMENTS_VIEW),
