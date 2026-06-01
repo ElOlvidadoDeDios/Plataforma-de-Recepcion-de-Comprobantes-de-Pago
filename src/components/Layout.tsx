@@ -152,7 +152,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
         title: "CRÉDITOS",
         icon: CreditosSectionIcon,
         options: [
-          { to: '/aprobacion-creditos', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, label: 'Aprobación de Créditos', permission: permissions.canViewCreditApproval() },
+          // { to: '/aprobacion-creditos', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, label: 'Aprobación de Créditos', permission: permissions.canViewCreditApproval() },
           { to: '/solicitud-credito', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>, label: 'Solicitud de Crédito', permission: permissions.canViewCreditRequest() },
           { to: '/geodile', icon: <GeodileIcon className="w-5 h-5" />, label: 'Geodile', permission: permissions.canAccessGeodile() },
           { to: '/calculadora-creditos', icon: CalculadoraIcon, label: 'Calculadora de Créditos', permission: true },
@@ -173,8 +173,8 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
     return sections.filter(section => section.options.some(option => option.permission));
   }, [permissions]);
 
-  const sidebarClass = `bg-gradient-to-b from-cyan-500 to-blue-500 border-r border-white/20 transition-all duration-300 ease-in-out shadow-xl ${
-    isMobile ? 'w-64 fixed top-0 left-0 z-50 h-screen flex flex-col' : isOpen ? 'w-64 h-full' : 'w-16 h-full'
+  const sidebarClass = `bg-gradient-to-b from-cyan-500 to-blue-500 border-r border-white/20 transition-all duration-300 ease-in-out shadow-xl overflow-y-auto ${
+    isMobile ? 'w-64 fixed top-0 left-0 z-50 h-screen flex flex-col' : isOpen ? 'w-64 h-full flex flex-col' : 'w-16 h-full flex flex-col'
   }`;
 
   return (
@@ -191,7 +191,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
           )}
         </div>
       </div>
-      <div className={`flex-1 overflow-y-auto px-4 sm:px-6 pb-4 ${(!isOpen && !isMobile) && 'hidden'}`}>
+      <div className={`flex-1 overflow-y-auto px-4 sm:px-6 pb-4 min-h-0 ${(!isOpen && !isMobile) && 'hidden'}`}>
         {menuSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className="mb-4">
             <SectionTitle 
@@ -260,9 +260,8 @@ const GlobalMenu = React.memo(() => {
           />
           <div
             className={`
-              fixed sm:absolute left-1/2 -translate-x-1/2 sm:right-0 sm:left-auto sm:translate-x-0
-              mt-2 w-[calc(100vw-2rem)] sm:w-56 bg-white rounded-lg shadow-xl z-50 overflow-hidden
-              top-20 sm:top-auto
+              absolute right-0 top-full mt-2 w-80 sm:w-56 bg-white rounded-lg shadow-xl z-50 overflow-y-auto
+              max-h-96
             `}
           >
             <button
