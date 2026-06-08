@@ -39,7 +39,7 @@ export const fetchSolicitudesCreditoPendientes = async (
       throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
     }
 
-    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/list_solicitudes`;
+    const url = `${API_BASE_URL}/api_app_dile_v1_1_dev_1/api/list_solicitudes`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -69,10 +69,8 @@ export const fetchSolicitudesCreditoPendientes = async (
       status: true,
       message: 'Solicitudes cargadas exitosamente',
       data: data?.slice().sort((a, b) => {
-        // Ordenar numéricamente por Nro del 1 al n
-        const nroA = parseInt(a.Nro) || 0;
-        const nroB = parseInt(b.Nro) || 0;
-        return nroA - nroB;
+        return new Date(b.FECHA_REGISTRO).getTime() -
+              new Date(a.FECHA_REGISTRO).getTime();
       }) ?? [],
     };
   } catch (error) {
@@ -128,7 +126,7 @@ export const fetchDetalleSolicitud = async (nroSol: string): Promise<{ status: b
       throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
     }
 
-    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/detalle_solicitud_aprobar`;
+    const url = `${API_BASE_URL}/api_app_dile_v1_1_dev_1/api/detalle_solicitud_aprobar`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -182,6 +180,7 @@ export interface AprobarSolicitudRequest {
   MONTO_APRO: number;
   MONTO_NETO: number;
   TEA: number;
+  COD_USER: string;
 }
 
 /**
@@ -221,7 +220,7 @@ export const aprobarSolicitud = async (requestData: AprobarSolicitudRequest): Pr
       throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
     }
 
-    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/aprobar_solicitud`;
+    const url = `${API_BASE_URL}/api_app_dile_v1_1_dev_1/api/aprobar_solicitud`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -270,7 +269,7 @@ export const denegarSolicitud = async (requestData: DenegarSolicitudRequest): Pr
       throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
     }
 
-    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/denegar_solicitud`;
+    const url = `${API_BASE_URL}/api_app_dile_v1_1_dev_1/api/denegar_solicitud`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -314,7 +313,7 @@ export const anularSolicitud = async (requestData: AnularSolicitudRequest): Prom
       throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
     }
 
-    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/anular_solicitud`;
+    const url = `${API_BASE_URL}/api_app_dile_v1_1_dev_1/api/anular_solicitud`;
 
     const response = await fetch(url, {
       method: 'POST',

@@ -252,6 +252,10 @@ const AprobacionCreditosTable: React.FC = () => {
         setOtpError(validateResponse.message);
         return;
       }
+      if (!user?.user) {
+          notifications.error('No existe usuario autenticado.');
+          return;
+        }
 
       // OTP válido - Proceder con la aprobación
       const detalle = pendingApproval.solicitud.detalle!;
@@ -269,7 +273,8 @@ const AprobacionCreditosTable: React.FC = () => {
         FEC_1_ER: detalle.FECHA_1RACUOTA,
         MONTO_APRO: parseFloat(detalle.MONTO_APROB),
         MONTO_NETO: parseFloat(detalle.MONTO_NETO),
-        TEA: parseFloat(detalle.TEA_INTERES)
+        TEA: parseFloat(detalle.TEA_INTERES),
+        COD_USER: user?.user
       };
 
       const response = await aprobarSolicitud(requestData);
