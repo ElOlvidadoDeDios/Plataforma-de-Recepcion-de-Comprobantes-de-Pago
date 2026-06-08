@@ -319,7 +319,7 @@ const ConsultaCuotasSocios: React.FC = () => {
       }
 
       const sessionData = getUserSessionData();
-      const codAgeFinal = (sessionData.COD_AGE === '06' || sessionData.COD_AGE === '07') ? '98' : sessionData.COD_AGE;
+      const codAgeFinal = (sessionData.COD_AGE === '06' || sessionData.COD_AGE === '07' || sessionData.COD_AGE === "10"|| sessionData.COD_AGE === "11" || sessionData.COD_AGE === "12"|| sessionData.COD_AGE === "13") ? '98' : sessionData.COD_AGE;
 
       const pagoData: PagoRequestDto = {
         PAGARE: pagareSeleccionado,

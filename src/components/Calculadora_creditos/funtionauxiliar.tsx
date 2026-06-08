@@ -301,8 +301,8 @@ export function useCalculadoraCreditos() {
                 return;
             }
             
-            // Aplicar lógica especial para agencias 06 y 07 → 98
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
+            // Aplicar lógica especial para agencias 06, 07, 10, 11, 12, 13 → 98
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07' || user.id_age === "10"|| user.id_age === "11" || user.id_age === "12"|| user.id_age === "13")
                 ? '98'
                 : user.id_age;
 
@@ -362,7 +362,7 @@ export function useCalculadoraCreditos() {
             }
             
             // Aplicar misma lógica de agencias que en cálculo inicial
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07' || user.id_age === "10"|| user.id_age === "11" || user.id_age === "12"|| user.id_age === "13")
                 ? '98'
                 : user.id_age;
 
@@ -427,7 +427,7 @@ export function useCalculadoraCreditos() {
             setLoading(true);
             
             // Aplicar misma lógica de agencias para cronograma
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07' || user.id_age === "10"|| user.id_age === "11" || user.id_age === "12"|| user.id_age === "13")
                 ? '98'
                 : user.id_age;
             
@@ -572,7 +572,7 @@ export function useCalculadoraCreditos() {
             // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de monto - USAR user.id_age
             if (!user || !user.id_age) return;
             
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07' || user.id_age === "10"|| user.id_age === "11" || user.id_age === "12"|| user.id_age === "13")
                 ? '98'
                 : user.id_age;
 
@@ -603,7 +603,7 @@ export function useCalculadoraCreditos() {
             // 🔐 USAR AGENCIA REAL DEL USUARIO para límites de plazo - USAR user.id_age
             if (!user || !user.id_age) return;
             
-            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07')
+            const agenciaProcesada = (user.id_age === '06' || user.id_age === '07'|| user.id_age === "10"|| user.id_age === "11" || user.id_age === "12"|| user.id_age === "13")
                 ? '98'
                 : user.id_age;
 

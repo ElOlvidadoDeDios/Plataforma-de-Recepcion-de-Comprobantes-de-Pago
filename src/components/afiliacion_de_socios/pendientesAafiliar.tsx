@@ -453,7 +453,7 @@ export default function AfiliacionSociosComponent() {
 
       // 🏢 LÓGICA ESPECIAL PARA AGENCIAS 06 Y 07 -> CONVERTIR A 98
       let agenciaFinal = user.agencias[0].agencia;
-      if (agenciaFinal === "06" || agenciaFinal === "07") {
+      if (agenciaFinal === "06" || agenciaFinal === "07" || agenciaFinal === "10" || agenciaFinal === "11" || agenciaFinal === "12" || agenciaFinal === "13") {
         agenciaFinal = "98";
       }
 
