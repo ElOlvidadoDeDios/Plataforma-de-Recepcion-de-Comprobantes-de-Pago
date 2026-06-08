@@ -19,6 +19,69 @@ const userApiInstance = axios.create({
   }
 });
 
+// Nueva instancia para endpoints sin prefijo /auth (números de celular)
+// LOGIN_API_BASE_URL incluye /auth, necesitamos removerlo
+const BASE_API_URL = LOGIN_API_BASE_URL.replace('/auth', '');
+const numeroCelularApiInstance = axios.create({
+  baseURL: BASE_API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+// Interceptores para numeroCelularApiInstance (mismos que userApiInstance)
+numeroCelularApiInstance.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (import.meta.env.DEV) {
+      logger.log('🔍 Request (NumCel):', {
+        url: config.url,
+        method: config.method,
+        hasToken: !!token
+      });
+    }
+    return config;
+  },
+  (error) => {
+    if (import.meta.env.DEV) {
+      logger.error('❌ Request error (NumCel):', error);
+    }
+    return Promise.reject(error);
+  }
+);
+
+numeroCelularApiInstance.interceptors.response.use(
+  (response) => {
+    if (import.meta.env.DEV) {
+      logger.log('✅ Response (NumCel):', {
+        url: response.config.url,
+        status: response.status
+      });
+    }
+    return response;
+  },
+  async (error) => {
+    if (import.meta.env.DEV && error.response?.status !== 401) {
+      logger.error('❌ Response error (NumCel):', {
+        url: error.config?.url,
+        status: error.response?.status,
+        message: error.message
+      });
+    }
+
+    if (error.response?.status === 403) {
+      SessionManager.removeItem('token');
+      SessionManager.removeItem('user');
+      clearCache();
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 userApiInstance.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -329,7 +392,62 @@ export async function fetchUserDataByDni(dni: string) {
   }
 }
 
+// Función para obtener los números de celular del usuario autenticado (usa token JWT del sistema)
+export async function getMisNumerosCelular(): Promise<{
+  success: boolean;
+  message: string;
+  data: Array<{
+    id: string;
+    numero_celular: string;
+    tipo: 'principal' | 'secundario';
+    fecha_creacion: string;
+    fecha_actualizacion: string;
+  }>
+}> {
+  try {
+    // Usa numeroCelularApiInstance que tiene la URL sin /auth
+    const response = await numeroCelularApiInstance.get('numeros-celular/mis-numeros');
+    return response.data;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      logger.error('Error al obtener mis números de celular:', error);
+    }
+    
+    throw new APIError(
+      error.response?.data?.message || 'Error al obtener números de celular',
+      error.response?.status
+    );
+  }
+}
 
-
-
+// Función para obtener números de celular por DNI (usa token JWT del sistema, requiere autenticación)
+export async function getNumerosCelularByDni(dni: string): Promise<{
+  success: boolean;
+  message: string;
+  data: Array<{
+    id: string;
+    dni: string;
+    numero_celular: string;
+    tipo: 'principal' | 'secundario';
+    activo: boolean;
+    creado_por: string;
+    fecha_creacion: string;
+    fecha_actualizacion: string;
+  }>
+}> {
+  try {
+    // Usa numeroCelularApiInstance que tiene la URL sin /auth
+    const response = await numeroCelularApiInstance.get(`numeros-celular/consultar/${dni}`);
+    return response.data;
+  } catch (error: any) {
+    if (import.meta.env.DEV) {
+      logger.error('Error al obtener números de celular por DNI:', error);
+    }
+    
+    throw new APIError(
+      error.response?.data?.message || 'Error al obtener números de celular',
+      error.response?.status
+    );
+  }
+}
 

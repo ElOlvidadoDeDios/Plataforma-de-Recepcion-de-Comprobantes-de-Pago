@@ -108,12 +108,16 @@ const GestionMora = () => {
       'AGENCIA SAN JERÓNIMO': '02',
       'AGENCIA SANTIAGO': '05',
       'AGENCIA SICUANI': '04',
-      'AGENCIA LIMA': '98',
+      'AGENCIA LIMA LOS OLIVOS': '98',
       'OFICINA PRINCIPAL': '01',
       'AGENCIA QUILLABAMBA': '03',
       'AGENCIA TICA TICA': '08',
       'AGENCIA JULIACA': '98',
-      'AGENCIA MAGISTERIO': '09'
+      'AGENCIA MAGISTERIO': '09',
+      "AGENCIA LIMA SAN JUAN DE LURIGANCHO": "98",
+      "AGENCIA CHICLAYO": "98",
+      "AGENCIA AREQUIPA": "98",
+      "AGENCIA PUCALPA": "98"
     };
     return mapeoAgencias[nombreAgencia] || '01';
   };
@@ -123,11 +127,15 @@ const GestionMora = () => {
       '02': 'AGENCIA SAN JERÓNIMO',
       '05': 'AGENCIA SANTIAGO',
       '04': 'AGENCIA SICUANI',
-      '98': 'AGENCIA LIMA',
+      '98': 'AGENCIA LIMA LOS OLIVOS',
       '01': 'OFICINA PRINCIPAL',
       '03': 'AGENCIA QUILLABAMBA',
       '08': 'AGENCIA TICA TICA',
-      '09': 'AGENCIA MAGISTERIO'
+      '09': 'AGENCIA MAGISTERIO',
+      '10': 'AGENCIA LIMA SAN JUAN DE LURIGANCHO',
+      '11': 'AGENCIA CHICLAYO',
+      '12': 'AGENCIA AREQUIPA',
+      '13': 'AGENCIA PUCALPA'
     };
     return mapeoInverso[codigo] || codigo;
   };
@@ -177,22 +185,30 @@ const GestionMora = () => {
         const agencia = tokenData.id_age;
         setUserAgency(agencia);
         
-        // Para agencias 06 (Juliaca) y 07 (Lima), enviar agencia 98 al backend
+        // Para agencias digitales (06, 07, 10, 11, 12, 13), enviar agencia 98 al backend
         let agenciaParaBackend = agencia;
-        if (agencia === '06' || agencia === '07') {
+        if (agencia === '06' || agencia === '07' || agencia === '10' || agencia === '11' || agencia === '12' || agencia === '13') {
           agenciaParaBackend = '98';
         }
         
         const analistasDeAgencia = await creditAttentionApi.getAnalistasByAgencia(periodo, agenciaParaBackend);
         let analistasFiltrados = analistasDeAgencia;
         
-        // Si es agencia 98 (incluye casos de 06 y 07), filtrar por agencia específica
+        // Si es agencia 98 (incluye casos de agencias digitales), filtrar por agencia específica
         if (agenciaParaBackend === '98') {
           let nombreAgenciaAdmin;
           if (agencia === '06') {
             nombreAgenciaAdmin = 'AGENCIA JULIACA';
           } else if (agencia === '07') {
-            nombreAgenciaAdmin = 'AGENCIA LIMA';
+            nombreAgenciaAdmin = 'AGENCIA LIMA LOS OLIVOS';
+          } else if (agencia === '10') {
+            nombreAgenciaAdmin = 'AGENCIA LIMA SAN JUAN DE LURIGANCHO';
+          } else if (agencia === '11') {
+            nombreAgenciaAdmin = 'AGENCIA CHICLAYO';
+          } else if (agencia === '12') {
+            nombreAgenciaAdmin = 'AGENCIA AREQUIPA';
+          } else if (agencia === '13') {
+            nombreAgenciaAdmin = 'AGENCIA PUCALPA';
           } else {
             nombreAgenciaAdmin = mapearCodigoANombreAgencia(agencia);
           }
@@ -250,8 +266,8 @@ const GestionMora = () => {
         if (!analista) throw new Error('Analista no encontrado');
         let codigoAgencia = obtenerCodigoAgencia(analista.AGENCIA) || userAgency || '01';
         
-        // Para agencias 06 (Juliaca) y 07 (Lima), enviar agencia 98 al backend
-        if (codigoAgencia === '06' || codigoAgencia === '07') {
+        // Para agencias digitales (06, 07, 10, 11, 12, 13), enviar agencia 98 al backend
+        if (codigoAgencia === '06' || codigoAgencia === '07' || codigoAgencia === '10' || codigoAgencia === '11' || codigoAgencia === '12' || codigoAgencia === '13') {
           codigoAgencia = '98';
         }
         

@@ -369,4 +369,6 @@ const ModalReporteMora: React.FC<ModalReporteMoraProps> = ({ isOpen, onClose, ag
   );
 };
 
+
 export default ModalReporteMora;
+

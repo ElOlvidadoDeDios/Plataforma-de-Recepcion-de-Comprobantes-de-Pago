@@ -7,6 +7,7 @@
 import jsPDF from 'jspdf';
 
 interface SolicitudCredito {
+  AGENCIA_NOM: string;
   Nro: string;
   NRO_SOL: string;
   FECHA_SOL: string;
@@ -15,7 +16,7 @@ interface SolicitudCredito {
   MONTO_SOL: string;
   MONEDA: string;
   NETO: string;
-  cod_cargo: string;
+  COD_CARGO: string;
   TEM: string;
   TEA_INTERES: string;
   CUO_SEGURO: string;

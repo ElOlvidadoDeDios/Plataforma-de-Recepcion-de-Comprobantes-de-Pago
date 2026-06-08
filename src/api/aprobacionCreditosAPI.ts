@@ -1,4 +1,5 @@
 export interface SolicitudCredito {
+  AGENCIA_NOM: string;
   Nro: string;
   NRO_SOL: string;
   FECHA_SOL: string;
@@ -7,7 +8,7 @@ export interface SolicitudCredito {
   MONTO_SOL: string;
   MONEDA: string;
   NETO: string;
-  cod_cargo: string;
+  COD_CARGO: string;
   TEM: string;
   TEA_INTERES: string;
   CUO_SEGURO: string;
@@ -85,67 +86,261 @@ export const fetchSolicitudesCreditoPendientes = async (
 };
 
 /**
- * Simula la aprobación de una solicitud
+ * Interface para el detalle completo de la solicitud
  */
-export const aprobarSolicitud = async (
-  solicitudId: string,
-  glosa: string
-): Promise<{ status: boolean; message: string }> => {
+export interface DetalleSolicitud {
+  CUENTA: string;
+  RAZON_SOCIAL: string;
+  NRO_SOL: string;
+  SUBTIPO_PRES: string;
+  NOM_SUBTIPO_PRES: string;
+  TIPO_PROD: string;
+  NOM_PROD: string;
+  MONTO_SOL: string;
+  MONTO_NETO: string;
+  MONTO_APROB: string;
+  PLAZO: string;
+  MONEDA: string;
+  FECHA_1RACUOTA: string;
+  COD_FRECUENCIA: string;
+  CUOTA_FIJA: string;
+  TEA_INTERES: string;
+  CUO_SEGURO: string;
+  ORDEN: string;
+  TEM: string;
+  ESTADO: string;
+  NIVEL: string;
+  ENCARGADO: string;
+  COD_AGE: string;
+  NOM_FRECUENCIA: string;
+}
+
+/**
+ * Obtiene el detalle completo de una solicitud de crédito
+ * @param nroSol - Número de solicitud
+ */
+export const fetchDetalleSolicitud = async (nroSol: string): Promise<{ status: boolean; message: string; data: DetalleSolicitud | null }> => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log(`Solicitud ${solicitudId} aprobada con glosa: ${glosa}`);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
+    const TOKEN_aPI_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+    
+    if (!API_BASE_URL) {
+      throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
+    }
+
+    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/detalle_solicitud_aprobar`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        'Authorization': `${TOKEN_aPI_BASE_URL}`
+      },
+      body: JSON.stringify({
+        NRO_SOL: nroSol
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('No se encontró detalle para esta solicitud');
+    }
+
     return {
       status: true,
-      message: 'Solicitud aprobada exitosamente',
+      message: 'Detalle obtenido exitosamente',
+      data: data[0], // El API retorna un array, tomamos el primer elemento
     };
   } catch (error) {
     return {
       status: false,
-      message: 'Error al aprobar la solicitud',
+      message: 'Error al obtener el detalle de la solicitud: ' + (error instanceof Error ? error.message : String(error)),
+      data: null,
     };
   }
 };
 
 /**
- * Simula el rechazo de una solicitud
+ * Interface para aprobar solicitud
  */
-export const rechazarSolicitud = async (
-  solicitudId: string,
-  glosa: string
-): Promise<{ status: boolean; message: string }> => {
+export interface AprobarSolicitudRequest {
+  COD_AGE: string;
+  NRO_SOL: string;
+  TRAMO: string;
+  PRIORIDAD: string;
+  GLOSA: string;
+  COD_APRUEBA: string;
+  CUOTA_FIJA: number;
+  PLAZO: number;
+  FEC_1_ER: string;
+  MONTO_APRO: number;
+  MONTO_NETO: number;
+  TEA: number;
+}
+
+/**
+ * Interface para denegar solicitud
+ */
+export interface DenegarSolicitudRequest {
+  COD_AGE: string;
+  NRO_SOL: string;
+  TRAMO: string;
+  PRIORIDAD: string;
+  GLOSA: string;
+  COD_APRUEBA: string;
+}
+
+/**
+ * Interface para anular solicitud
+ */
+export interface AnularSolicitudRequest {
+  COD_AGE: string;
+  NRO_SOL: string;
+  GLOSA: string;
+  COD_APRUEBA: string;
+  NIVEL: string;
+  ORDEN: string;
+}
+
+/**
+ * Aprobar una solicitud de crédito
+ * @param requestData - Datos para aprobar la solicitud
+ */
+export const aprobarSolicitud = async (requestData: AprobarSolicitudRequest): Promise<{ status: boolean; message: string }> => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log(`Solicitud ${solicitudId} rechazada con glosa: ${glosa}`);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
+    const TOKEN_aPI_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+    
+    if (!API_BASE_URL) {
+      throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
+    }
+
+    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/aprobar_solicitud`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        'Authorization': `${TOKEN_aPI_BASE_URL}`
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Retornar el status que viene del API, no siempre true
     return {
-      status: true,
-      message: 'Solicitud rechazada exitosamente',
+      status: data.status !== undefined ? data.status : true,
+      message: data.message || 'Solicitud aprobada exitosamente',
     };
   } catch (error) {
     return {
       status: false,
-      message: 'Error al rechazar la solicitud',
+      message: 'Error al aprobar la solicitud: ' + (error instanceof Error ? error.message : String(error)),
+    };
+  }
+
+  /***
+   * Denegar una solicitud de credito 
+   * @param requestData - Datos para denegar la solicitud
+   */
+ };
+ 
+/**
+ * Denegar una solicitud de crédito
+ * @param requestData - Datos para denegar la solicitud
+ */
+export const denegarSolicitud = async (requestData: DenegarSolicitudRequest): Promise<{ status: boolean; message: string }> => {
+  try {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
+    const TOKEN_aPI_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+    
+    if (!API_BASE_URL) {
+      throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
+    }
+
+    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/denegar_solicitud`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        'Authorization': `${TOKEN_aPI_BASE_URL}`
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Retornar el status que viene del API
+    return {
+      status: data.status !== undefined ? data.status : true,
+      message: data.message || 'Solicitud denegada exitosamente',
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: 'Error al denegar la solicitud: ' + (error instanceof Error ? error.message : String(error)),
     };
   }
 };
 
 /**
- * Simula la anulación de una solicitud
+ * Anular una solicitud de crédito
+ * @param requestData - Datos para anular la solicitud
  */
-export const anularSolicitud = async (
-  solicitudId: string,
-  glosa: string
-): Promise<{ status: boolean; message: string }> => {
+export const anularSolicitud = async (requestData: AnularSolicitudRequest): Promise<{ status: boolean; message: string }> => {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log(`Solicitud ${solicitudId} anulada con glosa: ${glosa}`);
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
+    const TOKEN_aPI_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+    
+    if (!API_BASE_URL) {
+      throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
+    }
+
+    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/anular_solicitud`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        'Authorization': `${TOKEN_aPI_BASE_URL}`
+      },
+      body: JSON.stringify(requestData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Retornar el status que viene del API
     return {
-      status: true,
-      message: 'Solicitud anulada exitosamente',
+      status: data.status !== undefined ? data.status : true,
+      message: data.message || 'Solicitud anulada exitosamente',
     };
   } catch (error) {
     return {
       status: false,
-      message: 'Error al anular la solicitud',
+      message: 'Error al anular la solicitud: ' + (error instanceof Error ? error.message : String(error)),
     };
   }
 };

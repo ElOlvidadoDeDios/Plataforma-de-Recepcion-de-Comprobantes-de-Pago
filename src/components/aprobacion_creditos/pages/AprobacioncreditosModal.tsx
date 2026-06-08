@@ -1,7 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { DetalleSolicitud } from '../../../api/aprobacionCreditosAPI';
 
 interface SolicitudCredito {
+  AGENCIA_NOM: string;
   Nro: string;
   NRO_SOL: string;
   FECHA_SOL: string;
@@ -10,19 +12,12 @@ interface SolicitudCredito {
   MONTO_SOL: string;
   MONEDA: string;
   NETO: string;
-  cod_cargo: string;
+  COD_CARGO: string;
   TEM: string;
   TEA_INTERES: string;
   CUO_SEGURO: string;
+  detalle?: DetalleSolicitud;
 }
-
-interface CargoAutorizado {
-  no: number;
-  prioridad: number;
-  cargo: string;
-  situacion: string;
-}
-
 interface SolicitudCreditoModalProps {
   solicitud: SolicitudCredito | null;
   onClose: () => void;
@@ -32,11 +27,6 @@ interface SolicitudCreditoModalProps {
   onImprimir?: (solicitud: SolicitudCredito) => void;
   canMakeAction?: boolean;
 }
-
-// Datos de cargos mockeados — reemplazar con llamada a API cuando esté lista
-const CARGOS_MOCK: CargoAutorizado[] = [
-  { no: 1, prioridad: 1, cargo: 'ADMINISTRADOR', situacion: 'PENDIENTE' },
-];
 
 const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
   solicitud,
@@ -50,7 +40,6 @@ const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
   const glosaRef = useRef<HTMLTextAreaElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar con Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -59,7 +48,6 @@ const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  // Bloquear scroll del body mientras el modal está abierto
   useEffect(() => {
     if (solicitud) {
       document.body.style.overflow = 'hidden';
@@ -69,7 +57,6 @@ const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
     };
   }, [solicitud]);
 
-  // Foco inicial en el modal para accesibilidad
   useEffect(() => {
     if (solicitud) {
       modalRef.current?.focus();
@@ -80,8 +67,16 @@ const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
 
   const glosa = () => glosaRef.current?.value ?? '';
 
-  const formatMonto = (valor: number) =>
-    valor.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const formatMonto = (valor: string | number) => {
+    const numValue = typeof valor === 'string' ? parseFloat(valor) : valor;
+    return numValue.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const formatFecha = (fecha: string) => {
+    return fecha.split(' ')[0];
+  };
+
+  const detalle = solicitud.detalle;
 
   const getSituacionColor = (situacion: string) => {
     switch (situacion.toUpperCase()) {
@@ -99,7 +94,6 @@ const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
   };
 
   return createPortal(
-    // Overlay — clic fuera cierra el modal
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-4"
       onClick={(e) => {
@@ -147,61 +141,105 @@ const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
         {/* Body */}
         <div className="p-4 sm:p-6 space-y-5">
 
-          {/* Campos principales — 2 columnas en desktop, 1 en móvil */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-            <Field label="Cuenta" value={solicitud.CUENTA} />
-            <Field label="Razón Social" value={solicitud.NOMBRE} />
-            <Field label="Nro Solicitud" value={solicitud.NRO_SOL} highlight />
-            <Field label="Fecha" value={solicitud.FECHA_SOL.split(' ')[0]} />
-            <Field label="Moneda" value={solicitud.MONEDA} />
-            <Field label="Nro Aprobación" value="1" />
-            <Field label="Monto Solicitado" value={`S/ ${formatMonto(parseFloat(solicitud.MONTO_SOL))}`} highlight />
-            <Field label="Neto" value={`S/ ${formatMonto(parseFloat(solicitud.NETO))}`} green />
-            <Field label="Monto a Aprobar" value={`S/ ${formatMonto(parseFloat(solicitud.MONTO_SOL))}`} />
-            <Field label="Plazo" value="6 meses" />
-            <Field label="Fecha Primer Pago" value="9/05/2026" />
-            <Field label="Frecuencia" value="MESES" />
-            <Field label="Valor Cuota" value="S/ 220.20" highlight />
-            <Field label="T.E.A. % / T.E.M. %" value={`${parseFloat(solicitud.TEA_INTERES).toFixed(2)}% / 5.95%`} />
-            <Field label="Cuota Seguro" value="S/ 10.00" />
-          </div>
+          {detalle ? (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                <Field label="Cuenta" value={detalle.CUENTA} highlight />
+                <Field label="Razón Social" value={detalle.RAZON_SOCIAL} />
+              </div>
 
-          {/* Tabla de cargos */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-              Cargos Autorizados a Aprobar
-            </p>
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="min-w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {['No.', 'Prioridad', 'Cargo', 'Situación'].map((col) => (
-                      <th
-                        key={col}
-                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {CARGOS_MOCK.map((cargo) => (
-                    <tr key={cargo.no} className="bg-blue-50">
-                      <td className="px-3 py-2 text-blue-700 font-medium">{cargo.no}</td>
-                      <td className="px-3 py-2 text-blue-700">{cargo.prioridad}</td>
-                      <td className="px-3 py-2 text-blue-700">{cargo.cargo}</td>
+              {/* FIX 1: En móvil → 2 filas. Fila 1: Nro Sol + Pagare. Fila 2: Nombre producto (ancho completo) */}
+              {/* En desktop → 3 columnas como antes */}
+              <div className="grid grid-cols-2 sm:grid-cols-[1fr_2fr_1fr] gap-x-6 gap-y-3">
+                <Field label="Nro Solicitud" value={detalle.NRO_SOL} highlight small />
+                <Field label="Pagare" value={detalle.NRO_SOL} highlight small />
+                {/* Nombre del producto: ocupa las 2 columnas en móvil, columna del medio en desktop */}
+                <div className="col-span-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+                  <Field label="" value={`${detalle.NOM_SUBTIPO_PRES} ${detalle.NOM_PROD}`} red />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-3">
+                <Field label="Nro Aprob." value={detalle.ORDEN} />
+                <Field label="Neto" value={detalle.MONTO_NETO} />
+                <Field label="Monto Solicitado" value={detalle.MONTO_SOL} highlight />
+                <Field label="Monto a Aprobar" value={detalle.MONTO_APROB} />
+                <Field label="Moneda" value={detalle.MONEDA} />
+                <Field label="Plazo" value={detalle.PLAZO} />
+                <Field label="Fecha 1ra Cuota" value={formatFecha(detalle.FECHA_1RACUOTA)} />
+                <Field label="Valor de Cuota" value={`${Number(detalle.CUOTA_FIJA) + Number(detalle.CUO_SEGURO)}`} />
+                <Field label="Frecuencia" value={detalle.NOM_FRECUENCIA} />
+                <Field label="T.E.A %" value={`${parseFloat(detalle.TEA_INTERES).toFixed(2)}`} />
+                <Field label="T.E.M.%" value={`${parseFloat(detalle.TEM).toFixed(2)}`} />
+                <Field label="Cuota Seguro" value={detalle.CUO_SEGURO ? `S/ ${formatMonto(detalle.CUO_SEGURO)}` : '-'} />
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Cargando detalle de la solicitud...
+            </div>
+          )}
+
+          {/* FIX 2: Tabla de cargos → cards apiladas en móvil, tabla en desktop */}
+          {detalle && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                Cargos Autorizados a Aprobar
+              </p>
+
+              {/* Vista móvil: card vertical sin scroll horizontal */}
+              <div className="sm:hidden rounded-lg border border-gray-200 bg-blue-50 p-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-gray-500 uppercase">No.</span>
+                  <span className="text-sm text-blue-700 font-medium">{detalle.ORDEN || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-gray-500 uppercase">Prioridad</span>
+                  <span className="text-sm text-blue-700">{detalle.ORDEN || '-'}</span>
+                </div>
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-xs font-medium text-gray-500 uppercase shrink-0">Cargo</span>
+                  <span className="text-sm text-blue-700 text-right">{detalle.ENCARGADO || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-gray-500 uppercase">Situación</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${getSituacionColor(detalle.ESTADO)}`}>
+                    {detalle.ESTADO}
+                  </span>
+                </div>
+              </div>
+
+              {/* Vista desktop: tabla original */}
+              <div className="hidden sm:block overflow-x-auto rounded-lg border border-gray-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {['No.', 'Prioridad', 'Cargo', 'Situación'].map((col) => (
+                        <th
+                          key={col}
+                          className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    <tr className="bg-blue-50">
+                      <td className="px-3 py-2 text-blue-700 font-medium">{detalle.ORDEN || '-'}</td>
+                      <td className="px-3 py-2 text-blue-700">{detalle.ORDEN || '-'}</td>
+                      <td className="px-3 py-2 text-blue-700">{detalle.ENCARGADO || '-'}</td>
                       <td className="px-3 py-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getSituacionColor(cargo.situacion)}`}>
-                          {cargo.situacion}
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${getSituacionColor(detalle.ESTADO)}`}>
+                          {detalle.ESTADO}
                         </span>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Glosa */}
           <div>
@@ -224,7 +262,6 @@ const SolicitudCreditoModal: React.FC<SolicitudCreditoModalProps> = ({
 
           {/* Divisor */}
           <div className="border-t border-gray-100 pt-4">
-            {/* Botones de acción — 4 columnas en desktop, 2 en móvil */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               <ActionButton
                 label="Aprobar"
@@ -288,15 +325,19 @@ const Field: React.FC<{
   value: string;
   highlight?: boolean;
   green?: boolean;
-}> = ({ label, value, highlight, green }) => (
+  red?: boolean;
+  small?: boolean;
+}> = ({ label, value, highlight, green, red, small }) => (
   <div className="flex flex-col gap-1">
     <span className="text-xs font-medium text-gray-500">{label}</span>
     <div
       className={`
-        rounded-md border px-3 py-1.5 text-sm
+        rounded-md border px-3 py-1.5
+        ${small ? 'text-xs' : 'text-xs sm:text-sm'}
         ${highlight ? 'border-blue-300 text-blue-700 font-semibold bg-blue-50' : ''}
         ${green ? 'border-green-300 text-green-700 font-semibold bg-green-50' : ''}
-        ${!highlight && !green ? 'border-gray-200 text-gray-800 bg-gray-50' : ''}
+        ${red ? 'text-red-700 font-semibold bg-red-50' : ''}
+        ${!highlight && !green && !red ? 'border-gray-200 text-gray-800 bg-gray-50' : ''}
       `}
     >
       {value}

@@ -279,7 +279,7 @@ const Welcome: React.FC = () => {
     const availableOptions = [
       ...(permissions.canAccessPayments() ? [{ title: 'Ver Pagos', description: 'Gestiona los pagos de los clientes', onClick: () => navigate('/payments'), icon: '💰' }] : []),
       ...(permissions.canAccessCredits() ? [{ title: 'Solicitudes de Crédito', description: 'Revisa y aprueba solicitudes de crédito', onClick: () => navigate('/credit-requests'), icon: '📝' }] : []),
-      // ...(permissions.canViewCreditApproval() ? [{ title: 'Aprobación de Créditos', description: 'Aprueba solicitudes de crédito', onClick: () => navigate('/aprobacion-creditos'), icon: '✅' }] : []),
+       ...(permissions.canViewCreditApproval() ? [{ title: 'Aprobación de Créditos', description: 'Aprueba solicitudes de crédito', onClick: () => navigate('/aprobacion-creditos'), icon: '✅' }] : []),
       ...(permissions.canViewCreditRequest() ? [{ title: 'Solicitud de Crédito', description: 'Realiza solicitudes de crédito', onClick: () => navigate('/solicitud-credito'), icon: '📋' }] : []),
       ...(permissions.canAccessBotInteractions() ? [{ title: 'Interacciones del Bot', description: 'Analiza las interacciones con el bot', onClick: () => navigate('/bot-interactions'), icon: '🤖' }] : []),
       ...(permissions.canAccessConsultaCuotas() ? [{ title: 'Reporte de Consulta de Cuotas', description: 'Revisa el estado de las cuotas', onClick: () => navigate('/consultas-cuotas'), icon: '📊' }] : []),
