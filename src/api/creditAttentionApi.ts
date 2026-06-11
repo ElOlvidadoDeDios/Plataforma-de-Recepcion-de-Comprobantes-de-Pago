@@ -268,4 +268,14 @@ export const creditAttentionApi = {
         }
     },
 
+    // Enviar OTP por WhatsApp/Notificación
+    sendOTPNotification: async (otpData: any): Promise<any> => {
+        try {
+            const response = await axiosInstance.post('/api/gestion-mora/send-OTP', otpData);
+            return response.data;
+        } catch (error: any) {
+            throw new Error('Error al enviar OTP');
+        }
+    },
+
 };

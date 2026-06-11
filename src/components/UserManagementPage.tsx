@@ -9,6 +9,7 @@ import {
   UserCardList,
   UserActivateModal,
   UserAgencyModal,
+  UserUpdateModal,
 } from './gestion_usuarios';
 import UserCreateSimpleModal from './gestion_usuarios/components/UserCreateSimpleModal';
 import AdminChangePasswordModal from './gestion_usuarios/components/AdminChangePasswordModal';
@@ -18,6 +19,7 @@ const UserManagementPage: React.FC = () => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   const {
     user,
@@ -150,6 +152,7 @@ const UserManagementPage: React.FC = () => {
                   setShowActivateModal={setShowActivateModal}
                   setShowChangePasswordModal={setShowChangePasswordModal}
                   setShowPermissionsModal={setShowPermissionsModal}
+                  setShowUpdateModal={setShowUpdateModal}
                 />
               </div>
 
@@ -170,6 +173,7 @@ const UserManagementPage: React.FC = () => {
                   setShowActivateModal={setShowActivateModal}
                   setShowChangePasswordModal={setShowChangePasswordModal}
                   setShowPermissionsModal={setShowPermissionsModal}
+                  setShowUpdateModal={setShowUpdateModal}
                 />
               </div>
             </div>
@@ -220,6 +224,15 @@ const UserManagementPage: React.FC = () => {
         user={selectedUser}
         onClose={() => {
           setShowPermissionsModal(false);
+          setSelectedUser(null);
+        }}
+      />
+
+      <UserUpdateModal
+        isOpen={showUpdateModal}
+        user={selectedUser}
+        onClose={() => {
+          setShowUpdateModal(false);
           setSelectedUser(null);
         }}
       />

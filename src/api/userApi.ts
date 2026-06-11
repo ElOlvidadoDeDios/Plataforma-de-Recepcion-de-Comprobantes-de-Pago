@@ -36,13 +36,7 @@ numeroCelularApiInstance.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    if (import.meta.env.DEV) {
-      logger.log('🔍 Request (NumCel):', {
-        url: config.url,
-        method: config.method,
-        hasToken: !!token
-      });
-    }
+    // Logs desactivados para reducir ruido en consola
     return config;
   },
   (error) => {
@@ -55,23 +49,11 @@ numeroCelularApiInstance.interceptors.request.use(
 
 numeroCelularApiInstance.interceptors.response.use(
   (response) => {
-    if (import.meta.env.DEV) {
-      logger.log('✅ Response (NumCel):', {
-        url: response.config.url,
-        status: response.status
-      });
-    }
+    // Logs desactivados para reducir ruido en consola
     return response;
   },
   async (error) => {
-    if (import.meta.env.DEV && error.response?.status !== 401) {
-      logger.error('❌ Response error (NumCel):', {
-        url: error.config?.url,
-        status: error.response?.status,
-        message: error.message
-      });
-    }
-
+    // Logs desactivados para reducir ruido en consola
     if (error.response?.status === 403) {
       SessionManager.removeItem('token');
       SessionManager.removeItem('user');
@@ -88,13 +70,7 @@ userApiInstance.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
-    if (import.meta.env.DEV) {
-      logger.log('🔍 Request:', {
-        url: config.url,
-        method: config.method,
-        hasToken: !!token
-      });
-    }
+    // Logs desactivados para reducir ruido en consola
     return config;
   },
   (error) => {
@@ -107,24 +83,11 @@ userApiInstance.interceptors.request.use(
 
 userApiInstance.interceptors.response.use(
   (response) => {
-    if (import.meta.env.DEV) {
-      logger.log('✅ Response:', {
-        url: response.config.url,
-        status: response.status
-      });
-    }
+    // Logs desactivados para reducir ruido en consola
     return response;
   },
   async (error) => {
-    // Solo mostrar errores en consola si NO es un error de login (401)
-    if (import.meta.env.DEV && error.response?.status !== 401) {
-      logger.error('❌ Response error:', {
-        url: error.config?.url,
-        status: error.response?.status,
-        message: error.message
-      });
-    }
-
+    // Logs desactivados para reducir ruido en consola
     if (error.response?.status === 403) {
       SessionManager.removeItem('token');
       SessionManager.removeItem('user');
@@ -341,6 +304,97 @@ export const updateUserAgencias = async (userId: string, agencias: AgenciaCaja[]
   }
 };
 
+export const updateUserComplete = async (
+  userId: string,
+  updateData: {
+    email?: string;
+    razon?: string;
+    dni?: string;
+    cargo?: string;
+    user?: string;
+    id_ana?: string;
+    id_age?: string;
+    password?: string;
+    status?: number;
+    role?: string;
+    agencias?: {
+      agencia: string;
+      cod_caja: string;
+      user_caja: string;
+    }[];
+    permissions?: string[];
+  }
+): Promise<UserResponse> => {
+  try {
+    const response = await userApiInstance.patch<UserResponse>(
+      `users/${userId}`,
+      updateData
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      const status = error.response?.status || 500;
+      let mensaje = 'Error al actualizar el usuario';
+
+      switch (status) {
+        case 400:
+          mensaje = error.response?.data?.message || 'Datos inválidos';
+          break;
+        case 401:
+          mensaje = 'No autorizado - Token inválido';
+          break;
+        case 403:
+          mensaje = 'No tienes permisos para realizar esta acción';
+          break;
+        case 404:
+          mensaje = 'Usuario no encontrado';
+          break;
+        case 409:
+          mensaje = 'Conflicto - El email ya está en uso';
+          break;
+      }
+
+      throw new APIError(mensaje, status);
+    }
+
+    throw new APIError('Error al actualizar el usuario', 500);
+  }
+};
+
+/**
+ * Obtiene los datos completos de un usuario específico
+ */
+export const fetchUserById = async (userId: string): Promise<UserResponse> => {
+  try {
+    const response = await userApiInstance.get<UserResponse>(
+      `users/${userId}`
+    );
+
+    return response.data;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      const status = error.response?.status || 500;
+      let mensaje = 'Error al obtener los datos del usuario';
+
+      switch (status) {
+        case 404:
+          mensaje = 'Usuario no encontrado';
+          break;
+        case 401:
+          mensaje = 'No autorizado - Token inválido';
+          break;
+        case 403:
+          mensaje = 'No tienes permisos para ver este usuario';
+          break;
+      }
+
+      throw new APIError(mensaje, status);
+    }
+
+    throw new APIError('Error al obtener los datos del usuario', 500);
+  }
+};
 
 // Función para obtener todos los usuarios externos (ahora desde tu backend)
 export async function fetchAllExternalUsers() {

@@ -1,384 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../hooks/useAuth';
-import { useCombinedPermissions } from '../../../hooks/useCombinedPermissions';
-import { useNotifications } from '../../../hooks/useNotifications';
+import React from 'react';
 import Layout from '../../Layout';
 import SolicitudCreditoModal from './AprobacioncreditosModal';
 import OtpModal from './OtpModal';
-import {
-  fetchSolicitudesCreditoPendientes,
-  fetchDetalleSolicitud,
-  aprobarSolicitud,
-  denegarSolicitud,
-  anularSolicitud,
-  SolicitudCredito,
-  DetalleSolicitud,
-  AprobarSolicitudRequest,
-  DenegarSolicitudRequest,
-  AnularSolicitudRequest
-} from '../../../api/aprobacionCreditosAPI';
-import { createOtpCode, validateOtpCode } from '../../../api/otpAPI';
-import { creditAttentionApi } from '../../../api/creditAttentionApi';
-import { getMisNumerosCelular } from '../../../api/userApi';
+import { useAprobacionCreditos } from '../hooks/useAprobacionCreditos';
+import { useNavigate } from 'react-router-dom';
 
 const AprobacionCreditosTable: React.FC = () => {
-  const { user } = useAuth();
-  const { canViewCreditApproval, canApproveCreditApproval } = useCombinedPermissions();
-  const notifications = useNotifications();
-  const [solicitudes, setSolicitudes] = useState<SolicitudCredito[]>([]);
-  const [filteredSolicitudes, setFilteredSolicitudes] = useState<SolicitudCredito[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAgencia, setSelectedAgencia] = useState<string>('TODAS');
-  const [agencias, setAgencias] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSolicitud, setSelectedSolicitud] = useState<(SolicitudCredito & { detalle?: DetalleSolicitud }) | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  // Estados para OTP
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [isValidatingOtp, setIsValidatingOtp] = useState(false);
-  const [otpError, setOtpError] = useState('');
-  const [pendingApproval, setPendingApproval] = useState<{
-    solicitud: SolicitudCredito & { detalle?: DetalleSolicitud };
-    glosa: string;
-  } | null>(null);
-
-  const hasAccess = user?.role === 'SUPER_ADMIN' || canViewCreditApproval();
-
-  useEffect(() => {
-    cargarSolicitudes();
-  }, []);
-
-  const cargarSolicitudes = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      // Obtener la agencia, cargo y user del usuario autenticado
-      let agencia = user?.id_age || '';
-      
-      // Convertir agencias digitales (06, 07, 10, 11, 12, 13) a agencia 98
-      const agenciasDigitales = ['06', '07', '10', '11', '12', '13'];
-      if (agenciasDigitales.includes(agencia)) {
-        agencia = '98';
-      }
-      
-      const cargo = user?.cargo || '';
-      const usuario = user?.user || '';
-      const response = await fetchSolicitudesCreditoPendientes(agencia, cargo, usuario);
-
-      if (response.status) {
-        setSolicitudes(response.data);
-        setFilteredSolicitudes(response.data);
-        
-        // Extraer agencias únicas
-        const agenciasUnicas = Array.from(new Set(response.data.map(sol => sol.AGENCIA_NOM)));
-        setAgencias(agenciasUnicas);
-        
-        // Si solo hay una agencia, no mostrar tabs
-        if (agenciasUnicas.length === 1) {
-          setSelectedAgencia(agenciasUnicas[0]);
-        } else {
-          setSelectedAgencia('TODAS');
-        }
-      } else {
-        setError(response.message);
-        setSolicitudes([]);
-        setFilteredSolicitudes([]);
-        setAgencias([]);
-      }
-    } catch (err) {
-      setError('Error al cargar las solicitudes de crédito');
-      setSolicitudes([]);
-      setFilteredSolicitudes([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Filtrar solicitudes cuando cambia el término de búsqueda o la agencia seleccionada
-  useEffect(() => {
-    let filtered = solicitudes;
-    
-    // Filtrar por agencia si no es "TODAS"
-    if (selectedAgencia !== 'TODAS') {
-      filtered = filtered.filter(sol => sol.AGENCIA_NOM === selectedAgencia);
-    }
-    
-    // Filtrar por término de búsqueda
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter((sol) =>
-        sol.NOMBRE.toLowerCase().includes(term) ||
-        sol.CUENTA.toLowerCase().includes(term) ||
-        sol.NRO_SOL.toLowerCase().includes(term)
-      );
-    }
-    
-    setFilteredSolicitudes(filtered);
-  }, [searchTerm, selectedAgencia, solicitudes]);
-
-  const handleVerDetalle = async (solicitud: SolicitudCredito) => {
-    try {
-      setIsProcessing(true);
-      setError(null);
-      const response = await fetchDetalleSolicitud(solicitud.NRO_SOL.trim());
-      
-      if (response.status && response.data) {
-        setSelectedSolicitud({
-          ...solicitud,
-          detalle: response.data
-        });
-      } else {
-        setError(response.message);
-      }
-    } catch (err) {
-      setError('Error al cargar el detalle de la solicitud');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleAprobar = async (solicitud: SolicitudCredito & { detalle?: DetalleSolicitud }, glosa: string) => {
-    if (!solicitud.detalle) {
-      notifications.warning('No se puede aprobar: faltan datos del detalle de la solicitud');
-      return;
-    }
-
-    if (!user?.cargo) {
-      notifications.error('Error: No se puede determinar el usuario que aprueba');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-
-      // Paso 1: Obtener número de celular del usuario autenticado (OBLIGATORIO)
-      let numeroCelular: string | null = null;
-      
-      try {
-        const numerosResponse = await getMisNumerosCelular();
-        
-        if (!numerosResponse.success || numerosResponse.data.length === 0) {
-          notifications.error('No tienes un número de celular registrado. Por favor, registra tu número en tu perfil antes de aprobar solicitudes.');
-          return;
-        }
-        
-        // Prioridad: principal > secundario
-        const numeroPrincipal = numerosResponse.data.find(n => n.tipo === 'principal');
-        if (numeroPrincipal) {
-          numeroCelular = numeroPrincipal.numero_celular;
-        } else if (numerosResponse.data[0]) {
-          numeroCelular = numerosResponse.data[0].numero_celular;
-        }
-        
-        if (!numeroCelular) {
-          notifications.error('No se encontró un número de celular válido. Por favor, verifica tu perfil.');
-          return;
-        }
-        
-        // Asegurar formato con código de país
-        if (!numeroCelular.startsWith('51')) {
-          numeroCelular = '51' + numeroCelular;
-        }
-        
-      } catch (error) {
-        console.error('Error al obtener número de celular:', error);
-        notifications.error('No se pudo obtener tu número de celular. Por favor, verifica tu perfil.');
-        return;
-      }
-
-      // Paso 2: Crear código OTP
-      const otpResponse = await createOtpCode({
-        entidad_id: solicitud.detalle.NRO_SOL,
-        entidad_tipo: 'SOLICITUD_CREDITO',
-        tipo_otp: 'APROBACION_CREDITO',
-        canal_envio: 'WHATSAPP',
-        destino_envio: numeroCelular,
-        max_intentos: 3,
-        minutos_expiracion: 5,
-        creado_por: user.user || '',
-        observacion: `Aprobación de solicitud ${solicitud.detalle.NRO_SOL}`
-      });
-
-      if (!otpResponse.status) {
-        notifications.error(otpResponse.message);
-        return;
-      }
-
-      // Paso 3: Enviar código por WhatsApp
-      const mensaje = `🔐 *Código de Verificación DILE*\n\nTu código OTP para aprobar la solicitud ${solicitud.detalle.NRO_SOL} es:\n\n*${otpResponse.data.codigo}*\n\nEste código expira en 5 minutos.\n\n⚠️ No compartas este código con nadie.`;
-      
-      try {
-        await creditAttentionApi.sendWhatsAppMessage({
-          number: numeroCelular,
-          message: mensaje,
-          mediaUrl: undefined
-        });
-      } catch (whatsappError) {
-        notifications.warning('OTP generado pero no se pudo enviar por WhatsApp. Código: ' + otpResponse.data.codigo);
-      }
-
-      // Paso 4: Guardar datos para aprobar después de validar OTP
-      setPendingApproval({ solicitud, glosa });
-      
-      // Paso 5: Mostrar modal OTP
-      setShowOtpModal(true);
-      notifications.success('Código OTP enviado a tu WhatsApp');
-
-    } catch (error) {
-      notifications.error('Error al generar código OTP');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleValidateOtp = async (codigo: string) => {
-    if (!pendingApproval) return;
-
-    try {
-      setIsValidatingOtp(true);
-      setOtpError('');
-
-      // Validar OTP
-      const validateResponse = await validateOtpCode({
-        entidad_id: pendingApproval.solicitud.detalle!.NRO_SOL,
-        entidad_tipo: 'SOLICITUD_CREDITO',
-        tipo_otp: 'APROBACION_CREDITO',
-        codigo: codigo
-      });
-
-      if (!validateResponse.status) {
-        setOtpError(validateResponse.message);
-        return;
-      }
-      if (!user?.user) {
-          notifications.error('No existe usuario autenticado.');
-          return;
-        }
-
-      // OTP válido - Proceder con la aprobación
-      const detalle = pendingApproval.solicitud.detalle!;
-      const glosaFormateada = pendingApproval.glosa.trim() ? pendingApproval.glosa.trim().toUpperCase() : '';
-
-      const requestData: AprobarSolicitudRequest = {
-        COD_AGE: detalle.COD_AGE,
-        NRO_SOL: detalle.NRO_SOL,
-        TRAMO: detalle.NIVEL,
-        PRIORIDAD: detalle.ORDEN,
-        GLOSA: glosaFormateada,
-        COD_APRUEBA: user?.cargo || '',
-        CUOTA_FIJA: parseFloat(detalle.CUOTA_FIJA),
-        PLAZO: parseInt(detalle.PLAZO),
-        FEC_1_ER: detalle.FECHA_1RACUOTA,
-        MONTO_APRO: parseFloat(detalle.MONTO_APROB),
-        MONTO_NETO: parseFloat(detalle.MONTO_NETO),
-        TEA: parseFloat(detalle.TEA_INTERES),
-        COD_USER: user?.user
-      };
-
-      const response = await aprobarSolicitud(requestData);
-
-      if (response.status) {
-        notifications.success(response.message || 'Solicitud aprobada exitosamente');
-        setShowOtpModal(false);
-        setSelectedSolicitud(null);
-        setPendingApproval(null);
-        cargarSolicitudes();
-      } else {
-        notifications.error(response.message || 'Error al aprobar la solicitud');
-        setOtpError(response.message);
-      }
-    } catch (error) {
-      setOtpError('Error inesperado al validar OTP');
-    } finally {
-      setIsValidatingOtp(false);
-    }
-  };
-
-  const handleRechazar = async (solicitud: SolicitudCredito & { detalle?: DetalleSolicitud }, glosa: string) => {
-    if (!solicitud.detalle) {
-      notifications.warning('No se puede denegar: faltan datos del detalle de la solicitud');
-      return;
-    }
-
-    if (!user?.user) {
-      notifications.error('Error: No se puede determinar el usuario que deniega');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      
-      const detalle = solicitud.detalle;
-      
-      // Convertir glosa a mayúsculas si tiene contenido, o enviar vacío si no tiene
-      const glosaFormateada = glosa.trim() ? glosa.trim().toUpperCase() : '';
-      
-      // Construir el objeto de solicitud con todos los campos requeridos para denegar
-      const requestData: DenegarSolicitudRequest = {
-        COD_AGE: detalle.COD_AGE,
-        NRO_SOL: detalle.NRO_SOL,
-        TRAMO: detalle.NIVEL,
-        PRIORIDAD: detalle.ORDEN,
-        GLOSA: glosaFormateada,
-        COD_APRUEBA: user.user
-      };
-
-      const response = await denegarSolicitud(requestData);
-      
-      if (response.status) {
-        notifications.success(response.message || 'Solicitud denegada exitosamente');
-        setSelectedSolicitud(null);
-        cargarSolicitudes(); // Recargar la lista
-      } else {
-        notifications.error(response.message || 'Error al denegar la solicitud');
-      }
-    } catch (err) {
-      notifications.error('Error inesperado al denegar la solicitud');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleAnular = async (solicitud: SolicitudCredito & { detalle?: DetalleSolicitud }, glosa: string) => {
-    if (!solicitud.detalle) {
-      notifications.error('No se puede anular sin el detalle de la solicitud');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-
-      const requestData: AnularSolicitudRequest = {
-        COD_AGE: solicitud.detalle.COD_AGE,
-        NRO_SOL: solicitud.detalle.NRO_SOL,
-        GLOSA: glosa.toUpperCase(),
-        COD_APRUEBA: user?.cargo || '',
-        NIVEL: solicitud.detalle.NIVEL,
-        ORDEN: solicitud.detalle.ORDEN,
-      };
-
-      const response = await anularSolicitud(requestData);
-
-      if (response.status) {
-        notifications.success(response.message || 'Solicitud anulada exitosamente');
-        setSelectedSolicitud(null);
-        cargarSolicitudes();
-      } else {
-        notifications.error(response.message || 'Error al anular la solicitud');
-      }
-    } catch (error) {
-      notifications.error('Error inesperado al anular la solicitud');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleImprimir = (solicitud: SolicitudCredito) => {
-    notifications.warning('Función de impresión en desarrollo');
-  };
-
+  const {
+    solicitudes,
+    filteredSolicitudes,
+    searchTerm,
+    setSearchTerm,
+    selectedAgencia,
+    setSelectedAgencia,
+    agencias,
+    isLoading,
+    error,
+    selectedSolicitud,
+    setSelectedSolicitud,
+    isProcessing,
+    showOtpModal,
+    isValidatingOtp,
+    otpError,
+    pendingApproval,
+    hasAccess,
+    canApproveCreditApproval,
+    cargarSolicitudes,
+    handleVerDetalle,
+    handleAprobar,
+    handleValidateOtp,
+    handleRechazar,
+    handleAnular,
+    handleImprimir,
+    handleCloseOtpModal,
+  } = useAprobacionCreditos();
+  const navigate = useNavigate();
   if (!hasAccess) {
     return (
       <Layout title="Acceso Denegado" showBackButton={true}>
@@ -405,19 +61,30 @@ const AprobacionCreditosTable: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-xl sm:text-2xl font-bold">APROBACION DE CREDITOS</h2>
-              
-              <button
-                onClick={cargarSolicitudes}
-                disabled={isLoading}
-                className="mt-4 sm:mt-0 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <span className="text-sm">{isLoading ? 'Actualizando...' : 'Actualizar'}</span>
-              </button>
+
+              <div className="mt-4 sm:mt-0 flex items-center gap-2">
+                {/* <button
+                  onClick={() => navigate('/duplicados')}
+                  className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm">Duplicados</span>
+                </button> */}
+
+                <button
+                  onClick={cargarSolicitudes}
+                  disabled={isLoading}
+                  className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-md transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span className="text-sm">{isLoading ? 'Actualizando...' : 'Actualizar'}</span>
+                </button>
+              </div>
             </div>
-            
             {/* Barra de búsqueda */}
             {!isLoading && solicitudes.length > 0 && (
               <div className="relative">
@@ -445,7 +112,7 @@ const AprobacionCreditosTable: React.FC = () => {
                 )}
               </div>
             )}
-            
+
             {/* Filtro de Agencias - Solo mostrar si hay más de una agencia */}
             {!isLoading && agencias.length > 1 && (
               <>
@@ -591,7 +258,6 @@ const AprobacionCreditosTable: React.FC = () => {
                     disabled={isProcessing}
                     className="w-full text-left bg-white rounded-xl border-2 border-gray-200 shadow-md p-5 hover:border-cyan-400 hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait"
                   >
-                    {/* Cabecera */}
                     <div className="flex items-start justify-between mb-4 pb-3 border-b border-gray-100">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -605,13 +271,12 @@ const AprobacionCreditosTable: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Información */}
                     <div className="space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <InfoField label="Cuenta" value={solicitud.CUENTA} />
                         <InfoField label="Moneda" value={solicitud.MONEDA} />
                       </div>
-                      
+
                       <div className="bg-gradient-to-r from-cyan-50 to-blue-50 p-3 rounded-lg">
                         <div className="grid grid-cols-2 gap-3">
                           <InfoField
@@ -626,7 +291,7 @@ const AprobacionCreditosTable: React.FC = () => {
                           />
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between">
                         <InfoField
                           label="TEA Interés"
@@ -636,7 +301,6 @@ const AprobacionCreditosTable: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Footer */}
                     <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-end gap-1.5 text-cyan-600">
                       <span className="text-sm font-semibold">
                         {canApproveCreditApproval() ? 'Ver Detalles' : 'Solo lectura'}
@@ -709,11 +373,7 @@ const AprobacionCreditosTable: React.FC = () => {
       {showOtpModal && pendingApproval && (
         <OtpModal
           isOpen={showOtpModal}
-          onClose={() => {
-            setShowOtpModal(false);
-            setPendingApproval(null);
-            setOtpError('');
-          }}
+          onClose={handleCloseOtpModal}
           onValidate={handleValidateOtp}
           isValidating={isValidatingOtp}
           errorMessage={otpError}
@@ -736,5 +396,3 @@ const InfoField: React.FC<{ label: string; value: string; valueClass?: string }>
 );
 
 export default AprobacionCreditosTable;
-
-
