@@ -39,7 +39,7 @@ export const fetchSolicitudesCreditoPendientes = async (
       throw new Error('VITE_API_BASE_URL_GEODILE no está configurada');
     }
 
-    const url = `${API_BASE_URL}/api_app_dile_v1_1_dev_1/api/list_solicitudes`;
+    const url = `${API_BASE_URL}/api_app_dile_v1_1/api/list_solicitudes`;
 
     const response = await fetch(url, {
       method: 'POST',
