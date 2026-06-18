@@ -70,10 +70,10 @@ const AdmisionSectionIcon = <svg className="w-4 h-4" fill="none" stroke="current
 const NavButton = React.memo(({ onClick, children, icon }: { onClick: () => void, children: React.ReactNode, icon: React.ReactNode }) => (
   <button
     onClick={onClick}
-    className="w-full text-left text-white hover:bg-white/20 p-3 text-sm transition-all border-b border-white/10 flex items-center space-x-3 hover:shadow-lg hover:shadow-white/5 pl-6" // Sangría pl-6 para hijos
+    className="w-full text-left text-white hover:bg-white/20 active:bg-white/30 p-2.5 sm:p-3 text-xs sm:text-sm transition-all border-b border-white/10 flex items-center space-x-2 sm:space-x-3 hover:shadow-lg hover:shadow-white/5 pl-4 sm:pl-6 rounded-md mx-1" 
   >
-    <span className="text-white/80">{icon}</span>
-    <span>{children}</span>
+    <span className="text-white/80 flex-shrink-0">{icon}</span>
+    <span className="truncate">{children}</span>
   </button>
 ));
 
@@ -81,14 +81,14 @@ const NavButton = React.memo(({ onClick, children, icon }: { onClick: () => void
 const SectionTitle = React.memo(({ children, icon, isOpen, onClick }: { children: React.ReactNode, icon?: React.ReactNode, isOpen: boolean, onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="w-full flex justify-between items-center px-3 py-2 text-white font-semibold uppercase tracking-wider hover:bg-white/10 transition-colors"
+    className="w-full flex justify-between items-center px-3 sm:px-4 py-2 sm:py-2.5 text-white font-semibold uppercase tracking-wider hover:bg-white/10 transition-colors text-xs sm:text-sm rounded-md mx-1"
   >
-    <span className="text-sm flex items-center space-x-2"> {/* Sin pl-2, padre sin sangría */}
-      {icon && <span className="text-white/80">{icon}</span>}
-      <span>{children}</span>
+    <span className="text-xs sm:text-sm flex items-center space-x-2">
+      {icon && <span className="text-white/80 flex-shrink-0">{icon}</span>}
+      <span className="truncate">{children}</span>
     </span>
     <svg
-      className={`w-4 h-4 transition-transform ${isOpen ? 'transform rotate-180' : ''}`}
+      className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? 'transform rotate-180' : ''}`}
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
@@ -173,7 +173,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
     return sections.filter(section => section.options.some(option => option.permission));
   }, [permissions]);
 
-  const sidebarClass = `bg-gradient-to-b from-cyan-500 to-blue-500 border-r border-white/20 transition-all duration-300 ease-in-out shadow-xl overflow-y-auto ${
+  const sidebarClass = `bg-gradient-to-b from-cyan-500 to-blue-500 border-r border-white/20 shadow-xl transition-all duration-300 ease-in-out overflow-y-auto sidebar-scroll ${
     isMobile ? 'w-64 fixed top-0 left-0 z-50 h-screen flex flex-col' : isOpen ? 'w-64 h-full flex flex-col' : 'w-16 h-full flex flex-col'
   }`;
 
@@ -191,7 +191,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
           )}
         </div>
       </div>
-      <div className={`flex-1 overflow-y-auto px-4 sm:px-6 pb-4 min-h-0 ${(!isOpen && !isMobile) && 'hidden'}`}>
+      <div className={`flex-1 overflow-y-auto px-3 sm:px-4 pb-6 min-h-0 ${(!isOpen && !isMobile) && 'hidden'}`}>
         {menuSections.map((section, sectionIndex) => (
           <div key={sectionIndex} className="mb-4">
             <SectionTitle 
@@ -336,20 +336,20 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
   const contentClass = fullWidth ? `h-full overflow-y-auto ${isGeodilePage && layoutHidden ? 'fixed inset-0 z-[55]' : ''}` : 'bg-white/90 backdrop-blur-sm p-0 h-full overflow-y-auto';
 
   return (
-    <div className="min-h-screen w-full max-w-full flex flex-col bg-gradient-to-b from-cyan-500 to-blue-500">
-      <div className="w-full flex flex-col flex-grow bg-gradient-to-r from-cyan-500 to-blue-500">
+    <div className="h-screen w-full max-w-full flex flex-col bg-gradient-to-b from-cyan-500 to-blue-500 overflow-hidden">
+      <div className="w-full flex flex-col flex-grow bg-gradient-to-r from-cyan-500 to-blue-500 min-h-0">
         {/* Header */}
         {headerVisible && (
           <>
-            <div className="w-full max-w-full">
-              <div className="w-full px-2 sm:px-6 lg:px-8 py-4">
-                <div className="overflow-visible flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="w-full max-w-full flex-shrink-0">
+              <div className="w-full px-2 sm:px-4 lg:px-8 py-2 sm:py-3">
+                <div className="overflow-visible flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
                   <motion.div
-                    className="flex-1 relative min-w-[8rem] w-full max-w-xs h-20 sm:h-24 md:h-28"
+                    className="flex-1 relative min-w-[5rem] w-full max-w-[80px] sm:max-w-xs h-12 sm:h-16 md:h-20"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.5 }}
-                    whileHover={{ scale: 1.1 }}
+                    whileHover={{ scale: 1.05 }}
                   >
                     <img src={logo} alt="Logo DILE" className="w-full h-full object-contain" />
                   </motion.div>
@@ -359,11 +359,11 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
                     animate={{ y: 0, opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
                   >
-                    <h1 className="text-white font-extrabold text-lg sm:text-xl md:text-2xl lg:text-3xl drop-shadow-md tracking-tight">
+                    <h1 className="text-white font-extrabold text-xs sm:text-sm md:text-lg lg:text-2xl drop-shadow-md tracking-tight line-clamp-2">
                       {title}
                     </h1>
                   </motion.div>
-                  <div className="flex-shrink-0 flex items-center space-x-3">
+                  <div className="flex-shrink-0 flex items-center space-x-1 sm:space-x-2">
                     <GlobalMenu />
                     {/*<NotificationBell />*/}
                     <UserInfo />
@@ -371,25 +371,25 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 px-2 sm:px-6 lg:px-8 py-1.5 border-t border-white/10">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 px-2 sm:px-4 lg:px-8 py-1 sm:py-1.5 border-t border-white/10">
               {showBackButton && location.pathname !== '/' && (
                 <button
                   onClick={() => navigate('/')}
-                  className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-2 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
+                  className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 text-xs sm:text-sm"
                 >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
                     <path d="M15 19l-7-7 7-7" />
                   </svg>
                   <span className="hidden sm:inline">Volver al Inicio</span>
                   <span className="sm:hidden">Volver</span>
                 </button>
               )}
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto max-w-full">
+              <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => setShowChangePasswordModal(true)}
-                  className="w-full sm:w-auto bg-blue-400/80 hover:bg-blue-500/90 text-white px-2 sm:px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 sm:space-x-2 text-sm sm:text-base"
+                  className="w-full sm:w-auto bg-blue-400/80 hover:bg-blue-500/90 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 text-xs sm:text-sm"
                 >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
                     <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1 1 21 9z" />
                   </svg>
                   <span className="hidden sm:inline">Cambiar Contraseña</span>
@@ -433,24 +433,24 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
 
         {/* Contenedor principal */}
         <div className="flex flex-row flex-grow min-h-0 relative">
-          {/* Sidebar */}
+          {/* Sidebar - CON SCROLL PROPIO */}
           {sidebarVisible && (
             <>
               {!isMobile && (
-                <div className="flex-shrink-0 transition-all duration-300 ease-in-out">
+                <div className="flex-shrink-0 h-full overflow-y-auto transition-all duration-300 ease-in-out">
                   <Sidebar isMobile={isMobile} isOpen={sidebarDesktopOpen} setIsOpen={setSidebarDesktopOpen} />
                 </div>
               )}
               {isMobile && sidebarMobileOpen && (
-                <div className="fixed top-0 left-0 h-full z-50">
+                <div className="fixed top-0 left-0 h-full z-50 overflow-y-auto">
                   <Sidebar isMobile={isMobile} isOpen={sidebarMobileOpen} setIsOpen={setSidebarMobileOpen} />
                 </div>
               )}
             </>
           )}
 
-          {/* Contenido */}
-          <div className="flex-grow overflow-hidden transition-all duration-300 ease-in-out">
+          {/* Contenido - CON SCROLL PROPIO */}
+          <div className="flex-grow min-h-0 overflow-y-auto content-scroll transition-all duration-300 ease-in-out">
             <div className={contentClass}>{children}</div>
           </div>
         </div>
@@ -458,7 +458,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
 
       {/* Footer */}
       {headerVisible && (
-        <div className="bg-blue-600/20 backdrop-blur-sm p-4 text-center text-white text-sm border-t border-white/10 mt-auto">
+        <div className="w-full flex-shrink-0 bg-blue-600/20 backdrop-blur-sm p-4 text-center text-white text-sm border-t border-white/10">
           <div className="flex flex-col space-y-1">
             <p>© 2025 DILE. Todos los derechos reservados.</p>
             {isMobileDevice && isActive && <p className="text-xs text-yellow-200">📱 Auto-logout activado: Se cerrará sesión tras 5 min de inactividad</p>}

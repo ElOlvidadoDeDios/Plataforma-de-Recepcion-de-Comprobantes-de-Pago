@@ -29,6 +29,11 @@ export default function CertificadosAfiliacion({
   // Estados para validación con getImgSocio
   const [documentosYaExisten, setDocumentosYaExisten] = useState<boolean>(false);
   const [cargandoValidacion, setCargandoValidacion] = useState<boolean>(false);
+  const [urlsDocumentos, setUrlsDocumentos] = useState<{
+    LINK_DNI_FRONTAL?: string;
+    LINK_DNI_POSTERIOR?: string;
+    LINK_VOUCHER_AFI?: string;
+  } | null>(null);
 
   // const fichaRef = useRef<HTMLDivElement>(null);
   // const certificadoRef = useRef<HTMLDivElement>(null);
@@ -40,30 +45,36 @@ export default function CertificadosAfiliacion({
     datosCertificado.cliente.NOMBRES &&
     datosCertificado.cliente.DOC_IDEN;
 
-  // useEffect para validar con getImgSocio
+  // useEffect para validar con getImgSocioNew (nuevo API)
   useEffect(() => {
     const validarDocumentosExistentes = async () => {
       if (datosCertificado?.cliente?.DOC_IDEN) {
         // Limpiar estados anteriores cuando cambia el DNI
         setDocumentosYaExisten(false);
+        setUrlsDocumentos(null);
         setCargandoValidacion(true);
            
         try {
-          const respuesta = await afiliacionApi.getImgSocio(datosCertificado.cliente.DOC_IDEN);
-
+          // ✅ USAR EL NUEVO API getImgSocioNew
+          const respuesta = await afiliacionApi.getImgSocioNew(datosCertificado.cliente.DOC_IDEN);
           
           // Si status es true, significa que YA HAY documentos cargados
           if (respuesta && respuesta.status === true) {
             setDocumentosYaExisten(true);
+            // ✅ GUARDAR los URLs retornados
+            if (respuesta.link) {
+              setUrlsDocumentos(respuesta.link);
+            }
 
           } else {
             setDocumentosYaExisten(false);
+            setUrlsDocumentos(null);
 
           }
         } catch (error) {
-
           // En caso de error, permitir subida
           setDocumentosYaExisten(false);
+          setUrlsDocumentos(null);
         } finally {
           setCargandoValidacion(false);
         }
@@ -71,6 +82,7 @@ export default function CertificadosAfiliacion({
         // Si no hay DNI, limpiar estados
 
         setDocumentosYaExisten(false);
+        setUrlsDocumentos(null);
         setCargandoValidacion(false);
       }
     };
@@ -78,8 +90,8 @@ export default function CertificadosAfiliacion({
     validarDocumentosExistentes();
   }, [datosCertificado?.cliente?.DOC_IDEN]);
 
-  // ✅ DETERMINAR SI SE PUEDE SUBIR (usando validación con getImgSocio)
-  const puedeSubirDocumentos = tieneDAtoCompletos && !documentosYaExisten && !cargandoValidacion;
+  // ✅ DETERMINAR SI SE PUEDE SUBIR (sin documentos Y que no sea AFILIADO)
+  const puedeSubirDocumentos = tieneDAtoCompletos && !documentosYaExisten && !cargandoValidacion && datosCertificado?.cliente?.SITUACION !== 'AFILIADO';
 
   return (
     <div className="p-4 md:p-6 bg-white rounded-lg shadow-md max-w-full overflow-hidden">
@@ -117,6 +129,111 @@ export default function CertificadosAfiliacion({
             Este cliente ya tiene documentos de afiliación cargados en el sistema.
             No es necesario subir nuevos documentos.
           </p>
+        </div>
+      )}
+
+      {/* ✅ NUEVA SECCIÓN: MOSTRAR URLs DE DOCUMENTOS CARGADOS */}
+      {!cargandoValidacion && documentosYaExisten && urlsDocumentos && (
+        <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+          <h3 className="text-base md:text-lg font-semibold text-green-800 mb-4 text-center flex items-center justify-center">
+            <span className="text-2xl mr-2">✅</span>
+            Documentos Cargados
+          </h3>
+          <p className="text-green-700 text-center text-xs md:text-sm mb-4">
+            Aquí se muestran los documentos de afiliación registrados para este socio.
+          </p>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {/* DNI Frontal */}
+            {urlsDocumentos?.LINK_DNI_FRONTAL && (
+              <div className="bg-white p-3 md:p-4 rounded-lg border-2 border-green-300 shadow-sm">
+                <h4 className="font-semibold text-green-800 mb-3 text-sm md:text-base flex items-center">
+                  <span className="text-lg mr-2">🪪</span>
+                  DNI Frontal
+                </h4>
+                <img
+                  src={urlsDocumentos.LINK_DNI_FRONTAL}
+                  alt="DNI Frontal"
+                  className="w-full h-32 md:h-40 object-contain rounded border border-green-200 mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                  onError={(e) => {
+                    e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50" x="50" text-anchor="middle" dy=".3em">📄</text></svg>';
+                  }}
+                />
+                <p className="text-xs text-green-600 font-semibold mb-2">✅ Cargado</p>
+                <a
+                  href={urlsDocumentos.LINK_DNI_FRONTAL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs text-green-700 hover:text-green-900 underline break-all"
+                  title="Ver en S3"
+                >
+                  Ver imagen completa →
+                </a>
+              </div>
+            )}
+
+            {/* DNI Posterior */}
+            {urlsDocumentos?.LINK_DNI_POSTERIOR && (
+              <div className="bg-white p-3 md:p-4 rounded-lg border-2 border-green-300 shadow-sm">
+                <h4 className="font-semibold text-green-800 mb-3 text-sm md:text-base flex items-center">
+                  <span className="text-lg mr-2">🪪</span>
+                  DNI Posterior
+                </h4>
+                <img
+                  src={urlsDocumentos.LINK_DNI_POSTERIOR}
+                  alt="DNI Posterior"
+                  className="w-full h-32 md:h-40 object-contain rounded border border-green-200 mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                  onError={(e) => {
+                    e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50" x="50" text-anchor="middle" dy=".3em">📄</text></svg>';
+                  }}
+                />
+                <p className="text-xs text-green-600 font-semibold mb-2">✅ Cargado</p>
+                <a
+                  href={urlsDocumentos.LINK_DNI_POSTERIOR}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs text-green-700 hover:text-green-900 underline break-all"
+                  title="Ver en S3"
+                >
+                  Ver imagen completa →
+                </a>
+              </div>
+            )}
+
+            {/* Comprobante */}
+            {urlsDocumentos?.LINK_VOUCHER_AFI && (
+              <div className="bg-white p-3 md:p-4 rounded-lg border-2 border-green-300 shadow-sm">
+                <h4 className="font-semibold text-green-800 mb-3 text-sm md:text-base flex items-center">
+                  <span className="text-lg mr-2">📄</span>
+                  Comprobante de Pago
+                </h4>
+                <img
+                  src={urlsDocumentos.LINK_VOUCHER_AFI}
+                  alt="Comprobante de Pago"
+                  className="w-full h-32 md:h-40 object-contain rounded border border-green-200 mb-3 cursor-pointer hover:opacity-90 transition-opacity"
+                  onError={(e) => {
+                    e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50" x="50" text-anchor="middle" dy=".3em">📄</text></svg>';
+                  }}
+                />
+                <p className="text-xs text-green-600 font-semibold mb-2">✅ Cargado</p>
+                <a
+                  href={urlsDocumentos.LINK_VOUCHER_AFI}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs text-green-700 hover:text-green-900 underline break-all"
+                  title="Ver en S3"
+                >
+                  Ver imagen completa →
+                </a>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 text-xs md:text-sm text-center">
+              ℹ️ <strong>Información:</strong> Los documentos están almacenados en AWS S3. Puedes verlos haciendo click en "Ver imagen completa".
+            </p>
+          </div>
         </div>
       )}
 
@@ -194,36 +311,8 @@ export default function CertificadosAfiliacion({
         </div>
       )}
 
-      {/* BOTONES PRINCIPALES - RESPONSIVE */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        <button
-          onClick={() => setIsPreviewModalOpen(true)}
-          disabled={!tieneDAtoCompletos}
-          className={`w-full px-4 md:px-6 py-2.5 md:py-3 text-white rounded-lg shadow transition duration-200 font-medium text-sm md:text-base ${
-            tieneDAtoCompletos
-              ? 'bg-blue-600 hover:bg-blue-700'
-              : 'bg-gray-400 cursor-not-allowed'
-          }`}
-          title={!tieneDAtoCompletos ? 'Complete los datos del cliente primero' : ''}
-        >
-          <span className="block sm:hidden">📄 Ficha de ingreso</span>
-          <span className="hidden sm:block">📄 Imprimir ficha de ingreso</span>
-        </button>
-        
-        <button
-          onClick={() => setIsCertificatePreviewModalOpen(true)}
-          disabled={!tieneDAtoCompletos}
-          className={`w-full px-4 md:px-6 py-2.5 md:py-3 text-white rounded-lg shadow transition duration-200 font-medium text-sm md:text-base ${
-            tieneDAtoCompletos
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-gray-400 cursor-not-allowed'
-          }`}
-          title={!tieneDAtoCompletos ? 'Complete los datos del cliente primero' : ''}
-        >
-          <span className="block sm:hidden">📋 Certificado</span>
-          <span className="hidden sm:block">📋 Certificado de afiliación</span>
-        </button>
-        
+      {/* BOTONES PRINCIPALES - 2 BOTONES APENAS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
         <button
           className={`w-full px-4 md:px-6 py-2.5 md:py-3 text-white rounded-lg shadow transition duration-200 font-medium text-sm md:text-base ${
             puedeSubirDocumentos
@@ -235,28 +324,40 @@ export default function CertificadosAfiliacion({
           title={
             !tieneDAtoCompletos
               ? 'Complete los datos del cliente primero'
-              : documentosYaExisten
-                ? 'Los documentos ya están cargados'
-                : 'Subir comprobantes de afiliación'
+              : datosCertificado?.cliente?.SITUACION === 'AFILIADO'
+                ? 'No se pueden editar documentos de socios AFILIADOS'
+                : documentosYaExisten
+                  ? 'Cambiar comprobantes'
+                  : 'Subir comprobantes de afiliación'
           }
         >
-          {documentosYaExisten ? (
+          {!tieneDAtoCompletos ? (
             <>
-              <span className="block sm:hidden">✅ Ya cargados</span>
-              <span className="hidden sm:block">✅ Documentos ya cargados</span>
+              <span className="block sm:hidden">📤 Subir docs</span>
+              <span className="hidden sm:block">📤 Subir comprobantes</span>
+            </>
+          ) : datosCertificado?.cliente?.SITUACION === 'AFILIADO' ? (
+            <>
+              <span className="block sm:hidden">🔒 Bloqueado</span>
+              <span className="hidden sm:block">🔒 Documentos bloqueados</span>
+            </>
+          ) : documentosYaExisten ? (
+            <>
+              <span className="block sm:hidden">✏️ Editar docs</span>
+              <span className="hidden sm:block">✏️ Cambiar comprobantes</span>
             </>
           ) : (
             <>
               <span className="block sm:hidden">📤 Subir docs</span>
-              <span className="hidden sm:block">📤 Subir comprobantes de afiliación</span>
+              <span className="hidden sm:block">📤 Subir comprobantes</span>
             </>
           )}
         </button>
 
-        {/* NUEVO BOTÓN PARA FORMULARIO ADICIONAL */}
+        {/* BOTÓN PARA FORMULARIO ADICIONAL */}
         <button
           onClick={() => setIsFormularioModalOpen(true)}
-          disabled={!tieneDAtoCompletos || datosCertificado?.cliente?.SITUACION !== 'AFILIADO'} // Desactivar si no es AFILIADO
+          disabled={!tieneDAtoCompletos || datosCertificado?.cliente?.SITUACION !== 'AFILIADO'}
           className={`w-full px-4 md:px-6 py-2.5 md:py-3 rounded-lg shadow transition duration-200 font-medium text-sm md:text-base ${
             tieneDAtoCompletos && datosCertificado?.cliente?.SITUACION === 'AFILIADO'
               ? 'bg-purple-600 text-white hover:bg-purple-700'
@@ -267,11 +368,11 @@ export default function CertificadosAfiliacion({
               ? 'Complete los datos del cliente primero'
               : datosCertificado?.cliente?.SITUACION !== 'AFILIADO'
               ? 'Solo disponible para socios AFILIADOS'
-              : 'Abrir formulario adicional'
+              : 'Información adicional'
           }
         >
           <span className="block sm:hidden">📝 Formulario</span>
-          <span className="hidden sm:block">📝 Formulario adicional</span>
+          <span className="hidden sm:block">📝 Información Adicional</span>
         </button>
       </div>
 
@@ -282,6 +383,16 @@ export default function CertificadosAfiliacion({
           datosCertificado={datosCertificado}
           onUploadSuccess={() => {
             setDocumentosYaExisten(true);
+            // ✅ Recargar URLs después de subir USANDO EL NUEVO API
+            if (datosCertificado?.cliente?.DOC_IDEN) {
+              afiliacionApi.getImgSocioNew(datosCertificado.cliente.DOC_IDEN).then((respuesta) => {
+                if (respuesta?.link) {
+                  setUrlsDocumentos(respuesta.link);
+                }
+              }).catch(() => {
+                // Error silencioso
+              });
+            }
           }}
         />
       )}

@@ -1,5 +1,8 @@
-const API_BASE_URL =import.meta.env.VITE_API_BASE_URL_GEODILE;  // corregir
+import { SessionManager } from '../utils/sessionManager';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;  // corregir
 const API_BASE_URL_TOKEN = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+const API_BASE_URL_NEST = import.meta.env.VITE_API_BASE_URL; // Backend NestJS
 
 
 
@@ -137,6 +140,40 @@ const getImgSocio = async (DNI: string): Promise<ImgSocioResponse | null> => {
     }
     
   } catch (error) {
+    return null;
+  }
+};
+
+// ✅ NUEVO: API para obtener URLs desde el nuevo endpoint (NestJS Backend)
+// Endpoint: http://192.168.3.26:3032/afiliacion/socio/imagenes
+// Método: POST
+// Body: { DNI: "74792434" }
+const getImgSocioNew = async (DNI: string): Promise<ImgSocioResponse | null> => {
+  try {
+    const token = SessionManager.getItem('token');
+    
+    const response = await fetch(
+      `${API_BASE_URL_NEST}/afiliacion/socio/imagenes`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }), // Agregar token si existe
+        },
+        body: JSON.stringify({ DNI: DNI })
+      }
+    );
+    
+    if (!response.ok) {
+      console.error(`Error HTTP ${response.status} al obtener imágenes del nuevo backend`);
+      return null;
+    }
+    
+    const data = await response.json();
+    return data;
+    
+  } catch (error) {
+    console.error('Error al conectar con el nuevo backend de imágenes:', error);
     return null;
   }
 };
@@ -313,7 +350,7 @@ export const DatosAdicionales_insert = async (
   }
 };
 
-export default { sociospendientesAfiliar, afiliarSocioProceso, getImgSocio, useComboBoxFamiliarOpcionesData };
+export default { sociospendientesAfiliar, afiliarSocioProceso, getImgSocio, getImgSocioNew, useComboBoxFamiliarOpcionesData };
 
 
 

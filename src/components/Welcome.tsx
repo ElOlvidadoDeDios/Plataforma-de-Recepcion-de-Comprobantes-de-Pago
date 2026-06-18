@@ -338,8 +338,8 @@ const Welcome: React.FC = () => {
             </div>
           )}
 
-          <div className="flex-1 flex items-center justify-center overflow-hidden p-3 pb-6" style={{ height: '100vh' }}>
-            <div className={`grid ${getGridClass()} gap-3`}>
+          <div className="flex-1 flex items-center justify-center overflow-y-auto min-h-0 p-3 pb-6">
+            <div className={`grid ${getGridClass()} gap-3 w-full`}>
               {availableOptions.map((option, index) => (
                 <Card key={`${option.title}-${index}`} {...option} index={index} />
               ))}

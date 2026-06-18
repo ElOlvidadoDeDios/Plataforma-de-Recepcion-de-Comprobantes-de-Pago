@@ -321,7 +321,7 @@ const PaymentsPage: React.FC<PaymentsPageProps> = ({ socket }) => {
                   </h3>
 
                   {/* Contenedor de filtros organizados */}
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {/* Búsqueda por DNI */}
                     <div className="space-y-3">
                       <label htmlFor="dni-input" className="block text-xs sm:text-sm font-medium text-gray-700">

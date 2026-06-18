@@ -3,11 +3,18 @@ import ReactDOM from 'react-dom';
 import { useNotifications } from '../../../hooks/useNotifications';
 import { uploadAllFilesAtOnce, UploadFileData } from '../../../api/registroDeclientesApi';
 import { DatosCertificado } from '../../../types/clienteData';
+import afiliacionApi from '../../../api/afiliacionAPi';
 
 interface ModalSubirDocumentosProps {
   onClose: () => void;
   datosCertificado?: DatosCertificado;
   onUploadSuccess?: () => void;
+}
+
+interface UploadedFiles {
+  LINK_DNI_FRONTAL?: string
+  LINK_DNI_POSTERIOR?: string
+  LINK_VOUCHER_AFI?: string
 }
 
 export function ModalSubirDocumentos({
@@ -26,6 +33,10 @@ export function ModalSubirDocumentos({
   const [dniReversoPreview, setDniReversoPreview] = useState<string | null>(null)
   const [paymentPreview, setPaymentPreview] = useState<string | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  
+  // Estado para mostrar URLs después de subir
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles | null>(null)
+  const [showUploadSuccess, setShowUploadSuccess] = useState(false)
 
   const cliente = datosCertificado?.cliente
   const codUserOriginal = datosCertificado?.codUserOriginal
@@ -85,8 +96,29 @@ export function ModalSubirDocumentos({
 
       if (result.success) {
         Notification.success('✅ ¡Comprobantes subidos exitosamente!')
+        
+        // ✅ NUEVO: Llamar al nuevo API para obtener los URLs
+        try {
+          const imgResponse = await afiliacionApi.getImgSocioNew(cliente.DOC_IDEN)
+          
+          if (imgResponse && imgResponse.link) {
+            setUploadedFiles(imgResponse.link)
+            setShowUploadSuccess(true)
+          } else {
+            // Si no obtiene URLs del nuevo API, mostrar igualmente éxito
+            setShowUploadSuccess(true)
+          }
+        } catch (error) {
+          // Mostrar éxito aunque no se obtengan URLs
+          setShowUploadSuccess(true)
+        }
+        
         onUploadSuccess?.()
-        onClose()
+        
+        // Cerrar el modal después de 3 segundos
+        setTimeout(() => {
+          onClose()
+        }, 3000)
       } else {
         throw new Error(result.error || 'Error desconocido al subir comprobantes')
       }
@@ -197,8 +229,129 @@ export function ModalSubirDocumentos({
 
         <div className="p-6">
 
+          {/* SECCIÓN: Archivos subidos exitosamente */}
+          {showUploadSuccess && uploadedFiles && (
+            <div className="mb-6 p-4 bg-green-50 border-2 border-green-300 rounded-lg">
+              <h3 className="text-lg font-bold text-green-800 mb-4 flex items-center">
+                <span className="text-2xl mr-2">✅</span>
+                Comprobantes Subidos Exitosamente
+              </h3>
+              
+              <div className="space-y-4">
+                {/* DNI Frontal */}
+                {uploadedFiles.LINK_DNI_FRONTAL && (
+                  <div className="p-3 bg-white border border-green-300 rounded-lg">
+                    <h4 className="font-semibold text-green-800 mb-2 flex items-center">
+                      <span className="text-lg mr-2">🪪</span>
+                      DNI Frontal
+                    </h4>
+                    <img
+                      src={uploadedFiles.LINK_DNI_FRONTAL}
+                      alt="DNI Frontal"
+                      className="w-full h-40 object-contain rounded border border-green-200 mb-2 cursor-pointer hover:opacity-90"
+                      onClick={() => setPreviewImage(uploadedFiles.LINK_DNI_FRONTAL || null)}
+                      title="Click para ver en grande"
+                    />
+                    <p className="text-xs text-gray-600 break-all font-mono">
+                      <span className="font-semibold text-green-700">URL: </span>
+                      {uploadedFiles.LINK_DNI_FRONTAL?.split('?')[0]}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(uploadedFiles.LINK_DNI_FRONTAL || '')
+                        Notification.success('URL copiado al portapapeles')
+                      }}
+                      className="mt-2 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                    >
+                      📋 Copiar URL
+                    </button>
+                  </div>
+                )}
+
+                {/* DNI Reverso */}
+                {uploadedFiles.LINK_DNI_POSTERIOR && (
+                  <div className="p-3 bg-white border border-green-300 rounded-lg">
+                    <h4 className="font-semibold text-green-800 mb-2 flex items-center">
+                      <span className="text-lg mr-2">🪪</span>
+                      DNI Reverso
+                    </h4>
+                    <img
+                      src={uploadedFiles.LINK_DNI_POSTERIOR}
+                      alt="DNI Reverso"
+                      className="w-full h-40 object-contain rounded border border-green-200 mb-2 cursor-pointer hover:opacity-90"
+                      onClick={() => setPreviewImage(uploadedFiles.LINK_DNI_POSTERIOR || null)}
+                      title="Click para ver en grande"
+                    />
+                    <p className="text-xs text-gray-600 break-all font-mono">
+                      <span className="font-semibold text-green-700">URL: </span>
+                      {uploadedFiles.LINK_DNI_POSTERIOR?.split('?')[0]}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(uploadedFiles.LINK_DNI_POSTERIOR || '')
+                        Notification.success('URL copiado al portapapeles')
+                      }}
+                      className="mt-2 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                    >
+                      📋 Copiar URL
+                    </button>
+                  </div>
+                )}
+
+                {/* Comprobante */}
+                {uploadedFiles.LINK_VOUCHER_AFI && (
+                  <div className="p-3 bg-white border border-green-300 rounded-lg">
+                    <h4 className="font-semibold text-green-800 mb-2 flex items-center">
+                      <span className="text-lg mr-2">📄</span>
+                      Comprobante de Pago
+                    </h4>
+                    <img
+                      src={uploadedFiles.LINK_VOUCHER_AFI}
+                      alt="Comprobante de Pago"
+                      className="w-full h-40 object-contain rounded border border-green-200 mb-2 cursor-pointer hover:opacity-90"
+                      onClick={() => setPreviewImage(uploadedFiles.LINK_VOUCHER_AFI || null)}
+                      title="Click para ver en grande"
+                    />
+                    <p className="text-xs text-gray-600 break-all font-mono">
+                      <span className="font-semibold text-green-700">URL: </span>
+                      {uploadedFiles.LINK_VOUCHER_AFI?.split('?')[0]}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(uploadedFiles.LINK_VOUCHER_AFI || '')
+                        Notification.success('URL copiado al portapapeles')
+                      }}
+                      className="mt-2 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                    >
+                      📋 Copiar URL
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm text-center">
+                  ℹ️ Los archivos se cerrarán automáticamente en 3 segundos, o haz click en <strong>Cerrar</strong>
+                </p>
+              </div>
+
+              <div className="flex justify-center mt-4">
+                <button
+                  type="button"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  onClick={onClose}
+                >
+                  ✅ Cerrar
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Datos del socio */}
-          {cliente && (
+          {!showUploadSuccess && cliente && (
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="text-lg font-semibold text-blue-800 mb-3">📋 Datos del Socio</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
@@ -237,73 +390,79 @@ export function ModalSubirDocumentos({
           )}
 
           {/* Instrucciones */}
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Orden de Carga Obligatorio</h3>
-            <ol className="list-decimal list-inside text-yellow-700 text-sm mt-2 space-y-1">
-              <li>Primero: DNI cara frontal</li>
-              <li>Segundo: DNI cara reverso</li>
-              <li>Tercero: Comprobante de pago</li>
-            </ol>
-          </div>
+          {!showUploadSuccess && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Orden de Carga Obligatorio</h3>
+              <ol className="list-decimal list-inside text-yellow-700 text-sm mt-2 space-y-1">
+                <li>Primero: DNI cara frontal</li>
+                <li>Segundo: DNI cara reverso</li>
+                <li>Tercero: Comprobante de pago</li>
+              </ol>
+            </div>
+          )}
 
           {/* Campos */}
-          <div className="flex flex-col space-y-4">
-            <CampoArchivo
-              numero={1}
-              label="🪪 DNI del socio - Cara frontal"
-              color="blue"
-              preview={dniFrontalPreview}
-              file={dniFrontalFile}
-              onFileChange={(e) => handleFileChange(e.target.files?.[0] || null, setDniFrontalFile, setDniFrontalPreview)}
-              onClear={() => handleFileChange(null, setDniFrontalFile, setDniFrontalPreview)}
-            />
-            <CampoArchivo
-              numero={2}
-              label="🪪 DNI del socio - Cara reverso"
-              color="green"
-              preview={dniReversoPreview}
-              file={dniReversoFile}
-              onFileChange={(e) => handleFileChange(e.target.files?.[0] || null, setDniReversoFile, setDniReversoPreview)}
-              onClear={() => handleFileChange(null, setDniReversoFile, setDniReversoPreview)}
-            />
-            <CampoArchivo
-              numero={3}
-              label="📄 Comprobante de pago"
-              color="orange"
-              preview={paymentPreview}
-              file={paymentFile}
-              onFileChange={(e) => handleFileChange(e.target.files?.[0] || null, setPaymentFile, setPaymentPreview)}
-              onClear={() => handleFileChange(null, setPaymentFile, setPaymentPreview)}
-            />
-          </div>
+          {!showUploadSuccess && (
+            <div className="flex flex-col space-y-4">
+              <CampoArchivo
+                numero={1}
+                label="🪪 DNI del socio - Cara frontal"
+                color="blue"
+                preview={dniFrontalPreview}
+                file={dniFrontalFile}
+                onFileChange={(e) => handleFileChange(e.target.files?.[0] || null, setDniFrontalFile, setDniFrontalPreview)}
+                onClear={() => handleFileChange(null, setDniFrontalFile, setDniFrontalPreview)}
+              />
+              <CampoArchivo
+                numero={2}
+                label="🪪 DNI del socio - Cara reverso"
+                color="green"
+                preview={dniReversoPreview}
+                file={dniReversoFile}
+                onFileChange={(e) => handleFileChange(e.target.files?.[0] || null, setDniReversoFile, setDniReversoPreview)}
+                onClear={() => handleFileChange(null, setDniReversoFile, setDniReversoPreview)}
+              />
+              <CampoArchivo
+                numero={3}
+                label="📄 Comprobante de pago"
+                color="orange"
+                preview={paymentPreview}
+                file={paymentFile}
+                onFileChange={(e) => handleFileChange(e.target.files?.[0] || null, setPaymentFile, setPaymentPreview)}
+                onClear={() => handleFileChange(null, setPaymentFile, setPaymentPreview)}
+              />
+            </div>
+          )}
 
           {/* Botones */}
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              type="button"
-              className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-              onClick={onClose}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className={`px-6 py-2 text-white rounded-lg transition-colors font-medium ${
-                isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-              }`}
-              onClick={handleSubmit}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <span className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                  Subiendo archivos...
-                </span>
-              ) : (
-                '💾 Guardar Comprobantes'
-              )}
-            </button>
-          </div>
+          {!showUploadSuccess && (
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                type="button"
+                className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                onClick={onClose}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className={`px-6 py-2 text-white rounded-lg transition-colors font-medium ${
+                  isUploading ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                }`}
+                onClick={handleSubmit}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    Subiendo archivos...
+                  </span>
+                ) : (
+                  '✅ Cargar Comprobantes'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

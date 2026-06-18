@@ -189,80 +189,81 @@ export default function PersonaForm() {
 
   return (
     <Layout title="Registro de Socios">
-      <div className="flex flex-col" style={{ height: '100%' }}>
-        <div className="flex-grow">
-          <div className="bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50 rounded-lg shadow-lg h-full">
-            <div className="border-t border-gray-200">
-              <div className="flex flex-wrap">
-                <button
-                  onClick={() => handleTabChange('datos')}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'datos'
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <User className="inline w-4 h-4 mr-2" />
-                  Datos
-                </button>
-                <button
-                  onClick={() => handleTabChange('direccion')}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'direccion'
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : !datosBasicosCompletos
-                        ? 'border-transparent text-gray-300 cursor-not-allowed'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                  disabled={!datosBasicosCompletos}
-                >
-                  <MapPin className="inline w-4 h-4 mr-2" />
-                  Dirección
-                </button>
+      <div className="flex flex-col h-full w-full">
+        {/* Contenedor de pestañas - SIN SCROLL */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-200">
+          <div className="flex flex-wrap">
+            <button
+              onClick={() => handleTabChange('datos')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'datos'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <User className="inline w-4 h-4 mr-2" />
+              Datos
+            </button>
+            <button
+              onClick={() => handleTabChange('direccion')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'direccion'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : !datosBasicosCompletos
+                    ? 'border-transparent text-gray-300 cursor-not-allowed'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              disabled={!datosBasicosCompletos}
+            >
+              <MapPin className="inline w-4 h-4 mr-2" />
+              Dirección
+            </button>
 
-                <button
-                  onClick={() => handleTabChange('familia')}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'familia'
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : !datosBasicosCompletos
-                        ? 'border-transparent text-gray-300 cursor-not-allowed'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                  disabled={!datosBasicosCompletos}
-                >
-                  <MapPin className="inline w-4 h-4 mr-2" />
-                  Familia/Benef.
-                </button>
-                <button
-                  onClick={() => handleTabChange('impresion')}
-                  className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === 'impresion'
-                      ? 'border-blue-500 text-blue-600 bg-blue-50'
-                      : !datosBasicosCompletos
-                        ? 'border-transparent text-gray-300 cursor-not-allowed'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                  disabled={!datosBasicosCompletos}
-                >
-                  <FileText className="inline w-4 h-4 mr-2" />
-                  Impresión
-                </button>
-              </div>
+            <button
+              onClick={() => handleTabChange('familia')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'familia'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : !datosBasicosCompletos
+                    ? 'border-transparent text-gray-300 cursor-not-allowed'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              disabled={!datosBasicosCompletos}
+            >
+              <MapPin className="inline w-4 h-4 mr-2" />
+              Familia/Benef.
+            </button>
+            <button
+              onClick={() => handleTabChange('impresion')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'impresion'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : !datosBasicosCompletos
+                    ? 'border-transparent text-gray-300 cursor-not-allowed'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              disabled={!datosBasicosCompletos}
+            >
+              <FileText className="inline w-4 h-4 mr-2" />
+              Impresión
+            </button>
+          </div>
+        </div>
+
+        {/* Contenedor de contenido - CON SCROLL PROPIO */}
+        <div className="flex-1 min-h-0 overflow-y-auto content-scroll bg-gradient-to-br from-slate-50 via-cyan-50 to-blue-50">
+          <div className="p-6 w-full">
+            <div style={{ display: activeTab === 'datos' ? 'block' : 'none' }}>
+              {tabContents.datos}
             </div>
-            <div className="p-6 flex-grow w-full">
-              <div style={{ display: activeTab === 'datos' ? 'block' : 'none' }}>
-                {tabContents.datos}
-              </div>
-              <div style={{ display: activeTab === 'direccion' ? 'block' : 'none' }}>
-                {tabContents.direccion}
-              </div>
-              <div style={{ display: activeTab === 'familia' ? 'block' : 'none' }}>
-                {tabContents.familia}
-              </div>
-              <div style={{ display: activeTab === 'impresion' ? 'block' : 'none' }}>
-                {tabContents.impresion}
-              </div>
+            <div style={{ display: activeTab === 'direccion' ? 'block' : 'none' }}>
+              {tabContents.direccion}
+            </div>
+            <div style={{ display: activeTab === 'familia' ? 'block' : 'none' }}>
+              {tabContents.familia}
+            </div>
+            <div style={{ display: activeTab === 'impresion' ? 'block' : 'none' }}>
+              {tabContents.impresion}
             </div>
           </div>
         </div>
