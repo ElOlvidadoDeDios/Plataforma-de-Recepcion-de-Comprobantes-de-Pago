@@ -354,3 +354,4 @@ export default { sociospendientesAfiliar, afiliarSocioProceso, getImgSocio, getI
 
 
 
+  

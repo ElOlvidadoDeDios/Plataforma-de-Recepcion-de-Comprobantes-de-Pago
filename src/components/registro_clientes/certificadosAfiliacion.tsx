@@ -25,6 +25,7 @@ export default function CertificadosAfiliacion({
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isCertificatePreviewModalOpen, setIsCertificatePreviewModalOpen] = useState(false);
   const [isFormularioModalOpen, setIsFormularioModalOpen] = useState(false);
+  const [showEditMode, setShowEditMode] = useState(false); // ✅ NUEVO: Control modo edición
   
   // Estados para validación con getImgSocio
   const [documentosYaExisten, setDocumentosYaExisten] = useState<boolean>(false);
@@ -132,8 +133,8 @@ export default function CertificadosAfiliacion({
         </div>
       )}
 
-      {/* ✅ NUEVA SECCIÓN: MOSTRAR URLs DE DOCUMENTOS CARGADOS */}
-      {!cargandoValidacion && documentosYaExisten && urlsDocumentos && (
+      {/* ✅ NUEVA SECCIÓN: MOSTRAR URLs DE DOCUMENTOS CARGADOS - SOLO LECTURA */}
+      {!cargandoValidacion && documentosYaExisten && urlsDocumentos && !showEditMode && (
         <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-50 border-2 border-green-300 rounded-lg">
           <h3 className="text-base md:text-lg font-semibold text-green-800 mb-4 text-center flex items-center justify-center">
             <span className="text-2xl mr-2">✅</span>
@@ -237,90 +238,19 @@ export default function CertificadosAfiliacion({
         </div>
       )}
 
-      {/* ✅ MOSTRAR DOCUMENTOS EXISTENTES SI LOS HAY */}
-      {documentosExistentes && (documentosExistentes.DNI_FRONTAL || documentosExistentes.DNI_POSTERIOR || documentosExistentes.OTRO_DOCUMENTO) && (
-        <div className="mb-4 md:mb-6 p-3 md:p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h3 className="text-base md:text-lg font-semibold text-green-800 mb-3 text-center">
-            ✅ Documentos ya cargados
-          </h3>
-          <p className="text-green-700 text-center text-xs md:text-sm mb-4">
-            Este socio ya tiene documentos de afiliación registrados en el sistema.
-          </p>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {/* DNI Frontal */}
-            {documentosExistentes?.DNI_FRONTAL && (
-              <div className="text-center">
-                <div className="bg-white p-2 md:p-3 rounded-lg border border-green-300">
-                  <h4 className="font-semibold text-green-800 mb-2 text-sm md:text-base">🪪 DNI Frontal</h4>
-                  <img
-                    src={documentosExistentes.DNI_FRONTAL}
-                    alt="DNI Frontal"
-                    className="w-full h-24 md:h-32 object-contain rounded border"
-                    onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50" x="50" text-anchor="middle" dy=".3em">📄</text></svg>';
-                    }}
-                  />
-                  <p className="text-xs text-green-600 mt-2">✅ Cargado</p>
-                </div>
-              </div>
-            )}
-
-            {/* DNI Posterior */}
-            {documentosExistentes?.DNI_POSTERIOR && (
-              <div className="text-center">
-                <div className="bg-white p-2 md:p-3 rounded-lg border border-green-300">
-                  <h4 className="font-semibold text-green-800 mb-2 text-sm md:text-base">🪪 DNI Posterior</h4>
-                  <img
-                    src={documentosExistentes.DNI_POSTERIOR}
-                    alt="DNI Posterior"
-                    className="w-full h-24 md:h-32 object-contain rounded border"
-                    onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50" x="50" text-anchor="middle" dy=".3em">📄</text></svg>';
-                    }}
-                  />
-                  <p className="text-xs text-green-600 mt-2">✅ Cargado</p>
-                </div>
-              </div>
-            )}
-
-            {/* Voucher */}
-            {documentosExistentes?.OTRO_DOCUMENTO && (
-              <div className="text-center">
-                <div className="bg-white p-2 md:p-3 rounded-lg border border-green-300">
-                  <h4 className="font-semibold text-green-800 mb-2 text-sm md:text-base">🧾 Comprobante</h4>
-                  <img
-                    src={documentosExistentes.OTRO_DOCUMENTO}
-                    alt="Comprobante de Pago"
-                    className="w-full h-24 md:h-32 object-contain rounded border"
-                    onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50" x="50" text-anchor="middle" dy=".3em">📄</text></svg>';
-                    }}
-                  />
-                  <p className="text-xs text-green-600 mt-2">✅ Cargado</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-800 text-xs md:text-sm text-center">
-              ℹ️ <strong>Información:</strong> Los documentos ya están registrados. No es necesario volver a subirlos.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* BOTONES PRINCIPALES - 2 BOTONES APENAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
         <button
           className={`w-full px-4 md:px-6 py-2.5 md:py-3 text-white rounded-lg shadow transition duration-200 font-medium text-sm md:text-base ${
-            puedeSubirDocumentos
+            puedeSubirDocumentos || (documentosYaExisten && datosCertificado?.cliente?.SITUACION !== 'AFILIADO')
               ? 'bg-orange-600 hover:bg-orange-700'
               : 'bg-gray-400 cursor-not-allowed'
           }`}
-          onClick={() => setIsModalOpen(true)}
-          disabled={!puedeSubirDocumentos}
+          onClick={() => {
+            setShowEditMode(true);
+            setIsModalOpen(true);
+          }}
+          disabled={!(puedeSubirDocumentos || (documentosYaExisten && datosCertificado?.cliente?.SITUACION !== 'AFILIADO'))}
           title={
             !tieneDAtoCompletos
               ? 'Complete los datos del cliente primero'
@@ -379,10 +309,14 @@ export default function CertificadosAfiliacion({
       {/* MODALES */}
       {isModalOpen && (
         <Modal
-          onClose={() => setIsModalOpen(false)}
+          onClose={() => {
+            setIsModalOpen(false);
+            setShowEditMode(false);
+          }}
           datosCertificado={datosCertificado}
           onUploadSuccess={() => {
             setDocumentosYaExisten(true);
+            setShowEditMode(false);
             // ✅ Recargar URLs después de subir USANDO EL NUEVO API
             if (datosCertificado?.cliente?.DOC_IDEN) {
               afiliacionApi.getImgSocioNew(datosCertificado.cliente.DOC_IDEN).then((respuesta) => {
