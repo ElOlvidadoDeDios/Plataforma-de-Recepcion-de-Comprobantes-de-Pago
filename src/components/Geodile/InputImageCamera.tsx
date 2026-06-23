@@ -21,7 +21,7 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
         };
     }, [previewUrl]);
 
-    const compressImage = async (file: File, maxWidth = 1280, maxHeight = 960, quality = 0.7): Promise<File> => {
+    const compressImage = async (file: File, maxWidth = 800, maxHeight = 600, quality = 0.7): Promise<File> => {
         return new Promise((resolve, reject) => {
             const img = new Image();
             const tempUrl = URL.createObjectURL(file);
@@ -32,7 +32,10 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                 
                 try {
                     const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
+                    const ctx = canvas.getContext('2d', { 
+                        alpha: false,
+                        willReadFrequently: false 
+                    });
                     
                     if (!ctx) {
                         reject(new Error('No se pudo obtener el contexto del canvas'));
@@ -58,27 +61,44 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                     canvas.width = width;
                     canvas.height = height;
                     
-                    // Dibujar imagen redimensionada
+                    // Fondo blanco para mejor compresión
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, width, height);
+                    
+                    // Dibujar imagen redimensionada con suavizado
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // Convertir a Blob con compresión
+                    // Convertir a Blob con compresión WebP (mejor que JPEG)
                     canvas.toBlob(
                         (blob) => {
+                            // Limpiar canvas inmediatamente para liberar memoria
+                            canvas.width = 0;
+                            canvas.height = 0;
+                            
                             if (!blob) {
                                 reject(new Error('Error al comprimir la imagen'));
                                 return;
                             }
                             
-                            // Crear nuevo archivo con el blob comprimido
+                            // Validar tamaño final (máximo 400KB para dispositivos de gama baja)
+                            if (blob.size > 400 * 1024) {
+                                // Si es muy grande, rechazar y pedir menor calidad
+                                reject(new Error('IMAGEN_MUY_GRANDE'));
+                                return;
+                            }
+                            
+                            // Crear nuevo archivo con el blob comprimido en WebP
                             const compressedFile = new File(
                                 [blob], 
-                                file.name.replace(/\.[^/.]+$/, '.jpg'),
-                                { type: 'image/jpeg' }
+                                file.name.replace(/\.[^/.]+$/, '.webp'),
+                                { type: 'image/webp' }
                             );
                             
                             resolve(compressedFile);
                         },
-                        'image/jpeg',
+                        'image/webp',  // ✅ Cambio de JPEG a WebP
                         quality
                     );
                 } catch (err) {
@@ -106,17 +126,45 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
             return;
         }
         
+        // Validar tamaño inicial (rechazar si es mayor a 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            setError('La imagen es demasiado grande (máx. 10MB). Por favor, usa una imagen más pequeña.');
+            return;
+        }
+        
         setLoading(true);
         setError(null);
         
         // Limpiar preview anterior
         if (previewUrl) {
             URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
         }
         
         try {
-            // Comprimir imagen
-            const compressedFile = await compressImage(file);
+            let compressedFile: File;
+            
+            // Intentar comprimir con calidad estándar (WebP permite mayor calidad con menor tamaño)
+            try {
+                compressedFile = await compressImage(file, 800, 600, 0.75);
+            } catch (err: any) {
+                // Si la imagen es muy grande, reintentar con menor calidad
+                if (err.message === 'IMAGEN_MUY_GRANDE') {
+                    console.log('Imagen muy grande, reintentando con menor calidad...');
+                    try {
+                        compressedFile = await compressImage(file, 640, 480, 0.65);
+                    } catch (err2: any) {
+                        if (err2.message === 'IMAGEN_MUY_GRANDE') {
+                            // Último intento con calidad muy baja
+                            compressedFile = await compressImage(file, 480, 360, 0.55);
+                        } else {
+                            throw err2;
+                        }
+                    }
+                } else {
+                    throw err;
+                }
+            }
             
             // Crear URL para preview (sin usar base64)
             const newPreviewUrl = URL.createObjectURL(compressedFile);
@@ -125,9 +173,14 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
             // Enviar archivo comprimido al padre
             handleImageChangeIn(id, compressedFile);
             
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error al procesar imagen:', err);
-            setError('Error al procesar la imagen. Por favor, intenta de nuevo.');
+            
+            if (err.message === 'IMAGEN_MUY_GRANDE') {
+                setError('La imagen es muy pesada incluso después de comprimirla. Intenta con una foto de menor resolución.');
+            } else {
+                setError('Error al procesar la imagen. Por favor, intenta de nuevo con una foto más pequeña.');
+            }
         } finally {
             setLoading(false);
             // Limpiar el input para permitir seleccionar la misma imagen
@@ -138,14 +191,21 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
     };
 
     const handleRetry = () => {
+        // Limpiar preview anterior y liberar memoria
         if (previewUrl) {
             URL.revokeObjectURL(previewUrl);
         }
         setPreviewUrl(null);
         setError(null);
         
-        // Activar el input de archivo
-        fileInputRef.current?.click();
+        // Forzar garbage collection limpiando referencias
+        handleImageChangeIn(id, null as any);
+        
+        // Pequeño delay para asegurar que la memoria se libere
+        setTimeout(() => {
+            // Activar el input de archivo
+            fileInputRef.current?.click();
+        }, 100);
     };
 
     return (
@@ -207,13 +267,14 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                     <label className="block mb-2 text-sm font-medium text-primary-900">
                         {title}
                     </label>
-                    <div className="w-full inline-flex flex-col items-center gap-3">
-                        <img
-                            src={previewUrl}
-                            alt="Vista previa"
-                            className="rounded-lg shadow-md max-w-full"
-                            style={{ maxWidth: '300px', height: 'auto' }}
-                        />
+                    <div className="w-full flex flex-col items-center gap-3">
+                        <div className="w-full max-w-[300px] overflow-hidden">
+                            <img
+                                src={previewUrl}
+                                alt="Vista previa"
+                                className="w-full h-auto rounded-lg shadow-md object-contain"
+                            />
+                        </div>
                         <button
                             onClick={handleRetry}
                             className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"

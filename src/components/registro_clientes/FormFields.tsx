@@ -169,6 +169,7 @@ export const InputField = ({
   labelClassName = '',
   placeholder,
   maxLength,
+  max,
 }: {
   label: string;
   value: string;
@@ -180,6 +181,7 @@ export const InputField = ({
   labelClassName?: string;
   placeholder?: string;
   maxLength?: number;
+  max?: string;
 }) => (
   <div>
     <label className={`block text-sm font-medium mb-1 ${labelClassName || 'text-gray-700'}`}>{label}</label>
@@ -190,6 +192,7 @@ export const InputField = ({
       disabled={disabled}
       placeholder={placeholder}
       maxLength={maxLength}
+      max={max}
       className={`w-full border ${required && !value && !disabled ? 'border-red-500' : 'border-gray-300'} rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${required && !value && !disabled ? 'focus:ring-red-500' : 'focus:ring-blue-500'} ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${className}`}
     />
   </div>

@@ -261,6 +261,8 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         setFormData(initialFormData);
         setDatos(null);
         setOptions({ selectedOption: '' });
+        
+        // ✅ LIBERAR MEMORIA: Limpiar referencias a archivos de imagen
         setImage({
             a_image_foto_fachada: null,
             a_image_selfie_fachada: null,
@@ -281,17 +283,19 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         setUltimoEnvio(0);
         
         // ✅ Limpiar elementos del DOM
-        document.querySelectorAll('input[type="file"]').forEach((input: Element) => {
-            (input as HTMLInputElement).value = "";
-        });
-        document.querySelectorAll('input[type="radio"]').forEach((input: Element) => {
-            (input as HTMLInputElement).checked = false;
-        });
-        document.querySelectorAll('input[type="text"], input[type="number"]').forEach((input: Element) => {
-            if (!(input as HTMLInputElement).disabled) {
+        setTimeout(() => {
+            document.querySelectorAll('input[type="file"]').forEach((input: Element) => {
                 (input as HTMLInputElement).value = "";
-            }
-        });
+            });
+            document.querySelectorAll('input[type="radio"]').forEach((input: Element) => {
+                (input as HTMLInputElement).checked = false;
+            });
+            document.querySelectorAll('input[type="text"], input[type="number"]').forEach((input: Element) => {
+                if (!(input as HTMLInputElement).disabled) {
+                    (input as HTMLInputElement).value = "";
+                }
+            });
+        }, 100);
         
         // ✅ Limpiar storage
         sessionStorage.removeItem('gps_timestamp');
@@ -363,8 +367,8 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-                <div className="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+            <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+                <div className="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center flex-shrink-0">
                     <h2 id="modal-title" className="text-lg font-semibold uppercase">Verificar Ubicación</h2>
                     <button 
                         onClick={onClose} 
@@ -382,7 +386,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                     </button>
                 </div>
 
-                <div className="p-4">
+                <div className="p-4 overflow-y-auto flex-1">
                     <form className="w-full" onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 mb-4">
                             <span className="col-span-2 text-[10px] text-blue-800">¿QUÉ VERIFICACIÓN DESEA AGREGAR?</span>

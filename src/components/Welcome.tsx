@@ -251,23 +251,23 @@ const Welcome: React.FC = () => {
     >
       <div className={`relative w-full bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow-lg cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 flex flex-col ${
         isMobile()
-          ? 'p-3 min-h-[120px]'
-          : isTablet()
           ? 'p-3 min-h-[130px]'
+          : isTablet()
+          ? 'p-4 min-h-[150px]'
           : isSmallDesktop()
-          ? 'p-2 min-h-[110px]'
-          : 'p-4 min-h-[160px]'
+          ? 'p-4 min-h-[140px]'
+          : 'p-5 min-h-[180px]'
       }`}>
         <div className="flex-1 flex flex-col items-center justify-center text-center">
-          <div className={`mb-2 ${
-            isMobile() ? 'text-xl' : isSmallDesktop() ? 'text-lg' : 'text-3xl'
+          <div className={`mb-2 flex-shrink-0 ${
+            isMobile() ? 'text-xl' : isTablet() ? 'text-2xl' : isSmallDesktop() ? 'text-2xl' : 'text-4xl'
           }`}>{icon}</div>
-          <h3 className={`font-bold text-white mb-2 leading-tight px-1 ${
-            isMobile() ? 'text-xs' : isSmallDesktop() ? 'text-sm' : 'text-lg'
+          <h3 className={`font-bold text-white mb-1 leading-tight px-1 line-clamp-2 ${
+            isMobile() ? 'text-xs' : isTablet() ? 'text-sm' : 'text-lg'
           }`}>{title}</h3>
-          <div className="h-0.5 bg-white/60 mb-2 rounded-full w-full max-w-[80%]" />
-          <p className={`text-white/90 leading-tight px-1 flex-1 ${
-            isMobile() ? 'text-[10px] line-clamp-2' : isSmallDesktop() ? 'text-xs line-clamp-2' : 'text-sm line-clamp-3'
+          <div className="h-0.5 bg-white/60 mb-1.5 rounded-full w-full max-w-[80%] flex-shrink-0" />
+          <p className={`text-white/90 leading-tight px-1 flex-1 overflow-hidden ${
+            isMobile() ? 'text-[9px] line-clamp-2' : isTablet() ? 'text-xs line-clamp-2' : 'text-sm line-clamp-3'
           }`}>{description}</p>
         </div>
       </div>
@@ -317,14 +317,14 @@ const Welcome: React.FC = () => {
     // Lógica para el grid responsivo
     const getGridClass = () => {
       const optionsCount = availableOptions.length;
-      if (isMobile()) return 'grid-cols-2';
-      if (isTablet()) return optionsCount <= 4 ? 'grid-cols-2' : 'grid-cols-3';
-      if (isSmallDesktop()) return optionsCount <= 6 ? 'grid-cols-3' : 'grid-cols-4';
-      return optionsCount <= 4 ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-4';
+      if (isMobile()) return 'grid-cols-2 auto-rows-max';
+      if (isTablet()) return optionsCount <= 4 ? 'grid-cols-2 auto-rows-max' : 'grid-cols-3 auto-rows-max';
+      if (isSmallDesktop()) return optionsCount <= 6 ? 'grid-cols-3 auto-rows-max' : 'grid-cols-4 auto-rows-max';
+      return optionsCount <= 4 ? 'grid-cols-2 lg:grid-cols-3 auto-rows-max' : 'grid-cols-2 lg:grid-cols-4 auto-rows-max';
     };
 
     return (
-      <div className="relative w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500">
+      <div className="relative w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex flex-col overflow-hidden">
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full pointer-events-none"
@@ -333,13 +333,13 @@ const Welcome: React.FC = () => {
 
         <div className="relative z-10 w-full h-full flex flex-col">
           {(isMobile() || isSmallDesktop()) && (
-            <div className="flex-shrink-0 text-center py-3">
-              <h1 className="text-white font-bold text-base">Panel de Control</h1>
+            <div className="flex-shrink-0 text-center py-3 sm:py-4 px-4 bg-blue-600/20">
+              <h1 className="text-white font-bold text-sm sm:text-base">Panel de Control</h1>
             </div>
           )}
 
-          <div className="flex-1 flex items-center justify-center overflow-y-auto min-h-0 p-3 pb-6">
-            <div className={`grid ${getGridClass()} gap-3 w-full`}>
+          <div className="flex-1 overflow-y-auto min-h-0 w-full px-2 sm:px-4 py-4 sm:py-6">
+            <div className={`grid ${getGridClass()} gap-2 sm:gap-3 md:gap-4 w-full`}>
               {availableOptions.map((option, index) => (
                 <Card key={`${option.title}-${index}`} {...option} index={index} />
               ))}
@@ -352,7 +352,9 @@ const Welcome: React.FC = () => {
 
   // Contenido para usuarios básicos
   const BasicUserContent = () => (
-    <div className="relative w-full h-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center p-4">
+    <div className={`relative w-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center ${
+      isMobile() ? 'min-h-full p-4 py-6' : 'h-full p-4'
+    }`}>
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -415,7 +417,7 @@ const Welcome: React.FC = () => {
 
       <div
         ref={containerRef}
-        className="w-full h-full flex items-center justify-center overflow-hidden relative p-0 m-0"
+        className="w-full h-full flex flex-col relative p-0 m-0 overflow-hidden"
       >
         {permissions.isBasicUser() ? <BasicUserContent /> : <PrivilegedUserContent />}
       </div>

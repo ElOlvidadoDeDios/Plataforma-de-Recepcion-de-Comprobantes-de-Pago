@@ -390,6 +390,22 @@ export const DatosForm = memo(
         return;
       }
 
+      // ✅ VALIDACIÓN DE EDAD: Verificar que el usuario sea mayor de 18 años
+      const birthDate = new Date(formDataWithAgencia.FECHA_NAC);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      // Ajustar si aún no ha cumplido años este año
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+
+      if (age < 18) {
+        Notification.validation('El solicitante debe ser mayor de 18 años. Edad actual: ' + age + ' años.', ['FECHA_NAC']);
+        return;
+      }
+
       const finalFormData: ClienteData = {
         ...formDataWithAgencia,
         AGE: agenciaAEnviar, // Usar la misma lógica de agencia
@@ -679,6 +695,7 @@ export const DatosForm = memo(
                     type="date"
                     required
                     disabled={isExistingSocio}
+                    max={new Date(new Date().getFullYear() - 18, new Date().getMonth(), new Date().getDate()).toISOString().split('T')[0]}
                   />
                   <SelectField
                     label="Nacionalidad"

@@ -721,24 +721,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
 
     // Si el estado es PENDIENTE, mostrar botón para abrir modal de validación (documento generado pero no firmado)
     if (firmDigital.ESTADO === 'PENDIENTE') {
-      // 🔴 VALIDAR que OTORGA sea HOY
-      const canValidateToday = isOtorgaToday(credito.OTORGA);
-
-      if (!canValidateToday) {
-        return (
-          <button
-            className="p-2 bg-red-400 text-white rounded-full cursor-default"
-            title={getOtorgaErrorMessage(credito.OTORGA)}
-            disabled
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-          </button>
-        );
-      }
-
       return (
         <button
           onClick={() => handleAbrirValidarContrato(credito)}
@@ -990,24 +972,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
 
     // Si el estado es PENDIENTE, mostrar botón para abrir modal de validación (documento generado pero no firmado)
     if (firmDigital.ESTADO === 'PENDIENTE') {
-      // 🔴 VALIDAR que OTORGA sea HOY
-      const canValidateToday = isOtorgaToday(credito.OTORGA);
-
-      if (!canValidateToday) {
-        return (
-          <button
-            className="p-2 bg-red-400 text-white rounded-full cursor-default"
-            title={getOtorgaErrorMessage(credito.OTORGA)}
-            disabled
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="2" fill="none"/>
-              <path d="M9 7h6M9 11h6M9 15h2" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-          </button>
-        );
-      }
-
       return (
         <button
           onClick={() => handleAbrirValidarContrato(credito)}

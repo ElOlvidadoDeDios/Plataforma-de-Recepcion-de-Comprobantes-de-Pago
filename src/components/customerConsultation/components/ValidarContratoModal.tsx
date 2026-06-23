@@ -98,12 +98,6 @@ const ValidarContratoModal = ({
 
   // Función para validar el contrato
   const handleValidar = async () => {
-    // 🔴 VALIDACIÓN NUEVA: Verificar que OTORGA sea HOY
-    if (!isOtorgaToday(credito.OTORGA)) {
-      showNotification(getOtorgaErrorMessage(credito.OTORGA), 'error');
-      return;
-    }
-
     if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
       showNotification('No hay documento para validar', 'error');
       return;
@@ -426,21 +420,14 @@ const ValidarContratoModal = ({
           </button>
           <button
             onClick={handleValidar}
-            disabled={loadingValidar || loadingDeshabilitar || !isOtorgaToday(credito.OTORGA)}
-            title={!isOtorgaToday(credito.OTORGA) ? getOtorgaErrorMessage(credito.OTORGA) : 'Validar contrato'}
+            disabled={loadingValidar || loadingDeshabilitar}
+            title="Verificar si el documento ha sido firmado por el cliente"
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:bg-green-300 disabled:cursor-not-allowed flex items-center justify-center"
           >
             {loadingValidar ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                 Verificando...
-              </>
-            ) : !isOtorgaToday(credito.OTORGA) ? (
-              <>
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 2.523a6 6 0 008.367 8.367z" clipRule="evenodd" />
-                </svg>
-                No disponible hoy
               </>
             ) : (
               <>

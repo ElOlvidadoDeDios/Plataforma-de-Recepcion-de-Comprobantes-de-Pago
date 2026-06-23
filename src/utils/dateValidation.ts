@@ -42,24 +42,17 @@ export const isOtorgaToday = (otorgaDate: string | null | undefined): boolean =>
       otorgaString = otorgaDate.substring(0, 10);
     }
 
-    // Obtener fecha de hoy en formato YYYY-MM-DD
+    // Obtener fecha de hoy en formato YYYY-MM-DD USANDO FECHA LOCAL, NO UTC
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayString = `${year}-${month}-${day}`;
 
     // Comparar
     const isToday = otorgaString === todayString;
-
-    console.log('📅 Validación de fecha OTORGA:', {
-      otorgaDate: otorgaDate,
-      otorgaString: otorgaString,
-      todayString: todayString,
-      isToday: isToday,
-      result: isToday ? '✅ OTORGA = HOY' : '❌ OTORGA ≠ HOY'
-    });
-
     return isToday;
   } catch (error) {
-    console.error('Error al validar fecha OTORGA:', error);
     return false;
   }
 };
