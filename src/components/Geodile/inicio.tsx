@@ -596,6 +596,11 @@ export default function Inicio() {
     const handleVerificarVivienda = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         
+        // 🔧 MÓDULO EN MANTENIMIENTO - Mostrar mensaje temporal
+        Notification.info("🔧 MÓDULO EN MANTENIMIENTO\n\n⚠️ La función de verificación de ubicación está temporalmente deshabilitada por mantenimiento.\n\n⏰ Estará disponible nuevamente pronto.\n\nDisculpa las molestias.");
+        return;
+        
+        /* CÓDIGO COMENTADO PARA CUANDO SE REACTIVE EL MÓDULO
         // VALIDACIÓN 1: Verificar que se tenga ubicación primero
         if (!position || !position.lat || !position.lng) {
             Notification.warning("⚠️ UBICACIÓN REQUERIDA\n\nPrimero debes activar el botón de ubicación (🎯) y esperar a que se obtenga tu posición GPS antes de poder verificar un socio.\n\n📍 Haz clic en el botón de ubicación y espera hasta que aparezca tu marcador en el mapa.");
@@ -630,6 +635,7 @@ export default function Inicio() {
 
         // Si ya tenemos ubicación válida y reciente, abrir directamente el modal
         setIsModalOpen(true);
+        */
     };
 
     // CORRECCIÓN 6: Handler mejorado para localizar usuario

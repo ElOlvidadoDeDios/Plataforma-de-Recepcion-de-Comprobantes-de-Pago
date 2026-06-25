@@ -21,7 +21,13 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
         };
     }, [previewUrl]);
 
-    const compressImage = async (file: File, maxWidth = 800, maxHeight = 600, quality = 0.7): Promise<File> => {
+    const compressImage = async (
+        file: File, 
+        maxWidth = 800, 
+        maxHeight = 600, 
+        quality = 0.7,
+        format: 'webp' | 'jpeg' = 'webp'
+    ): Promise<File> => {
         return new Promise((resolve, reject) => {
             const img = new Image();
             const tempUrl = URL.createObjectURL(file);
@@ -70,7 +76,11 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                     ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // Convertir a Blob con compresión WebP (mejor que JPEG)
+                    // Determinar formato y extensión
+                    const mimeType = format === 'webp' ? 'image/webp' : 'image/jpeg';
+                    const extension = format === 'webp' ? '.webp' : '.jpg';
+                    
+                    // Convertir a Blob con compresión
                     canvas.toBlob(
                         (blob) => {
                             // Limpiar canvas inmediatamente para liberar memoria
@@ -89,16 +99,16 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                                 return;
                             }
                             
-                            // Crear nuevo archivo con el blob comprimido en WebP
+                            // Crear nuevo archivo con el blob comprimido
                             const compressedFile = new File(
                                 [blob], 
-                                file.name.replace(/\.[^/.]+$/, '.webp'),
-                                { type: 'image/webp' }
+                                file.name.replace(/\.[^/.]+$/, extension),
+                                { type: mimeType }
                             );
                             
                             resolve(compressedFile);
                         },
-                        'image/webp',  // ✅ Cambio de JPEG a WebP
+                        mimeType,
                         quality
                     );
                 } catch (err) {
@@ -144,19 +154,29 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
         try {
             let compressedFile: File;
             
-            // Intentar comprimir con calidad estándar (WebP permite mayor calidad con menor tamaño)
+            // ✅ Intentar comprimir con WebP primero (mejor compresión)
             try {
-                compressedFile = await compressImage(file, 800, 600, 0.75);
+                compressedFile = await compressImage(file, 800, 600, 0.75, 'webp');
             } catch (err: any) {
-                // Si la imagen es muy grande, reintentar con menor calidad
+                // Si la imagen es muy grande con WebP, reintentar con menor calidad
                 if (err.message === 'IMAGEN_MUY_GRANDE') {
-                    console.log('Imagen muy grande, reintentando con menor calidad...');
+                    console.log('Imagen muy grande con WebP, reintentando con menor calidad...');
                     try {
-                        compressedFile = await compressImage(file, 640, 480, 0.65);
+                        compressedFile = await compressImage(file, 640, 480, 0.65, 'webp');
                     } catch (err2: any) {
                         if (err2.message === 'IMAGEN_MUY_GRANDE') {
-                            // Último intento con calidad muy baja
-                            compressedFile = await compressImage(file, 480, 360, 0.55);
+                            // ⚠️ Si WebP falla, intentar con JPEG (mayor compatibilidad)
+                            console.log('WebP aún muy grande, intentando con JPEG...');
+                            try {
+                                compressedFile = await compressImage(file, 800, 600, 0.7, 'jpeg');
+                            } catch (err3: any) {
+                                if (err3.message === 'IMAGEN_MUY_GRANDE') {
+                                    // Último intento con JPEG de menor calidad
+                                    compressedFile = await compressImage(file, 640, 480, 0.6, 'jpeg');
+                                } else {
+                                    throw err3;
+                                }
+                            }
                         } else {
                             throw err2;
                         }
