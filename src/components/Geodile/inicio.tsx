@@ -43,26 +43,76 @@ const COORDENADAS_AGENCIAS: Record<string, [number, number]> = {
     "AGENCIA PUCALPA": [-74.5536, -8.3791] //REFERENCIAL
 } as const;
 
-// CORRECCIÓN 1: Función mejorada para manejar permisos
-const checkGeolocationPermission = async (): Promise<boolean> => {
+const requestGeolocationPermission = async (): Promise<boolean> => {
     if (!navigator.geolocation) {
+        Notification.error('Tu navegador no soporta geolocalización.');
         return false;
     }
 
     try {
-        if (navigator.permissions) {
-            const permission = await navigator.permissions.query({name: 'geolocation'});
-            if (permission.state === 'denied') {
-                Notification.warning('Los permisos de ubicación están denegados. Por favor, habilítalos en la configuración de tu navegador.');
-                return false;
-            }
+        // 1. Verificar estado actual del permiso (API moderna)
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+
+        if (permission.state === 'denied') {
+            Notification.warning(
+                '⚠️ Permisos de ubicación bloqueados.\n\n' +
+                '💡 Haz clic en el ícono 🔒 (o candado) en la barra de direcciones y permite "Ubicación".'
+            );
+            return false;
         }
-        return true;
-    } catch (error) {
-        return true;
+
+        if (permission.state === 'granted') {
+            return true;
+        }
+
+        // 2. Si está en 'prompt', solicitamos la ubicación
+        return new Promise((resolve) => {
+            navigator.geolocation.getCurrentPosition(
+                () => {
+                    Notification.success('✅ Ubicación activada correctamente');
+                    resolve(true);
+                },
+                (error) => {
+                    console.error('Geolocation error:', error);
+
+                    if (error.code === error.PERMISSION_DENIED) {
+                        Notification.warning(
+                            '⚠️ Permiso denegado.\n\n' +
+                            'Por favor permite el acceso a tu ubicación en la barra de direcciones.'
+                        );
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        Notification.error('No se pudo obtener tu ubicación. Verifica que el GPS esté activado.');
+                    } else if (error.code === error.TIMEOUT) {
+                        Notification.error('Tiempo de espera agotado. Inténtalo de nuevo.');
+                    } else {
+                        Notification.error('Error desconocido al obtener la ubicación.');
+                    }
+                    resolve(false);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 0
+                }
+            );
+        });
+    } catch (err) {
+        // Algunos navegadores viejos no soportan navigator.permissions
+        console.warn('navigator.permissions no soportado, usando fallback');
+        return fallbackGetPosition();
     }
 };
 
+// Fallback por si navigator.permissions falla
+const fallbackGetPosition = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            () => resolve(true),
+            () => resolve(false),
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+};
 // CORRECCIÓN 2: Función mejorada para watchPosition con mejor manejo
 const startWatchingLocation = (
     onSuccess: (position: GeolocationPosition) => void,
@@ -596,11 +646,6 @@ export default function Inicio() {
     const handleVerificarVivienda = async (e: React.MouseEvent<HTMLButtonElement>) => {
         e.preventDefault();
         
-        // 🔧 MÓDULO EN MANTENIMIENTO - Mostrar mensaje temporal
-        Notification.info("🔧 MÓDULO EN MANTENIMIENTO\n\n⚠️ La función de verificación de ubicación está temporalmente deshabilitada por mantenimiento.\n\n⏰ Estará disponible nuevamente pronto.\n\nDisculpa las molestias.");
-        return;
-        
-        /* CÓDIGO COMENTADO PARA CUANDO SE REACTIVE EL MÓDULO
         // VALIDACIÓN 1: Verificar que se tenga ubicación primero
         if (!position || !position.lat || !position.lng) {
             Notification.warning("⚠️ UBICACIÓN REQUERIDA\n\nPrimero debes activar el botón de ubicación (🎯) y esperar a que se obtenga tu posición GPS antes de poder verificar un socio.\n\n📍 Haz clic en el botón de ubicación y espera hasta que aparezca tu marcador en el mapa.");
@@ -635,7 +680,6 @@ export default function Inicio() {
 
         // Si ya tenemos ubicación válida y reciente, abrir directamente el modal
         setIsModalOpen(true);
-        */
     };
 
     // CORRECCIÓN 6: Handler mejorado para localizar usuario
@@ -651,8 +695,8 @@ export default function Inicio() {
         }
 
         try {
-            // Verificar permisos
-            const hasPermission = await checkGeolocationPermission();
+            // ✅ Solicitar permisos automáticamente (muestra popup del navegador)
+            const hasPermission = await requestGeolocationPermission();
             if (!hasPermission) {
                 return;
             }
@@ -661,7 +705,7 @@ export default function Inicio() {
 
         } catch (error: any) {
             // Solo mostrar mensaje amigable al usuario
-            Notification.error('Error al iniciar localización. Verifica permisos de ubicación.');
+            Notification.error('Error al iniciar localización. Intenta nuevamente.');
             setLocate(false);
         }
     };

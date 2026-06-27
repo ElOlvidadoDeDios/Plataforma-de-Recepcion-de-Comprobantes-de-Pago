@@ -8,6 +8,7 @@ interface InputImageCameraProps {
 
 export default function InputImageCamera({ id, title, handleImageChangeIn }: InputImageCameraProps) {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [compressedFile, setCompressedFile] = useState<File | null>(null); // ✅ Guardar archivo comprimido
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,8 +26,7 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
         file: File, 
         maxWidth = 800, 
         maxHeight = 600, 
-        quality = 0.7,
-        format: 'webp' | 'jpeg' = 'webp'
+        quality = 0.7
     ): Promise<File> => {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -76,9 +76,9 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                     ctx.imageSmoothingQuality = 'high';
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // Determinar formato y extensión
-                    const mimeType = format === 'webp' ? 'image/webp' : 'image/jpeg';
-                    const extension = format === 'webp' ? '.webp' : '.jpg';
+                    // Solo formato JPEG
+                    const mimeType = 'image/jpeg';
+                    const extension = '.jpg';
                     
                     // Convertir a Blob con compresión
                     canvas.toBlob(
@@ -154,29 +154,19 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
         try {
             let compressedFile: File;
             
-            // ✅ Intentar comprimir con WebP primero (mejor compresión)
+            // Comprimir directamente con JPEG
             try {
-                compressedFile = await compressImage(file, 800, 600, 0.75, 'webp');
+                compressedFile = await compressImage(file, 800, 600, 0.75);
             } catch (err: any) {
-                // Si la imagen es muy grande con WebP, reintentar con menor calidad
+                // Si la imagen es muy grande, reintentar con menor calidad
                 if (err.message === 'IMAGEN_MUY_GRANDE') {
-                    console.log('Imagen muy grande con WebP, reintentando con menor calidad...');
+                    console.log('Imagen muy grande, reintentando con menor calidad...');
                     try {
-                        compressedFile = await compressImage(file, 640, 480, 0.65, 'webp');
+                        compressedFile = await compressImage(file, 640, 480, 0.65);
                     } catch (err2: any) {
                         if (err2.message === 'IMAGEN_MUY_GRANDE') {
-                            // ⚠️ Si WebP falla, intentar con JPEG (mayor compatibilidad)
-                            console.log('WebP aún muy grande, intentando con JPEG...');
-                            try {
-                                compressedFile = await compressImage(file, 800, 600, 0.7, 'jpeg');
-                            } catch (err3: any) {
-                                if (err3.message === 'IMAGEN_MUY_GRANDE') {
-                                    // Último intento con JPEG de menor calidad
-                                    compressedFile = await compressImage(file, 640, 480, 0.6, 'jpeg');
-                                } else {
-                                    throw err3;
-                                }
-                            }
+                            // Último intento con menor calidad
+                            compressedFile = await compressImage(file, 640, 480, 0.6);
                         } else {
                             throw err2;
                         }
@@ -189,6 +179,9 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
             // Crear URL para preview (sin usar base64)
             const newPreviewUrl = URL.createObjectURL(compressedFile);
             setPreviewUrl(newPreviewUrl);
+            
+            // ✅ Guardar el archivo comprimido para poder descargarlo
+            setCompressedFile(compressedFile);
             
             // Enviar archivo comprimido al padre
             handleImageChangeIn(id, compressedFile);
@@ -216,6 +209,7 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
             URL.revokeObjectURL(previewUrl);
         }
         setPreviewUrl(null);
+        setCompressedFile(null); // ✅ Limpiar archivo comprimido
         setError(null);
         
         // Forzar garbage collection limpiando referencias
@@ -226,6 +220,20 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
             // Activar el input de archivo
             fileInputRef.current?.click();
         }, 100);
+    };
+
+    // ✅ Función para descargar la imagen comprimida
+    const handleDownload = () => {
+        if (!compressedFile) return;
+        
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(compressedFile);
+        link.href = url;
+        link.download = compressedFile.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -295,13 +303,34 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
                                 className="w-full h-auto rounded-lg shadow-md object-contain"
                             />
                         </div>
-                        <button
-                            onClick={handleRetry}
-                            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
-                            type="button"
-                        >
-                            Cambiar foto
-                        </button>
+                        {/* Información del archivo comprimido */}
+                        {compressedFile && (
+                            <div className="text-xs text-gray-600 text-center">
+                                <p>📦 Formato: JPEG</p>
+                                <p>📏 Tamaño: {(compressedFile.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                        )}
+                        {/* Botones de acción */}
+                        <div className="flex gap-2">
+                            <button
+                                onClick={handleDownload}
+                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm flex items-center gap-2"
+                                type="button"
+                                title="Descargar imagen comprimida para verificar"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                Descargar
+                            </button>
+                            <button
+                                onClick={handleRetry}
+                                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm"
+                                type="button"
+                            >
+                                Cambiar foto
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

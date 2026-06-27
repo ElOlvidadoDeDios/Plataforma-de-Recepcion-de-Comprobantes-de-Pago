@@ -49,10 +49,19 @@ export const isOtorgaToday = (otorgaDate: string | null | undefined): boolean =>
     const day = String(today.getDate()).padStart(2, '0');
     const todayString = `${year}-${month}-${day}`;
 
+    // 🔍 DEBUG: Ver las fechas que se están comparando
+    console.log('🔍 isOtorgaToday DEBUG:', {
+      otorgaDate_original: otorgaDate,
+      otorgaString: otorgaString,
+      todayString: todayString,
+      isEqual: otorgaString === todayString
+    });
+
     // Comparar
     const isToday = otorgaString === todayString;
     return isToday;
   } catch (error) {
+    console.error('❌ Error en isOtorgaToday:', error);
     return false;
   }
 };
@@ -68,22 +77,38 @@ export const getOtorgaErrorMessage = (otorgaDate: string | null | undefined): st
   }
 
   try {
-    let otorgaDate_obj: Date;
+    let year: number, month: number, day: number;
 
     // Verificar si es formato DD/MM/YYYY
     if (otorgaDate.includes('/')) {
       const match = otorgaDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       if (match) {
-        const [, day, month, year] = match;
-        otorgaDate_obj = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+        day = parseInt(match[1]);
+        month = parseInt(match[2]);
+        year = parseInt(match[3]);
       } else {
-        otorgaDate_obj = new Date(otorgaDate);
+        return 'La fecha de otorga no coincide con hoy. Solo se puede procesar el contrato el día de otorga.';
       }
     } else {
-      otorgaDate_obj = new Date(otorgaDate);
+      // Es formato YYYY-MM-DD o YYYY-MM-DD HH:mm:ss
+      const dateString = otorgaDate.substring(0, 10);
+      const parts = dateString.split('-');
+      year = parseInt(parts[0]);
+      month = parseInt(parts[1]);
+      day = parseInt(parts[2]);
     }
 
+    // ✅ CREAR FECHA EN HORA LOCAL (sin conversión UTC)
+    const otorgaDate_obj = new Date(year, month - 1, day);
     const today = new Date();
+
+    // 🔍 DEBUG: Ver las fechas en el mensaje de error
+    console.log('🔍 getOtorgaErrorMessage DEBUG:', {
+      otorgaDate_original: otorgaDate,
+      otorga_parsed: { year, month, day },
+      otorgaDate_obj: otorgaDate_obj.toISOString(),
+      today: today.toISOString()
+    });
 
     const otorgaFormatted = otorgaDate_obj.toLocaleDateString('es-PE', {
       year: 'numeric',
@@ -99,6 +124,7 @@ export const getOtorgaErrorMessage = (otorgaDate: string | null | undefined): st
 
     return `La fecha de otorga es ${otorgaFormatted}, pero hoy es ${todayFormatted}. Solo se puede procesar el contrato el día de otorga.`;
   } catch (error) {
+    console.error('❌ Error en getOtorgaErrorMessage:', error);
     return 'La fecha de otorga no coincide con hoy. Solo se puede procesar el contrato el día de otorga.';
   }
 };
