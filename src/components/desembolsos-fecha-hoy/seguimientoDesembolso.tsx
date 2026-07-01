@@ -47,25 +47,34 @@ const SeguimientoDesembolso: React.FC = () => {
                user.role === UserRole.JEFE_OPERACIONES;
     };
 
-    // Filtrar desembolsos según el rol del usuario
+    // Filtrar y ordenar desembolsos según el rol del usuario
     const desembolsosFiltrados = useMemo(() => {
         if (!user) return [];
         
+        let filtrados: dataResponseApi[];
+        
         // Super Admin, Gerente General y Jefe de Operaciones ven todos los desembolsos
         if (canViewAllDesembolsos()) {
-            return desembolsos;
-        }
-
-        // Otros usuarios ven solo los datos de su agencia
-        const userAgencia = getUserAgencia();
-        if (!userAgencia) {
-            // Si no tiene agencia asignada, puede ver todos los datos
-            return desembolsos;
+            filtrados = desembolsos;
+        } else {
+            // Otros usuarios ven solo los datos de su agencia
+            const userAgencia = getUserAgencia();
+            if (!userAgencia) {
+                // Si no tiene agencia asignada, puede ver todos los datos
+                filtrados = desembolsos;
+            } else {
+                filtrados = desembolsos.filter(desembolso =>
+                    desembolso.AGENCIA === userAgencia
+                );
+            }
         }
         
-        return desembolsos.filter(desembolso =>
-            desembolso.AGENCIA === userAgencia
-        );
+        // Ordenar: "EN PROCESO" primero, luego el resto
+        return filtrados.sort((a, b) => {
+            const aEnProceso = a.STATUS_GLOBAL === 'EN PROCESO' ? 0 : 1;
+            const bEnProceso = b.STATUS_GLOBAL === 'EN PROCESO' ? 0 : 1;
+            return aEnProceso - bEnProceso;
+        });
     }, [desembolsos, user]);
 
     useEffect(() => {

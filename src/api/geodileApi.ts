@@ -7,6 +7,10 @@ const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL_GEODILE}/api-mongo/api
 const RENIEC_API_URL = import.meta.env.VITE_API_BASE_URL_CLIENTES;
 const RENIEC_TOKEN = `Bearer ${import.meta.env.VITE_API_BASE_URL_CLIENTES_TOKEN}`;
 
+// Variables de fallback (API de respaldo)
+const RENIEC_API_URL2 = import.meta.env.VITE_API_BASE_URL_CLIENTES2;
+const RENIEC_TOKEN2 = `Bearer ${import.meta.env.VITE_API_BASE_URL_CLIENTES_TOKEN2}`;
+
 // Importar AGENCIAS para convertir ID de agencia a código
 import { AGENCIAS } from '../types';
 
@@ -96,11 +100,6 @@ const getCommonHeaders = () => ({
     "ngrok-skip-browser-warning": "69420"
 });
 
-const getReniecHeaders = () => ({
-    'Content-Type': 'application/json',
-    'Authorization': RENIEC_TOKEN
-});
-
 /**
  * Función helper para obtener NOMBRE de agencia por ID (igual que en verificacionUbicacion.tsx)
  */
@@ -142,22 +141,63 @@ export const cargarCoordenadas = async (userData: { dni?: string; cargo?: string
 };
 
 /**
- * API para verificar socio en RENIEC
+ * API para verificar socio en RENIEC con sistema de fallback
  */
 export const verificarSocioReniec = async (dni: string): Promise<SocioReniec | null> => {
+    // Intentar con la API principal
     try {
+        console.log('Intentando con API principal...');
         const response = await fetch(`${RENIEC_API_URL}/${dni}`, {
-            headers: getReniecHeaders()
+            headers: {
+                'Authorization': RENIEC_TOKEN,
+                'Content-Type': 'application/json'
+            }
         });
+        
+        if (!response.ok) {
+            throw new Error(`API principal falló con status: ${response.status}`);
+        }
+        
         const socioRe = await response.json();
         
         if (socioRe.status === 'error') {
-            throw new Error('DNI incorrecto');
+            throw new Error('DNI incorrecto en API principal');
         }
         
+        console.log('✅ API principal respondió correctamente');
         return socioRe.data;
     } catch (error) {
-        throw error;
+        console.warn('⚠️ API principal falló, intentando con API de respaldo...', error);
+        
+        // Intentar con la API de respaldo
+        try {
+            const response2 = await fetch(`${RENIEC_API_URL2}/${dni}`, {
+                headers: {
+                    'Authorization': RENIEC_TOKEN2,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response2.ok) {
+                throw new Error(`API de respaldo falló con status: ${response2.status}`);
+            }
+            
+            const socioRe2 = await response2.json();
+            
+            if (!socioRe2.success || !socioRe2.data) {
+                throw new Error('DNI incorrecto en API de respaldo');
+            }
+            
+            
+            // Mapear la respuesta de la API2 al formato esperado
+            return {
+                nombres: socioRe2.data.nombres,
+                apellido_paterno: socioRe2.data.apellido_paterno,
+                apellido_materno: socioRe2.data.apellido_materno
+            };
+        } catch (error2) {
+            throw new Error('No se pudo verificar el DNI. Ambas APIs están caídas.');
+        }
     }
 };
 
