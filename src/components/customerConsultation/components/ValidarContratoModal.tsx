@@ -51,7 +51,29 @@ const ValidarContratoModal = ({
       // Capturar información del dispositivo para el endpoint
       const deviceInfo = await captureDeviceInfo(`ver_documento_${credito.ID_PRESTAMO}`);
 
-      // Primero llamar a verDocumentoFirmado para obtener el documento actualizado
+      // Verificar si ya tenemos una URL firmada en los datos originales
+      if (credito.FIRM_DIGITAL?.URL_SIGNED_FILE) {
+        // Intentar obtener la URL pública usando obtenerUrlFirmada
+        try {
+          const urlResponse = await obtenerUrlFirmada({
+            URL: credito.FIRM_DIGITAL.URL_SIGNED_FILE
+          });
+
+          if (urlResponse.success && urlResponse.url) {
+            setContratoUrl(urlResponse.url);
+          } else {
+            // Si falla, usar la URL original directamente
+            setContratoUrl(credito.FIRM_DIGITAL.URL_SIGNED_FILE);
+          }
+        } catch (urlError) {
+          // Si falla, usar la URL original
+          setContratoUrl(credito.FIRM_DIGITAL.URL_SIGNED_FILE);
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Si no hay URL en los datos originales, intentar obtenerla mediante verDocumentoFirmado
       const verResponse = await verDocumentoFirmado({
         ID_DOCUMENT_FIRM: credito.FIRM_DIGITAL.ID_DOCUMENT,
         PAGARE: credito.ID_PRESTAMO,
@@ -61,18 +83,23 @@ const ValidarContratoModal = ({
       } as any);
 
       if (verResponse.success && verResponse.data) {
-        // Si hay URL_SIGNED_FILE en la respuesta o en los datos originales
-        const urlFirmada = verResponse.data.URL_SIGNED_FILE || credito.FIRM_DIGITAL?.URL_SIGNED_FILE;
-        
+        // Si hay URL_SIGNED_FILE en la respuesta
+        const urlFirmada = verResponse.data.URL_SIGNED_FILE;
+
         if (urlFirmada) {
           // Intentar obtener la URL pública usando obtenerUrlFirmada
-          const urlResponse = await obtenerUrlFirmada({
-            URL: urlFirmada
-          });
+          try {
+            const urlResponse = await obtenerUrlFirmada({
+              URL: urlFirmada
+            });
 
-          if (urlResponse.success && urlResponse.url) {
-            setContratoUrl(urlResponse.url);
-          } else {
+            if (urlResponse.success && urlResponse.url) {
+              setContratoUrl(urlResponse.url);
+            } else {
+              // Si falla, usar la URL original
+              setContratoUrl(urlFirmada);
+            }
+          } catch (urlError) {
             // Si falla, usar la URL original
             setContratoUrl(urlFirmada);
           }
