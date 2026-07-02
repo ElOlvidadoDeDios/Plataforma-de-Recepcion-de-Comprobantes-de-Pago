@@ -534,9 +534,9 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
     return (
       <button
         onClick={() => handlePayoutKambia(credito)}
-        disabled={true}
-        className="p-2 bg-gray-400 text-white rounded-full cursor-not-allowed transition-colors"
-        title="Procesar Payout Kambia - Deshabilitado"
+        disabled={isLoading}
+        className="p-2 bg-purple-500 text-white rounded-full hover:bg-purple-600 transition-colors disabled:bg-purple-300"
+        title="Procesar Payout Kambia - Error en datos bancarios"
       >
         {isLoading ? (
           <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
