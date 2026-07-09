@@ -40,6 +40,9 @@ export function useCalculadoraCreditos() {
         return tomorrow.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
     };
 
+    // Estado para controlar si el usuario cambió manualmente la fecha del primer pago
+    const [userModifiedFirstPaymentDate, setUserModifiedFirstPaymentDate] = useState(false);
+
     // Estado principal del formulario
     const [formData, setFormData] = useState({
         moneda: "PEN",
@@ -537,14 +540,14 @@ export function useCalculadoraCreditos() {
         }
     }, [formData.frecuencia_codigo, formData.valor_cuota]);
 
-    // 🔄 EFECTO: Actualizar fecha primer pago cuando cambie "desde"
+    // 🔄 EFECTO: Actualizar fecha primer pago cuando cambie "desde" (SOLO si el usuario no la cambió manualmente)
     useEffect(() => {
-        if (formData.desde) {
+        if (formData.desde && !userModifiedFirstPaymentDate) {
             calcularFechaPrimerPago(formData.desde);
         }
-    }, [formData.desde, calcularFechaPrimerPago]);
+    }, [formData.desde, calcularFechaPrimerPago, userModifiedFirstPaymentDate]);
 
-    // Validación de fecha del primer pago (MEJORADA)
+    // Validación de fecha del primer pago (MEJORADA) - AHORA MARCA QUE EL USUARIO LA CAMBIÓ MANUALMENTE
     const handleFechaPrimerPagoChange = (fecha: string) => {
         const fechaDesde = new Date(formData.desde);
         const fechaPago = new Date(fecha);
@@ -554,8 +557,12 @@ export function useCalculadoraCreditos() {
             const fechaCorregida = siguienteDia.toLocaleDateString('sv-SE', { timeZone: 'America/Lima' });
             setFormData(prev => ({ ...prev, fecha_1er_pago: fechaCorregida }));
             Notification.warning('La fecha del primer pago debe ser al menos un día después de la fecha "Desde"');
+            // El usuario intentó cambiar, así que marcar como modificado
+            setUserModifiedFirstPaymentDate(true);
         } else {
             setFormData(prev => ({ ...prev, fecha_1er_pago: fecha }));
+            // Marcar que el usuario cambió manualmente esta fecha
+            setUserModifiedFirstPaymentDate(true);
         }
     };
 
@@ -657,6 +664,8 @@ export function useCalculadoraCreditos() {
         mostrarCronograma,
         setMostrarCronograma,
         inputRefs,
+        userModifiedFirstPaymentDate,
+        setUserModifiedFirstPaymentDate,
         
         // Funciones de navegación móvil
         isMobile,

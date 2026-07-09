@@ -146,7 +146,6 @@ export const cargarCoordenadas = async (userData: { dni?: string; cargo?: string
 export const verificarSocioReniec = async (dni: string): Promise<SocioReniec | null> => {
     // Intentar con la API principal
     try {
-        console.log('Intentando con API principal...');
         const response = await fetch(`${RENIEC_API_URL}/${dni}`, {
             headers: {
                 'Authorization': RENIEC_TOKEN,
@@ -164,7 +163,6 @@ export const verificarSocioReniec = async (dni: string): Promise<SocioReniec | n
             throw new Error('DNI incorrecto en API principal');
         }
         
-        console.log('✅ API principal respondió correctamente');
         return socioRe.data;
     } catch (error) {
         console.warn('⚠️ API principal falló, intentando con API de respaldo...', error);

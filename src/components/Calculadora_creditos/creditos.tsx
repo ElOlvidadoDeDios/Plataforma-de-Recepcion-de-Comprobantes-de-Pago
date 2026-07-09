@@ -40,6 +40,8 @@ export default function CalculadoraCreditos() {
         mostrarCronograma,
         setMostrarCronograma,
         inputRefs,
+        userModifiedFirstPaymentDate,
+        setUserModifiedFirstPaymentDate,
         
         // Funciones de navegación móvil
         handleEnter,
@@ -132,8 +134,25 @@ export default function CalculadoraCreditos() {
         return () => clearTimeout(timer);
     }, [formData.prestamo_id, formData.producto_codigo, formData.frecuencia_codigo,
         formData.Monto_solicitado, formData.Nro_cuotas, formData.cuota_tipo,
-        formData.pago_tipo, formData.moneda_codigo, formData.desde, formData.fecha_1er_pago,
+        formData.pago_tipo, formData.moneda_codigo, formData.desde,
         formData.tipoCalendario_codigo, montoError, plazoError]);
+
+    // 🔄 NUEVO EFECTO: Cuando el usuario cambia manualmente la fecha del primer pago, recalcular valores
+    useEffect(() => {
+        if (userModifiedFirstPaymentDate && valoresCalculados &&
+            formData.prestamo_id && formData.producto_codigo && formData.frecuencia_codigo &&
+            formData.Monto_solicitado && formData.Nro_cuotas && formData.cuota_tipo &&
+            formData.pago_tipo && !montoError && !plazoError &&
+            parseFloat(formData.Monto_solicitado) > 0 && parseInt(formData.Nro_cuotas) > 0) {
+            
+            const timer = setTimeout(() => {
+                // Recalcular valores con la nueva fecha seleccionada por el usuario
+                calcularValoresCuota();
+            }, 500);
+
+            return () => clearTimeout(timer);
+        }
+    }, [userModifiedFirstPaymentDate, formData.fecha_1er_pago]);
 
     // Efecto para recalcular cuando cambie solo el TEM (sin cambiar monto/cuotas)
     useEffect(() => {
@@ -178,6 +197,8 @@ export default function CalculadoraCreditos() {
                 frecuencia_codigo: '',
                 frecuencia_nombre: ''
             }));
+            // Resetear el flag para que la fecha del primer pago se recalcule automáticamente
+            setUserModifiedFirstPaymentDate(false);
             await loadProductos(prestamoSeleccionado.ID_VALOR);
         }
     };
@@ -205,6 +226,8 @@ export default function CalculadoraCreditos() {
                 frecuencia_codigo: '',
                 frecuencia_nombre: ''
             }));
+            // Resetear el flag para que la fecha del primer pago se recalcule automáticamente
+            setUserModifiedFirstPaymentDate(false);
             if (formData.prestamo_id) {
                 await loadFrecuencias(formData.prestamo_id, productoCodigo);
             }
@@ -235,6 +258,8 @@ export default function CalculadoraCreditos() {
                 frecuencia_codigo: frecuenciaSeleccionada.COD_FREC,
                 frecuencia_nombre: frecuenciaSeleccionada.DES_FREC
             }));
+            // Resetear el flag para que la fecha del primer pago se recalcule automáticamente
+            setUserModifiedFirstPaymentDate(false);
             
             // ❌ ELIMINADO: El avance automático en móvil
             // Los <select> funcionan perfectamente sin forzar el focus

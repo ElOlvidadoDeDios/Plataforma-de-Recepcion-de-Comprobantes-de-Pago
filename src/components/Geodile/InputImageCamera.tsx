@@ -160,7 +160,6 @@ export default function InputImageCamera({ id, title, handleImageChangeIn }: Inp
             } catch (err: any) {
                 // Si la imagen es muy grande, reintentar con menor calidad
                 if (err.message === 'IMAGEN_MUY_GRANDE') {
-                    console.log('Imagen muy grande, reintentando con menor calidad...');
                     try {
                         compressedFile = await compressImage(file, 640, 480, 0.65);
                     } catch (err2: any) {

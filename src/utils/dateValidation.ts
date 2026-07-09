@@ -49,14 +49,6 @@ export const isOtorgaToday = (otorgaDate: string | null | undefined): boolean =>
     const day = String(today.getDate()).padStart(2, '0');
     const todayString = `${year}-${month}-${day}`;
 
-    // 🔍 DEBUG: Ver las fechas que se están comparando
-    console.log('🔍 isOtorgaToday DEBUG:', {
-      otorgaDate_original: otorgaDate,
-      otorgaString: otorgaString,
-      todayString: todayString,
-      isEqual: otorgaString === todayString
-    });
-
     // Comparar
     const isToday = otorgaString === todayString;
     return isToday;
@@ -101,14 +93,6 @@ export const getOtorgaErrorMessage = (otorgaDate: string | null | undefined): st
     // ✅ CREAR FECHA EN HORA LOCAL (sin conversión UTC)
     const otorgaDate_obj = new Date(year, month - 1, day);
     const today = new Date();
-
-    // 🔍 DEBUG: Ver las fechas en el mensaje de error
-    console.log('🔍 getOtorgaErrorMessage DEBUG:', {
-      otorgaDate_original: otorgaDate,
-      otorga_parsed: { year, month, day },
-      otorgaDate_obj: otorgaDate_obj.toISOString(),
-      today: today.toISOString()
-    });
 
     const otorgaFormatted = otorgaDate_obj.toLocaleDateString('es-PE', {
       year: 'numeric',
