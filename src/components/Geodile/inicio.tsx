@@ -40,7 +40,7 @@ const COORDENADAS_AGENCIAS: Record<string, [number, number]> = {
     "AGENCIA LIMA SAN JUAN DE LURIGANCHO": [-77.045958, -11.927218],// REFERENCIAL
     "AGENCIA CHICLAYO": [-79.8401, -6.7714], //REFERENCIAL
     "AGENCIA AREQUIPA": [-71.537451, -16.409047], //REFERENCIAL
-    "AGENCIA PUCALPA": [-74.5536, -8.3791] //REFERENCIAL
+    "AGENCIA PUCALLPA": [-74.5536, -8.3791] //REFERENCIAL
 } as const;
 
 const requestGeolocationPermission = async (): Promise<boolean> => {

@@ -117,7 +117,7 @@ const GestionMora = () => {
       "AGENCIA LIMA SAN JUAN DE LURIGANCHO": "98",
       "AGENCIA CHICLAYO": "98",
       "AGENCIA AREQUIPA": "98",
-      "AGENCIA PUCALPA": "98"
+      "AGENCIA PUCALLPA": "98"
     };
     return mapeoAgencias[nombreAgencia] || '01';
   };
@@ -135,7 +135,7 @@ const GestionMora = () => {
       '10': 'AGENCIA LIMA SAN JUAN DE LURIGANCHO',
       '11': 'AGENCIA CHICLAYO',
       '12': 'AGENCIA AREQUIPA',
-      '13': 'AGENCIA PUCALPA'
+      '13': 'AGENCIA PUCALLPA'
     };
     return mapeoInverso[codigo] || codigo;
   };
@@ -208,7 +208,7 @@ const GestionMora = () => {
           } else if (agencia === '12') {
             nombreAgenciaAdmin = 'AGENCIA AREQUIPA';
           } else if (agencia === '13') {
-            nombreAgenciaAdmin = 'AGENCIA PUCALPA';
+            nombreAgenciaAdmin = 'AGENCIA PUCALLPA';
           } else {
             nombreAgenciaAdmin = mapearCodigoANombreAgencia(agencia);
           }

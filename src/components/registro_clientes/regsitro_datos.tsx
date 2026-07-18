@@ -30,6 +30,7 @@ export const DatosForm = memo(
     const [showFullForm, setShowFullForm] = useState<boolean>(false); // Estado para mostrar/ocultar campos
     const [hasSearchedDNI, setHasSearchedDNI] = useState<boolean>(false); // Estado para saber si ya se buscó
     const [isExistingSocio, setIsExistingSocio] = useState<boolean>(false); // Estado para saber si el socio ya existe en la DB
+    const [isFromReniec, setIsFromReniec] = useState<boolean>(false); // Estado para bloquear campos cuando vienen de RENIEC
     
     const { comboData, loading: comboLoading, error: comboError } = useComboBoxData();
     const { user } = useContext(AuthContext);
@@ -154,13 +155,15 @@ export const DatosForm = memo(
     setFormData(formDataLimpio);
     
     try {
+      // 🔥 PASO 1: SIEMPRE buscar en BD primero (para TODOS los tipos de documento)
+      console.log('� Buscando documento en base de datos...');
       const response = await useComboBoxrellenarData(selectedDocType, formData.DOC_IDEN);
       
-
+      // PASO 2: Si EXISTE en BD → Cargar datos y bloquear edición
+      if (response?.DATOS) {
+        console.log('✅ Documento encontrado en BD');
         // Los datos vienen de la base de datos - SOCIO EXISTE - BLOQUEAR EDICIÓN
         setIsExistingSocio(true);
-        
-      if (response?.DATOS) {
 
         // Usar la función utilitaria para mapear los datos
         const mappedData = mapResponseToPersonData(response as ResponseData, formDataLimpio);
@@ -243,21 +246,39 @@ export const DatosForm = memo(
         }
         
       } else {
-        // Los datos NO vienen de la base de datos - SOCIO NUEVO - PERMITIR EDICIÓN
+        // PASO 3: NO existe en BD - SOCIO NUEVO - PERMITIR EDICIÓN
+        console.log('📝 Documento NO encontrado en BD');
         setIsExistingSocio(false);
         
-        // Si no hay datos en la respuesta, intentar con RENIEC
-        const datosReniec = await verificarSocioReniec(formData.DOC_IDEN);
-        if (datosReniec) {
-          const datosConReniec = {
-            ...formDataLimpio, // Usar los datos ya limpios
-            APE_PAT: datosReniec.apellido_paterno || '',
-            APE_MAT: datosReniec.apellido_materno || '',
-            NOMBRES: datosReniec.nombres || '',
-          };
-          setFormData(datosConReniec);
+        // 🔥 PASO 4: Si es DNI, intentar con RENIEC. Si NO es DNI, solo activar formulario
+        if (selectedDocType === '01') { // '01' = DNI
+          console.log('� Es DNI, consultando RENIEC...');
+          try {
+            const datosReniec = await verificarSocioReniec(formData.DOC_IDEN);
+            if (datosReniec) {
+              console.log('✅ Datos obtenidos de RENIEC');
+              const datosConReniec = {
+                ...formDataLimpio,
+                APE_PAT: datosReniec.apellido_paterno || '',
+                APE_MAT: datosReniec.apellido_materno || '',
+                NOMBRES: datosReniec.nombres || '',
+              };
+              setFormData(datosConReniec);
+              setIsFromReniec(true); // 🔒 Datos vienen de RENIEC
+            } else {
+              console.log('⚠️ RENIEC no devolvió datos');
+              setIsFromReniec(false);
+            }
+          } catch (errorReniec) {
+            console.warn('⚠️ Error al consultar RENIEC:', errorReniec);
+            setIsFromReniec(false);
+            // Si falla RENIEC, continuar con formulario vacío
+          }
+        } else {
+          console.log('📋 NO es DNI, activando formulario manual (sin RENIEC)');
+          setIsFromReniec(false);
         }
-        // Si no hay datos de RENIEC, el formulario queda limpio
+        
         // No hay datos de dirección, notificar null
         if (onDatosDireccionChange) {
           onDatosDireccionChange(null);
@@ -341,6 +362,7 @@ export const DatosForm = memo(
       setShowFullForm(false); // Ocultar el formulario completo
       setHasSearchedDNI(false); // Resetear el estado de búsqueda
       setIsExistingSocio(false); // Resetear el estado de socio existente
+      setIsFromReniec(false); // Resetear el estado de datos de RENIEC
       
       // Limpiar también del localStorage
       localStorage.removeItem('registro_cliente_datos');
@@ -663,21 +685,21 @@ export const DatosForm = memo(
                     value={formData.APE_PAT}
                     onChange={(v) => handleInputChange('APE_PAT', v)}
                     required
-                    disabled={isExistingSocio}
+                    disabled={isExistingSocio || isFromReniec}
                   />
                   <InputField
                     label="Apellido Materno"
                     value={formData.APE_MAT}
                     onChange={(v) => handleInputChange('APE_MAT', v)}
                     required
-                    disabled={isExistingSocio}
+                    disabled={isExistingSocio || isFromReniec}
                   />
                   <InputField
                     label="Nombres"
                     value={formData.NOMBRES}
                     onChange={(v) => handleInputChange('NOMBRES', v)}
                     required
-                    disabled={isExistingSocio}
+                    disabled={isExistingSocio || isFromReniec}
                   />
                   <InputField
                     label="Lugar de Nacimiento"
