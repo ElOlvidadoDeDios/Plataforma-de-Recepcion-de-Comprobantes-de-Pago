@@ -38,6 +38,7 @@ export const useAprobacionCreditos = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [isValidatingOtp, setIsValidatingOtp] = useState(false);
   const [otpError, setOtpError] = useState('');
+  const [generatedOtpCode, setGeneratedOtpCode] = useState<string>(''); // 🔥 TEMPORAL: Guardar OTP generado
   const [pendingApproval, setPendingApproval] = useState<{
     solicitud: SolicitudCredito & { detalle?: DetalleSolicitud };
     glosa: string;
@@ -194,6 +195,9 @@ export const useAprobacionCreditos = () => {
         notifications.error(otpResponse.message);
         return;
       }
+
+      // 🔥 TEMPORAL: Guardar el OTP generado para mostrarlo en el modal
+      setGeneratedOtpCode(otpResponse.data.codigo);
 
       const mensaje = `🔐 *Código de Verificación DILE*\n\nTu código OTP para aprobar la solicitud ${solicitud.detalle.NRO_SOL} es:\n\n*${otpResponse.data.codigo}*\n\nEste código expira en 5 minutos.\n\n⚠️ No compartas este código con nadie.`;
 
@@ -400,6 +404,7 @@ export const useAprobacionCreditos = () => {
     showOtpModal,
     isValidatingOtp,
     otpError,
+    generatedOtpCode, // 🔥 TEMPORAL: Código OTP generado
     pendingApproval,
     // Permisos
     hasAccess,

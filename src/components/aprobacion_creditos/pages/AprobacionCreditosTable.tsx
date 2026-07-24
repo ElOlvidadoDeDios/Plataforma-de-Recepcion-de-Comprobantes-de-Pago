@@ -22,6 +22,7 @@ const AprobacionCreditosTable: React.FC = () => {
     showOtpModal,
     isValidatingOtp,
     otpError,
+    generatedOtpCode, // 🔥 TEMPORAL: OTP generado
     pendingApproval,
     hasAccess,
     canApproveCreditApproval,
@@ -368,6 +369,7 @@ const AprobacionCreditosTable: React.FC = () => {
           isValidating={isValidatingOtp}
           errorMessage={otpError}
           solicitudNumero={pendingApproval.solicitud.NRO_SOL}
+          generatedOtp={generatedOtpCode}
         />
       )}
     </Layout>

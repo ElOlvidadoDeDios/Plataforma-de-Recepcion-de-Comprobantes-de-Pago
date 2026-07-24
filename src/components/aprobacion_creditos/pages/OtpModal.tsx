@@ -9,6 +9,7 @@ interface OtpModalProps {
   isValidating: boolean;
   errorMessage: string;
   solicitudNumero: string;
+  generatedOtp?: string;
 }
 
 const OtpModal: React.FC<OtpModalProps> = ({
@@ -17,22 +18,29 @@ const OtpModal: React.FC<OtpModalProps> = ({
   onValidate,
   isValidating,
   errorMessage,
-  solicitudNumero
+  solicitudNumero,
+  generatedOtp
 }) => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (isOpen) {
+      // Auto-completar con el OTP generado
+      if (generatedOtp && generatedOtp.length === 6) {
+        const digits = generatedOtp.split('');
+        setOtp(digits);
+      } else {
+        // Limpiar OTP al abrir
+        setOtp(['', '', '', '', '', '']);
+      }
+      
       // Focus en el primer input al abrir
       setTimeout(() => {
         inputRefs.current[0]?.focus();
       }, 100);
-      
-      // Limpiar OTP al abrir
-      setOtp(['', '', '', '', '', '']);
     }
-  }, [isOpen]);
+  }, [isOpen, generatedOtp]);
 
   const handleChange = (index: number, value: string) => {
     // Solo números
