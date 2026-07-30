@@ -66,22 +66,18 @@ const SolicitudCreditoTable: React.FC = () => {
   }, [searchTerm, solicitudes]);
 
   const handleAprobar = (sol: SolicitudCredito, glosa: string) => {
-    //console.log('Aprobar:', sol.NRO_SOL, '| Glosa:', glosa);
     setSelectedSolicitud(null);
   };
 
   const handleDenegar = (sol: SolicitudCredito, glosa: string) => {
-    //console.log('Denegar:', sol.NRO_SOL, '| Glosa:', glosa);
     setSelectedSolicitud(null);
   };
 
   const handleAnular = (sol: SolicitudCredito, glosa: string) => {
-   // console.log('Anular:', sol.NRO_SOL, '| Glosa:', glosa);
     setSelectedSolicitud(null);
   };
 
   const handleImprimir = (sol: SolicitudCredito) => {
-    //console.log('Imprimir:', sol.NRO_SOL);
   };
 
   const fmt = (n: string | number) => {

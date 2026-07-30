@@ -156,12 +156,11 @@ export const DatosForm = memo(
     
     try {
       // 🔥 PASO 1: SIEMPRE buscar en BD primero (para TODOS los tipos de documento)
-      console.log('� Buscando documento en base de datos...');
+
       const response = await useComboBoxrellenarData(selectedDocType, formData.DOC_IDEN);
       
       // PASO 2: Si EXISTE en BD → Cargar datos y bloquear edición
       if (response?.DATOS) {
-        console.log('✅ Documento encontrado en BD');
         // Los datos vienen de la base de datos - SOCIO EXISTE - BLOQUEAR EDICIÓN
         setIsExistingSocio(true);
 
@@ -247,16 +246,15 @@ export const DatosForm = memo(
         
       } else {
         // PASO 3: NO existe en BD - SOCIO NUEVO - PERMITIR EDICIÓN
-        console.log('📝 Documento NO encontrado en BD');
+
         setIsExistingSocio(false);
         
         // 🔥 PASO 4: Si es DNI, intentar con RENIEC. Si NO es DNI, solo activar formulario
         if (selectedDocType === '01') { // '01' = DNI
-          console.log('� Es DNI, consultando RENIEC...');
           try {
             const datosReniec = await verificarSocioReniec(formData.DOC_IDEN);
             if (datosReniec) {
-              console.log('✅ Datos obtenidos de RENIEC');
+
               const datosConReniec = {
                 ...formDataLimpio,
                 APE_PAT: datosReniec.apellido_paterno || '',
@@ -266,7 +264,7 @@ export const DatosForm = memo(
               setFormData(datosConReniec);
               setIsFromReniec(true); // 🔒 Datos vienen de RENIEC
             } else {
-              console.log('⚠️ RENIEC no devolvió datos');
+
               setIsFromReniec(false);
             }
           } catch (errorReniec) {
@@ -275,7 +273,6 @@ export const DatosForm = memo(
             // Si falla RENIEC, continuar con formulario vacío
           }
         } else {
-          console.log('📋 NO es DNI, activando formulario manual (sin RENIEC)');
           setIsFromReniec(false);
         }
         

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PaymentRecord } from '../../types';
 import StatusBadge from '../shared/StatusBadge';
 
@@ -17,6 +17,60 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
   onOpenModal,
   isReadOnlyMode = false
 }) => {
+  const [agenciaNombre, setAgenciaNombre] = useState<string>('Cargando...');
+  const [loadingAgencia, setLoadingAgencia] = useState<boolean>(true);
+
+  useEffect(() => {
+    const obtenerAgencia = async () => {
+      if (!currentPayment.creditoId) {
+        setAgenciaNombre('No disponible');
+        setLoadingAgencia(false);
+        return;
+      }
+
+      try {
+        setLoadingAgencia(true);
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL_GEODILE;
+        const apiToken = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+        
+        const url = `${apiBaseUrl}/api_app_dile_v1_1/api/asignar_agencia_pago`;
+        const body = { PAGARE: currentPayment.creditoId };
+      
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `${apiToken}`,
+          },
+          body: JSON.stringify(body)
+        });
+
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ Error response:', errorText);
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        
+        if (data && data.length > 0 && data[0].AGE_ACTUAL) {
+          setAgenciaNombre(data[0].AGE_ACTUAL);
+        } else {
+          setAgenciaNombre('No disponible');
+        }
+      } catch (error) {
+        console.error('❌ Error al obtener agencia:', error);
+        setAgenciaNombre('No disponible');
+      } finally {
+        setLoadingAgencia(false);
+      }
+    };
+
+    obtenerAgencia();
+  }, [currentPayment.creditoId]);
+
   const formatDate = (fecha: string, hora: string) => {
     try {
       return new Date(`${fecha} ${hora}`).toLocaleString('es-ES', {
@@ -37,11 +91,26 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
       data-payment-id={`${payment.dni}-${payment.fecha}-${payment.hora}`}
     >
       <div className="flex justify-between items-start mb-4">
-        <div>
+        <div className="flex-1">
           <h3 className="text-lg font-semibold">{currentPayment.nombreSocio}</h3>
           <p className="text-gray-600">DNI: {currentPayment.dni}</p>
           <p className="text-gray-600">{formatDate(currentPayment.fecha, currentPayment.hora)}</p>
-          <p className="text-gray-800">Págare:  <strong>{currentPayment.creditoId}</strong></p>
+          <p className="text-gray-800">Págare: <strong>{currentPayment.creditoId}</strong></p>
+          
+          {/* Mostrar Agencia */}
+          <div className="mt-2 flex items-center gap-2">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <div className="text-sm">
+              <span className="text-gray-500">Agencia:</span>{' '}
+              {loadingAgencia ? (
+                <span className="text-gray-400 italic">Cargando...</span>
+              ) : (
+                <span className="font-medium text-gray-700">{agenciaNombre}</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
       <div className="flex items-center space-x-2">
