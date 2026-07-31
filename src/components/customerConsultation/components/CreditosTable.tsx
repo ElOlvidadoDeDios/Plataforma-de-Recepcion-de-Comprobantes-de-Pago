@@ -10,6 +10,7 @@ import { AuthContext } from '../../../contexts/AuthContext';
 import { Permission, UserRole } from '../../../types/permissions';
 import { logContractGenerationInfo } from '../../../utils/deviceInfo';
 import { isOtorgaToday, getOtorgaErrorMessage } from '../../../utils/dateValidation';
+import { PaymentImage } from '../../PaymentImage';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 // const PagosPrestamoModal = lazy(() => import('./PagosPrestamoModal'));
@@ -95,40 +96,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
   const canViewSignedContracts = (): boolean => {
     // Cualquier usuario con permisos de ver socios puede ver contratos YA FIRMADOS
     return canViewContracts();
-  };
-
-  // Obtener la URL base del env y asegurarse que no termine en slash
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
-
-  // Función para determinar si es una ruta de comprobante
-  const isComprobantePath = (str: string): boolean => {
-    return str.startsWith('/comprobantes/') || str.includes('public/comprobantes') || str.includes('public\\comprobantes');
-  };
-
-  // Función para construir el src de la imagen (igual que en PaymentImage)
-  const getImageSrc = (image: string): string => {
-    if (!image) return ''; // Protección contra undefined
-
-    // Si ya comienza con data:image, es un base64 completo
-    if (image.startsWith('data:image')) {
-      return image;
-    }
-    
-    // Si es una ruta de comprobante
-    if (isComprobantePath(image)) {
-      // Si ya es una URL completa, usarla tal cual
-      if (image.startsWith('http://') || image.startsWith('https://')) {
-        return image;
-      }
-      // Extraer solo el nombre del archivo y usar el prefijo /comprobantes
-      const fileName = image.split(/[/\\]/).pop();
-      if (!fileName) return '';
-      const finalUrl = `${API_BASE_URL}/comprobantes/${fileName}`;
-      return finalUrl;
-    }
-
-    // Si no es ninguno de los anteriores, asumimos que es un string base64
-    return `data:image/jpeg;base64,${image}`;
   };
 
   const handleVerCronograma = (credito: DetalleCredito) => {
@@ -1297,15 +1264,9 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
                         {pago.comprobantebase_64?.map((comprobante, compIndex) => (
                           <div key={`${comprobante._id}-${compIndex}`} className="border rounded-lg p-2 bg-white shadow-sm">
                             <div className="aspect-[3/4] mb-2 bg-gray-100 rounded overflow-hidden">
-                              <img
-                                src={getImageSrc(comprobante.ruta)}
+                              <PaymentImage
+                                imageSource={comprobante.ruta}
                                 alt={`Comprobante ${compIndex + 1}`}
-                                className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform"
-                                onClick={() => window.open(getImageSrc(comprobante.ruta), '_blank')}
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = 'data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="120" viewBox="0 0 200 120"><rect width="100%" height="100%" fill="%23ddd"/><text x="50%" y="50%" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy="0.3em">Error al cargar imagen</text></svg>';
-                                }}
                               />
                             </div>
                             <div className="space-y-1">
