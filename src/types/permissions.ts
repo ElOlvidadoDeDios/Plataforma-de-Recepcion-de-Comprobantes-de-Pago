@@ -71,6 +71,7 @@ export enum Permission {
 
   // === SEGUIMIENTO DESEMBOLSOS HOY ===
   DISBURSEMENTS_TODAY_VIEW = 'disbursements_today:view',
+  DISBURSEMENTS_TODAY_EDIT = 'disbursements_today:edit',
 
   // === CULQI PENDIENTES ===
   CULQI_VIEW = 'culqi:view',
@@ -79,6 +80,14 @@ export enum Permission {
   // === RECUPERACIONES ===
   RECUPERACIONES_VIEW = 'recuperaciones:view',
   RECUPERACIONES_EDIT = 'recuperaciones:edit',
+
+  // === CONVERSACIONES WHATSAPP ===
+  WHATSAPP_CONVERSATIONS_VIEW = 'whatsapp_conversations:view',
+  WHATSAPP_CONVERSATIONS_EDIT = 'whatsapp_conversations:edit',
+
+  // === CUMPASEGURO ===
+  CUMPASEGURO_VIEW = 'cumpaseguro:view',
+  CUMPASEGURO_EDIT = 'cumpaseguro:edit',
 }
 
 export enum UserRole {
@@ -171,6 +180,14 @@ export const PermissionCategories = {
     Permission.CULQI_VIEW,   // Solo ver
     Permission.CULQI_EDIT,   // Editar (incluye gestionar, etc.)
   ],
+  'Conversaciones WhatsApp': [
+    Permission.WHATSAPP_CONVERSATIONS_VIEW,   // Solo ver
+    Permission.WHATSAPP_CONVERSATIONS_EDIT,   // Gestionar
+  ],
+  'CumpaSeguro': [
+    Permission.CUMPASEGURO_VIEW,   // Solo ver
+    Permission.CUMPASEGURO_EDIT,   // Editar
+  ],
 
 };
 
@@ -252,6 +269,14 @@ export const PermissionLabels: Record<Permission, string> = {
   // Recuperaciones
   [Permission.RECUPERACIONES_VIEW]: '💳 Ver Recuperaciones',
   [Permission.RECUPERACIONES_EDIT]: '⚙️ Gestionar Recuperaciones',
+
+  // Conversaciones WhatsApp
+  [Permission.WHATSAPP_CONVERSATIONS_VIEW]: '💬 Ver Conversaciones WhatsApp',
+  [Permission.WHATSAPP_CONVERSATIONS_EDIT]: '⚙️ Gestionar Conversaciones WhatsApp',
+
+  // CumpaSeguro
+  [Permission.CUMPASEGURO_VIEW]: '🛡️ Ver CumpaSeguro',
+  [Permission.CUMPASEGURO_EDIT]: '⚙️ Gestionar CumpaSeguro',
 };
 
 /**

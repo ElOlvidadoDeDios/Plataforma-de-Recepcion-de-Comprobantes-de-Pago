@@ -26,6 +26,8 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
 
   // Obtener la URL base del env y asegurarse que no termine en slash
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '');
+  const VITE_API_BASE_URL= import.meta.env.VITE_API_BASE_URL_GEODILE
+  const VITE_API_BASE_URL_GEODILE_TOKEN= import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN
 
   // Convertir imageSource a array siempre para unificar el manejo
   const images = Array.isArray(imageSource) ? imageSource : [imageSource];
@@ -43,10 +45,11 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
   // Función para obtener URL de S3 desde el API de MongoDB
   const fetchS3Url = async (imagePath: string): Promise<string | null> => {
     try {
-      const response = await fetch('http://192.168.3.34:8080/desarrollo/api_mongo_firm_easy/api/get_voucher_pay', {
+      const response = await fetch(`${VITE_API_BASE_URL}/api_mongo_firm_easy/api/get_voucher_pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': VITE_API_BASE_URL_GEODILE_TOKEN
         },
         body: JSON.stringify({ URL: imagePath })
       });

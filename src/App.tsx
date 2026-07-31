@@ -34,6 +34,8 @@ import VercuotasMora from './components/cuotas_mora/VercuotasMora';
 import CulquiPendientes from './components/culqi/culqi';
 import SeguimientoDesembolso from './components/desembolsos-fecha-hoy/seguimientoDesembolso';
 import { AprobacionCreditosTable, SolicitudCreditoTable  } from './components/aprobacion_creditos/pages';
+import WhatsAppConversations from './components/whatsapp_conversations/WhatsAppConversations';
+import CumpaSeguro from './components/cumpaseguro/CumpaSeguro';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -303,6 +305,26 @@ function App() {
                 <ProtectedRoute>
                   <PermissionProtectedRoute permission="canViewCreditRequest">
                     <SolicitudCreditoTable />
+                  </PermissionProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/whatsapp-conversations"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canViewWhatsAppConversations">
+                    <WhatsAppConversations />
+                  </PermissionProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cumpaseguro"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canViewCumpaSeguro">
+                    <CumpaSeguro />
                   </PermissionProtectedRoute>
                 </ProtectedRoute>
               }

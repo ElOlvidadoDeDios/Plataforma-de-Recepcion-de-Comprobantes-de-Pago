@@ -70,7 +70,11 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
   };
 
   // Función para enviar el archivo
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+    // Prevenir cualquier comportamiento por defecto
+    e?.preventDefault();
+    e?.stopPropagation();
+    
     if (!selectedFile) {
       Notification.warning('Por favor seleccione un archivo');
       return;
@@ -167,6 +171,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
               </p>
             </div>
             <button
+              type="button"
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 transition-colors"
               disabled={isLoading}
@@ -248,6 +253,7 @@ const SubirComprobanteDesembolsoModal: React.FC<SubirComprobanteDesembolsoModalP
               Cancelar
             </button>
             <button
+              type="button"
               onClick={handleSubmit}
               className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center"
               disabled={!selectedFile || isLoading}

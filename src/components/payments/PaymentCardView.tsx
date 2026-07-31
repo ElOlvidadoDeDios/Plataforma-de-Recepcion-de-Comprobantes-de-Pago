@@ -46,7 +46,6 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
           body: JSON.stringify(body)
         });
 
-
         if (!response.ok) {
           const errorText = await response.text();
           console.error('❌ Error response:', errorText);

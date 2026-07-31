@@ -55,8 +55,13 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
         [Permission.CULQI_EDIT]: '⚙️ Gestionar Culqi Pendientes',
         [Permission.DISBURSEMENTS_TODAY_VIEW]: '📈 Ver Seguimiento Desembolsos Hoy',
+        [Permission.DISBURSEMENTS_TODAY_EDIT]: '⚙️ Editar Seguimiento Desembolsos Hoy',
         [Permission.RECUPERACIONES_VIEW]: '💳 Ver Recuperaciones',
         [Permission.RECUPERACIONES_EDIT]: '⚙️ Gestionar Recuperaciones',
+        [Permission.WHATSAPP_CONVERSATIONS_VIEW]: '💬 Ver Conversaciones WhatsApp',
+        [Permission.WHATSAPP_CONVERSATIONS_EDIT]: '⚙️ Gestionar Conversaciones WhatsApp',
+        [Permission.CUMPASEGURO_VIEW]: '🛡️ Ver CumpaSeguro',
+        [Permission.CUMPASEGURO_EDIT]: '⚙️ Gestionar CumpaSeguro',
     };
 
     // // Roles que pueden tener permisos de Culqi
@@ -79,7 +84,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Registro de Clientes': [Permission.CLIENTS_VIEW, Permission.CLIENTS_EDIT],
         'Gestión de Mora': [Permission.MORA_VIEW, Permission.MORA_EDIT],
         'Pendientes a Desembolsar': [Permission.DISBURSEMENTS_VIEW, Permission.DISBURSEMENTS_EDIT],
-        'Seguimiento Desembolsos Hoy': [Permission.DISBURSEMENTS_TODAY_VIEW],
+        'Seguimiento Desembolsos Hoy': [Permission.DISBURSEMENTS_TODAY_VIEW, Permission.DISBURSEMENTS_TODAY_EDIT],
         'Historial de Desembolsos': [Permission.DISBURSEMENT_HISTORY_VIEW, Permission.DISBURSEMENT_HISTORY_EDIT],
         'Interacciones del Bot': [Permission.BOT_VIEW, Permission.BOT_EDIT],
         'Calculadora de Créditos': [Permission.CALCULATOR_VIEW, Permission.CALCULATOR_EDIT],
@@ -88,6 +93,8 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Pagos Recaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
         'Culqi Pendientes': [Permission.CULQI_VIEW, Permission.CULQI_EDIT],
         'Recuperaciones': [Permission.RECUPERACIONES_VIEW, Permission.RECUPERACIONES_EDIT],
+        'Conversaciones WhatsApp': [Permission.WHATSAPP_CONVERSATIONS_VIEW, Permission.WHATSAPP_CONVERSATIONS_EDIT],
+        'CumpaSeguro': [Permission.CUMPASEGURO_VIEW, Permission.CUMPASEGURO_EDIT],
         // // Solo agregar Culqi si el rol tiene acceso
         // ...(rolesConAccesoCulqui.includes(selectedRole) ? {
         //     'Culqi Pendientes': [Permission.CULQI_VIEW, Permission.CULQI_EDIT]
@@ -104,7 +111,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         if (!searchTerm) return permissions.length > 0;
         
         return permissions.some(permission =>
-            PermissionLabels[permission].toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (PermissionLabels[permission] || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             permission.toLowerCase().includes(searchTerm.toLowerCase())
         );
     };
@@ -116,7 +123,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         const filtered: Record<string, Permission[]> = {};
         Object.entries(permissionsByCategory).forEach(([category, permissions]) => {
             const filteredPermissions = permissions.filter(permission =>
-                PermissionLabels[permission].toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (PermissionLabels[permission] || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 permission.toLowerCase().includes(searchTerm.toLowerCase())
             );
             
@@ -240,7 +247,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
 
                 const filteredCategoryPermissions = searchTerm 
                     ? categoryPermissions.filter(permission =>
-                        PermissionLabels[permission].toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        (PermissionLabels[permission] || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         permission.toLowerCase().includes(searchTerm.toLowerCase())
                     )
                     : categoryPermissions;
@@ -304,7 +311,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm font-medium text-gray-900">
-                                                        {PermissionLabels[permission]}
+                                                        {PermissionLabels[permission] || permission}
                                                         {permission.includes(':edit') && (
                                                             <span className="text-xs text-green-600 ml-2">(incluye VER)</span>
                                                         )}
@@ -332,7 +339,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
                     <div className="space-y-1">
                         {selectedPermissions.slice(0, 8).map(permission => (
                             <span key={permission} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">
-                                {PermissionLabels[permission]}
+                                {PermissionLabels[permission] || permission}
                             </span>
                         ))}
                         {selectedPermissions.length > 8 && (

@@ -312,6 +312,18 @@ const Welcome: React.FC = () => {
         onClick: () => navigate('/culqui-pendientes'),
         icon: '💳'
       }] : []),
+      ...(permissions.canViewWhatsAppConversations() ? [{
+        title: 'Conversaciones WhatsApp',
+        description: 'Gestiona las conversaciones de WhatsApp',
+        onClick: () => navigate('/whatsapp-conversations'),
+        icon: '💬'
+      }] : []),
+      ...(permissions.canViewCumpaSeguro() ? [{
+        title: 'CumpaSeguro',
+        description: 'Módulo de gestión de seguros',
+        onClick: () => navigate('/cumpaseguro'),
+        icon: '🛡️'
+      }] : []),
     ];
 
     // Lógica para el grid responsivo

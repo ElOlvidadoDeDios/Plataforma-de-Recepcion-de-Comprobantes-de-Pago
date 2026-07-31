@@ -255,6 +255,16 @@ export function useCombinedPermissions() {
       return hasPermission(Permission.DISBURSEMENTS_TODAY_VIEW);
     },
 
+    // === WHATSAPP CONVERSATIONS ===
+    canViewWhatsAppConversations: () => hasPermission(Permission.WHATSAPP_CONVERSATIONS_VIEW),
+    canEditWhatsAppConversations: () => hasPermission(Permission.WHATSAPP_CONVERSATIONS_EDIT),
+    canAccessWhatsAppConversations: () => hasPermission(Permission.WHATSAPP_CONVERSATIONS_VIEW),
+
+    // === CUMPASEGURO ===
+    canViewCumpaSeguro: () => hasPermission(Permission.CUMPASEGURO_VIEW),
+    canEditCumpaSeguro: () => hasPermission(Permission.CUMPASEGURO_EDIT),
+    canAccessCumpaSeguro: () => hasPermission(Permission.CUMPASEGURO_VIEW),
+
     canAccessRecuperaciones: () => {
       // Roles con acceso automático sin necesidad de permisos
       const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'JEFE_RECUPERACIONES', 'RECUPERADOR'];
