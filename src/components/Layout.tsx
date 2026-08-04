@@ -466,7 +466,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
       {headerVisible && (
         <div className="w-full flex-shrink-0 bg-blue-600/20 backdrop-blur-sm p-4 text-center text-white text-sm border-t border-white/10">
           <div className="flex flex-col space-y-1">
-            <p>© 2025 DILE. Todos los derechos reservados.</p>
+            <p>© 2026 DILE. Todos los derechos reservados.</p>
             {isMobileDevice && isActive && <p className="text-xs text-yellow-200">📱 Auto-logout activado: Se cerrará sesión tras 5 min de inactividad</p>}
           </div>
         </div>

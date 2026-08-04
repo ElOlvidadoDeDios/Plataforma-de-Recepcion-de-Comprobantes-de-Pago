@@ -1,5 +1,5 @@
 export type TipoDocumento = 'DNI' | 'CE' | 'PASAPORTE';
-export type TipoAtencion = 'Domicilio' | 'Oficina' | 'Virtual';
+export type TipoAtencion = 'Presencial' | 'Virtual';
 
 export interface PersonaData {
   tipoDoc: TipoDocumento;
@@ -18,9 +18,6 @@ export interface PersonaData {
   fotoDniAnversoPreview: string;
   fotoDniReversoPreview: string;
   fotoVoucherPreview: string;
-  sinDocumento: boolean;
-  fotoSustento: File | null;
-  fotoSustentoPreview: string;
 }
 
 export type PersonaErrors = Partial<Record<keyof PersonaData, string>>;
@@ -42,9 +39,6 @@ export const crearPersonaVacia = (): PersonaData => ({
   fotoDniAnversoPreview: '',
   fotoDniReversoPreview: '',
   fotoVoucherPreview: '',
-  sinDocumento: false,
-  fotoSustento: null,
-  fotoSustentoPreview: '',
 });
 
 export interface AseguramientoPayload {

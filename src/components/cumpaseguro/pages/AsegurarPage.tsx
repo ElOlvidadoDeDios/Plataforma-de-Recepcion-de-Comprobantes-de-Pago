@@ -14,7 +14,6 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
     titularErrores,
     actualizarCampoTitular,
     actualizarFotoTitular,
-    actualizarSinDocumentoTitular,
 
     incluyeBeneficiario,
     setIncluyeBeneficiario,
@@ -22,7 +21,6 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
     beneficiarioErrores,
     actualizarCampoBeneficiario,
     actualizarFotoBeneficiario,
-    actualizarSinDocumentoBeneficiario,
 
     guardando,
     errorGeneral,
@@ -74,13 +72,13 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
   /* ---------- Formulario ---------- */
   return (
     <Layout title="Mi CumpaSeguro" showBackButton={true}>
-      <div className="w-full min-w-0">
+      <div className="w-full min-w-0 px-4 sm:px-6 lg:px-8">
         <button
           onClick={() => {
             reiniciarFormulario();
             onVolver();
           }}
-          className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 mb-4"
+          className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -102,7 +100,6 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
             obligatorio={true}
             onChange={actualizarCampoTitular}
             onFoto={actualizarFotoTitular}
-            onSinDocumento={actualizarSinDocumentoTitular}
           />
 
           <div className="bg-white rounded-lg shadow p-5 sm:p-6">
@@ -127,9 +124,9 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
               errores={beneficiarioErrores}
               obligatorio={false}
               mostrarVoucher={false}
+              mostrarAtencionYCosto={false}
               onChange={actualizarCampoBeneficiario}
               onFoto={actualizarFotoBeneficiario}
-              onSinDocumento={actualizarSinDocumentoBeneficiario}
             />
           )}
 

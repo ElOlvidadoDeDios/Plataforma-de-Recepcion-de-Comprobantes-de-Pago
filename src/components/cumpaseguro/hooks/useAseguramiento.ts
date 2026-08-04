@@ -30,13 +30,12 @@ export function useAseguramiento() {
 
   const actualizarFoto = (
     setter: React.Dispatch<React.SetStateAction<PersonaData>>
-  ) => (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher' | 'fotoSustento', archivo: File | null) => {
+  ) => (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher', archivo: File | null) => {
     setter((prev) => {
       const previewCampo = (campo + 'Preview') as
         | 'fotoDniAnversoPreview'
         | 'fotoDniReversoPreview'
-        | 'fotoVoucherPreview'
-        | 'fotoSustentoPreview';
+        | 'fotoVoucherPreview';
       const previewAnterior = prev[previewCampo];
       if (previewAnterior) URL.revokeObjectURL(previewAnterior);
       return {
@@ -51,11 +50,6 @@ export function useAseguramiento() {
   const actualizarFotoTitular = actualizarFoto(setTitular);
   const actualizarCampoBeneficiario = actualizarCampo(setBeneficiario);
   const actualizarFotoBeneficiario = actualizarFoto(setBeneficiario);
-
-  const actualizarSinDocumentoTitular = (valor: boolean) =>
-    setTitular((prev) => ({ ...prev, sinDocumento: valor }));
-  const actualizarSinDocumentoBeneficiario = (valor: boolean) =>
-    setBeneficiario((prev) => ({ ...prev, sinDocumento: valor }));
 
   const reiniciarFormulario = () => {
     setTitular(crearPersonaVacia());
@@ -111,7 +105,6 @@ export function useAseguramiento() {
     titularErrores,
     actualizarCampoTitular,
     actualizarFotoTitular,
-    actualizarSinDocumentoTitular,
 
     incluyeBeneficiario,
     setIncluyeBeneficiario,
@@ -119,7 +112,6 @@ export function useAseguramiento() {
     beneficiarioErrores,
     actualizarCampoBeneficiario,
     actualizarFotoBeneficiario,
-    actualizarSinDocumentoBeneficiario,
 
     guardando,
     errorGeneral,

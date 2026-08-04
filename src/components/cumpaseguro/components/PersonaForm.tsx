@@ -1,5 +1,5 @@
 import React, { ChangeEvent } from 'react';
-import { PersonaData, PersonaErrors } from '../types';
+import { PersonaData, PersonaErrors, TipoAtencion } from '../types';
 import { soloNumeros } from '../utils';
 
 interface PersonaFormProps {
@@ -9,13 +9,20 @@ interface PersonaFormProps {
   errores: PersonaErrors;
   obligatorio: boolean;
   mostrarVoucher?: boolean;
+  mostrarAtencionYCosto?: boolean;
   onChange: (campo: keyof PersonaData, valor: string) => void;
-  onFoto: (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher' | 'fotoSustento', archivo: File | null) => void;
-  onSinDocumento: (valor: boolean) => void;
+  onFoto: (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher', archivo: File | null) => void;
 }
 
 const campoBase =
   'w-full min-w-0 rounded-lg border px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition';
+
+// Montos sugeridos según el tipo de atención. El costo siempre queda editable
+// para el usuario; esto solo prellena un valor de referencia.
+const COSTO_SUGERIDO: Record<TipoAtencion, string> = {
+  Presencial: '140',
+  Virtual: '80',
+};
 
 const PersonaForm: React.FC<PersonaFormProps> = ({
   titulo,
@@ -24,15 +31,23 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
   errores,
   obligatorio,
   mostrarVoucher = true,
+  mostrarAtencionYCosto = true,
   onChange,
   onFoto,
-  onSinDocumento,
 }) => {
-  const manejarArchivo = (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher' | 'fotoSustento') => (
+  const manejarArchivo = (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher') => (
     e: ChangeEvent<HTMLInputElement>
   ) => {
     const archivo = e.target.files && e.target.files[0] ? e.target.files[0] : null;
     onFoto(campo, archivo);
+  };
+
+  const manejarTipoAtencion = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const valor = e.target.value as TipoAtencion | '';
+    onChange('tipoAtencion', valor);
+    if (valor === 'Presencial' || valor === 'Virtual') {
+      onChange('costo', COSTO_SUGERIDO[valor]);
+    }
   };
 
   return (
@@ -119,23 +134,45 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
           {errores.apeMaterno && <p className="text-xs text-red-500 mt-1">{errores.apeMaterno}</p>}
         </div>
 
-        {/* Tipo de atención */}
-        <div className="min-w-0">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tipo de atención {obligatorio && <span className="text-red-500">*</span>}
-          </label>
-          <select
-            className={`${campoBase} ${errores.tipoAtencion ? 'border-red-400' : 'border-gray-300'}`}
-            value={persona.tipoAtencion}
-            onChange={(e) => onChange('tipoAtencion', e.target.value)}
-          >
-            <option value="">Selecciona una opción</option>
-            <option value="Domicilio">Domicilio</option>
-            <option value="Oficina">Oficina</option>
-            <option value="Virtual">Virtual</option>
-          </select>
-          {errores.tipoAtencion && <p className="text-xs text-red-500 mt-1">{errores.tipoAtencion}</p>}
-        </div>
+        {/* Tipo de atención + Costo: solo para quien corresponda (titular) */}
+        {mostrarAtencionYCosto && (
+          <>
+            <div className="min-w-0">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de atención {obligatorio && <span className="text-red-500">*</span>}
+              </label>
+              <select
+                className={`${campoBase} ${errores.tipoAtencion ? 'border-red-400' : 'border-gray-300'}`}
+                value={persona.tipoAtencion}
+                onChange={manejarTipoAtencion}
+              >
+                <option value="">Selecciona una opción</option>
+                <option value="Presencial">Presencial</option>
+                <option value="Virtual">Virtual</option>
+              </select>
+              {errores.tipoAtencion && <p className="text-xs text-red-500 mt-1">{errores.tipoAtencion}</p>}
+            </div>
+
+            <div className="min-w-0">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Costo (S/) {obligatorio && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                className={`${campoBase} ${errores.costo ? 'border-red-400' : 'border-gray-300'}`}
+                value={persona.costo}
+                onChange={(e) => onChange('costo', e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Sugerido: S/140 presencial, S/80 virtual. Puedes editarlo.
+              </p>
+              {errores.costo && <p className="text-xs text-red-500 mt-1">{errores.costo}</p>}
+            </div>
+          </>
+        )}
 
         {/* Dirección */}
         <div className="min-w-0 sm:col-span-2 lg:col-span-3">
@@ -150,23 +187,6 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
             placeholder="Dirección completa"
           />
           {errores.direccion && <p className="text-xs text-red-500 mt-1">{errores.direccion}</p>}
-        </div>
-
-        {/* Costo */}
-        <div className="min-w-0">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Costo (S/) {obligatorio && <span className="text-red-500">*</span>}
-          </label>
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            className={`${campoBase} ${errores.costo ? 'border-red-400' : 'border-gray-300'}`}
-            value={persona.costo}
-            onChange={(e) => onChange('costo', e.target.value)}
-            placeholder="0.00"
-          />
-          {errores.costo && <p className="text-xs text-red-500 mt-1">{errores.costo}</p>}
         </div>
 
         {/* Correo */}
@@ -202,31 +222,12 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
         </div>
       </div>
 
-      {/* Sin documento de identidad */}
-      <div className="mt-5">
-        <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={persona.sinDocumento}
-            onChange={(e) => onSinDocumento(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
-          />
-          <span className="text-sm font-medium text-gray-700">
-            No cuenta con documento de identidad (subir documento de sustentación)
-          </span>
-        </label>
-      </div>
-
-      {/* Fotos del DNI, documento de sustentación y comprobante de pago */}
+      {/* Fotos del DNI y comprobante de pago */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
         {(
           [
-            ...(!persona.sinDocumento
-              ? [
-                  { campo: 'fotoDniAnverso' as const, label: 'Foto DNI (anverso)' },
-                  { campo: 'fotoDniReverso' as const, label: 'Foto DNI (reverso)' },
-                ]
-              : [{ campo: 'fotoSustento' as const, label: 'Documento de sustentación' }]),
+            { campo: 'fotoDniAnverso' as const, label: 'Foto DNI (anverso)' },
+            { campo: 'fotoDniReverso' as const, label: 'Foto DNI (reverso)' },
             ...(mostrarVoucher
               ? [{ campo: 'fotoVoucher' as const, label: 'Comprobante de pago (voucher)' }]
               : []),
@@ -241,23 +242,9 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
                 errores[campo] ? 'border-red-400' : 'border-gray-300'
               }`}
             >
-              {persona[
-                `${campo}Preview` as
-                  | 'fotoDniAnversoPreview'
-                  | 'fotoDniReversoPreview'
-                  | 'fotoVoucherPreview'
-                  | 'fotoSustentoPreview'
-              ] ? (
+              {persona[`${campo}Preview` as 'fotoDniAnversoPreview' | 'fotoDniReversoPreview' | 'fotoVoucherPreview'] ? (
                 <img
-                  src={
-                    persona[
-                      `${campo}Preview` as
-                        | 'fotoDniAnversoPreview'
-                        | 'fotoDniReversoPreview'
-                        | 'fotoVoucherPreview'
-                        | 'fotoSustentoPreview'
-                    ]
-                  }
+                  src={persona[`${campo}Preview` as 'fotoDniAnversoPreview' | 'fotoDniReversoPreview' | 'fotoVoucherPreview']}
                   alt={label}
                   className="w-full h-full object-cover"
                 />

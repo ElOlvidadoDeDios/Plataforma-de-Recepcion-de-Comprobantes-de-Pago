@@ -37,7 +37,7 @@ const CumpaSeguro: React.FC = () => {
 
   return (
     <Layout title="Mi CumpaSeguro" showBackButton={true}>
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6 sm:p-8 md:p-12">
+      <div className="flex h-full bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6 sm:p-8 md:p-12">
         <div className="text-center max-w-2xl mx-auto">
           {/* Icono Escudo */}
           <div className="inline-flex items-center justify-center w-24 h-24 bg-blue-500 rounded-full mb-6 shadow-lg">
@@ -53,7 +53,7 @@ const CumpaSeguro: React.FC = () => {
 
           {/* Descripción */}
           <p className="text-base sm:text-lg text-gray-600 mb-8">
-            Gestiona el aseguramiento de tus clientes. Los demás módulos siguen en desarrollo.
+            Gestiona el aseguramiento de tus clientes.
           </p>
 
           {/* Características / módulos */}

@@ -18,57 +18,71 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
   isReadOnlyMode = false
 }) => {
   const [agenciaNombre, setAgenciaNombre] = useState<string>('Cargando...');
+  const [cuentaNombre, setCuentaNombre] = useState<string>('cargando...')
   const [loadingAgencia, setLoadingAgencia] = useState<boolean>(true);
+  const [loadingCuenta, setLoadingCuenta] = useState<boolean>(true);
 
-  useEffect(() => {
-    const obtenerAgencia = async () => {
-      if (!currentPayment.creditoId) {
-        setAgenciaNombre('No disponible');
-        setLoadingAgencia(false);
-        return;
+useEffect(() => {
+  const obtenerDatosPago = async () => {
+    if (!currentPayment.creditoId) {
+      setAgenciaNombre('No disponible');
+      setCuentaNombre('No disponible');
+      setLoadingAgencia(false);
+      setLoadingCuenta(false);
+      return;
+    }
+
+    try {
+      setLoadingAgencia(true);
+      setLoadingCuenta(true);
+
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL_GEODILE;
+      const apiToken = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
+
+      const url = `${apiBaseUrl}/api_app_dile_v1_1/api/asignar_agencia_pago`;
+
+      const body = {
+        PAGARE: currentPayment.creditoId,
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: apiToken,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
       }
 
-      try {
-        setLoadingAgencia(true);
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL_GEODILE;
-        const apiToken = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
-        
-        const url = `${apiBaseUrl}/api_app_dile_v1_1/api/asignar_agencia_pago`;
-        const body = { PAGARE: currentPayment.creditoId };
-      
-        
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `${apiToken}`,
-          },
-          body: JSON.stringify(body)
-        });
+      const data = await response.json();
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ Error response:', errorText);
-          throw new Error(`Error ${response.status}: ${errorText}`);
-        }
+      if (data && data.length > 0) {
+        const registro = data[0];
 
-        const data = await response.json();
-        
-        if (data && data.length > 0 && data[0].AGE_ACTUAL) {
-          setAgenciaNombre(data[0].AGE_ACTUAL);
-        } else {
-          setAgenciaNombre('No disponible');
-        }
-      } catch (error) {
-        console.error('❌ Error al obtener agencia:', error);
+        setAgenciaNombre(registro.AGE_ACTUAL || 'No disponible');
+        setCuentaNombre(registro.CUENTA || 'No disponible'); // Cambia CUENTA por el nombre real del campo
+      } else {
         setAgenciaNombre('No disponible');
-      } finally {
-        setLoadingAgencia(false);
+        setCuentaNombre('No disponible');
       }
-    };
+    } catch (error) {
+      console.error('❌ Error al obtener datos:', error);
 
-    obtenerAgencia();
-  }, [currentPayment.creditoId]);
+      setAgenciaNombre('No disponible');
+      setCuentaNombre('No disponible');
+    } finally {
+      setLoadingAgencia(false);
+      setLoadingCuenta(false);
+    }
+  };
+
+  obtenerDatosPago();
+}, [currentPayment.creditoId]);
 
   const formatDate = (fecha: string, hora: string) => {
     try {
@@ -95,7 +109,14 @@ export const PaymentCardView: React.FC<PaymentCardViewProps> = ({
           <p className="text-gray-600">DNI: {currentPayment.dni}</p>
           <p className="text-gray-600">{formatDate(currentPayment.fecha, currentPayment.hora)}</p>
           <p className="text-gray-800">Págare: <strong>{currentPayment.creditoId}</strong></p>
-          
+          <div className="text-sm">
+            <span className="text-gray-500">Cuenta:</span>{' '}
+            {loadingCuenta ? (
+              <span className="text-gray-400 italic">Cargando...</span>
+            ) : (
+              <span className="font-medium text-gray-700">{cuentaNombre}</span>
+            )}
+          </div>
           {/* Mostrar Agencia */}
           <div className="mt-2 flex items-center gap-2">
             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

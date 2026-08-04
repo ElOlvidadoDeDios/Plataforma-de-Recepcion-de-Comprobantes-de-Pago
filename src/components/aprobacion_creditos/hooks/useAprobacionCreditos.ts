@@ -201,6 +201,8 @@ export const useAprobacionCreditos = () => {
 
       const mensaje = `🔐 *Código de Verificación DILE*\n\nTu código OTP para aprobar la solicitud ${solicitud.detalle.NRO_SOL} es:\n\n*${otpResponse.data.codigo}*\n\nEste código expira en 5 minutos.\n\n⚠️ No compartas este código con nadie.`;
 
+      // 🔴 DESHABILITADO TEMPORALMENTE: No enviar por WhatsApp
+      /*
       try {
         // Intentar enviar por el servicio OTP (endpoint send-OTP)
         await creditAttentionApi.sendOTPNotification({
@@ -221,10 +223,11 @@ export const useAprobacionCreditos = () => {
           notifications.warning('OTP generado pero no se pudo enviar. Código: ' + otpResponse.data.codigo);
         }
       }
+      */
 
       setPendingApproval({ solicitud, glosa });
       setShowOtpModal(true);
-      notifications.success('Código OTP enviado a tu WhatsApp');
+      notifications.success('Código OTP generado: ' + otpResponse.data.codigo);
     } catch (error) {
       notifications.error('Error al generar código OTP');
     } finally {

@@ -172,12 +172,30 @@ const OtpModal: React.FC<OtpModalProps> = ({
               <div className="p-6 space-y-6">
                 {/* Info */}
                 <div className="text-center space-y-2">
-                  <p className="text-gray-700 font-medium">
-                    Se ha enviado un código de 6 dígitos a tu WhatsApp
-                  </p>
-                  <p className="text-gray-500 text-sm">
-                    Ingresa el código para continuar con la aprobación
-                  </p>
+                  {generatedOtp ? (
+                    <>
+                      <p className="text-gray-700 font-medium">
+                        Código de verificación generado
+                      </p>
+                      <p className="text-gray-500 text-sm">
+                        El código se ha auto-completado. Haz clic en "Aprobar Solicitud" para continuar.
+                      </p>
+                      {/* Mostrar el código generado de forma destacada */}
+                      <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3 mt-3">
+                        <p className="text-xs text-cyan-600 font-medium mb-1">Código OTP:</p>
+                        <p className="text-2xl font-mono font-bold text-cyan-700 tracking-widest">{generatedOtp}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-gray-700 font-medium">
+                        Se ha enviado un código de 6 dígitos a tu WhatsApp
+                      </p>
+                      <p className="text-gray-500 text-sm">
+                        Ingresa el código para continuar con la aprobación
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* OTP Inputs */}
@@ -238,6 +256,21 @@ const OtpModal: React.FC<OtpModalProps> = ({
                     </svg>
                     <span className="text-sm font-medium">Validando código...</span>
                   </div>
+                )}
+
+                {/* Botón Aprobar - visible en móvil */}
+                {!isValidating && otp.join('').length === 6 && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={() => onValidate(otp.join(''))}
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Aprobar Solicitud
+                  </motion.button>
                 )}
 
                 {/* Help Text */}
