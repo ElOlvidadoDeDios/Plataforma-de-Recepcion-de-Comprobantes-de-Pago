@@ -85,7 +85,7 @@ const DetallePagosContent: React.FC<DetallePagosContentProps> = ({ prestamo }) =
         <h3 className="font-semibold text-blue-800 mb-2 text-sm md:text-base">Información del Crédito</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs md:text-sm">
           <div>
-            <span className="font-medium text-gray-600 text-xs">ID Préstamo:</span>
+            <span className="font-medium text-gray-600 text-xs">PAGARE:</span>
             <div className="font-bold text-cyan-700 text-xs md:text-sm">{prestamo.ID_PRESTAMO}</div>
           </div>
           <div>

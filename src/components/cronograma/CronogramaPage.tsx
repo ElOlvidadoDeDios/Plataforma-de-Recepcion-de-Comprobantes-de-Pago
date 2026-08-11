@@ -231,7 +231,7 @@ const CronogramaModal = ({ isOpen, onClose, prestamo, clientData }: CronogramaMo
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Crear el mensaje
-        const message = `Cronograma de pagos - ID Préstamo: ${prestamo.ID_PRESTAMO}\n\nLe adjunto el cronograma que acaba de descargarse.`;
+        const message = `Cronograma de pagos - PAGARE: ${prestamo.ID_PRESTAMO}\n\nLe adjunto el cronograma que acaba de descargarse.`;
         
         // Enviar el mensaje por WhatsApp
         const result = await sendWhatsAppMessage({

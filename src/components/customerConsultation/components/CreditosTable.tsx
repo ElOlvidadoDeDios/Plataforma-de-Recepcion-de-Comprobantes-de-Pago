@@ -1028,7 +1028,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
         <table className="w-full whitespace-nowrap table-auto border-collapse">
           <thead>
             <tr className="bg-gradient-to-r from-cyan-500 to-cyan-700 text-white sticky top-0 z-10">
-              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ID PRESTAMO</th>
+              <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">PAGARE</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white border border-white">ESTADO</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">MONTO</th>
               <th className="px-2 py-3 text-xs md:text-sm font-semibold text-white text-center border border-white">SALDO CAPITAL</th>
@@ -1110,7 +1110,7 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
           <div key={`${credito.ID_PRESTAMO}-${index}`} className="bg-white rounded-lg shadow-md p-3 mb-3">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-bold text-cyan-800">
-                ID Préstamo:
+                PAGARE:
                 <button
                   onClick={() => handleVerPagos(credito.ID_PRESTAMO)}
                   className="text-blue-600 hover:text-blue-800 underline cursor-pointer transition-colors duration-200 ml-2"
