@@ -36,7 +36,8 @@ const ValidarContratoModal = ({
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
-  const documentoFirmado = credito.FIRM_DIGITAL?.ESTADO === 'FIRMADO';
+  // El backend devuelve la ruta del archivo únicamente cuando el documento ya fue firmado.
+  const documentoFirmado = Boolean(credito.FIRM_DIGITAL?.URL_SIGNED_FILE?.trim());
 
   // Cargar la URL del contrato al abrir el modal usando verDocumentoFirmado
   const cargarContrato = async () => {
