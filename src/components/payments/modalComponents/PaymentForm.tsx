@@ -167,7 +167,7 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   const [origenValidations, setOrigenValidations] = useState<Record<number, OrigenValidationState>>({});
   
   // Refs para debounce
-  const debounceTimers = useRef<Record<number, NodeJS.Timeout>>({});
+  const debounceTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
   
   // Ref para trackear el origen anterior por voucher
   const prevOrigenes = useRef<Record<number, string>>({});
@@ -421,7 +421,8 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 Monto pago:
               </label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 className="w-48 mx-auto rounded-md border border-gray-300 px-3 py-2 text-sm text-center focus:ring-2 focus:ring-cyan-500 transition-colors"
                 value={voucher.montoPago}
                 onChange={(e) => onUpdateVoucher(index, 'montoPago', e.target.value)}

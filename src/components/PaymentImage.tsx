@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 interface PaymentImageProps {
@@ -8,7 +8,7 @@ interface PaymentImageProps {
   onChangeIndex?: (index: number) => void;
 }
 
-export const PaymentImage: React.FC<PaymentImageProps> = ({
+const PaymentImageComponent: React.FC<PaymentImageProps> = ({
   imageSource,
   alt,
   currentIndex = 0,
@@ -29,8 +29,15 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
   const VITE_API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE;
   const VITE_API_BASE_URL_GEODILE_TOKEN = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 
-  // Convertir imageSource a array siempre para unificar el manejo
-  const images = Array.isArray(imageSource) ? imageSource : [imageSource];
+  // Memoizar el array de imágenes para evitar re-renders innecesarios
+  const images = useMemo(() => {
+    return Array.isArray(imageSource) ? imageSource : [imageSource];
+  }, [imageSource]);
+
+  // Crear un identificador único basado en las rutas de las imágenes
+  const imagesKey = useMemo(() => images.join('|'), [images]);
+  const prevImagesKeyRef = useRef<string>('');
+
 
   // Función para determinar si es una ruta de comprobante
   const isComprobantePath = (str: string): boolean => {
@@ -67,14 +74,16 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
     }
   };
 
-  // Limpiar errores cuando cambie el índice de imagen
-  useEffect(() => {
-    // Resetear el error de la imagen actual cuando cambie
-    setImageErrors(prev => ({ ...prev, [currentImageIndex]: false }));
-  }, [currentImageIndex]);
-
   // Cargar proactivamente las URLs de S3 para rutas VOUCHER_PAGOS
+  // Solo se ejecuta cuando realmente cambian las imágenes
   useEffect(() => {
+    // Si las imágenes no han cambiado, no hacer nada
+    if (imagesKey === prevImagesKeyRef.current) {
+      return;
+    }
+    
+    prevImagesKeyRef.current = imagesKey;
+
     const loadS3Urls = async () => {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
@@ -92,7 +101,7 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
       }
     };
     loadS3Urls();
-  }, [images]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [imagesKey]); // Cambiado: usar imagesKey en lugar de images
 
   // Función para construir el src de la imagen
   const getImageSrc = (image: string): string => {
@@ -305,3 +314,18 @@ export const PaymentImage: React.FC<PaymentImageProps> = ({
     </>
   );
 };
+
+// Memoizar el componente para evitar re-renders innecesarios
+// Solo se re-renderizará si cambian las props imageSource, alt, currentIndex o onChangeIndex
+export const PaymentImage = React.memo(PaymentImageComponent, (prevProps, nextProps) => {
+  // Comparación personalizada para evitar re-renders innecesarios
+  const prevSource = Array.isArray(prevProps.imageSource) ? prevProps.imageSource.join('|') : prevProps.imageSource;
+  const nextSource = Array.isArray(nextProps.imageSource) ? nextProps.imageSource.join('|') : nextProps.imageSource;
+  
+  return (
+    prevSource === nextSource &&
+    prevProps.alt === nextProps.alt &&
+    prevProps.currentIndex === nextProps.currentIndex &&
+    prevProps.onChangeIndex === nextProps.onChangeIndex
+  );
+});

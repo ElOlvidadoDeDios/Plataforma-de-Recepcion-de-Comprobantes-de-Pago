@@ -36,6 +36,7 @@ const ValidarContratoModal = ({
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
+  const documentoFirmado = credito.FIRM_DIGITAL?.ESTADO === 'FIRMADO';
 
   // Cargar la URL del contrato al abrir el modal usando verDocumentoFirmado
   const cargarContrato = async () => {
@@ -125,8 +126,8 @@ const ValidarContratoModal = ({
 
   // Función para validar el contrato
   const handleValidar = async () => {
-    if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
-      showNotification('No hay documento para validar', 'error');
+    if (!documentoFirmado || !credito.FIRM_DIGITAL?.ID_DOCUMENT) {
+      showNotification('El documento debe estar firmado para poder validarlo', 'error');
       return;
     }
 
@@ -218,8 +219,8 @@ const ValidarContratoModal = ({
 
   // Función para deshabilitar el documento firmado
   const handleDeshabilitarDocumento = async () => {
-    if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
-      showNotification('No hay documento para deshabilitar', 'error');
+    if (!documentoFirmado || !credito.FIRM_DIGITAL?.ID_DOCUMENT) {
+      showNotification('El documento debe estar firmado para poder deshabilitarlo', 'error');
       return;
     }
 
@@ -428,7 +429,7 @@ const ValidarContratoModal = ({
           </button>
           <button
             onClick={handleDeshabilitarDocumento}
-            disabled={loadingDeshabilitar || loadingValidar}
+            disabled={!documentoFirmado || loadingDeshabilitar || loadingValidar}
             className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium disabled:bg-red-300 flex items-center justify-center"
           >
             {loadingDeshabilitar ? (
@@ -447,7 +448,7 @@ const ValidarContratoModal = ({
           </button>
           <button
             onClick={handleValidar}
-            disabled={loadingValidar || loadingDeshabilitar}
+            disabled={!documentoFirmado || loadingValidar || loadingDeshabilitar}
             title="Verificar si el documento ha sido firmado por el cliente"
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:bg-green-300 disabled:cursor-not-allowed flex items-center justify-center"
           >

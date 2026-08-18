@@ -1,0 +1,1 @@
+export { WhatsAppImage } from './WhatsAppImage';
