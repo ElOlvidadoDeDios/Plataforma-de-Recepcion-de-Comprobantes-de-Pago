@@ -347,3 +347,4 @@ const PerfilUsuario: React.FC = () => {
 };
 
 export default PerfilUsuario;
+

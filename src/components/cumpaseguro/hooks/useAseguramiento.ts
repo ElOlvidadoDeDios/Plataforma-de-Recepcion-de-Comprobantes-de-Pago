@@ -1,5 +1,6 @@
-import { useState, FormEvent } from 'react';
-
+import { useState, FormEvent, useContext } from 'react';
+import { AuthContext } from '../../../contexts/AuthContext';
+import { AGENCIAS } from '../../../types';
 import {
   AseguramientoPayload,
   AseguramientoResponse,
@@ -11,6 +12,8 @@ import { validarPersona } from '../utils';
 import { cumpaSeguroService } from '../service/cumpaSeguro.Service';
 
 export function useAseguramiento() {
+  const { user: userData } = useContext(AuthContext);
+  
   const [titular, setTitular] = useState<PersonaData>(crearPersonaVacia());
   const [titularErrores, setTitularErrores] = useState<PersonaErrors>({});
 
@@ -61,11 +64,29 @@ export function useAseguramiento() {
     setErrorGeneral('');
   };
 
+  // Función para obtener el nombre de la agencia
+  const obtenerNombreAgencia = (idAgencia: string): string => {
+    if (!idAgencia) return 'SIN AGENCIA ASIGNADA';
+    const agenciasEntries = Object.entries(AGENCIAS);
+    const agenciaEncontrada = agenciasEntries.find(([_, id]) => id === idAgencia);
+    if (agenciaEncontrada) return agenciaEncontrada[0];
+    if (userData?.agencias && userData.agencias.length > 0) {
+      return userData.agencias[0].agencia || `ID: ${idAgencia}`;
+    }
+    return `AGENCIA ID: ${idAgencia}`;
+  };
+
   const manejarSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorGeneral('');
 
-    const erroresTitular = validarPersona(titular, true, true);
+    // Validar que el usuario esté autenticado
+    if (!userData?.dni) {
+      setErrorGeneral('Usuario no autenticado. Por favor, inicie sesión nuevamente.');
+      return;
+    }
+
+    const erroresTitular = validarPersona(titular, true, false);
     const erroresBeneficiario = incluyeBeneficiario ? validarPersona(beneficiario, false, false) : {};
 
     setTitularErrores(erroresTitular);
@@ -87,6 +108,8 @@ export function useAseguramiento() {
       titular,
       beneficiario: incluyeBeneficiario ? beneficiario : null,
       fechaRegistro,
+      user: userData.dni,
+      agencia_nom: obtenerNombreAgencia(userData.id_age || ''),
     };
 
     try {

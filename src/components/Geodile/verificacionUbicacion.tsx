@@ -7,7 +7,8 @@ import {
     comprobarSocioEnBD,
     verificarPreDesembolso,
     crearFormDataVerificacion,
-    type VerificacionData
+    type VerificacionData,
+    type ComprobarSocioBDResponse
 } from "../../api/geodileApi";
 import { useNotifications } from "../../hooks/useNotifications";
 const Notification=useNotifications();
@@ -40,6 +41,8 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
             setFormData(initialFormData);
             setDatos(null);
             setOptions({ selectedOption: '' });
+            setTipoDocumento('DNI');
+            setSocioEditable(false);
             setImage({
                 a_image_foto_fachada: null,
                 a_image_selfie_fachada: null,
@@ -115,11 +118,21 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     const [formData, setFormData] = useState(initialFormData);
     const [options, setOptions] = useState({ selectedOption: '' });
+    const [tipoDocumento, setTipoDocumento] = useState<'DNI' | 'CE'>('DNI');
+    const [socioEditable, setSocioEditable] = useState(false);
 
     const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setFormData(initialFormData);
         setDatos(null);
+        setSocioEditable(false);
         setOptions({ selectedOption: event.target.value });
+    };
+
+    const handleTipoDocumentoChange = (tipo: 'DNI' | 'CE') => {
+        setTipoDocumento(tipo);
+        setFormData(initialFormData);
+        setDatos(null);
+        setSocioEditable(false);
     };
 
     const handleImageChangeIn = (id: string, file: File) => {
@@ -128,41 +141,80 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
-        if (id === 'dni' && value.length > 8) return; // Limitar a 8 dígitos
+        // Limitar DNI a 8 dígitos, CE a 12 caracteres
+        const maxLength = tipoDocumento === 'DNI' ? 8 : 12;
+        if (id === 'dni' && value.length > maxLength) return;
         setFormData(prevFormData => ({ ...prevFormData, [id]: value }));
     };
 
     const VerificarSocioReniec = async () => {
         if (isVerifyingDNI) return;
-        if (formData.dni.length !== 8) {
-            Notification.validation('El DNI debe tener exactamente', ['8 dígitos']);
-            return;
+        
+        // Validación según tipo de documento
+        if (tipoDocumento === 'DNI') {
+            if (formData.dni.length !== 8) {
+                Notification.validation('El DNI debe tener exactamente', ['8 dígitos']);
+                return;
+            }
+        } else {
+            // CE: mínimo 8, máximo 12 caracteres
+            if (formData.dni.length < 8 || formData.dni.length > 12) {
+                Notification.validation('El Carné de extranjería debe tener', ['entre 8 y 12 caracteres']);
+                return;
+            }
         }
 
         setIsVerifyingDNI(true);
+        setSocioEditable(false);
+        
         try {
-            const socioData = await verificarSocioReniec(formData.dni);
-            if (socioData) {
-                const socio = `${socioData.nombres} ${socioData.apellido_paterno} ${socioData.apellido_materno}`;
-                setFormData(prevFormData => ({ ...prevFormData, socio }));
-                await ComprobarSocioEnBD();
+            if (tipoDocumento === 'DNI') {
+                // DNI: consultar RENIEC
+                const socioData = await verificarSocioReniec(formData.dni);
+                if (socioData) {
+                    const socio = `${socioData.nombres} ${socioData.apellido_paterno} ${socioData.apellido_materno}`;
+                    setFormData(prevFormData => ({ ...prevFormData, socio }));
+                    await ComprobarSocioEnBD();
+                } else {
+                    throw new Error('No se encontraron datos del socio');
+                }
             } else {
-                throw new Error('No se encontraron datos del socio');
+                // CE: buscar primero en BD
+                const resultado = await ComprobarSocioEnBD();
+                
+                // Si el endpoint devuelve el nombre del socio, usarlo
+                if (resultado && resultado.status && resultado.socio) {
+                    setFormData(prevFormData => ({ ...prevFormData, socio: resultado.socio || '' }));
+                    setSocioEditable(false);
+                    Notification.success('✅ Carné de extranjería encontrado en la base de datos');
+                } else {
+                    // No existe o no tiene nombre: permitir ingreso manual
+                    setSocioEditable(true);
+                    if (resultado && resultado.status) {
+                        Notification.info('ℹ️ Este CE ya tiene verificaciones. Por favor confirme o actualice el nombre del socio.');
+                    } else {
+                        Notification.info('📝 Carné de extranjería no encontrado. Por favor ingrese el nombre manualmente.');
+                    }
+                }
             }
         } catch (error) {
-            Notification.validation('Ingrese un DNI correcto', ['El DNI debe tener 8 dígitos o es inválido']);
+            const tipoDoc = tipoDocumento === 'DNI' ? 'DNI' : 'Carné de extranjería';
+            Notification.validation(`Ingrese un ${tipoDoc} correcto`, [tipoDocumento === 'DNI' ? 'El DNI debe tener 8 dígitos o es inválido' : 'El carné de extranjería es inválido']);
             setFormData(prevFormData => ({ ...prevFormData, socio: '' }));
+            setSocioEditable(tipoDocumento === 'CE');
         } finally {
             setIsVerifyingDNI(false);
         }
     };
 
-    const ComprobarSocioEnBD = async () => {
+    const ComprobarSocioEnBD = async (): Promise<ComprobarSocioBDResponse | null> => {
         try {
-            const existe = await comprobarSocioEnBD(formData.dni, options.selectedOption);
-            setDatos(existe);
+            const resultado = await comprobarSocioEnBD(formData.dni, options.selectedOption);
+            setDatos(resultado.status);
+            return resultado;
         } catch (error) {
             setDatos(false);
+            return null;
         }
     };
 
@@ -261,6 +313,8 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
         setFormData(initialFormData);
         setDatos(null);
         setOptions({ selectedOption: '' });
+        setTipoDocumento('DNI');
+        setSocioEditable(false);
         
         // ✅ LIBERAR MEMORIA: Limpiar referencias a archivos de imagen
         setImage({
@@ -388,6 +442,39 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
                 <div className="p-4 overflow-y-auto flex-1">
                     <form className="w-full" onSubmit={handleSubmit}>
+                        {/* Selector de tipo de documento */}
+                        <div className="mb-4 p-3 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                            <label className="block mb-2 text-[12px] font-medium text-blue-900">
+                                TIPO DE DOCUMENTO
+                            </label>
+                            <div className="flex gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => handleTipoDocumentoChange('DNI')}
+                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                        tipoDocumento === 'DNI'
+                                            ? 'bg-blue-600 text-white border-2 border-blue-600'
+                                            : 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50'
+                                    }`}
+                                    disabled={isLoading || isVerifyingDNI}
+                                >
+                                    DNI
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTipoDocumentoChange('CE')}
+                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                        tipoDocumento === 'CE'
+                                            ? 'bg-blue-600 text-white border-2 border-blue-600'
+                                            : 'bg-white text-blue-600 border-2 border-blue-300 hover:bg-blue-50'
+                                    }`}
+                                    disabled={isLoading || isVerifyingDNI}
+                                >
+                                    Carné de extranjería
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 mb-4">
                             <span className="col-span-2 text-[10px] text-blue-800">¿QUÉ VERIFICACIÓN DESEA AGREGAR?</span>
                             <div className="grid grid-cols-5 items-center gap-4">
@@ -424,20 +511,19 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
                         <div className="w-full mb-4">
                             <label htmlFor="dni" className="block mb-1 text-[12px] font-medium text-blue-900">
-                                DNI
+                                {tipoDocumento === 'DNI' ? 'DNI' : 'CARNÉ DE EXTRANJERÍA'}
                             </label>
                             <div className="flex">
                                 <input
-                                    type="number"
+                                    type="text"
                                     id="dni"
                                     name="dni"
                                     value={formData.dni}
                                     onChange={handleChange}
                                     className="flex-1 bg-blue-50 border border-blue-300 text-blue-900 text-sm rounded-l-lg focus:ring-2 focus:ring-blue-500 p-2.5"
-                                    placeholder="DNI (8 dígitos)"
+                                    placeholder={tipoDocumento === 'DNI' ? 'DNI (8 dígitos)' : 'Carné de extranjería (8-12 caracteres)'}
                                     disabled={isLoading || isVerifyingDNI}
-                                    maxLength={8}
-                                    pattern="\d{8}"
+                                    maxLength={tipoDocumento === 'DNI' ? 8 : 12}
                                     required
                                 />
                                 <button
@@ -470,18 +556,23 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
 
                         <div className="mb-4">
                             <label htmlFor="socio" className="block mb-1 text-sm font-medium text-blue-900">
-                                SOCIO
+                                SOCIO {socioEditable && <span className="text-orange-600 text-[10px]">(Ingrese manualmente)</span>}
                             </label>
                             <input
                                 type="text"
                                 id="socio"
                                 name="socio"
                                 value={formData.socio}
-                                className="bg-gray-100 border border-gray-300 text-gray-700 text-sm rounded-lg w-full p-2.5 cursor-not-allowed"
+                                onChange={socioEditable ? handleChange : undefined}
+                                className={`border text-sm rounded-lg w-full p-2.5 ${
+                                    socioEditable
+                                        ? 'bg-yellow-50 border-yellow-300 text-gray-900 focus:ring-2 focus:ring-yellow-500'
+                                        : 'bg-gray-100 border-gray-300 text-gray-700 cursor-not-allowed'
+                                }`}
                                 placeholder="NOMBRE Y APELLIDOS"
                                 required
-                                readOnly
-                                disabled
+                                readOnly={!socioEditable}
+                                disabled={!socioEditable && !formData.socio}
                             />
                         </div>
 

@@ -1,6 +1,7 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useState, useEffect } from 'react';
 import { PersonaData, PersonaErrors, TipoAtencion } from '../types';
 import { soloNumeros } from '../utils';
+import { verificarSocioReniec } from '../../../api/geodileApi';
 
 interface PersonaFormProps {
   titulo: string;
@@ -35,6 +36,47 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
   onChange,
   onFoto,
 }) => {
+  const [consultandoReniec, setConsultandoReniec] = useState(false);
+  const [datosDeReniec, setDatosDeReniec] = useState(false);
+
+  // Consultar RENIEC cuando el DNI tenga 8 dígitos y el tipo sea DNI
+  useEffect(() => {
+    const consultarReniec = async () => {
+      // Solo consultar si es DNI, tiene 8 dígitos y no estamos ya consultando
+      if (persona.tipoDoc !== 'DNI' || persona.dni.length !== 8 || consultandoReniec) {
+        return;
+      }
+
+      setConsultandoReniec(true);
+      try {
+        const datos = await verificarSocioReniec(persona.dni);
+        
+        if (datos) {
+          // Autocompletar campos con datos de RENIEC
+          onChange('nombre', datos.nombres);
+          onChange('apePaterno', datos.apellido_paterno);
+          onChange('apeMaterno', datos.apellido_materno);
+          setDatosDeReniec(true);
+        }
+      } catch (error) {
+        console.error('Error al consultar RENIEC:', error);
+        // Si hay error, permitir edición manual
+        setDatosDeReniec(false);
+      } finally {
+        setConsultandoReniec(false);
+      }
+    };
+
+    consultarReniec();
+  }, [persona.dni, persona.tipoDoc]);
+
+  // Resetear el estado cuando cambie el tipo de documento o el DNI
+  useEffect(() => {
+    if (persona.tipoDoc !== 'DNI' || persona.dni.length < 8) {
+      setDatosDeReniec(false);
+    }
+  }, [persona.tipoDoc, persona.dni]);
+
   const manejarArchivo = (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher') => (
     e: ChangeEvent<HTMLInputElement>
   ) => {
@@ -77,16 +119,29 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             N° de documento {obligatorio && <span className="text-red-500">*</span>}
           </label>
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={12}
-            className={`${campoBase} ${errores.dni ? 'border-red-400' : 'border-gray-300'}`}
-            value={persona.dni}
-            onChange={(e) => onChange('dni', soloNumeros(e.target.value))}
-            placeholder="Ej. 12345678"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={12}
+              className={`${campoBase} ${errores.dni ? 'border-red-400' : 'border-gray-300'}`}
+              value={persona.dni}
+              onChange={(e) => onChange('dni', soloNumeros(e.target.value))}
+              placeholder="Ej. 12345678"
+            />
+            {consultandoReniec && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <svg className="w-5 h-5 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            )}
+          </div>
           {errores.dni && <p className="text-xs text-red-500 mt-1">{errores.dni}</p>}
+          {persona.tipoDoc === 'DNI' && datosDeReniec && (
+            <p className="text-xs text-green-600 mt-1">✓ Datos obtenidos de RENIEC</p>
+          )}
         </div>
 
         {/* Nombre */}
@@ -96,7 +151,10 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
           </label>
           <input
             type="text"
-            className={`${campoBase} ${errores.nombre ? 'border-red-400' : 'border-gray-300'}`}
+            disabled={persona.tipoDoc === 'DNI' && datosDeReniec}
+            className={`${campoBase} ${errores.nombre ? 'border-red-400' : 'border-gray-300'} ${
+              persona.tipoDoc === 'DNI' && datosDeReniec ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
             value={persona.nombre}
             onChange={(e) => onChange('nombre', e.target.value)}
             placeholder="Nombres"
@@ -111,7 +169,10 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
           </label>
           <input
             type="text"
-            className={`${campoBase} ${errores.apePaterno ? 'border-red-400' : 'border-gray-300'}`}
+            disabled={persona.tipoDoc === 'DNI' && datosDeReniec}
+            className={`${campoBase} ${errores.apePaterno ? 'border-red-400' : 'border-gray-300'} ${
+              persona.tipoDoc === 'DNI' && datosDeReniec ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
             value={persona.apePaterno}
             onChange={(e) => onChange('apePaterno', e.target.value)}
             placeholder="Apellido paterno"
@@ -126,7 +187,10 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
           </label>
           <input
             type="text"
-            className={`${campoBase} ${errores.apeMaterno ? 'border-red-400' : 'border-gray-300'}`}
+            disabled={persona.tipoDoc === 'DNI' && datosDeReniec}
+            className={`${campoBase} ${errores.apeMaterno ? 'border-red-400' : 'border-gray-300'} ${
+              persona.tipoDoc === 'DNI' && datosDeReniec ? 'bg-gray-100 cursor-not-allowed' : ''
+            }`}
             value={persona.apeMaterno}
             onChange={(e) => onChange('apeMaterno', e.target.value)}
             placeholder="Apellido materno"
@@ -235,7 +299,7 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
         ).map(({ campo, label }) => (
           <div key={campo} className="min-w-0">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {label} {obligatorio && <span className="text-red-500">*</span>}
+              {label} {obligatorio && campo !== 'fotoVoucher' && <span className="text-red-500">*</span>}
             </label>
             <label
               className={`flex flex-col items-center justify-center w-full h-32 sm:h-36 rounded-lg border-2 border-dashed cursor-pointer overflow-hidden bg-gray-50 hover:bg-gray-100 transition ${

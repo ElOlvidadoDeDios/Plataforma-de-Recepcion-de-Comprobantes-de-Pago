@@ -38,6 +38,8 @@ const ValidarContratoModal = ({
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
   // El backend devuelve la ruta del archivo únicamente cuando el documento ya fue firmado.
   const documentoFirmado = Boolean(credito.FIRM_DIGITAL?.URL_SIGNED_FILE?.trim());
+  const otorgaEsHoy = isOtorgaToday(credito.OTORGA);
+  const puedeGestionarDocumento = documentoFirmado && otorgaEsHoy;
 
   // Cargar la URL del contrato al abrir el modal usando verDocumentoFirmado
   const cargarContrato = async () => {
@@ -127,6 +129,16 @@ const ValidarContratoModal = ({
 
   // Función para validar el contrato
   const handleValidar = async () => {
+    // Protección contra múltiples clics
+    if (loadingValidar || loadingDeshabilitar) {
+      return;
+    }
+
+    if (!otorgaEsHoy) {
+      showNotification(getOtorgaErrorMessage(credito.OTORGA), 'error');
+      return;
+    }
+
     if (!documentoFirmado || !credito.FIRM_DIGITAL?.ID_DOCUMENT) {
       showNotification('El documento debe estar firmado para poder validarlo', 'error');
       return;
@@ -181,6 +193,11 @@ const ValidarContratoModal = ({
 
   // Función para rechazar el contrato
   const handleRechazar = async () => {
+    // Protección contra múltiples clics
+    if (loadingRechazar) {
+      return;
+    }
+
     if (!motivoRechazo.trim()) {
       showNotification('Debe ingresar un motivo de rechazo', 'error');
       return;
@@ -220,6 +237,16 @@ const ValidarContratoModal = ({
 
   // Función para deshabilitar el documento firmado
   const handleDeshabilitarDocumento = async () => {
+    // Protección contra múltiples clics
+    if (loadingDeshabilitar || loadingValidar) {
+      return;
+    }
+
+    if (!otorgaEsHoy) {
+      showNotification(getOtorgaErrorMessage(credito.OTORGA), 'error');
+      return;
+    }
+
     if (!documentoFirmado || !credito.FIRM_DIGITAL?.ID_DOCUMENT) {
       showNotification('El documento debe estar firmado para poder deshabilitarlo', 'error');
       return;
@@ -411,13 +438,13 @@ const ValidarContratoModal = ({
         {/* Footer con botones de acción */}
         <div className="bg-gray-50 px-4 sm:px-6 py-4 border-t flex flex-col sm:flex-row gap-3 justify-end">
           {/* Advertencia de fecha de otorga */}
-          {!isOtorgaToday(credito.OTORGA) && (
+          {!otorgaEsHoy && (
             <div className="w-full flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
               <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <span className="text-sm font-medium">
-                ⚠️ La fecha de otorga ({new Date(credito.OTORGA).toLocaleDateString('es-PE')}) no es hoy. Los contratos solo se pueden validar el día de otorga.
+                ⚠️ {getOtorgaErrorMessage(credito.OTORGA)}
               </span>
             </div>
           )}
@@ -430,7 +457,7 @@ const ValidarContratoModal = ({
           </button>
           <button
             onClick={handleDeshabilitarDocumento}
-            disabled={!documentoFirmado || loadingDeshabilitar || loadingValidar}
+            disabled={!puedeGestionarDocumento || loadingDeshabilitar || loadingValidar}
             className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium disabled:bg-red-300 flex items-center justify-center"
           >
             {loadingDeshabilitar ? (
@@ -449,7 +476,7 @@ const ValidarContratoModal = ({
           </button>
           <button
             onClick={handleValidar}
-            disabled={!documentoFirmado || loadingValidar || loadingDeshabilitar}
+            disabled={!puedeGestionarDocumento || loadingValidar || loadingDeshabilitar}
             title="Verificar si el documento ha sido firmado por el cliente"
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium disabled:bg-green-300 disabled:cursor-not-allowed flex items-center justify-center"
           >
@@ -502,7 +529,7 @@ const ValidarContratoModal = ({
             </div>
             <div className="bg-gray-50 px-6 py-4 flex gap-3 justify-end rounded-b-lg">
               <button
-                onClick={() => {
+                onClick={() => { 0
                   setShowRechazarModal(false);
                   setMotivoRechazo('');
                 }}

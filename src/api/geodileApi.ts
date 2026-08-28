@@ -217,9 +217,19 @@ export const verificarSuministro = async (suministro: string): Promise<Suministr
 };
 
 /**
- * API para comprobar si el socio ya existe en BD
+ * Interfaz para la respuesta de comprobar socio en BD
  */
-export const comprobarSocioEnBD = async (dni: string, tipoUbicacion: string): Promise<boolean> => {
+export interface ComprobarSocioBDResponse {
+    status: boolean;
+    socio?: string;
+    message?: string;
+}
+
+/**
+ * API para comprobar si el socio ya existe en BD
+ * Si el endpoint devuelve el nombre del socio, lo incluye en la respuesta
+ */
+export const comprobarSocioEnBD = async (dni: string, tipoUbicacion: string): Promise<ComprobarSocioBDResponse> => {
     try {
         const response = await fetch(`${API_BASE_URL}/revisar_ingresos_geodile`, {
             method: 'POST',
@@ -227,8 +237,13 @@ export const comprobarSocioEnBD = async (dni: string, tipoUbicacion: string): Pr
             body: JSON.stringify({ dni_socio: dni, tipo_ubicacion: tipoUbicacion })
         });
         const result = await response.json();
-        // El endpoint devuelve directamente {status: true/false, message: "..."}
-        return result?.status === true;
+        
+        // Devolver objeto con status y datos adicionales si existen
+        return {
+            status: result?.status === true,
+            socio: result?.socio || undefined,
+            message: result?.message || undefined
+        };
     } catch (error) {
         throw error;
     }

@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import Layout from '../../Layout';
 import PersonaForm from '../components/PersonaForm';
 import { useAseguramiento } from '../hooks/useAseguramiento';
 import { formatFecha } from '../utils';
+import { UserRole } from '../../../types/roles';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 interface AsegurarPageProps {
   onVolver: () => void;
+  onVerLista?: () => void;
 }
 
-const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
+const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver, onVerLista }) => {
+  const { user } = useContext(AuthContext);
   const {
     titular,
     titularErrores,
@@ -29,6 +33,9 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
     manejarSubmit,
     reiniciarFormulario,
   } = useAseguramiento();
+
+  // Verificar si el usuario es admin o super admin
+  const esAdminOSuperAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMINISTRADOR;
 
   /* ---------- Pantalla de éxito ---------- */
   if (resultado) {
@@ -73,18 +80,33 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver }) => {
   return (
     <Layout title="Mi CumpaSeguro" showBackButton={true}>
       <div className="w-full min-w-0 px-4 sm:px-6 lg:px-8">
-        <button
-          onClick={() => {
-            reiniciarFormulario();
-            onVolver();
-          }}
-          className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Volver
-        </button>
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <button
+            onClick={() => {
+              reiniciarFormulario();
+              onVolver();
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Volver
+          </button>
+
+          {/* Botón Ver Lista - Solo visible para admin y super admin */}
+          {esAdminOSuperAdmin && onVerLista && (
+            <button
+              onClick={onVerLista}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors shadow-sm hover:shadow-md"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              Ver Lista de Aseguramientos
+            </button>
+          )}
+        </div>
 
         <h2 className="text-2xl font-bold text-gray-800 mb-1">Asegurar</h2>
         <p className="text-sm text-gray-500 mb-8">

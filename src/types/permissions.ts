@@ -261,6 +261,7 @@ export const PermissionLabels: Record<Permission, string> = {
 
   // Seguimiento Desembolsos Hoy
   [Permission.DISBURSEMENTS_TODAY_VIEW]: '📈 Ver Seguimiento Desembolsos Hoy',
+  [Permission.DISBURSEMENTS_TODAY_EDIT]: '⚙️ Gestionar Seguimiento Desembolsos Hoy',
 
   // Culqi Pendientes
   [Permission.CULQI_VIEW]: '💳 Ver Culqi Pendientes',
