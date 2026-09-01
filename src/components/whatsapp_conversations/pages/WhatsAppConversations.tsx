@@ -54,7 +54,7 @@ const WhatsAppConversations: React.FC = () => {
 
   // Filtrar números por búsqueda
   const numerosFiltrados = numeros.filter(num => 
-    num.toLowerCase().includes(busqueda.toLowerCase())
+    num && num.toLowerCase().includes(busqueda.toLowerCase())
   );
 
   // Formatear fecha y hora

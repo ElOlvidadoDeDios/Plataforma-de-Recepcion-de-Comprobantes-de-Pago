@@ -228,7 +228,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
     const abortControllerRef = useRef<AbortController | null>(null);
 
     const validateLocation = () => {
-        if (!coord || !coord.lat || !coord.lng) {
+        if (!coord || !Number.isFinite(coord.lat) || !Number.isFinite(coord.lng)) {
             Notification.error('❌ ERROR: No se detectaron coordenadas GPS válidas.\n\n📍 Asegúrate de activar la ubicación primero.');
             return false;
         }
@@ -586,7 +586,7 @@ export default function ModalVerificarUbicacion({ isOpen, onClose, coord }: { is
                                 type="text"
                                 id="coordenadas_gps"
                                 name="coordenadas_gps"
-                                value={coord && coord.lat && coord.lng ? `${coord.lat.toFixed(6)} ; ${coord.lng.toFixed(6)}` : 'Obteniendo ubicación...'}
+                                value={Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng) ? `${coord.lat.toFixed(6)} ; ${coord.lng.toFixed(6)}` : 'Obteniendo ubicación...'}
                                 className="bg-green-50 border border-green-300 text-green-800 text-[12px] font-mono rounded-lg w-full p-2.5"
                                 placeholder="COORDENADAS"
                             />

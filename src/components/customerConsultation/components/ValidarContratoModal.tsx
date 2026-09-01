@@ -41,6 +41,20 @@ const ValidarContratoModal = ({
   const otorgaEsHoy = isOtorgaToday(credito.OTORGA);
   const puedeGestionarDocumento = documentoFirmado && otorgaEsHoy;
 
+  const sanitizeValidationMessage = (message?: string | null): string => {
+    if (!message) return 'No se pudo validar el contrato en este momento';
+    const normalized = message.toLowerCase();
+    const blockedFragments = [
+      'servicio de validación de contratos',
+      'servicio de validacion de contratos',
+      'extorno del crédito',
+      'extorno del credito',
+      '9:00 a.m. a 18:30 p.m.'
+    ];
+    const containsBlockedMessage = blockedFragments.some(fragment => normalized.includes(fragment));
+    return containsBlockedMessage ? 'No se pudo validar el contrato en este momento' : message;
+  };
+
   // Cargar la URL del contrato al abrir el modal usando verDocumentoFirmado
   const cargarContrato = async () => {
     if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
@@ -161,7 +175,7 @@ const ValidarContratoModal = ({
 
       if (response.success) {
         if (response.data && response.data.status === false) {
-          showNotification(response.data.message || 'El documento aún no ha sido firmado', 'info');
+          showNotification(sanitizeValidationMessage(response.data.message) || 'El documento aún no ha sido firmado', 'info');
         } else {
           showNotification('Contrato validado exitosamente', 'success');
           

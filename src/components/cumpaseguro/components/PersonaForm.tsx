@@ -310,7 +310,7 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
                 <img
                   src={persona[`${campo}Preview` as 'fotoDniAnversoPreview' | 'fotoDniReversoPreview' | 'fotoVoucherPreview']}
                   alt={label}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div className="flex flex-col items-center text-gray-400 px-2 text-center">

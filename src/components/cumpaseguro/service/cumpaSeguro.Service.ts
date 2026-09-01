@@ -41,7 +41,8 @@ import { AseguramientoPayload, AseguramientoResponse } from '../types';
  * Todos los datos se envían en MAYÚSCULAS excepto el correo (siempre en minúsculas).
  */
 
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL_GEODILE}/api_mongo_firm_easy/api`;
+const API_BASE_URL = 'http://192.168.3.34:8080/desarrollo/api_mongo_firm_easy/api' //`${import.meta.env.VITE_API_BASE_URL_GEODILE}/api_mongo_firm_easy/api`;
+const API_CONTRATOS_URL = 'http://192.168.3.34:8080/desarrollo/api_app_dile_v1_1/api';
 const token = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 /**
  * Convierte un texto a mayúsculas
@@ -115,6 +116,7 @@ export function construirFormData(payload: AseguramientoPayload): FormData {
 }
 
 export const cumpaSeguroService = {
+  
   async guardarAseguramiento(payload: AseguramientoPayload): Promise<AseguramientoResponse> {
     const formData = construirFormData(payload);
 
@@ -123,7 +125,7 @@ export const cumpaSeguroService = {
         method: 'POST',
         headers: {
           'ngrok-skip-browser-warning': '69420',
-          Authorization: `Bearer ${token}`,
+          Authorization: `${token}`,
         },
         body: formData, // NO poner Content-Type manual, el navegador lo arma con el boundary
       });
@@ -146,6 +148,379 @@ export const cumpaSeguroService = {
       }
     } catch (error: any) {
       console.error('[CumpaSeguro] Error al guardar aseguramiento:', error);
+      throw new Error(error.message || 'Error de conexión con el servidor');
+    }
+  },
+
+  /**
+   * Lista los aseguramientos/pólizas de un usuario específico
+   * Endpoint: /ListarIngresadosAseguradosPorUser
+   * Body: { "user": "75654687" }
+   */
+  async listarPolizasPorUsuario(userDni: string): Promise<any> {
+    try {
+      const respuesta = await fetch(`${API_BASE_URL}/ListarIngresadosAseguradosPorUser`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '69420',
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify({ user: userDni }),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
+      }
+
+      const data = await respuesta.json();
+
+      if (data.status === true) {
+        return {
+          success: true,
+          cantidad: data.cantidad || 0,
+          data: data.data || [],
+        };
+      } else {
+        throw new Error(data.message || 'Error al obtener pólizas');
+      }
+    } catch (error: any) {
+      console.error('[CumpaSeguro] Error al listar pólizas:', error);
+      throw new Error(error.message || 'Error de conexión con el servidor');
+    }
+  },
+
+  /**
+   * Genera el contrato para un asegurado
+   * Endpoint: /contrato_asegurado_mi_cumpla
+   * Body: { "id": "6a91ad2a629cf3b9fd0f48cc" }
+   */
+  async generarContrato(polizaId: string): Promise<any> {
+    try {
+      const respuesta = await fetch(`${API_CONTRATOS_URL}/contrato_asegurado_mi_cumpla`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '69420',
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify({ id: polizaId }),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
+      }
+
+      const data = await respuesta.json();
+
+      if (data.status === true || data.success === true) {
+        return {
+          success: true,
+          message: data.message || 'Contrato generado exitosamente',
+          data: data.data || data,
+        };
+      } else {
+        throw new Error(data.message || 'Error al generar contrato');
+      }
+    } catch (error: any) {
+      console.error('[CumpaSeguro] Error al generar contrato:', error);
+      throw new Error(error.message || 'Error de conexión con el servidor');
+    }
+  },
+
+  /**
+   * Obtiene la IP pública del usuario
+   */
+  async obtenerIpPublica(): Promise<string> {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json', {
+        method: 'GET',
+      });
+      const data = await response.json();
+      return data.ip || 'N/A';
+    } catch (error) {
+      console.warn('[CumpaSeguro] No se pudo obtener la IP pública:', error);
+      return 'N/A';
+    }
+  },
+
+  /**
+   * Detecta el sistema operativo del navegador
+   */
+  detectarSistemaOperativo(): string {
+    const userAgent = navigator.userAgent;
+    const platform = navigator.platform;
+    
+    if (userAgent.indexOf('Win') !== -1) return 'Windows 10';
+    if (userAgent.indexOf('Mac') !== -1) return 'macOS';
+    if (userAgent.indexOf('Linux') !== -1) return 'Linux';
+    if (userAgent.indexOf('Android') !== -1) return 'Android';
+    if (userAgent.indexOf('iPhone') !== -1 || userAgent.indexOf('iPad') !== -1) return 'iOS';
+    
+    return platform || 'Unknown';
+  },
+
+  /**
+   * Detecta el navegador y su versión
+   */
+  detectarNavegador(): string {
+    const userAgent = navigator.userAgent;
+    let browser = 'Unknown';
+    let version = '';
+
+    if (userAgent.indexOf('Chrome') !== -1 && userAgent.indexOf('Edg') === -1) {
+      browser = 'Chrome';
+      const match = userAgent.match(/Chrome\/(\d+)/);
+      version = match ? match[1] : '';
+    } else if (userAgent.indexOf('Edg') !== -1) {
+      browser = 'Edge';
+      const match = userAgent.match(/Edg\/(\d+)/);
+      version = match ? match[1] : '';
+    } else if (userAgent.indexOf('Firefox') !== -1) {
+      browser = 'Firefox';
+      const match = userAgent.match(/Firefox\/(\d+)/);
+      version = match ? match[1] : '';
+    } else if (userAgent.indexOf('Safari') !== -1 && userAgent.indexOf('Chrome') === -1) {
+      browser = 'Safari';
+      const match = userAgent.match(/Version\/(\d+)/);
+      version = match ? match[1] : '';
+    }
+
+    return version ? `${browser} ${version}` : browser;
+  },
+
+  /**
+   * Obtiene el documento de seguro firmado
+   * Endpoint: /get_doc_seguro_firm
+   */
+  async obtenerDocumentoFirmado(data: {
+    tokenFirm: string;
+    agencia: string;
+    nroDoc: string;
+    user: string;
+  }): Promise<any> {
+    try {
+      // Obtener IP pública del usuario
+      const ipAddress = await this.obtenerIpPublica();
+
+      // Detectar tipo de dispositivo
+      const deviceType = /Mobile|Android|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'mobile' : 'desktop';
+
+      // Obtener información del dispositivo de manera dinámica
+      const infoDesk = {
+        action: `ver_documento_${data.nroDoc}`,
+        ip_address: ipAddress,
+        device_type: deviceType,
+        os: this.detectarSistemaOperativo(),
+        browser: this.detectarNavegador(),
+        user_agent: navigator.userAgent,
+        screen_width: window.screen.width,
+        screen_height: window.screen.height,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+      };
+
+      const payload = {
+        ID_DOCUMENT_FIRM: data.tokenFirm,
+        AGENCIA: data.agencia,
+        NRO_DOC: data.nroDoc,
+        USER: data.user,
+        INFO_DESK: infoDesk
+      };
+
+      const respuesta = await fetch(`${API_CONTRATOS_URL}/get_doc_seguro_firm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '69420',
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
+      }
+
+      const responseData = await respuesta.json();
+
+      // Retornar la respuesta completa, incluso si status es false
+      // para que el componente pueda manejar el mensaje apropiadamente
+      if (responseData.status === true || responseData.success === true) {
+        return {
+          success: true,
+          status: responseData.status,
+          message: responseData.message || responseData.update?.message || 'Documento obtenido exitosamente',
+          data: responseData.data || responseData.update?.data,
+          update: responseData.update, // Mantener estructura completa
+          ruta_aws: responseData.ruta_aws,
+        };
+      } else if (responseData.status === false) {
+        // Cuando el documento aún no está firmado, retornar la respuesta sin lanzar error
+        return {
+          success: false,
+          status: false,
+          message: responseData.message || 'El documento aún no está disponible',
+          data: null,
+        };
+      } else {
+        throw new Error(responseData.message || 'Error al obtener documento');
+      }
+    } catch (error: any) {
+      console.error('[CumpaSeguro] Error al obtener documento firmado:', error);
+      throw new Error(error.message || 'Error de conexión con el servidor');
+    }
+  },
+
+  /**
+   * Valida la firma de un asegurado
+   * Endpoint: /validarFirmaAsegurado
+   * Body: { "dni": "72369991", "id_document": "a29ea45e-5c46-4d0f-8b38-d02240ccda1d" }
+   */
+  async validarFirmaAsegurado(data: {
+    dni: string;
+    idDocument: string;
+  }): Promise<any> {
+    try {
+      const payload = {
+        dni: data.dni,
+        id_document: data.idDocument
+      };
+
+      const respuesta = await fetch(`${API_BASE_URL}/validarFirmaAsegurado`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '69420',
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
+      }
+
+      const responseData = await respuesta.json();
+
+      if (responseData.status === true || responseData.success === true) {
+        return {
+          success: true,
+          status: responseData.status,
+          message: responseData.message || 'Firma validada exitosamente',
+          data: responseData.data || responseData,
+        };
+      } else if (responseData.status === false) {
+        // Retornar respuesta cuando la validación falla
+        return {
+          success: false,
+          status: false,
+          message: responseData.message || 'No se pudo validar la firma',
+          data: null,
+        };
+      } else {
+        throw new Error(responseData.message || 'Error al validar firma');
+      }
+    } catch (error: any) {
+      console.error('[CumpaSeguro] Error al validar firma:', error);
+      throw new Error(error.message || 'Error de conexión con el servidor');
+    }
+  },
+
+  /**
+   * Anula/Deshabilita una póliza de seguro
+   * Endpoint: /AnularPolizaSeguro
+   * Body: { dni: string, id_document: string }
+   */
+  async anularPolizaSeguro(data: {
+    dni: string;
+    idDocument: string;
+  }): Promise<any> {
+    try {
+      const payload = {
+        dni: data.dni,
+        id_document: data.idDocument
+      };
+
+      const respuesta = await fetch(`${API_BASE_URL}/AnularPolizaSeguro`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': '69420',
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!respuesta.ok) {
+        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
+      }
+
+      const responseData = await respuesta.json();
+
+      if (responseData.status === true || responseData.success === true) {
+        return {
+          success: true,
+          status: responseData.status,
+          message: responseData.message || 'Póliza anulada exitosamente',
+          data: responseData.data || responseData,
+        };
+      } else if (responseData.status === false) {
+        return {
+          success: false,
+          status: false,
+          message: responseData.message || 'No se pudo anular la póliza',
+          data: null,
+        };
+      } else {
+        throw new Error(responseData.message || 'Error al anular póliza');
+      }
+    } catch (error: any) {
+      console.error('[CumpaSeguro] Error al anular póliza:', error);
+      throw new Error(error.message || 'Error de conexión con el servidor');
+    }
+  },
+
+  /**
+   * Sube el voucher/comprobante de pago para una póliza
+   * Endpoint: /SubirVoucherDocumentoAsegurado
+   * Body: FormData con { id_document: token de firma, dni: dniTitular, user_registra: user, imagen: File }
+   */
+  async subirVoucher(token: string, dniTitular: string, user: string, voucherFile: File): Promise<any> {
+    try {
+      const formData = new FormData();
+      formData.append('id_document', token);
+      formData.append('dni', dniTitular);
+      formData.append('user_registra', user);
+      formData.append('imagen', voucherFile);
+
+      const respuesta = await fetch(`${API_BASE_URL}/SubirVoucherDocumentoAsegurado`, {
+        method: 'POST',
+        headers: {
+          'ngrok-skip-browser-warning': '69420',
+          Authorization: `${token}`,
+        },
+        body: formData,
+      });
+
+      if (!respuesta.ok) {
+        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
+      }
+
+      const responseData = await respuesta.json();
+
+      if (responseData.status === true || responseData.success === true) {
+        return {
+          success: true,
+          status: responseData.status,
+          message: responseData.message || 'Voucher subido exitosamente',
+          data: responseData.data || responseData,
+        };
+      } else {
+        throw new Error(responseData.message || 'Error al subir voucher');
+      }
+    } catch (error: any) {
+      console.error('[CumpaSeguro] Error al subir voucher:', error);
       throw new Error(error.message || 'Error de conexión con el servidor');
     }
   },

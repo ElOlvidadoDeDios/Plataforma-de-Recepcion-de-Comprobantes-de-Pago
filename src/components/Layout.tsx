@@ -133,8 +133,8 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
           { to: '/pendientes-desembolsar', icon: PendientesIcon, label: 'Pendientes a Desembolsar', permission: permissions.canAccessPendientesDesembolsar() },
           { to: '/pago-recaudadores', icon: RecaudadoresIcon, label: 'Pago Recaudadores', permission: permissions.canAccessPagoRecaudadores() },
           { to: '/afiliacion-socios', icon: AfiliacionIcon, label: 'Afiliación de Socios', permission: permissions.canAccessAffiliationSocios() },
-          {to: '/seguimiento-desembolsos-hoy', icon: CuotasMoraIcon, label: 'Seguimiento Desembolsos Hoy', permission: true},
-          { to: '/ver-cuotas-mora', icon: CuotasMoraIcon, label: 'Ver Cuotas en Mora', permission: true },
+          {to: '/seguimiento-desembolsos-hoy', icon: CuotasMoraIcon, label: 'Seguimiento Desembolsos Hoy', permission: permissions.canAccessSeguimientoDesembolsosHoy()},
+          { to: '/ver-cuotas-mora', icon: CuotasMoraIcon, label: 'Ver Cuotas en Mora', permission: permissions.canAccessConsultaCuotas() },
         ]
       },
       {

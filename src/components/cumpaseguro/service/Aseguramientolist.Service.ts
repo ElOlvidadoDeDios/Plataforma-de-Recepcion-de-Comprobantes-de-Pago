@@ -6,7 +6,7 @@ import { ListadoAseguramientosResponse } from "../Aseguramiento.types";
  * Si ya tienes una instancia de axios/fetch configurada en otro archivo
  * de "services" del proyecto, reemplaza este fetch por esa instancia.
  */
-const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL_GEODILE}/api_mongo_firm_easy`;
+const API_BASE_URL = 'http://192.168.3.34:8080/desarrollo/api_mongo_firm_easy'//`${import.meta.env.VITE_API_BASE_URL_GEODILE}/api_mongo_firm_easy`;
 const ENDPOINT_LISTADO = `${API_BASE_URL}/api/ListarIngresadosAsegurados`;
 const token = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 /**
@@ -24,7 +24,7 @@ export async function obtenerAseguramientos(): Promise<ListadoAseguramientosResp
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`, // si el endpoint requiere auth
+      Authorization: `${token}`, 
     },
   });
 

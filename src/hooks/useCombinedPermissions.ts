@@ -109,7 +109,7 @@ export function useCombinedPermissions() {
         return true;
       }
       // Roles con acceso automático
-      const rolesConAccesoAutomatico = ['ADMINISTRADOR', 'ANALISTA_CREDITOS_I'];
+      const rolesConAccesoAutomatico = ['ADMINISTRADOR'];
       if (rolesConAccesoAutomatico.includes(user?.role || '')) {
         return true;
       }
@@ -122,7 +122,7 @@ export function useCombinedPermissions() {
         return true;
       }
       // Roles con acceso automático
-      const rolesConAccesoAutomatico = ['ADMINISTRADOR', 'ANALISTA_CREDITOS_I'];
+      const rolesConAccesoAutomatico = ['ADMINISTRADOR'];
       if (rolesConAccesoAutomatico.includes(user?.role || '')) {
         return true;
       }

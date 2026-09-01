@@ -50,6 +50,10 @@ const requestGeolocationPermission = async (): Promise<boolean> => {
     }
 
     try {
+        if (!('permissions' in navigator) || !navigator.permissions?.query) {
+            return fallbackGetPosition();
+        }
+
         // 1. Verificar estado actual del permiso (API moderna)
         const permission = await navigator.permissions.query({ name: 'geolocation' });
 
@@ -107,8 +111,22 @@ const requestGeolocationPermission = async (): Promise<boolean> => {
 const fallbackGetPosition = (): Promise<boolean> => {
     return new Promise((resolve) => {
         navigator.geolocation.getCurrentPosition(
-            () => resolve(true),
-            () => resolve(false),
+            () => {
+                Notification.success('✅ Ubicación activada correctamente');
+                resolve(true);
+            },
+            (error) => {
+                if (error.code === error.PERMISSION_DENIED) {
+                    Notification.warning('⚠️ Permiso denegado. Habilita ubicación en tu navegador.');
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    Notification.error('No se pudo obtener tu ubicación. Verifica GPS y señal.');
+                } else if (error.code === error.TIMEOUT) {
+                    Notification.error('Tiempo de espera agotado al obtener ubicación.');
+                } else {
+                    Notification.error('Error al obtener ubicación. Intenta nuevamente.');
+                }
+                resolve(false);
+            },
             { enableHighAccuracy: true, timeout: 10000 }
         );
     });
@@ -117,51 +135,39 @@ const fallbackGetPosition = (): Promise<boolean> => {
 const startWatchingLocation = (
     onSuccess: (position: GeolocationPosition) => void,
     onError: (error: string) => void
-): Promise<number> => {
-    return new Promise((resolve, reject) => {
-        // Verificar que tenemos geolocalización disponible
-        if (!navigator.geolocation) {
-            reject(new Error('Geolocalización no soportada'));
-            return;
-        }
+): number => {
+    if (!navigator.geolocation) {
+        throw new Error('Geolocalización no soportada');
+    }
 
-        const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-        const options: PositionOptions = {
-            enableHighAccuracy: true,
-            timeout: isMobile ? 30000 : 20000,
-            maximumAge: 5000
-        };
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const options: PositionOptions = {
+        enableHighAccuracy: true,
+        timeout: isMobile ? 30000 : 20000,
+        maximumAge: 5000
+    };
 
-        let lastSuccessTime = Date.now();
-        
-        // Usar watchPosition solo después de verificaciones
-        const watchId = navigator.geolocation.watchPosition(
-            (position) => {
-                lastSuccessTime = Date.now();
-                onSuccess(position);
-                resolve(watchId); // Resolver con el ID en el primer éxito
-            },
-            (error) => {
-                if (Date.now() - lastSuccessTime > 30000) {
-                    let message = 'Error desconocido';
-                    switch(error.code) {
-                        case error.PERMISSION_DENIED:
-                            message = 'Permisos denegados';
-                            break;
-                        case error.POSITION_UNAVAILABLE:
-                            message = 'GPS no disponible';
-                            break;
-                        case error.TIMEOUT:
-                            message = 'Tiempo agotado - intenta nuevamente';
-                            break;
-                    }
-                    onError(message);
-                    reject(new Error(message));
-                }
-            },
-            options
-        );
-    });
+    return navigator.geolocation.watchPosition(
+        (position) => {
+            onSuccess(position);
+        },
+        (error) => {
+            let message = 'Error desconocido';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Permisos denegados';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'GPS no disponible';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Tiempo agotado - intenta nuevamente';
+                    break;
+            }
+            onError(message);
+        },
+        options
+    );
 };
 
 // Función para verificar si la ubicación ha expirado (máximo 5 minutos)
@@ -580,8 +586,9 @@ export default function Inicio() {
                 watchIdRef.current = null;
             }
 
-            // Iniciar watch con Promise
-            startWatchingLocation(
+            try {
+                // Iniciar watch GPS
+                const watchId = startWatchingLocation(
                 (position) => {
                     const { latitude, longitude, accuracy } = position.coords;
                     const coordinates = fromLonLat([longitude, latitude]);
@@ -601,14 +608,16 @@ export default function Inicio() {
                     Notification.error(`Error de ubicación: ${errorMessage}`);
                     setLocate(false);
                     setPositionTimestamp(null); // Limpiar timestamp en caso de error
+                    setPosition(null);
+                    sessionStorage.removeItem('gps_timestamp');
                 }
-            ).then((watchId) => {
+                );
+
                 watchIdRef.current = watchId;
-            }).catch(() => {
-                // Mostrar solo mensaje amigable, sin console.error
+            } catch {
                 Notification.error('Error al iniciar seguimiento de ubicación. Intenta nuevamente.');
                 setLocate(false);
-            });
+            }
 
             // Auto-detener después de 2 minutos
             const timeout = setTimeout(() => {

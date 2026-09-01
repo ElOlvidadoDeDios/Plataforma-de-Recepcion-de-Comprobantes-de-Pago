@@ -17,7 +17,7 @@ const ImageThumbnail: React.FC<ImageThumbnailProps> = ({ url, label, onClick }) 
       <img
         src={url}
         alt={label}
-        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+        className="w-full h-full object-contain bg-gray-50 transition-transform duration-200 group-hover:scale-105"
         loading="lazy"
       />
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
