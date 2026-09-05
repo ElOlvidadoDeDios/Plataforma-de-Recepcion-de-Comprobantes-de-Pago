@@ -88,6 +88,10 @@ export enum Permission {
   // === CUMPASEGURO ===
   CUMPASEGURO_VIEW = 'cumpaseguro:view',
   CUMPASEGURO_EDIT = 'cumpaseguro:edit',
+
+  // === DILESCORE ===
+  DILESCORE_VIEW = 'dilescore:view',
+  DILESCORE_EDIT = 'dilescore:edit',
 }
 
 export enum UserRole {
@@ -188,6 +192,10 @@ export const PermissionCategories = {
     Permission.CUMPASEGURO_VIEW,   // Solo ver
     Permission.CUMPASEGURO_EDIT,   // Editar
   ],
+  'DileScore': [
+    Permission.DILESCORE_VIEW,     // Solo ver
+    Permission.DILESCORE_EDIT,     // Editar
+  ],
 
 };
 
@@ -278,6 +286,10 @@ export const PermissionLabels: Record<Permission, string> = {
   // CumpaSeguro
   [Permission.CUMPASEGURO_VIEW]: '🛡️ Ver CumpaSeguro',
   [Permission.CUMPASEGURO_EDIT]: '⚙️ Gestionar CumpaSeguro',
+
+  // DileScore
+  [Permission.DILESCORE_VIEW]: '📈 Ver DileScore',
+  [Permission.DILESCORE_EDIT]: '⚙️ Gestionar DileScore',
 };
 
 /**
@@ -304,6 +316,7 @@ export const LegacyPermissionMapping: Record<string, Permission[]> = {
   'canDeleteAccounts': [Permission.USERS_EDIT],
   'canBlockEmails': [Permission.USERS_EDIT],
   'canAccessRecuperaciones': [Permission.RECUPERACIONES_VIEW, Permission.RECUPERACIONES_EDIT],
+  'canAccessDileScore': [Permission.DILESCORE_VIEW, Permission.DILESCORE_EDIT],
 };
 
 /**

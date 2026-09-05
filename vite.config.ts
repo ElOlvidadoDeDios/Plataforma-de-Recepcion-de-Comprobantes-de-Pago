@@ -6,7 +6,15 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Permite conexiones desde cualquier IP
     port: 5173,      // Puerto específico
-    strictPort: false // Permite usar otro puerto si 5173 está ocupado
+    strictPort: false, // Permite usar otro puerto si 5173 está ocupado
+    proxy: {
+      '/dilescore-api': {
+        target: 'http://192.168.3.34:8080',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/dilescore-api/, ''),
+      },
+    },
   },
   build: {
     chunkSizeWarningLimit: 1600,

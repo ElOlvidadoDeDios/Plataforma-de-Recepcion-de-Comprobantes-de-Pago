@@ -289,12 +289,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
   };
 
   return (
-    <div className="w-full h-full rounded-lg flex flex-col p-2 pt-8 space-y-6 overflow-y-auto">
+    <div className="w-full rounded-lg flex flex-col p-1.5 sm:p-2 pt-3 sm:pt-4 space-y-3 sm:space-y-4">
       {vouchers.map((voucher, index) => (
-        <div key={voucher.imageIndex} className="border rounded-lg p-4 relative">
+        <div key={voucher.imageIndex} className="border rounded-lg p-3 sm:p-4">
           {/* Botones de acción individual - movidos arriba del título */}
           {isEditable && voucher.estado === 'pendiente' && (
-            <div className="absolute top-2 right-2 flex items-center gap-2">
+            <div className="mb-2 flex flex-wrap items-center justify-end gap-2">
               {/* Botón Aceptar Parcial */}
               {onAcceptVoucher && (
                 <button
@@ -376,16 +376,16 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
           )}
 
 
-          <div className="flex flex-col gap-4 mt-4">
+          <div className="flex flex-col gap-2 mt-0.5">
             {/* pagador origen */}
-            <div className="mt-4 flex flex-col items-center">
-              <label className="text-sm font-medium text-gray-700 mb-1">
+            <div className="mt-0.5 flex flex-col items-center">
+              <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Origen pagador:
               </label>
 
               <input
                 type="text"
-                className={`w-48 rounded-md border px-3 py-2 text-sm text-center transition-colors ${
+                className={`w-full max-w-[220px] rounded-md border px-2.5 py-1.5 text-xs sm:text-sm text-center transition-colors ${
                   !isEditable || voucher.estado === 'rechazado'
                     ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
                     : origenValidations[voucher.imageIndex]?.resultado?.estado?.startsWith('ALERTA_')
@@ -410,20 +410,22 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({
                 placeholder="Nombre del pagador"
               />
               
-              {/* Mensaje de validación de origen */}
+              {/* Mensaje de validación de origen con alto reservado para evitar salto de layout */}
               {creditoId && origenValidations[voucher.imageIndex] && (
-                <OrigenValidationMessage validationState={origenValidations[voucher.imageIndex]} />
+                <div className="mt-0.5 w-full max-w-[320px] max-h-[120px] overflow-y-auto">
+                  <OrigenValidationMessage validationState={origenValidations[voucher.imageIndex]} />
+                </div>
               )}
             </div>
             {/* Monto */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm text-center font-medium text-gray-700">
+              <label className="text-xs sm:text-sm text-center font-medium text-gray-700">
                 Monto pago:
               </label>
               <input
                 type="text"
                 inputMode="decimal"
-                className="w-48 mx-auto rounded-md border border-gray-300 px-3 py-2 text-sm text-center focus:ring-2 focus:ring-cyan-500 transition-colors"
+                className="w-full max-w-[220px] mx-auto rounded-md border border-gray-300 px-2.5 py-1.5 text-xs sm:text-sm text-center focus:ring-2 focus:ring-cyan-500 transition-colors"
                 value={voucher.montoPago}
                 onChange={(e) => onUpdateVoucher(index, 'montoPago', e.target.value)}
                 disabled={!isEditable || voucher.estado === 'rechazado'}

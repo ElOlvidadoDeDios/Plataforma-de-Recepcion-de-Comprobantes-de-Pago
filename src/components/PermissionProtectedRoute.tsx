@@ -83,6 +83,9 @@ const PermissionProtectedRoute: React.FC<PermissionProtectedRouteProps> = ({
     case 'canViewCumpaSeguro':
       hasPermission = permissions.canViewCumpaSeguro();
       break;
+    case 'canAccessDileScore':
+      hasPermission = permissions.canAccessDileScore();
+      break;
     
     default:
       hasPermission = false;

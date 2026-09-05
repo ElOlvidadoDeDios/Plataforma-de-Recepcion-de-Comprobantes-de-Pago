@@ -96,22 +96,24 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
           className={`bg-white shadow-2xl border border-gray-200 z-[10000] flex flex-col ${
             modalPosition.isMobile
               ? 'fixed inset-0 overflow-y-auto'
-              : 'relative w-[95vw] max-w-[1400px] min-w-[360px] rounded-lg h-[98vh] max-h-[1200px] min-h-[700px]'
+              : 'relative w-[96vw] max-w-[1700px] min-w-[360px] rounded-lg h-[96vh] max-h-[1200px] min-h-[650px]'
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header - 30% del espacio vertical */}
-          <div className={`${modalPosition.isMobile ? 'flex-shrink-0' : 'flex-shrink-0'} border-b border-gray-200 overflow-auto`}>
-            <PaymentHeader
-              displayedPayment={displayedPayment}
-              totalAmount={totalAmount}
-              currentIndex={paymentIndex}
-              totalPayments={allPayments.length}
-              onCloseModal={onCloseModal}
-              showImage={showImage}
-              onTypeChange={handlePaymentTypeChange}
-            />
-          </div>
+          {/* Header principal solo en móvil para no quitar espacio a la imagen en desktop */}
+          {modalPosition.isMobile && (
+            <div className="flex-shrink-0 border-b border-gray-200 overflow-auto">
+              <PaymentHeader
+                displayedPayment={displayedPayment}
+                totalAmount={totalAmount}
+                currentIndex={paymentIndex}
+                totalPayments={allPayments.length}
+                onCloseModal={onCloseModal}
+                showImage={showImage}
+                onTypeChange={handlePaymentTypeChange}
+              />
+            </div>
+          )}
 
           {/* Contenido de imagen - 70% del espacio vertical */}
           <div className={`${modalPosition.isMobile ? 'min-h-[85vh]' : 'flex-1'} flex ${modalPosition.isMobile ? 'flex-col' : 'flex-row'} ${modalPosition.isMobile ? '' : 'overflow-hidden'} relative min-h-0`}>
@@ -148,7 +150,7 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             <div className={`${
               modalPosition.isMobile
                 ? activeTab === 'image' ? 'h-[70vh]' : 'hidden'
-                : 'w-1/2 lg:w-3/5 xl:w-1/2'
+                : 'w-full lg:w-[58%] xl:w-[62%]'
             } flex-shrink-0 ${modalPosition.isMobile ? '' : 'h-full overflow-hidden'} relative min-h-0 bg-gray-50`}>
               <div className="p-2 h-full flex flex-col">
                 <p className="mb-2 text-sm text-gray-600 font-medium bg-white px-3 py-1 rounded-md shadow-sm border border-gray-200 inline-block">
@@ -171,9 +173,22 @@ export const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
             <div className={`${
               modalPosition.isMobile
                 ? activeTab === 'form' ? 'h-[70vh] overflow-y-auto' : 'hidden'
-                : 'w-1/2 lg:w-2/5 xl:w-1/2'
-            } ${modalPosition.isMobile ? '' : 'overflow-auto'} relative z-20 min-h-0 bg-white`}>
-              <div className="p-2 h-full">
+                : 'w-full lg:w-[42%] xl:w-[38%]'
+            } ${modalPosition.isMobile ? '' : 'overflow-hidden'} relative z-20 min-h-0 bg-white border-l border-gray-200 flex flex-col`}>
+              {!modalPosition.isMobile && (
+                <div className="flex-shrink-0 border-b border-gray-200 overflow-auto">
+                  <PaymentHeader
+                    displayedPayment={displayedPayment}
+                    totalAmount={totalAmount}
+                    currentIndex={paymentIndex}
+                    totalPayments={allPayments.length}
+                    onCloseModal={onCloseModal}
+                    showImage={showImage}
+                    onTypeChange={handlePaymentTypeChange}
+                  />
+                </div>
+              )}
+              <div className={`p-2 ${modalPosition.isMobile ? 'h-full overflow-y-auto' : 'flex-1 min-h-0 overflow-y-auto'}`}>
                 <PaymentForm
                   vouchers={[paymentDetails.find(detail =>
                     detail.imageIndex === imageIndex &&

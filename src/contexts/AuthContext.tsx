@@ -25,6 +25,22 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const collectPermissions = (...sources: any[]): string[] => {
+    const merged = new Set<string>();
+
+    sources.forEach((source) => {
+      if (Array.isArray(source)) {
+        source.forEach((permission) => {
+          if (typeof permission === 'string' && permission.trim()) {
+            merged.add(permission.trim());
+          }
+        });
+      }
+    });
+
+    return Array.from(merged);
+  };
+
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return !!SessionManager.getItem('token');
   });
@@ -44,14 +60,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const token = SessionManager.getItem('token');
           if (token) {
             const payload = jwtDecode(token) as any;
-            // Usar solo el sistema unificado de permissions
-            parsedUser.permissions = payload.permissions || [];
+            // Fusionar permisos provenientes del usuario almacenado y token
+            parsedUser.permissions = collectPermissions(
+              parsedUser.permissions,
+              parsedUser.extraPermissions,
+              payload.permissions,
+              payload.extraPermissions,
+            ) as any;
             // Sincronizar también id_age e id_ana desde el token
             parsedUser.id_age = payload.id_age;
             parsedUser.id_ana = payload.id_ana;
           }
         } catch (error) {
-          parsedUser.permissions = parsedUser.permissions || [];
+          parsedUser.permissions = collectPermissions(
+            parsedUser.permissions,
+            parsedUser.extraPermissions,
+          ) as any;
         }
 
         return parsedUser;
@@ -71,12 +95,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Intentar obtener datos del token JWT si existe
     let permissions: any[] = [];
+    let tokenExtraPermissions: any[] = [];
     let tokenData: any = {};
     try {
       const token = SessionManager.getItem('token');
       if (token) {
         const payload = jwtDecode(token) as any;
         permissions = payload.permissions || [];
+        tokenExtraPermissions = payload.extraPermissions || [];
         tokenData = {
           id_age: payload.id_age,
           id_ana: payload.id_ana,
@@ -98,7 +124,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       agencias: userData.agencias || [],
-      permissions: userData.permissions || permissions,
+      permissions: collectPermissions(
+        (userData as any).permissions,
+        (userData as any).extraPermissions,
+        permissions,
+        tokenExtraPermissions,
+      ) as any,
       id_age: userData.id_age || tokenData.id_age, // Priorizar userData, fallback a token
       id_ana: userData.id_ana || tokenData.id_ana, // Priorizar userData, fallback a token
       user: userData.user || tokenData.cod_user || '', // Priorizar userData, fallback a token

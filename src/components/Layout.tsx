@@ -348,10 +348,10 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
         {headerVisible && (
           <>
             <div className="w-full max-w-full flex-shrink-0">
-              <div className="w-full px-2 sm:px-4 lg:px-8 py-2 sm:py-3">
-                <div className="overflow-visible flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3">
+              <div className="w-full px-2 sm:px-4 lg:px-8 py-1.5 sm:py-3">
+                <div className="overflow-visible grid grid-cols-[auto,1fr,auto] items-center gap-2 sm:flex sm:flex-row sm:justify-between sm:gap-3">
                   <motion.div
-                    className="flex-1 relative min-w-[5rem] w-full max-w-[80px] sm:max-w-xs h-12 sm:h-16 md:h-20"
+                    className="relative w-14 h-8 sm:min-w-[5rem] sm:w-full sm:max-w-xs sm:h-16 md:h-20"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.5 }}
@@ -360,16 +360,16 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
                     <img src={logo} alt="Logo DILE" className="w-full h-full object-contain" />
                   </motion.div>
                   <motion.div
-                    className="flex-1 text-center"
+                    className="text-center min-w-0"
                     initial={{ y: 20, opacity: 0, scale: 0.9 }}
                     animate={{ y: 0, opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6, delay: 0.2, ease: 'easeOut' }}
                   >
-                    <h1 className="text-white font-extrabold text-xs sm:text-sm md:text-lg lg:text-2xl drop-shadow-md tracking-tight line-clamp-2">
+                    <h1 className="text-white font-extrabold text-[11px] sm:text-sm md:text-lg lg:text-2xl drop-shadow-md tracking-tight leading-tight line-clamp-2">
                       {title}
                     </h1>
                   </motion.div>
-                  <div className="flex-shrink-0 flex items-center space-x-1 sm:space-x-2">
+                  <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
                     <GlobalMenu />
                     {/*<NotificationBell />*/}
                     <UserInfo />
@@ -377,29 +377,29 @@ const Layout: React.FC<LayoutProps> = ({ children, title, showBackButton = true,
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-1 sm:gap-2 px-2 sm:px-4 lg:px-8 py-1 sm:py-1.5 border-t border-white/10">
+            <div className="flex flex-row flex-wrap justify-between items-center gap-1.5 px-2 sm:px-4 lg:px-8 py-1 border-t border-white/10">
               {showBackButton && location.pathname !== '/' && (
                 <button
                   onClick={() => navigate('/')}
-                  className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 text-xs sm:text-sm"
+                  className="w-auto bg-white/10 hover:bg-white/20 text-white px-2 py-1.5 rounded-lg transition-colors flex items-center justify-center space-x-1 text-[11px] sm:text-sm"
                 >
                   <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
                     <path d="M15 19l-7-7 7-7" />
                   </svg>
-                  <span className="hidden sm:inline">Volver al Inicio</span>
-                  <span className="sm:hidden">Volver</span>
+                  <span className="hidden md:inline">Volver al Inicio</span>
+                  <span className="md:hidden">Volver</span>
                 </button>
               )}
-              <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 w-full sm:w-auto">
+              <div className="flex flex-row items-center gap-1.5 sm:gap-2 w-auto ml-auto">
                 <button
                   onClick={() => setShowChangePasswordModal(true)}
-                  className="w-full sm:w-auto bg-blue-400/80 hover:bg-blue-500/90 text-white px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition-colors flex items-center justify-center space-x-1 text-xs sm:text-sm"
+                  className="w-auto bg-blue-400/80 hover:bg-blue-500/90 text-white px-2 py-1.5 rounded-lg transition-colors flex items-center justify-center space-x-1 text-[11px] sm:text-sm"
                 >
                   <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
                     <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1 1 21 9z" />
                   </svg>
-                  <span className="hidden sm:inline">Cambiar Contraseña</span>
-                  <span className="sm:hidden">Contraseña</span>
+                  <span className="hidden md:inline">Cambiar Contraseña</span>
+                  <span className="md:hidden">Clave</span>
                 </button>
                 <LogoutButton />
               </div>

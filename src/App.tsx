@@ -36,6 +36,7 @@ import SeguimientoDesembolso from './components/desembolsos-fecha-hoy/seguimient
 import { AprobacionCreditosTable, SolicitudCreditoTable  } from './components/aprobacion_creditos/pages';
 import WhatsAppConversations from './components/whatsapp_conversations/WhatsAppConversations';
 import CumpaSeguro from './components/cumpaseguro/CumpaSeguro';
+import DileScore from './components/dilescore/DileScore';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -325,6 +326,16 @@ function App() {
                 <ProtectedRoute>
                   <PermissionProtectedRoute permission="canViewCumpaSeguro">
                     <CumpaSeguro />
+                  </PermissionProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dilescore"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canAccessDileScore">
+                    <DileScore />
                   </PermissionProtectedRoute>
                 </ProtectedRoute>
               }

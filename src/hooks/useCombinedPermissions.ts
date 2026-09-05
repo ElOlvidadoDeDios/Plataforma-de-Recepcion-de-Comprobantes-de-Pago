@@ -12,9 +12,45 @@ export function useCombinedPermissions() {
     // Si no hay usuario autenticado, devolver estado sin permisos
     throw new Error('useCombinedPermissions must be used within an AuthProvider');
   }
-  
-  // Obtener permisos del usuario desde la base de datos
-  const userPermissions: Permission[] = user?.permissions || [];
+
+  // Compatibilidad con permisos legacy que aún pueden llegar desde backend/sesión.
+  const legacyToSimplifiedMap: Record<string, Permission[]> = {
+    ACCESO_PAGOS: [Permission.PAYMENTS_VIEW],
+    ACCESO_CREDITOS: [Permission.CREDITS_VIEW],
+    ACCESO_BOT_INTERACTIONS: [Permission.BOT_VIEW],
+    ACCESO_CONSULTA_CUOTAS: [Permission.INSTALLMENTS_VIEW],
+    ACCESO_CONSULTA_SOCIOS: [Permission.PARTNERS_VIEW],
+    ACCESO_GESTION_MORA: [Permission.MORA_VIEW],
+    ACCESO_PENDIENTES_DESEMBOLSAR: [Permission.DISBURSEMENTS_VIEW],
+    ACCESO_REGISTRO_CLIENTES: [Permission.CLIENTS_VIEW],
+    ACCESO_CALCULADORA_CREDITOS: [Permission.CALCULATOR_VIEW],
+  };
+
+  const enumPermissions = new Set(Object.values(Permission) as string[]);
+  const rawUserPermissions = (user?.permissions || []) as string[];
+
+  // Normaliza permisos para evitar fallos por mayúsculas, espacios o formato legacy.
+  const userPermissions: Permission[] = Array.from(
+    rawUserPermissions.reduce((acc, rawPermission) => {
+      if (typeof rawPermission !== 'string') {
+        return acc;
+      }
+
+      const trimmed = rawPermission.trim();
+      const lowered = trimmed.toLowerCase();
+
+      if (enumPermissions.has(lowered)) {
+        acc.add(lowered as Permission);
+      }
+
+      const mappedPermissions = legacyToSimplifiedMap[trimmed];
+      if (mappedPermissions) {
+        mappedPermissions.forEach((mappedPermission) => acc.add(mappedPermission));
+      }
+
+      return acc;
+    }, new Set<Permission>()),
+  );
 
   // Función principal que verifica permisos con lógica de herencia
   const hasPermission = (permission: Permission): boolean => {
@@ -264,6 +300,23 @@ export function useCombinedPermissions() {
     canViewCumpaSeguro: () => hasPermission(Permission.CUMPASEGURO_VIEW),
     canEditCumpaSeguro: () => hasPermission(Permission.CUMPASEGURO_EDIT),
     canAccessCumpaSeguro: () => hasPermission(Permission.CUMPASEGURO_VIEW),
+
+    // === DILESCORE ===
+    canViewDileScore: () => {
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      return hasPermission(Permission.DILESCORE_VIEW);
+    },
+    canEditDileScore: () => hasPermission(Permission.DILESCORE_EDIT),
+    canAccessDileScore: () => {
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      return hasPermission(Permission.DILESCORE_VIEW);
+    },
 
     canAccessRecuperaciones: () => {
       // Roles con acceso automático sin necesidad de permisos

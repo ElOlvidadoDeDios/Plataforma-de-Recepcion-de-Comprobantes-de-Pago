@@ -90,6 +90,12 @@ const getSimplifiedModules = (userRole: UserRole) => ({
         viewPermission: Permission.AFFILIATION_SOCIOS_VIEW,
         editPermission: Permission.AFFILIATION_SOCIOS_EDIT,
     },
+    'DileScore': {
+        icon: '📈',
+        description: 'Consulta y gestion de score de socios',
+        viewPermission: Permission.DILESCORE_VIEW,
+        editPermission: Permission.DILESCORE_EDIT,
+    },
     // Solo agregar Culqi si el rol tiene acceso
     ...(rolesConAccesoCulqui.includes(userRole) ? {
         'Culqi Pendientes': {

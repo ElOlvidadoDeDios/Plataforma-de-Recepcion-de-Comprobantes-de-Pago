@@ -100,7 +100,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
 
   if (!isPending) {
     return (
-      <div className="p-4 border-t border-gray-200 bg-white mt-auto">
+      <div className="p-3 border-t border-gray-200 bg-white">
         <div className="text-center text-gray-600">
           Este pago ya ha sido {isPending ? 'pendiente' : 'procesado'}
         </div>
@@ -202,7 +202,7 @@ export const PaymentActions: React.FC<PaymentActionsProps> = ({
 
   return (
     <>
-      <div className="p-2 sm:p-3 border-t border-gray-200 bg-white mt-auto space-y-2 sm:space-y-3">
+      <div className="p-2 sm:p-3 border-t border-gray-200 bg-white space-y-2 sm:space-y-3">
         {errorMessage && <ErrorMessage message={errorMessage} />}
         
         {/* Fila con Monto Total y Banco */}

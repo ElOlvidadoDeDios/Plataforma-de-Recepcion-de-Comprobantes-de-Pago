@@ -94,32 +94,32 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
   }, [displayedPayment.creditoId, displayedPayment.dni, showImage]);
 
   return (
-    <div className="p-1 lg:p-1 border-b border-gray-200 text-xs lg:text-sm leading-tight">
+    <div className="p-1 border-b border-gray-200 text-xs leading-tight">
       <div className="flex justify-between items-start gap-1">
         <div className="flex-1 min-w-0 max-w-[90%]">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 truncate">{paymentDetails?.SOCIO || 'Cargando...'}</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs sm:text-sm">
-            <p className="text-gray-600 text-xs sm:text-sm">DNI: {paymentDetails?.DNI}</p>
-            <p className="text-gray-600 text-xs sm:text-sm">Cuenta: {paymentDetails?.CUENTA}</p>
-            <p className="text-gray-600 text-xs sm:text-sm">Pagaré: {paymentDetails?.PAGARE}</p>
-            <p className="text-gray-600 text-xs sm:text-sm">Frecuencia: {paymentDetails?.FRECUENCIA}</p>
-            <p className="text-gray-600 text-xs sm:text-sm">Fecha Otorgamiento: {paymentDetails?.OTORGA}</p>
-            <p className="text-gray-600 text-xs sm:text-sm">Número de Cuotas: {paymentDetails?.NUM_CUOTAS}</p>
-            <p className="text-gray-600 text-xs sm:text-sm font-medium mb-2">Monto Adeudado: S/ {paymentDetails?.DEBE?.toFixed(2)}</p>
-            <div className="inline-flex items-center text-gray-600 text-xs sm:text-sm font-medium mb-2">Estado: <StatusBadge estado={displayedPayment.estadoGeneral} /></div>
+          <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1 truncate">{paymentDetails?.SOCIO || 'Cargando...'}</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-1 text-[11px] sm:text-xs">
+            <p className="text-gray-600">DNI: {paymentDetails?.DNI}</p>
+            <p className="text-gray-600">Cuenta: {paymentDetails?.CUENTA}</p>
+            <p className="text-gray-600">Pagaré: {paymentDetails?.PAGARE}</p>
+            <p className="text-gray-600">Frecuencia: {paymentDetails?.FRECUENCIA}</p>
+            <p className="text-gray-600">Fecha Otorgamiento: {paymentDetails?.OTORGA}</p>
+            <p className="text-gray-600">Número de Cuotas: {paymentDetails?.NUM_CUOTAS}</p>
+            <p className="text-gray-700 font-medium">Monto Adeudado: S/ {paymentDetails?.DEBE?.toFixed(2)}</p>
+            <div className="inline-flex items-center text-gray-700 font-medium">Estado: <StatusBadge estado={displayedPayment.estadoGeneral} /></div>
 
-            <div className="col-span-2 border-t border-gray-200 pt-4 mt-3">
+            <div className="xl:col-span-2 border-t border-gray-200 pt-2 mt-2">
               {paymentDetails?.DETALLE && (
-                <div className="mb-4 text-sm text-red-600 font-medium text-center bg-red-50 p-2 rounded-md">
+                <div className="mb-2 text-xs text-red-600 font-medium text-center bg-red-50 p-1.5 rounded-md">
                   {paymentDetails.DETALLE}
                 </div>
               )}
               <div className="flex gap-1 sm:gap-2">
-                <label className="flex-1 flex items-center hover:bg-gray-50 p-1 sm:p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
+                <label className="flex-1 flex items-center hover:bg-gray-50 p-1 rounded-md cursor-pointer transition-colors border border-gray-200">
                   <input
                     type="radio"
                     name="paymentType"
-                    className="form-radio h-4 w-4 sm:h-5 sm:w-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
+                    className="form-radio h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
                     checked={paymentType === 'normal'}
                     disabled={!paymentDetails}
                     onChange={() => {
@@ -128,19 +128,19 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                       onTypeChange?.('normal', maxPago);
                     }}
                   />
-                  <span className="ml-1 sm:ml-2 text-[10px] sm:text-sm text-gray-700">
+                  <span className="ml-1 text-[10px] sm:text-xs text-gray-700 leading-tight">
                     Pago Normal
-                    <span className="text-[9px] sm:text-xs text-gray-500 ml-1 block sm:inline">
+                    <span className="text-[9px] sm:text-[10px] text-gray-500 ml-1 block sm:inline">
                       (Máximo: S/ {paymentDetails?.MAXIMO_PAGO?.toFixed(2) || '0.00'})
                     </span>
                   </span>
                 </label>
 
-                <label className="flex-1 flex items-center hover:bg-gray-50 p-1 sm:p-2 rounded-md cursor-pointer transition-colors border border-gray-200">
+                <label className="flex-1 flex items-center hover:bg-gray-50 p-1 rounded-md cursor-pointer transition-colors border border-gray-200">
                   <input
                     type="radio"
                     name="paymentType"
-                    className="form-radio h-4 w-4 sm:h-5 sm:w-5 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
+                    className="form-radio h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 border-2 border-gray-300 focus:ring-blue-500"
                     checked={paymentType === 'liquidacion'}
                     disabled={!paymentDetails}
                     onChange={() => {
@@ -150,9 +150,9 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
                       onTypeChange?.('liquidacion', montoLiquida);
                     }}
                   />
-                  <span className="ml-1 sm:ml-2 text-[10px] sm:text-sm text-gray-700">
+                  <span className="ml-1 text-[10px] sm:text-xs text-gray-700 leading-tight">
                     Liquidación Total
-                    <span className="text-[9px] sm:text-xs text-gray-500 ml-1 block sm:inline">(Monto: S/ {paymentDetails?.MONTO_LIQUIDA?.toFixed(2) || '0.00'})</span>
+                    <span className="text-[9px] sm:text-[10px] text-gray-500 ml-1 block sm:inline">(Monto: S/ {paymentDetails?.MONTO_LIQUIDA?.toFixed(2) || '0.00'})</span>
                   </span>
                 </label>
               </div>
@@ -167,7 +167,7 @@ export const PaymentHeader: React.FC<PaymentHeaderProps> = ({
         </button>
       </div>
       {totalPayments && totalPayments > 1 && (
-        <div className="text-xs sm:text-sm font-medium text-gray-600 mt-3">
+        <div className="text-[11px] sm:text-xs font-medium text-gray-600 mt-1.5">
           Mostrando comprobante {currentIndex! + 1} de {totalPayments}
         </div>
       )}

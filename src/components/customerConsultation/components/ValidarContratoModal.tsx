@@ -460,7 +460,7 @@ const ValidarContratoModal = ({
                 <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
                 </svg>
-                Deshabilitar Doc Firmado
+                Anular contrato
               </>
             )}
           </button>
@@ -480,7 +480,7 @@ const ValidarContratoModal = ({
                 <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Verificar Documento Firmado
+                Validar Documento Firmado
               </>
             )}
           </button>
