@@ -13,7 +13,7 @@ import {
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const API_BASE_URL_2 = import.meta.env.VITE_API_BASE_URL_GEODILE  //'http://192.168.3.34:8080';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE //'http://192.168.3.34:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_SCORE //'http://192.168.3.34:8000';
 const API_BASE_URL_GEODILE_TOKEN = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN 
 const API_KEY = import.meta.env.VITE_API_BASE_SCORE_API_KEY 
 
