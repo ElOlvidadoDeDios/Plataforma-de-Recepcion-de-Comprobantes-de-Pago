@@ -16,6 +16,7 @@ const API_BASE_URL_2 = import.meta.env.VITE_API_BASE_URL_GEODILE  //'http://192.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_SCORE //'http://192.168.3.34:8000';
 const API_BASE_URL_GEODILE_TOKEN = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN 
 const API_KEY = import.meta.env.VITE_API_BASE_SCORE_API_KEY 
+const API_SCORING_LOG_URL = `${API_BASE_URL_2}/api_mongo_firm_easy/api/insertLogScoring`;
 
 const validateDni = (dni: string): void => {
   const clean = (dni || '').trim();
@@ -51,6 +52,34 @@ const normalizeProducto = (value: string): string => {
   const clean = (value || '').trim();
   if (!clean) return 'MAS_INCLUSIVO';
   return clean;
+};
+
+const registrarLogScoring = async (
+  scoreRequestPayload: DileScorePayload,
+  scoreResponse: unknown,
+  scoreStatus: number,
+): Promise<void> => {
+  if (!API_BASE_URL_2) {
+    return;
+  }
+
+  const logPayload = {
+    INFO: {
+      request_score: scoreRequestPayload,
+      response_score: scoreResponse,
+      status_http_score: scoreStatus,
+      fecha_registro: new Date().toISOString(),
+    },
+  };
+
+  await fetch(API_SCORING_LOG_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': ` ${API_BASE_URL_GEODILE_TOKEN}`
+    },
+    body: JSON.stringify(logPayload),
+  });
 };
 
 export const buildDileScorePayloadMock = (
@@ -138,19 +167,27 @@ export const consultarDileScoreReal = async (
     throw new Error('VITE_API_BASE_URL_GEODILE no esta configurada');
   }
 
+  const scoreRequestPayload = { ...payload, api_key: API_KEY };
+
   const response = await fetch(`${API_BASE_URL}/score`, {
     method: 'POST',
     headers: {
         "Content-Type": "application/json",
         "X-API-Key": API_KEY,
     },
-    body: JSON.stringify({ ...payload, api_key: API_KEY }),
+    body: JSON.stringify(scoreRequestPayload),
   });
 
   const contentType = response.headers.get('content-type') || '';
   const responseBody = contentType.includes('application/json')
     ? await response.json()
     : await response.text();
+
+  try {
+    await registrarLogScoring(scoreRequestPayload, responseBody, response.status);
+  } catch (logError) {
+    console.error('No se pudo registrar el log de scoring', logError);
+  }
 
   if (!response.ok) {
     throw new Error(
