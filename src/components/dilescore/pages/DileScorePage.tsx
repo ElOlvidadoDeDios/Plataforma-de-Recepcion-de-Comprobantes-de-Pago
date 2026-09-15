@@ -7,6 +7,7 @@ import { buildDileScorePayloadMock } from '../services/dileScore.Service';
 import { DileScoreAutoData, DileScoreInputData, DileScorePayload } from '../types';
 import { AGENCIAS } from '../../../types';
 import { useComboBoxData } from '../../../api/registroDeclientesApi';
+import { generarScorePdf } from './pdf_score';
 
 const INITIAL_INPUT_DATA: DileScoreInputData = {
   DNI: '',
@@ -41,6 +42,7 @@ const FRECUENCIA_PAGO_OPTIONS = [
 
 const AUTO_FIELD_ORDER: Array<keyof DileScoreAutoData> = [
   'TIPO_SOCIO',
+  'RAZON_SOCIAL',
   'MESES_ANTIGUEDAD',
   'EDAD_ANIOS',
   'LUGAR_NAC',
@@ -68,6 +70,7 @@ type AutoSelectField = typeof AUTO_SELECT_FIELDS[number];
 
 const createEmptyAutoData = (): DileScoreAutoData => ({
   TIPO_SOCIO: '',
+  RAZON_SOCIAL: '',
   MESES_ANTIGUEDAD: '',
   EDAD_ANIOS: '',
   LUGAR_NAC: '',
@@ -92,6 +95,34 @@ const INPUT_FIELD_ORDER: Array<keyof DileScoreInputData> = [
   'FRECUENCIA_PAGO',
   'AGENCIA_NOMBRE',
 ];
+
+const FIELD_LABELS: Partial<Record<string, string>> = {
+  DNI: 'DNI',
+  TIPO_SOCIO: 'Tipo de socio',
+  RAZON_SOCIAL: 'Razón social',
+  MESES_ANTIGUEDAD: 'Meses antiguedad',
+  EDAD_ANIOS: 'Edad en años',
+  LUGAR_NAC: 'Lugar nacimiento',
+  TIPO_PERSONA: 'Tipo persona',
+  TIPO_VIVIENDA: 'Tipo vivienda',
+  ESTADO_CIVIL: 'Estado civil',
+  NIVEL_INSTRUCCION: 'Nivel instruccion',
+  ACTIVIDAD_ECONOMICA: 'Actividad economica',
+  TIENE_AHORRO: 'Tiene ahorro',
+  MONTO_PRESTAMO: 'Monto prestamo',
+  CUOTAS: 'Cuotas',
+  CUOTA_FIJA: 'Cuota fija',
+  FINALIDAD_PRESTAMO: 'Finalidad prestamo',
+  TIPO_DESTINO: 'Tipo destino',
+  SUBTIPO_PRES: 'Subtipo pres',
+  TIPO_PRODUCTO: 'Tipo producto',
+  FRECUENCIA_PAGO: 'Frecuencia pago',
+  AGENCIA_NOMBRE: 'Agencia nombre',
+};
+
+const getFieldLabel = (field: string): string => {
+  return FIELD_LABELS[field] ?? field;
+};
 
 const DileScorePage: React.FC = () => {
   const { user } = useAuth();
@@ -181,7 +212,7 @@ const DileScorePage: React.FC = () => {
   };
 
   const wasProvidedByApi = (field: keyof DileScoreAutoData): boolean => {
-    if (field === 'TIPO_SOCIO') return true;
+    if (field === 'TIPO_SOCIO' || field === 'RAZON_SOCIAL') return true;
     const value = apiAutoData?.[field];
     return Boolean((value || '').toString().trim());
   };
@@ -197,6 +228,7 @@ const DileScorePage: React.FC = () => {
     const normalizedData = {
       ...data,
       TIPO_SOCIO: (data.TIPO_SOCIO || '').trim() || 'SOCIO NORMAL',
+      RAZON_SOCIAL: (data.RAZON_SOCIAL || '').trim(),
     };
 
     setApiSupplementalData(result.supplementalData || {});
@@ -224,6 +256,19 @@ const DileScorePage: React.FC = () => {
     setApiSupplementalData({});
     setPayloadPreview(null);
     limpiar();
+  };
+
+  const handleExportPdf = () => {
+    const fechaHoy = new Date().toLocaleDateString('es-PE', { timeZone: 'America/Lima' });
+    const dni = inputData.DNI.trim() || 'SIN_DNI';
+
+    generarScorePdf({
+      dni,
+      inputData,
+      autoData: autoData || createEmptyAutoData(),
+      resultado: scoreResponse && typeof scoreResponse === 'object' ? (scoreResponse as Record<string, unknown>) : {},
+      nombreArchivo: `score_${dni}_${fechaHoy.replace(/\//g, '-')}.pdf`,
+    });
   };
 
   return (
@@ -280,15 +325,23 @@ const DileScorePage: React.FC = () => {
               <h2 className="mb-2 text-sm font-semibold text-slate-800">Datos automáticos</h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {AUTO_FIELD_ORDER.map((field) => (
-                  <div key={field} className={field === 'TIPO_SOCIO' ? 'sm:col-span-2' : ''}>
+                  <div key={field} className={field === 'TIPO_SOCIO' || field === 'RAZON_SOCIAL' ? 'sm:col-span-1' : ''}>
                     <label htmlFor={field} className="mb-1 block text-xs font-semibold text-slate-700">
-                      {field}
+                      {getFieldLabel(field)}
                     </label>
                     {field === 'TIPO_SOCIO' ? (
                       <input
                         id={field}
                         type="text"
                         value={autoData?.TIPO_SOCIO || 'SOCIO NORMAL'}
+                        readOnly
+                        className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-700 outline-none"
+                      />
+                    ) : field === 'RAZON_SOCIAL' ? (
+                      <input
+                        id={field}
+                        type="text"
+                        value={autoData?.RAZON_SOCIAL || ''}
                         readOnly
                         className="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-700 outline-none"
                       />
@@ -349,7 +402,7 @@ const DileScorePage: React.FC = () => {
                 {INPUT_FIELD_ORDER.map((field) => (
                   <div key={field} className={field === 'AGENCIA_NOMBRE' ? 'sm:col-span-2' : ''}>
                     <label htmlFor={field} className="mb-1 block text-xs font-semibold text-slate-700">
-                      {field}
+                      {getFieldLabel(field)}
                     </label>
                     {field === 'TIPO_DESTINO' || field === 'SUBTIPO_PRES' ? (
                       <input
@@ -406,7 +459,7 @@ const DileScorePage: React.FC = () => {
                         type="text"
                         value={inputData[field]}
                         onChange={(e) => handleFieldChange(field, e.target.value)}
-                        placeholder={`Ingrese ${field}`}
+                        placeholder={`Ingrese ${getFieldLabel(field).toLowerCase()}`}
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-sky-500"
                       />
                     )}
@@ -422,6 +475,14 @@ const DileScorePage: React.FC = () => {
                 className="rounded-lg bg-sky-600 px-5 py-2 font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading || scoreLoading ? 'Consultando...' : 'Consultar score'}
+              </button>
+              <button
+                type="button"
+                onClick={handleExportPdf}
+                disabled={!autoData && !scoreResponse}
+                className="rounded-lg border border-emerald-600 bg-emerald-50 px-5 py-2 font-medium text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Exportar PDF
               </button>
               <button
                 type="button"

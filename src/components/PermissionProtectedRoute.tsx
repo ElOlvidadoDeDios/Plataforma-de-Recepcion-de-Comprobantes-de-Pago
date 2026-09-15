@@ -50,6 +50,9 @@ const PermissionProtectedRoute: React.FC<PermissionProtectedRouteProps> = ({
     case 'canAccessGeodile':
       hasPermission = permissions.canAccessGeodile();
       break;
+    case 'canAccessAuditoriaGeodile':
+      hasPermission = permissions.canAccessAuditoriaGeodile();
+      break;
     case 'canAccessReports':
       hasPermission = permissions.canAccessReports();
       break;

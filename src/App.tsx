@@ -26,6 +26,7 @@ import { useSocket } from './hooks/useSocket';
 import RegistroClientes from './components/registro_clientes/registro_clientes';
 import CalculadoraCreditos from './components/Calculadora_creditos/cal_creditos';
 import GeodilePage from './components/Geodile/GeodilePage';
+import AuditoriaTable from './components/auditoria_geodile/AuditoriaTable';
 import AfiliacionSocios from './components/afiliacion_de_socios/pendientesAafiliar';
 import ConsultaCuotasSocios from './components/pagos_recaudadores/pagosRecaudadores';
 import PerfilUsuario from './components/PerfilUsuario';
@@ -221,6 +222,16 @@ function App() {
                     <NonBasicUserRoute>
                       <GeodilePage />
                     </NonBasicUserRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/auditoria-geodile"
+                element={
+                  <ProtectedRoute>
+                    <PermissionProtectedRoute permission="canAccessAuditoriaGeodile">
+                      <AuditoriaTable />
+                    </PermissionProtectedRoute>
                   </ProtectedRoute>
                 }
               />

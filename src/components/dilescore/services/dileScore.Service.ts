@@ -287,6 +287,7 @@ const mapDocInfoToAutoData = (response: DileScoreDocInfoResponse): DileScoreDocQ
 
   const autoData: DileScoreAutoData = {
     TIPO_SOCIO: docData.NOM_TSOCIO ?? '',
+    RAZON_SOCIAL: docData.RAZON_SOCIAL ?? '',
     MESES_ANTIGUEDAD: docData.MESES_ANTIGUEDAD ?? '',
     EDAD_ANIOS: docData.EDAD_ANIOS ?? '',
     LUGAR_NAC: docData.LUGAR_NAC ?? '',

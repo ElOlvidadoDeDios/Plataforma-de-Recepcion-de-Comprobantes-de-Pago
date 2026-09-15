@@ -205,6 +205,10 @@ export function useCombinedPermissions() {
     canViewGeodile: () => hasPermission(Permission.GEODILE_VIEW),
     canEditGeodile: () => hasPermission(Permission.GEODILE_EDIT),
     canAccessGeodile: () => hasPermission(Permission.GEODILE_VIEW), // Legacy compatibility
+    canAccessAuditoriaGeodile: () => {
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL'];
+      return rolesConAccesoAutomatico.includes(user?.role || '');
+    },
 
     // === MÉTODOS LEGACY PARA COMPATIBILIDAD ===
     canAccessReports: () => hasPermission(Permission.INSTALLMENTS_VIEW), // Mapear a consulta de cuotas
@@ -303,7 +307,7 @@ export function useCombinedPermissions() {
 
     // === DILESCORE ===
     canViewDileScore: () => {
-      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL'];
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'ADMINISTRADOR', 'ANALISTA_CREDITOS_I', 'ANALISTA_CREDITOS_PAGO_DIARIO'];
       if (rolesConAccesoAutomatico.includes(user?.role || '')) {
         return true;
       }
@@ -311,7 +315,7 @@ export function useCombinedPermissions() {
     },
     canEditDileScore: () => hasPermission(Permission.DILESCORE_EDIT),
     canAccessDileScore: () => {
-      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL'];
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'ADMINISTRADOR', 'ANALISTA_CREDITOS_I', 'ANALISTA_CREDITOS_PAGO_DIARIO'];
       if (rolesConAccesoAutomatico.includes(user?.role || '')) {
         return true;
       }

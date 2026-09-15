@@ -167,6 +167,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
         icon: AdmisionSectionIcon,
         options: [
           { to: '/registro-clientes', icon: RegistroIcon, label: 'Registro de Socios', permission: permissions.canAccessRegistroClientes() },
+          { to: '/dilescore', icon: '📈', label: 'DileScore', permission: permissions.canAccessDileScore() },
         ]
       }
     ];

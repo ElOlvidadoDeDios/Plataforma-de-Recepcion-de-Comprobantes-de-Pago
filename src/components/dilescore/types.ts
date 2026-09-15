@@ -13,6 +13,7 @@ export interface DileScoreInputData {
 
 export interface DileScoreAutoData {
   TIPO_SOCIO: string;
+  RAZON_SOCIAL: string;
   MESES_ANTIGUEDAD: string;
   EDAD_ANIOS: string;
   LUGAR_NAC: string;
@@ -39,6 +40,7 @@ export interface DileScoreDocInfoResponse {
     message?: string;
     data?: {
       NOM_TSOCIO?: string;
+      RAZON_SOCIAL?: string;
       MESES_ANTIGUEDAD?: string;
       EDAD_ANIOS?: string;
       LUGAR_NAC?: string;
