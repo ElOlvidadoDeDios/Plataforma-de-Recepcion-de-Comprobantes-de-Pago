@@ -2,7 +2,7 @@
 
 
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL_GEODILE}/api-mongo/api`;
-
+const API_BASE_URL_2 = `${import.meta.env.VITE_API_BASE_URL_GEODILE}`; ///api_mongo_firm_easy/api/validar_reporte_gps
 //importamos  la variable de entorno
 const RENIEC_API_URL = import.meta.env.VITE_API_BASE_URL_CLIENTES;
 const RENIEC_TOKEN = `Bearer ${import.meta.env.VITE_API_BASE_URL_CLIENTES_TOKEN}`;
@@ -389,7 +389,7 @@ export const generarPdfGps = async (userDni: string, dniSocio: string) => {
  */
 export const verificarGps = async (userDni: string, dniSocio: string): Promise<{ status: boolean; data?: SocioReporte[]; socio?: string }> => {
     try {
-        const response = await fetch(`${API_BASE_URL}/get_verifica_gps`, {
+        const response = await fetch(`${API_BASE_URL_2}/api_mongo_firm_easy/api/validar_reporte_gps`, {
             method: 'POST',
             headers: getCommonHeaders(),
             body: JSON.stringify({ user: userDni, dni_socio: dniSocio })
