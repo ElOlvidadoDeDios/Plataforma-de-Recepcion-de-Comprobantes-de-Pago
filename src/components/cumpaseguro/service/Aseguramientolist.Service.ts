@@ -7,7 +7,7 @@ import { ListadoAseguramientosResponse } from "../Aseguramiento.types";
  * de "services" del proyecto, reemplaza este fetch por esa instancia.
  */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL_GEODILE//`${import.meta.env.VITE_API_BASE_URL_GEODILE}/api_mongo_firm_easy`;
-const ENDPOINT_LISTADO = `${API_BASE_URL}/api/ListarIngresadosAsegurados`;
+const ENDPOINT_LISTADO = `${API_BASE_URL}/api_mongo_firm_easy/api/ListarIngresadosAsegurados`;
 const token = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 /**
  * Obtiene el listado de aseguramientos registrados.
