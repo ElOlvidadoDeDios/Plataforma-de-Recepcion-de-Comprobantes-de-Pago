@@ -389,7 +389,7 @@ export const generarPdfGps = async (userDni: string, dniSocio: string) => {
  */
 export const verificarGps = async (userDni: string, dniSocio: string): Promise<{ status: boolean; data?: SocioReporte[]; socio?: string }> => {
     try {
-        const response = await fetch(`${API_BASE_URL_2}/api_mongo_firm_easy/api/validar_reporte_gps`, {
+        const response = await fetch(`${API_BASE_URL_2}/api_mongo_firm_easy/api/get_verifica_gps`, {
             method: 'POST',
             headers: getCommonHeaders(),
             body: JSON.stringify({ user: userDni, dni_socio: dniSocio })
