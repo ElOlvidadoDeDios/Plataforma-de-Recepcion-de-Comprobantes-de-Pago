@@ -1,48 +1,11 @@
 import { AseguramientoPayload, AseguramientoResponse } from '../types';
 
-/**
- * Servicio de CumpaSeguro.
- * 
- * Conecta con la API: http://192.168.3.34:8080/desarrollo/api_mongo_firm_easy/api/RegistrarAtencion
- * 
- * Estructura del payload:
- * {
- *   "tipo_documento": "DNI",
- *   "nro_documento": "12345678",
- *   "nombres": "CARLOS ALBERTO",
- *   "apellido_paterno": "GARCIA",
- *   "apellido_materno": "LOPEZ",
- *   "tipo_atencion": "PRESENCIAL",
- *   "costo": 140,
- *   "direccion": "AV. LIMA 123",
- *   "correo": "carlos@gmail.com",
- *   "celular": "971159682",
- *   "foto_dni_anverso": File,
- *   "foto_dni_reverso": File,
- *   "voucher": File,
- *   "beneficiarios": [
- *     {
- *       "tipo_documento": "DNI",
- *       "nro_documento": "74859632",
- *       "nombres": "JUAN CARLOS",
- *       "apellido_paterno": "PEREZ",
- *       "apellido_materno": "LOPEZ",
- *       "direccion": "JR. LIMA 123",
- *       "correo": "juan@gmail.com",
- *       "celular": "999888777"
- *     }
- *   ],
- *   "beneficiario_anverso": File,
- *   "beneficiario_reverso": File,
- *   "user": "12345678",
- *   "agencia_nom": "AGENCIA LIMA"
- * }
- * 
- * Todos los datos se envían en MAYÚSCULAS excepto el correo (siempre en minúsculas).
- */
 
-const API_BASE_URL = 'http://192.168.3.34:8080/desarrollo/api_mongo_firm_easy/api' //`${import.meta.env.VITE_API_BASE_URL_GEODILE}/api_mongo_firm_easy/api`;
-const API_CONTRATOS_URL = 'http://192.168.3.34:8080/desarrollo/api_app_dile_v1_1/api';
+ /* Todos los datos se envían en MAYÚSCULAS excepto el correo (siempre en minúsculas).
+ */
+const API_BASE_URL_2 = import.meta.env.VITE_API_BASE_URL_GEODILE
+const API_BASE_URL = `${API_BASE_URL_2}/api_mongo_firm_easy/api`; 
+const API_CONTRATOS_URL = `${API_BASE_URL_2}/api_app_dile_v1_1/api`;
 const token = import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN;
 /**
  * Convierte un texto a mayúsculas
