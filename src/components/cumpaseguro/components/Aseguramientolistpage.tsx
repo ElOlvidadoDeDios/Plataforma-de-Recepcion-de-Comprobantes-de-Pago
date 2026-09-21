@@ -9,21 +9,31 @@ interface AseguramientosListPageProps {
   onVolver: () => void;
 }
 
+/* ---------- Tokens de estilo ---------- */
+
+const NAVY = '#1E3A5F';
+const SUCCESS = '#2F6B4F';
+const ERROR = '#B3413E';
+const PENDING = '#B8860B';
+
 /* ---------- Helpers ---------- */
 
-const estadoStyles: Record<string, string> = {
-  INGRESADO: 'bg-blue-50 text-blue-600 border-blue-200',
-  APROBADO: 'bg-green-50 text-green-600 border-green-200',
-  RECHAZADO: 'bg-red-50 text-red-600 border-red-200',
+const estadoConfig: Record<string, { color: string; bg: string; label: string }> = {
+  INGRESADO: { color: PENDING, bg: '#B8860B14', label: 'Ingresado' },
+  APROBADO: { color: SUCCESS, bg: '#2F6B4F14', label: 'Aprobado' },
+  RECHAZADO: { color: ERROR, bg: '#B3413E14', label: 'Rechazado' },
 };
 
+// Avatares en tonos neutros/navy — mantiene la distribución por hash del nombre,
+// pero con una paleta sobria acorde al sistema institucional (en vez de colores
+// dispares tipo app de consumo).
 const avatarColores = [
-  'bg-blue-100 text-blue-600',
-  'bg-purple-100 text-purple-600',
-  'bg-teal-100 text-teal-600',
-  'bg-amber-100 text-amber-600',
-  'bg-pink-100 text-pink-600',
-  'bg-indigo-100 text-indigo-600',
+  'bg-[#1E3A5F] text-white',
+  'bg-slate-700 text-white',
+  'bg-[#16304D] text-white',
+  'bg-slate-600 text-white',
+  'bg-[#2C4A70] text-white',
+  'bg-slate-800 text-white',
 ];
 
 const colorPorNombre = (texto: string) => {
@@ -47,11 +57,33 @@ const galeriaDe = (p: PersonaRegistro): ImagenGaleria[] => {
 };
 
 const EstadoBadge: React.FC<{ estado: string }> = ({ estado }) => {
-  const estilo = estadoStyles[estado] ?? 'bg-gray-50 text-gray-600 border-gray-200';
+  const cfg = estadoConfig[estado] ?? { color: '#64748B', bg: '#64748B14', label: estado };
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${estilo}`}>
-      {estado}
+    <span
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold"
+      style={{ color: cfg.color, backgroundColor: cfg.bg }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cfg.color }} />
+      {cfg.label}
     </span>
+  );
+};
+
+/* ---------- Avatar cuadrado institucional ---------- */
+
+const Avatar: React.FC<{ persona: { nombres: string; apellido_paterno: string }; size?: 'sm' | 'md' }> = ({
+  persona,
+  size = 'md',
+}) => {
+  const dimensiones = size === 'md' ? 'w-11 h-11 text-sm' : 'w-9 h-9 text-xs';
+  return (
+    <div
+      className={`${dimensiones} rounded-md flex items-center justify-center font-bold shrink-0 ${colorPorNombre(
+        persona.nombres
+      )}`}
+    >
+      {iniciales(persona)}
+    </div>
   );
 };
 
@@ -62,7 +94,7 @@ const FilaImagenes: React.FC<{
   onAbrir: (galeria: ImagenGaleria[], indice: number) => void;
 }> = ({ galeria, onAbrir }) => {
   if (galeria.length === 0) {
-    return <p className="text-xs text-gray-400 italic">Sin documentos cargados</p>;
+    return <p className="text-xs text-slate-400 italic">Sin documentos cargados</p>;
   }
   return (
     <div className="flex gap-2 flex-wrap">
@@ -70,6 +102,29 @@ const FilaImagenes: React.FC<{
         <ImageThumbnail key={img.url} url={img.url} label={img.label} onClick={() => onAbrir(galeria, i)} />
       ))}
     </div>
+  );
+};
+
+/* ---------- Resumen de documentación (visible sin expandir) ---------- */
+
+const ResumenDocumentos: React.FC<{ totalFotos: number; totalEsperado: number }> = ({
+  totalFotos,
+  totalEsperado,
+}) => {
+  const completo = totalFotos >= totalEsperado && totalEsperado > 0;
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md"
+      style={{
+        color: completo ? SUCCESS : PENDING,
+        backgroundColor: completo ? '#2F6B4F14' : '#B8860B14',
+      }}
+    >
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      {totalFotos} documento{totalFotos === 1 ? '' : 's'} cargado{totalFotos === 1 ? '' : 's'}
+    </span>
   );
 };
 
@@ -81,18 +136,12 @@ const BeneficiarioItem: React.FC<{
 }> = ({ beneficiario, onAbrirImagen }) => {
   const galeria = galeriaDe(beneficiario);
   return (
-    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+    <div className="border border-slate-200 rounded-md p-4 space-y-3">
       <div className="flex items-center gap-3">
-        <div
-          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${colorPorNombre(
-            beneficiario.nombres
-          )}`}
-        >
-          {iniciales(beneficiario)}
-        </div>
+        <Avatar persona={beneficiario} size="sm" />
         <div className="min-w-0">
-          <p className="text-sm font-medium text-gray-800 truncate">{nombreCompleto(beneficiario)}</p>
-          <p className="text-xs text-gray-500">
+          <p className="text-sm font-medium text-slate-800 truncate">{nombreCompleto(beneficiario)}</p>
+          <p className="text-xs text-slate-500">
             {beneficiario.tipo_documento} {beneficiario.nro_documento} · {beneficiario.celular}
           </p>
         </div>
@@ -111,94 +160,99 @@ const RegistroCard: React.FC<{ registro: RegistroAseguramiento }> = ({ registro 
 
   const galeriaTitular = galeriaDe(titular);
   const totalFotos = galeriaTitular.length + beneficiarios.reduce((acc, b) => acc + galeriaDe(b).length, 0);
+  const totalEsperado = 2; // DNI anverso + reverso del titular como base mínima para considerar "completo"
 
   const abrirImagen = (galeria: ImagenGaleria[], indice: number) => setLightbox({ galeria, indice });
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-md border border-slate-200 p-5 sm:p-6 hover:border-slate-300 transition-colors">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
-          <div
-            className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${colorPorNombre(
-              titular.nombres
-            )}`}
-          >
-            {iniciales(titular)}
-          </div>
+          <Avatar persona={titular} />
           <div className="min-w-0">
-            <h3 className="text-base font-semibold text-gray-800 truncate">{nombreCompleto(titular)}</h3>
-            <p className="text-sm text-gray-500">
+            <h3 className="text-base font-semibold text-slate-800 truncate">{nombreCompleto(titular)}</h3>
+            <p className="text-sm text-slate-500">
               {titular.tipo_documento} {titular.nro_documento}
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <div className="flex flex-col items-end gap-2 shrink-0">
           <EstadoBadge estado={estado} />
           {titular.costo !== undefined && (
-            <span className="text-sm font-semibold text-gray-700">S/ {titular.costo}</span>
+            <span
+              className="text-sm font-bold px-2 py-0.5 rounded-md"
+              style={{ color: NAVY, backgroundColor: `${NAVY}0D` }}
+            >
+              S/ {titular.costo}
+            </span>
           )}
         </div>
       </div>
 
       {/* Info rápida */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-500">
+      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
         <span className="inline-flex items-center gap-1.5">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
           {titular.correo}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
           {titular.celular}
         </span>
         {titular.tipo_atencion && (
           <span className="inline-flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             {titular.tipo_atencion}
           </span>
         )}
         <span className="inline-flex items-center gap-1.5">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-4a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           {beneficiarios.length} beneficiario{beneficiarios.length === 1 ? '' : 's'}
         </span>
-        <span className="text-xs text-gray-400 ml-auto">{fecha_hora_local}</span>
+        <span className="text-xs text-slate-400 ml-auto">{fecha_hora_local}</span>
       </div>
 
-      {/* Toggle detalle */}
-      <button
-        onClick={() => setExpandido((v) => !v)}
-        className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-blue-500 hover:text-blue-600 transition"
-      >
-        <svg
-          className={`w-4 h-4 transition-transform ${expandido ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* Resumen de documentación + toggle */}
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+        <ResumenDocumentos totalFotos={totalFotos} totalEsperado={totalEsperado} />
+
+        <button
+          onClick={() => setExpandido((v) => !v)}
+          className="inline-flex items-center gap-1.5 text-sm font-medium transition"
+          style={{ color: NAVY }}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-        {expandido ? 'Ocultar detalle' : `Ver detalle y fotos (${totalFotos})`}
-      </button>
+          <svg
+            className={`w-4 h-4 transition-transform ${expandido ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+          {expandido ? 'Ocultar detalle' : 'Ver detalle y fotos'}
+        </button>
+      </div>
 
       {/* Detalle */}
       {expandido && (
-        <div className="mt-4 border-t border-gray-100 pt-5 space-y-5">
+        <div className="mt-4 border-t border-slate-100 pt-5 space-y-5">
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Dirección</p>
-            <p className="text-sm text-gray-700">{titular.direccion}</p>
+            <p className="text-xs font-semibold text-slate-500 mb-1">Dirección</p>
+            <p className="text-sm text-slate-700">{titular.direccion}</p>
           </div>
 
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold text-slate-500 mb-2">
               Documentos del titular
             </p>
             <FilaImagenes galeria={galeriaTitular} onAbrir={abrirImagen} />
@@ -206,7 +260,7 @@ const RegistroCard: React.FC<{ registro: RegistroAseguramiento }> = ({ registro 
 
           {beneficiarios.length > 0 && (
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Beneficiarios</p>
+              <p className="text-xs font-semibold text-slate-500 mb-2">Beneficiarios</p>
               <div className="space-y-3">
                 {beneficiarios.map((b, i) => (
                   <BeneficiarioItem key={i} beneficiario={b} onAbrirImagen={abrirImagen} />
@@ -248,7 +302,7 @@ const AseguramientosListPage: React.FC<AseguramientosListPageProps> = ({ onVolve
       <div className="w-full min-w-0 px-4 sm:px-6 lg:px-8">
         <button
           onClick={onVolver}
-          className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors shadow-sm hover:shadow-md"
+          className="inline-flex items-center gap-2 px-3.5 py-2 mb-4 text-sm font-medium text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -256,10 +310,10 @@ const AseguramientosListPage: React.FC<AseguramientosListPageProps> = ({ onVolve
           Volver
         </button>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 pb-4 border-b border-slate-200">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-1">Registros de aseguramiento</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-2xl font-bold text-slate-800 mb-1">Lista de Registros Para Asegurar</h2>
+            <p className="text-sm text-slate-500">
               {cantidad} registro{cantidad === 1 ? '' : 's'} en total
             </p>
           </div>
@@ -267,7 +321,7 @@ const AseguramientosListPage: React.FC<AseguramientosListPageProps> = ({ onVolve
           <div className="flex gap-2">
             <div className="relative w-full sm:w-64">
               <svg
-                className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
+                className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -279,13 +333,16 @@ const AseguramientosListPage: React.FC<AseguramientosListPageProps> = ({ onVolve
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 placeholder="Buscar por nombre o DNI..."
-                className="pl-9 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
+                className="pl-9 pr-3 py-2 rounded-md border border-slate-300 text-sm focus:outline-none focus:ring-1 w-full transition"
+                style={{ ['--tw-ring-color' as any]: NAVY }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = NAVY)}
+                onBlur={(e) => (e.currentTarget.style.borderColor = '')}
               />
             </div>
             <button
               onClick={recargar}
               disabled={cargando}
-              className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition disabled:opacity-50 whitespace-nowrap"
+              className="px-4 py-2 rounded-md border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition disabled:opacity-50 whitespace-nowrap"
             >
               Recargar
             </button>
@@ -293,20 +350,20 @@ const AseguramientosListPage: React.FC<AseguramientosListPageProps> = ({ onVolve
         </div>
 
         {errorGeneral && (
-          <div className="rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 mb-6">
+          <div className="rounded-md bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 mb-6">
             {errorGeneral}
           </div>
         )}
 
         {cargando ? (
           <div className="flex items-center justify-center py-16">
-            <svg className="animate-spin w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin w-8 h-8" style={{ color: NAVY }} fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
           </div>
         ) : registrosFiltrados.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm">No se encontraron registros.</div>
+          <div className="text-center py-16 text-slate-400 text-sm">No se encontraron registros.</div>
         ) : (
           <div className="space-y-4 pb-8">
             {registrosFiltrados.map((registro) => (

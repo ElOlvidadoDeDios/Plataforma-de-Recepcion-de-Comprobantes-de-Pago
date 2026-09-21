@@ -96,6 +96,12 @@ const getSimplifiedModules = (userRole: UserRole) => ({
         viewPermission: Permission.DILESCORE_VIEW,
         editPermission: Permission.DILESCORE_EDIT,
     },
+    'Reportes': {
+        icon: '📊',
+        description: 'Módulo de reportes generales y estadísticas',
+        viewPermission: Permission.REPORTS_VIEW,
+        editPermission: Permission.REPORTS_EDIT,
+    },
     // Solo agregar Culqi si el rol tiene acceso
     ...(rolesConAccesoCulqui.includes(userRole) ? {
         'Culqi Pendientes': {

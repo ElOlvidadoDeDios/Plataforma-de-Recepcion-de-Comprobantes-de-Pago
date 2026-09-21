@@ -9,18 +9,40 @@ import { useCombinedPermissions } from '../../hooks/useCombinedPermissions';
 import AsegurarPage from './pages/AsegurarPage';
 import AseguramientosListPage from './components/Aseguramientolistpage';
 import GestionPolizasPage from './pages/GestionPolizasPage';
+import AplicacionPolizasPage from './pages/Aplicaion_polisas';
+import ListaPolizasPage from './pages/Lista_polizas';
+import PolizasPorVencerPage from './pages/Polizas_por_vencer';
 
-type Vista = 'inicio' | 'asegurar' | 'lista' | 'polizas';
+type Vista = 'inicio' | 'asegurar' | 'lista' | 'polizas' | 'aplicacion_polizas' | 'lista_polizas_global' | 'polizas_por_vencer';
 
 const CumpaSeguro: React.FC = () => {
   const { hasPermission, canViewCumpaSeguro, canEditCumpaSeguro } = useCombinedPermissions();
   const { user } = useContext(AuthContext);
   const [vista, setVista] = useState<Vista>('inicio');
 
+  const rolesConAccesoCompleto = [
+    UserRole.SUPER_ADMIN,
+    UserRole.GERENTE_GENERAL,
+    UserRole.JEFE_OPERACIONES,
+  ];
+  const accesoSoloGestionPolizas = !rolesConAccesoCompleto.includes(user?.role as UserRole);
+
   // Verificar si el usuario es admin o super admin
   const esAdminOSuperAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMINISTRADOR;
   const puedeVerLista = esAdminOSuperAdmin || canEditCumpaSeguro();
   const puedeVerGestionPolizas = canViewCumpaSeguro();
+
+  // Roles autorizados para Aplicación de Pólizas: Gerente General, Super Admin, Jefe de Operaciones, Admin o con permisos de CumpaSeguro
+  const rolesAutorizadosAplicacion = [
+    UserRole.SUPER_ADMIN,
+    UserRole.GERENTE_GENERAL,
+    UserRole.JEFE_OPERACIONES,
+    UserRole.ADMINISTRADOR,
+  ];
+  const puedeVerAplicacionPolizas =
+    rolesAutorizadosAplicacion.includes(user?.role as UserRole) ||
+    canEditCumpaSeguro() ||
+    canViewCumpaSeguro();
 
   if (!hasPermission(Permission.CUMPASEGURO_VIEW)) {
     return (
@@ -35,6 +57,76 @@ const CumpaSeguro: React.FC = () => {
             <p className="text-gray-600 text-sm">
               Contacta con el administrador para solicitar acceso.
             </p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Usuarios con permiso de CumpaSeguro pero sin rol privilegiado:
+  // solo pueden acceder a Asegurar y Gestión de Pólizas.
+  if (accesoSoloGestionPolizas) {
+    if (vista === 'asegurar') {
+      return (
+        <AsegurarPage
+          onVolver={() => setVista('inicio')}
+          onVerPolizas={() => setVista('polizas')}
+        />
+      );
+    }
+
+    if (vista === 'polizas') {
+      return <GestionPolizasPage onVolver={() => setVista('inicio')} />;
+    }
+
+    return (
+      <Layout title="Mi CumpaSeguro" showBackButton={true}>
+        <div className="flex h-full bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-lg p-6 sm:p-8 md:p-12">
+          <div className="text-center max-w-2xl mx-auto w-full">
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-4">
+              Mi CumpaSeguro
+            </h1>
+            <p className="text-base sm:text-lg text-gray-600 mb-8">
+              Accede a tus módulos habilitados.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
+              <button
+                type="button"
+                onClick={() => setVista('asegurar')}
+                className="bg-white p-5 rounded-lg shadow text-left hover:shadow-md hover:-translate-y-0.5 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-800">Asegurar</h3>
+                    <p className="text-sm text-gray-600">Registra un nuevo aseguramiento</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVista('polizas')}
+                className="bg-white p-5 rounded-lg shadow text-left hover:shadow-md hover:-translate-y-0.5 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-800">Gestión de Pólizas</h3>
+                    <p className="text-sm text-gray-600">Administra tus pólizas</p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </Layout>
@@ -57,6 +149,18 @@ const CumpaSeguro: React.FC = () => {
 
   if (vista === 'polizas') {
     return <GestionPolizasPage onVolver={() => setVista('inicio')} />;
+  }
+
+  if (vista === 'aplicacion_polizas') {
+    return <AplicacionPolizasPage onVolver={() => setVista('inicio')} />;
+  }
+
+  if (vista === 'lista_polizas_global') {
+    return <ListaPolizasPage onVolver={() => setVista('inicio')} />;
+  }
+
+  if (vista === 'polizas_por_vencer') {
+    return <PolizasPorVencerPage onVolver={() => setVista('inicio')} />;
   }
 
   return (
@@ -143,6 +247,47 @@ const CumpaSeguro: React.FC = () => {
               </button>
             )}
 
+            {/* Aplicación de Pólizas: visible para SuperAdmin, Gerente General, Jefe de Operaciones o con permisos de CumpaSeguro */}
+            {puedeVerAplicacionPolizas && (
+              <button
+                type="button"
+                onClick={() => setVista('aplicacion_polizas')}
+                className="bg-white p-5 rounded-lg shadow text-left hover:shadow-md hover:-translate-y-0.5 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6M7 4h7l4 4v12H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 4v4h4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 16l2 2 4-4" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-gray-800">Aplicación de Pólizas</h3>
+                    <p className="text-sm text-gray-600">Valida pagos y aplica pólizas pendientes</p>
+                  </div>
+                </div>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setVista('lista_polizas_global')}
+              className="bg-white p-5 rounded-lg shadow text-left hover:shadow-md hover:-translate-y-0.5 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-gray-800">Pólizas</h3>
+                  <p className="text-sm text-gray-600">Lista global de asegurados y detalle</p>
+                </div>
+              </div>
+            </button>
+
             <div className="bg-white p-5 rounded-lg shadow opacity-60">
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -157,11 +302,16 @@ const CumpaSeguro: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-lg shadow opacity-60">
+            <button
+              type="button"
+              onClick={() => setVista('polizas_por_vencer')}
+              className="bg-white p-5 rounded-lg shadow text-left hover:shadow-md hover:-translate-y-0.5 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <div className="flex-shrink-0 w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3" />
+                    <circle cx="12" cy="12" r="9" strokeWidth={2} />
                   </svg>
                 </div>
                 <div className="min-w-0">
@@ -169,7 +319,7 @@ const CumpaSeguro: React.FC = () => {
                   <p className="text-sm text-gray-600">Alertas de pólizas próximas a vencer</p>
                 </div>
               </div>
-            </div>
+            </button>
 
             <div className="bg-white p-5 rounded-lg shadow opacity-60">
               <div className="flex items-start gap-3">

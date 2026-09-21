@@ -211,7 +211,6 @@ export function useCombinedPermissions() {
     },
 
     // === MÉTODOS LEGACY PARA COMPATIBILIDAD ===
-    canAccessReports: () => hasPermission(Permission.INSTALLMENTS_VIEW), // Mapear a consulta de cuotas
     canAssignRoles: () => hasPermission(Permission.USERS_EDIT),
     canDeleteAccounts: () => hasPermission(Permission.USERS_EDIT),
     canBlockEmails: () => hasPermission(Permission.USERS_EDIT),
@@ -320,6 +319,23 @@ export function useCombinedPermissions() {
         return true;
       }
       return hasPermission(Permission.DILESCORE_VIEW);
+    },
+
+    // === REPORTES ===
+    canViewReports: () => {
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'ADMINISTRADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      return hasPermission(Permission.REPORTS_VIEW);
+    },
+    canEditReports: () => hasPermission(Permission.REPORTS_EDIT),
+    canAccessReports: () => {
+      const rolesConAccesoAutomatico = ['SUPER_ADMIN', 'GERENTE_GENERAL', 'ADMINISTRADOR'];
+      if (rolesConAccesoAutomatico.includes(user?.role || '')) {
+        return true;
+      }
+      return hasPermission(Permission.REPORTS_VIEW);
     },
 
     canAccessRecuperaciones: () => {

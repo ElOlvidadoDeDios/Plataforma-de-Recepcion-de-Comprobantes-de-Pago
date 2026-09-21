@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { cumpaSeguroService } from '../service/cumpaSeguro.Service';
 import { Poliza } from '../types';
@@ -12,6 +12,31 @@ import ModalSubirComprobante from './modal_subir_comprobantes';
 interface GestionPolizasPageProps {
   onVolver: () => void;
 }
+
+interface MensajeProceso {
+  tipo: 'success' | 'error';
+  texto: string;
+}
+
+/* ---------- Tokens de estilo ---------- */
+
+const NAVY = '#1E3A5F';
+const NAVY_HOVER = '#16304D';
+const SUCCESS = '#2F6B4F';
+const SUCCESS_HOVER = '#255A40';
+const PENDING = '#B8860B';
+const PENDING_HOVER = '#9A7009';
+const ERROR = '#B3413E';
+
+// Botón sólido, color ligado al estado del contrato (una sola función: avanzar el flujo).
+// El color se aplica vía `style` para poder reutilizar los mismos tokens hex del resto del sistema.
+const btnEstado =
+  'p-2 rounded-md text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1';
+
+// Botón neutro para acciones secundarias (detalles, descargar, subir voucher):
+// no compiten por atención con la acción principal del estado.
+const btnSecundario =
+  'p-2 rounded-md border border-slate-300 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => {
   const { user } = useContext(AuthContext);
@@ -33,10 +58,33 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
   // Estados para loading individual de cada acción
   const [generandoContrato, setGenerandoContrato] = useState<string | null>(null);
   const [cargandoDocumento, setCargandoDocumento] = useState<string | null>(null);
+  const [mensajeProceso, setMensajeProceso] = useState<MensajeProceso | null>(null);
+  const mensajeTimerRef = useRef<number | null>(null);
+
+  const mostrarMensajeProceso = (tipo: MensajeProceso['tipo'], texto: string) => {
+    setMensajeProceso({ tipo, texto });
+
+    if (mensajeTimerRef.current !== null) {
+      clearTimeout(mensajeTimerRef.current);
+    }
+
+    mensajeTimerRef.current = setTimeout(() => {
+      setMensajeProceso(null);
+      mensajeTimerRef.current = null;
+    }, 3500);
+  };
 
   useEffect(() => {
     cargarPolizas();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (mensajeTimerRef.current !== null) {
+        clearTimeout(mensajeTimerRef.current);
+      }
+    };
   }, []);
 
   const cargarPolizas = async () => {
@@ -86,36 +134,36 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
       // - Firmado digitalmente pero pendiente de validación (signed_file existe, firm_aws existe)
       // - Creado pero sin firmar aún (signed_file = null, firm_aws = null)
       if (firmEasy.status === 'pending') {
-        return 'GENERADO'; // Color AZUL
+        return 'GENERADO';
       }
     }
 
     // 3. Caso: Contrato no creado (firma.status = false o no existe token)
     // Este es el estado inicial cuando aún no se ha generado el contrato
-    return 'PENDIENTE'; // Color NARANJA - Botón "Generar Contrato"
+    return 'PENDIENTE';
+  };
+
+  const obtenerEstadoVisible = (poliza: Poliza): string => {
+    const estadoGeneral = (poliza?.estado || '').toString().trim();
+    return estadoGeneral ? estadoGeneral.toUpperCase() : obtenerEstadoContrato(poliza);
   };
 
   const handleGenerarContrato = async (poliza: Poliza) => {
-    // Confirmación antes de generar
-    if (!window.confirm(`¿Desea generar el contrato para ${poliza.titular.nombres} ${poliza.titular.apellido_paterno}?`)) {
-      return;
-    }
-
     try {
       setGenerandoContrato(poliza._id);
 
       const response = await cumpaSeguroService.generarContrato(poliza._id);
 
       if (response.success) {
-        alert(`✅ ${response.message}`);
+        mostrarMensajeProceso('success', `✅ ${response.message || 'Contrato generado y enviado correctamente'}`);
 
         // Recargar la lista de pólizas para actualizar el estado
         await cargarPolizas();
       } else {
-        alert('❌ Error al generar el contrato');
+        mostrarMensajeProceso('error', '❌ Error al generar el contrato');
       }
     } catch (error: any) {
-      alert(`❌ Error: ${error.message}`);
+      mostrarMensajeProceso('error', `❌ Error: ${error.message}`);
     } finally {
       setGenerandoContrato(null);
     }
@@ -224,11 +272,7 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
     const dni = polizaActual.titular.nro_documento;
 
     if (!tokenFirm) {
-      alert('⚠️ No se encontró el token de firma');
-      return;
-    }
-
-    if (!window.confirm('¿Desea validar la firma de este documento?')) {
+      mostrarMensajeProceso('error', '⚠️ No se encontró el token de firma');
       return;
     }
 
@@ -244,13 +288,13 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
       // Manejar respuesta cuando la validación falla
       if (response.status === false) {
         const mensaje = response.message || 'No se pudo validar la firma';
-        alert(`⚠️ ${mensaje}`);
+        mostrarMensajeProceso('error', `⚠️ ${mensaje}`);
         return;
       }
 
       if (response.success || response.status === true) {
         // Validación exitosa
-        alert('✅ ' + (response.message || 'Firma validada exitosamente. El documento ha sido validado correctamente.'));
+        mostrarMensajeProceso('success', `✅ ${response.message || 'Documento validado correctamente.'}`);
 
         // Cerrar el modal
         setShowDocumentoModal(false);
@@ -262,11 +306,11 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
         // Recargar la lista de pólizas para ver los cambios
         await cargarPolizas();
       } else {
-        alert('❌ No se pudo validar la firma del documento');
+        mostrarMensajeProceso('error', '❌ No se pudo validar la firma del documento');
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Error al validar la firma';
-      alert(`❌ ${errorMessage}`);
+      mostrarMensajeProceso('error', `❌ ${errorMessage}`);
     } finally {
       setVerificandoFirma(false);
     }
@@ -334,8 +378,8 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
 
   const handleSubmitVoucher = async (poliza: Poliza, file: File) => {
     try {
-      // Obtener el user del usuario logueado
-      const userName = user?.user;
+      // Obtener el documento del usuario logueado
+      const userName = user?.dni;
       if (!userName) {
         throw new Error('No se encontró información del usuario');
       }
@@ -355,7 +399,7 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
       );
       
       if (response.success) {
-        alert(`✅ ${response.message}`);
+        mostrarMensajeProceso('success', `✅ ${response.message || 'Voucher registrado correctamente'}`);
         setShowVoucherModal(false);
         setSelectedPoliza(null);
         // Recargar pólizas para actualizar el estado
@@ -380,12 +424,15 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
 
     return (
       <div className="flex flex-wrap gap-2 justify-start md:justify-center">
-        {/* Botón: Generar Contrato (Naranja) - Solo si está PENDIENTE */}
+        {/* Generar Contrato — acción principal del estado PENDIENTE */}
         {estadoContrato === 'PENDIENTE' && (
           <button
             onClick={() => handleGenerarContrato(poliza)}
             disabled={estaGenerando || estaCargando}
-            className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            className={btnEstado}
+            style={{ backgroundColor: PENDING }}
+            onMouseEnter={(e) => !(estaGenerando || estaCargando) && (e.currentTarget.style.backgroundColor = PENDING_HOVER)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = PENDING)}
             title="Generar Contrato"
           >
             {estaGenerando ? (
@@ -399,12 +446,15 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
           </button>
         )}
 
-        {/* Botón: Ver y Verificar Contrato (Azul) - Solo si está GENERADO */}
+        {/* Ver y Verificar Contrato — acción principal del estado GENERADO */}
         {estadoContrato === 'GENERADO' && (
           <button
             onClick={() => handleVerContrato(poliza)}
             disabled={estaGenerando || estaCargando}
-            className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            className={btnEstado}
+            style={{ backgroundColor: NAVY }}
+            onMouseEnter={(e) => !(estaGenerando || estaCargando) && (e.currentTarget.style.backgroundColor = NAVY_HOVER)}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = NAVY)}
             title="Ver y Verificar Contrato"
           >
             {estaCargando ? (
@@ -418,13 +468,16 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
           </button>
         )}
 
-        {/* Botón: Ver Contrato Firmado (Verde) - Solo si está FIRMADO */}
+        {/* Ver Contrato Firmado — acción principal del estado FIRMADO; Subir Voucher como acción secundaria neutra */}
         {estadoContrato === 'FIRMADO' && (
           <>
             <button
               onClick={() => handleVerContrato(poliza)}
               disabled={estaGenerando || estaCargando}
-              className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className={btnEstado}
+              style={{ backgroundColor: SUCCESS }}
+              onMouseEnter={(e) => !(estaGenerando || estaCargando) && (e.currentTarget.style.backgroundColor = SUCCESS_HOVER)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = SUCCESS)}
               title="Ver Contrato Firmado"
             >
               {estaCargando ? (
@@ -439,7 +492,7 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
             <button
               onClick={() => handleSubirVoucher(poliza)}
               disabled={estaGenerando || estaCargando}
-              className="p-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={btnSecundario}
               title="Subir Voucher de Pago"
             >
               <Upload size={18} />
@@ -447,13 +500,16 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
           </>
         )}
 
-        {/* Botón: Completado (Verde) - Solo si está COMPLETADO */}
+        {/* Completado — Ver Contrato como acción principal, Ver Voucher como secundaria neutra */}
         {estadoContrato === 'COMPLETADO' && (
           <>
             <button
               onClick={() => handleVerContrato(poliza)}
               disabled={estaGenerando || estaCargando}
-              className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              className={btnEstado}
+              style={{ backgroundColor: SUCCESS }}
+              onMouseEnter={(e) => !(estaGenerando || estaCargando) && (e.currentTarget.style.backgroundColor = SUCCESS_HOVER)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = SUCCESS)}
               title="Ver Contrato"
             >
               {estaCargando ? (
@@ -468,7 +524,7 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
             <button
               onClick={() => handleVerDetalles(poliza)}
               disabled={estaGenerando || estaCargando}
-              className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={btnSecundario}
               title="Ver Voucher"
             >
               <Download size={18} />
@@ -476,11 +532,11 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
           </>
         )}
 
-        {/* Botón: Ver Detalles (Siempre disponible) */}
+        {/* Ver Detalles — siempre disponible, acción neutra */}
         <button
           onClick={() => handleVerDetalles(poliza)}
           disabled={estaGenerando || estaCargando}
-          className="p-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className={btnSecundario}
           title="Ver Detalles"
         >
           <Eye size={18} />
@@ -491,19 +547,23 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
 
   const obtenerBadgeEstado = (estado: string) => {
     const estadoContrato = estado.toUpperCase();
-    const colores: { [key: string]: string } = {
-      'PENDIENTE': 'bg-orange-100 text-orange-800 border-orange-200',
-      'GENERADO': 'bg-blue-100 text-blue-800 border-blue-200',
-      'PENDIENTE_FIRMA': 'bg-blue-100 text-blue-800 border-blue-200',
-      'FIRMADO': 'bg-green-100 text-green-800 border-green-200',
-      'COMPLETADO': 'bg-green-100 text-green-800 border-green-200',
-      'INGRESADO': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    const estilos: { [key: string]: { color: string; bg: string } } = {
+      'PENDIENTE': { color: PENDING, bg: '#B8860B14' },
+      'GENERADO': { color: NAVY, bg: `${NAVY}14` },
+      'PENDIENTE_FIRMA': { color: NAVY, bg: `${NAVY}14` },
+      'FIRMADO': { color: SUCCESS, bg: '#2F6B4F14' },
+      'COMPLETADO': { color: SUCCESS, bg: '#2F6B4F14' },
+      'INGRESADO': { color: PENDING, bg: '#B8860B14' },
     };
 
-    const colorClase = colores[estadoContrato] || 'bg-gray-100 text-gray-800 border-gray-200';
+    const estilo = estilos[estadoContrato] || { color: '#64748B', bg: '#64748B14' };
 
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${colorClase}`}>
+      <span
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold"
+        style={{ color: estilo.color, backgroundColor: estilo.bg }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: estilo.color }} />
         {estadoContrato.replace('_', ' ')}
       </span>
     );
@@ -514,8 +574,11 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
       <Layout title="Gestión de Pólizas" showBackButton={true}>
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando pólizas...</p>
+            <svg className="animate-spin h-10 w-10 mx-auto mb-4" style={{ color: NAVY }} fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <p className="text-slate-600 text-sm">Cargando pólizas...</p>
           </div>
         </div>
       </Layout>
@@ -525,11 +588,12 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
   if (error) {
     return (
       <Layout title="Gestión de Pólizas" showBackButton={true}>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-red-700 text-sm">{error}</p>
           <button
             onClick={cargarPolizas}
-            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            className="mt-4 px-4 py-2 rounded-md text-white text-sm font-medium transition"
+            style={{ backgroundColor: ERROR }}
           >
             Reintentar
           </button>
@@ -541,13 +605,25 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
   return (
     <Layout title="Gestión de Pólizas" showBackButton={true}>
       <div className="space-y-4">
-        {/* Botón de Volver personalizado */}
+        {mensajeProceso && (
+          <div
+            className={`border rounded-md p-3 text-sm font-medium ${
+              mensajeProceso.tipo === 'success'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}
+          >
+            {mensajeProceso.texto}
+          </div>
+        )}
+
+        {/* Botón de Volver */}
         <div className="flex items-center gap-4">
           <button
             onClick={onVolver}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 border border-slate-300 rounded-md hover:bg-slate-50 transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Volver
@@ -555,92 +631,92 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
         </div>
 
         {/* Header */}
-        <div className="bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="bg-white border border-slate-200 rounded-md p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div className="flex-1">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800">Pólizas Registradas</h2>
-            <p className="text-xs sm:text-sm text-gray-600">Total: {polizas.length} pólizas</p>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-800">Pólizas registradas</h2>
+            <p className="text-xs sm:text-sm text-slate-500">Total: {polizas.length} pólizas</p>
           </div>
           <button
             onClick={cargarPolizas}
-            className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+            className="w-full sm:w-auto px-4 py-2 rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium"
           >
-            🔄 Actualizar
+            Actualizar
           </button>
         </div>
 
         {/* Tabla de Pólizas - Vista Desktop */}
-        <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+        <div className="hidden md:block bg-white border border-slate-200 rounded-md overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Fecha
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Titular
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Documento
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Tipo Atención
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Costo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Beneficiarios
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-slate-100">
                 {polizas.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-6 py-8 text-center text-slate-500">
                       No hay pólizas registradas
                     </td>
                   </tr>
                 ) : (
                   polizas.map((poliza) => (
-                    <tr key={poliza._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <tr key={poliza._id} className="hover:bg-slate-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800">
                         <div>
                           <div className="font-medium">{poliza.fecha_local}</div>
-                          <div className="text-xs text-gray-500">{poliza.hora_local}</div>
+                          <div className="text-xs text-slate-500">{poliza.hora_local}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-slate-800">
                           {poliza.titular.nombres}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-slate-500">
                           {poliza.titular.apellido_paterno} {poliza.titular.apellido_materno}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800">
                         <div>{poliza.titular.tipo_documento}</div>
-                        <div className="text-xs text-gray-500">{poliza.titular.nro_documento}</div>
+                        <div className="text-xs text-slate-500">{poliza.titular.nro_documento}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800">
                         {poliza.titular.tipo_atencion}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold" style={{ color: NAVY }}>
                         S/ {poliza.titular.costo.toFixed(2)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800">
                         {poliza.beneficiarios.length}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {obtenerBadgeEstado(obtenerEstadoContrato(poliza))}
+                        {obtenerBadgeEstado(obtenerEstadoVisible(poliza))}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800">
                         {renderAcciones(poliza)}
                       </td>
                     </tr>
@@ -654,61 +730,61 @@ const GestionPolizasPage: React.FC<GestionPolizasPageProps> = ({ onVolver }) => 
         {/* Vista de Tarjetas - Vista Móvil */}
         <div className="md:hidden space-y-4">
           {polizas.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
+            <div className="bg-white border border-slate-200 rounded-md p-6 text-center text-slate-500">
               No hay pólizas registradas
             </div>
           ) : (
             polizas.map((poliza) => (
-              <div key={poliza._id} className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+              <div key={poliza._id} className="bg-white rounded-md p-4 border border-slate-200">
                 {/* Header de la tarjeta */}
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 text-base">
+                    <h3 className="font-bold text-slate-800 text-base">
                       {poliza.titular.nombres}
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-slate-500">
                       {poliza.titular.apellido_paterno} {poliza.titular.apellido_materno}
                     </p>
                   </div>
                   <div className="ml-2">
-                    {obtenerBadgeEstado(obtenerEstadoContrato(poliza))}
+                    {obtenerBadgeEstado(obtenerEstadoVisible(poliza))}
                   </div>
                 </div>
 
-                {/* Información en grid */}
+                {/* Información */}
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">📅 Fecha:</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-slate-500">Fecha</span>
+                    <span className="font-medium text-slate-800">
                       {poliza.fecha_local} {poliza.hora_local}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">📄 Documento:</span>
-                    <span className="font-medium text-gray-900">
+                    <span className="text-slate-500">Documento</span>
+                    <span className="font-medium text-slate-800">
                       {poliza.titular.tipo_documento}: {poliza.titular.nro_documento}
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">🏥 Atención:</span>
-                    <span className="font-medium text-gray-900">{poliza.titular.tipo_atencion}</span>
+                    <span className="text-slate-500">Atención</span>
+                    <span className="font-medium text-slate-800">{poliza.titular.tipo_atencion}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">💰 Costo:</span>
-                    <span className="font-bold text-green-600">S/ {poliza.titular.costo.toFixed(2)}</span>
+                    <span className="text-slate-500">Costo</span>
+                    <span className="font-bold" style={{ color: NAVY }}>S/ {poliza.titular.costo.toFixed(2)}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">👥 Beneficiarios:</span>
-                    <span className="font-medium text-gray-900">{poliza.beneficiarios.length}</span>
+                    <span className="text-slate-500">Beneficiarios</span>
+                    <span className="font-medium text-slate-800">{poliza.beneficiarios.length}</span>
                   </div>
                 </div>
 
-                {/* Botones de acciones - Adaptados para móvil */}
-                <div className="border-t pt-3 mt-3">
+                {/* Botones de acciones */}
+                <div className="border-t border-slate-100 pt-3 mt-3">
                   {renderAcciones(poliza)}
                 </div>
               </div>

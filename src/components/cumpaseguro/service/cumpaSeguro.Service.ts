@@ -117,41 +117,64 @@ export function construirFormData(payload: AseguramientoPayload): FormData {
 
 export const cumpaSeguroService = {
   
-  async guardarAseguramiento(payload: AseguramientoPayload): Promise<AseguramientoResponse> {
+  async guardarAseguramiento(
+    payload: AseguramientoPayload
+  ): Promise<AseguramientoResponse> {
+
     const formData = construirFormData(payload);
 
     try {
+
       const respuesta = await fetch(`${API_BASE_URL}/RegistrarAtencion`, {
         method: 'POST',
         headers: {
           'ngrok-skip-browser-warning': '69420',
           Authorization: `${token}`,
         },
-        body: formData, // NO poner Content-Type manual, el navegador lo arma con el boundary
+        body: formData,
       });
 
-      if (!respuesta.ok) {
-        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
-      }
-
+      // Primero intentamos leer la respuesta del backend
       const data = await respuesta.json();
+
+      // Si HTTP no fue exitoso, mostramos el message del backend
+      if (!respuesta.ok) {
+        throw new Error(
+          data?.message ||
+          `Error HTTP: ${respuesta.status} ${respuesta.statusText}`
+        );
+      }
 
       // Verificar si la respuesta es exitosa
       if (data.status === true || data.success === true) {
         return {
           success: true,
-          codigo: data.codigo || data.id || `CS-${Date.now().toString().slice(-8)}`,
+          codigo:
+            data.codigo ||
+            data.id ||
+            `CS-${Date.now().toString().slice(-8)}`,
           fechaRegistro: payload.fechaRegistro,
         };
-      } else {
-        throw new Error(data.message || 'Error al registrar aseguramiento');
       }
+
+      // El servidor respondió correctamente a nivel HTTP,
+      // pero la operación fue rechazada por la lógica del backend.
+      throw new Error(
+        data?.message || 'Error al registrar aseguramiento'
+      );
+
     } catch (error: any) {
-      console.error('[CumpaSeguro] Error al guardar aseguramiento:', error);
-      throw new Error(error.message || 'Error de conexión con el servidor');
+
+      console.error(
+        '[CumpaSeguro] Error al guardar aseguramiento:',
+        error
+      );
+
+      throw new Error(
+        error?.message || 'Error de conexión con el servidor'
+      );
     }
   },
-
   /**
    * Lista los aseguramientos/pólizas de un usuario específico
    * Endpoint: /ListarIngresadosAseguradosPorUser
@@ -486,10 +509,10 @@ export const cumpaSeguroService = {
    * Endpoint: /SubirVoucherDocumentoAsegurado
    * Body: FormData con { id_document: token de firma, dni: dniTitular, user_registra: user, imagen: File }
    */
-  async subirVoucher(token: string, dniTitular: string, user: string, voucherFile: File): Promise<any> {
+  async subirVoucher(tokenFirma: string, dniTitular: string, user: string, voucherFile: File): Promise<any> {
     try {
       const formData = new FormData();
-      formData.append('id_document', token);
+      formData.append('id_document', tokenFirma);
       formData.append('dni', dniTitular);
       formData.append('user_registra', user);
       formData.append('imagen', voucherFile);
@@ -503,13 +526,20 @@ export const cumpaSeguroService = {
         body: formData,
       });
 
+      // Intentar leer la respuesta JSON del backend siempre
+      const responseData = await respuesta.json().catch(() => null);
+
       if (!respuesta.ok) {
-        throw new Error(`Error HTTP: ${respuesta.status} ${respuesta.statusText}`);
+        const errorMsg =
+          responseData?.message ||
+          responseData?.error ||
+          responseData?.detail ||
+          responseData?.msg ||
+          `Error HTTP ${respuesta.status}: ${respuesta.statusText}`;
+        throw new Error(errorMsg);
       }
 
-      const responseData = await respuesta.json();
-
-      if (responseData.status === true || responseData.success === true) {
+      if (responseData?.status === true || responseData?.success === true) {
         return {
           success: true,
           status: responseData.status,
@@ -517,11 +547,17 @@ export const cumpaSeguroService = {
           data: responseData.data || responseData,
         };
       } else {
-        throw new Error(responseData.message || 'Error al subir voucher');
+        const mensajeBackend =
+          responseData?.message ||
+          responseData?.error ||
+          responseData?.detail ||
+          responseData?.msg ||
+          'Error al subir voucher';
+        throw new Error(mensajeBackend);
       }
     } catch (error: any) {
       console.error('[CumpaSeguro] Error al subir voucher:', error);
-      throw new Error(error.message || 'Error de conexión con el servidor');
+      throw new Error(error?.message || 'Error de conexión con el servidor');
     }
   },
 };

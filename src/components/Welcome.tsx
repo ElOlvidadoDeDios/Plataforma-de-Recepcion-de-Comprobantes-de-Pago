@@ -330,6 +330,12 @@ const Welcome: React.FC = () => {
         onClick: () => navigate('/dilescore'),
         icon: '📈'
       }] : []),
+      ...(permissions.canAccessReports() ? [{
+        title: 'Reportes',
+        description: 'Módulo de reportes y estadísticas',
+        onClick: () => navigate('/reportes'),
+        icon: '📊'
+      }] : []),
     ];
 
     // Lógica para el grid responsivo

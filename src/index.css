@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -96,4 +97,124 @@
   .overflow-y-hidden-scroll::-webkit-scrollbar {
     display: none;
   }
+}
+/* ========================================================
+   ESTILOS Y VARIABLES DEL MÓDULO POWER BI PULSO
+   ======================================================== */
+
+.powerbi-theme {
+  --background: 36 33% 96%;
+  --foreground: 218 29% 16%;
+  --border: 32 21% 86%;
+  --input: 32 21% 86%;
+  --ring: 172 76% 34%;
+  --card: 38 43% 99%;
+  --card-foreground: 218 29% 16%;
+  --card-border: 32 25% 89%;
+  --popover: 38 43% 99%;
+  --popover-foreground: 218 29% 16%;
+  --primary: 172 76% 30%;
+  --primary-foreground: 38 43% 99%;
+  --secondary: 35 28% 91%;
+  --secondary-foreground: 218 29% 25%;
+  --muted: 35 28% 91%;
+  --muted-foreground: 218 12% 47%;
+  --accent: 35 93% 57%;
+  --accent-foreground: 218 29% 16%;
+  --destructive: 1 68% 53%;
+  --destructive-foreground: 38 43% 99%;
+  
+  --chart-1: 172 76% 30%;
+  --chart-2: 35 93% 57%;
+  --chart-3: 202 62% 45%;
+  --chart-4: 273 43% 56%;
+  --chart-5: 1 68% 53%;
+  
+  /* --sidebar: 218 33% 18%; */
+  --sidebar: 188 72% 33%;
+  --sidebar-foreground: 38 43% 94%;
+  /* --sidebar-border: 218 24% 27%; */
+  --sidebar-border: 188 58% 26%;
+  --sidebar-primary: 35 93% 57%;
+  --sidebar-primary-foreground: 218 33% 18%;
+  /* --sidebar-accent: 218 27% 25%; */
+  --sidebar-accent: 188 57% 40%;
+  --sidebar-accent-foreground: 38 43% 99%;
+  --sidebar-ring: 35 93% 57%;
+  
+  --app-font-sans: 'DM Sans', sans-serif;
+  --app-font-mono: 'Space Mono', monospace;
+  --radius: 0.85rem;
+  --shadow-soft: 0 16px 40px rgba(44, 51, 58, 0.07);
+
+  font-family: var(--app-font-sans);
+}
+
+.dark .powerbi-theme {
+  --background: 218 34% 10%;
+  --foreground: 38 35% 94%;
+  --border: 218 24% 25%;
+  --input: 218 24% 25%;
+  --card: 218 29% 15%;
+  --card-foreground: 38 35% 94%;
+  --card-border: 218 24% 25%;
+  --popover: 218 29% 15%;
+  --popover-foreground: 38 35% 94%;
+  --primary: 172 69% 44%;
+  --primary-foreground: 218 34% 10%;
+  --secondary: 218 27% 22%;
+  --secondary-foreground: 38 35% 94%;
+  --muted: 218 27% 22%;
+  --muted-foreground: 218 12% 70%;
+  --accent: 35 93% 57%;
+  --accent-foreground: 218 34% 10%;
+  --destructive: 1 68% 58%;
+  --destructive-foreground: 38 43% 99%;
+  --chart-1: 172 69% 44%;
+  --chart-2: 35 93% 57%;
+  --chart-3: 202 62% 55%;
+  --chart-4: 273 43% 65%;
+  --chart-5: 1 68% 58%;
+  --sidebar: 218 40% 8%;
+  --sidebar-foreground: 38 35% 94%;
+  --sidebar-border: 218 25% 18%;
+  --sidebar-primary: 35 93% 57%;
+  --sidebar-primary-foreground: 218 40% 8%;
+  --sidebar-accent: 218 27% 17%;
+  --sidebar-accent-foreground: 38 35% 94%;
+  --sidebar-ring: 35 93% 57%;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: .45; }
+  50% { opacity: .8; }
+}
+
+.powerbi-theme .animate-rise { animation: rise-in .55s ease-out both; }
+.powerbi-theme .animate-pulse-soft { animation: pulse-soft 2.4s ease-in-out infinite; }
+
+.powerbi-theme .dashboard-noise::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: .035;
+  z-index: 20;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
+}
+
+.powerbi-theme .glass-panel { background: hsl(var(--card) / .84); backdrop-filter: blur(16px); }
+.powerbi-theme .font-display { font-family: 'Syne', sans-serif; }
+.powerbi-theme .metric-number { font-family: var(--app-font-mono); letter-spacing: -.065em; }
+.powerbi-theme .scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
+.powerbi-theme .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--muted-foreground) / .28); border-radius: 99px; }
+
+@media (max-width: 767px) {
+  .powerbi-theme .mobile-scroll { overflow-x: auto; }
+  .powerbi-theme .mobile-scroll > * { min-width: 620px; }
 }

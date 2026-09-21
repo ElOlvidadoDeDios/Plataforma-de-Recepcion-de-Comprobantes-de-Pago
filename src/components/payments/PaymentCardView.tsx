@@ -117,6 +117,7 @@ useEffect(() => {
               <span className="font-medium text-gray-700">{cuentaNombre}</span>
             )}
           </div>
+
           {/* Mostrar Agencia */}
           <div className="mt-2 flex items-center gap-2">
             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -131,6 +132,7 @@ useEffect(() => {
               )}
             </div>
           </div>
+          <p className="text-gray-800">ID: <strong>{currentPayment._id}</strong></p>
         </div>
       </div>
       <div className="flex items-center space-x-2">

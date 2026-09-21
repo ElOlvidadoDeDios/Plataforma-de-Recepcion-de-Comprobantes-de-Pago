@@ -92,6 +92,10 @@ export enum Permission {
   // === DILESCORE ===
   DILESCORE_VIEW = 'dilescore:view',
   DILESCORE_EDIT = 'dilescore:edit',
+
+  // === REPORTES ===
+  REPORTS_VIEW = 'reports:view',
+  REPORTS_EDIT = 'reports:edit',
 }
 
 export enum UserRole {
@@ -196,6 +200,10 @@ export const PermissionCategories = {
     Permission.DILESCORE_VIEW,     // Solo ver
     Permission.DILESCORE_EDIT,     // Editar
   ],
+  'Reportes': [
+    Permission.REPORTS_VIEW,       // Solo ver
+    Permission.REPORTS_EDIT,       // Editar
+  ],
 
 };
 
@@ -290,6 +298,10 @@ export const PermissionLabels: Record<Permission, string> = {
   // DileScore
   [Permission.DILESCORE_VIEW]: '📈 Ver DileScore',
   [Permission.DILESCORE_EDIT]: '⚙️ Gestionar DileScore',
+
+  // Reportes
+  [Permission.REPORTS_VIEW]: '📊 Ver Reportes',
+  [Permission.REPORTS_EDIT]: '⚙️ Gestionar Reportes',
 };
 
 /**
@@ -308,7 +320,7 @@ export const LegacyPermissionMapping: Record<string, Permission[]> = {
   'canAccessRegistroClientes': [Permission.CLIENTS_VIEW, Permission.CLIENTS_EDIT],
   'canAccessCalculadoraCreditos': [Permission.CALCULATOR_VIEW, Permission.CALCULATOR_EDIT],
   'canAccessGeodile': [Permission.GEODILE_VIEW, Permission.GEODILE_EDIT],
-  'canAccessReports': [Permission.INSTALLMENTS_VIEW, Permission.INSTALLMENTS_EDIT], // Reportes van con cuotas
+  'canAccessReports': [Permission.REPORTS_VIEW, Permission.REPORTS_EDIT],
   'canAccessPagoRecaudadores': [Permission.PAGO_RECAUDADORES_VIEW, Permission.PAGO_RECAUDADORES_EDIT],
   'canAccessHistorialDesembolsos': [Permission.DISBURSEMENT_HISTORY_VIEW, Permission.DISBURSEMENT_HISTORY_EDIT],
   'canAccessCulqui': [Permission.CULQI_VIEW, Permission.CULQI_EDIT],

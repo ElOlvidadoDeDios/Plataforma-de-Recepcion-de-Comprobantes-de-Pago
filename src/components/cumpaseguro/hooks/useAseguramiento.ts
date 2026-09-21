@@ -117,7 +117,7 @@ export function useAseguramiento() {
       const respuesta = await cumpaSeguroService.guardarAseguramiento(payload);
       setResultado(respuesta);
     } catch (err) {
-      setErrorGeneral('Ocurrió un error al guardar. Intenta nuevamente.');
+      setErrorGeneral(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setGuardando(false);
     }

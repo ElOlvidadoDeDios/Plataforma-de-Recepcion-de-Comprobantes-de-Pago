@@ -38,6 +38,7 @@ import { AprobacionCreditosTable, SolicitudCreditoTable  } from './components/ap
 import WhatsAppConversations from './components/whatsapp_conversations/WhatsAppConversations';
 import CumpaSeguro from './components/cumpaseguro/CumpaSeguro';
 import DileScore from './components/dilescore/DileScore';
+import Reportes from './components/Reportes_Bi_2/PowerBiDashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -347,6 +348,16 @@ function App() {
                 <ProtectedRoute>
                   <PermissionProtectedRoute permission="canAccessDileScore">
                     <DileScore />
+                  </PermissionProtectedRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reportes/*"
+              element={
+                <ProtectedRoute>
+                  <PermissionProtectedRoute permission="canAccessReports">
+                    <Reportes />
                   </PermissionProtectedRoute>
                 </ProtectedRoute>
               }

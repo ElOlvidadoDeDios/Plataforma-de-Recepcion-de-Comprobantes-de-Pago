@@ -64,6 +64,8 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         [Permission.CUMPASEGURO_EDIT]: '⚙️ Gestionar CumpaSeguro',
         [Permission.DILESCORE_VIEW]: '📈 Ver DileScore',
         [Permission.DILESCORE_EDIT]: '⚙️ Gestionar DileScore',
+        [Permission.REPORTS_VIEW]: '📊 Ver Reportes',
+        [Permission.REPORTS_EDIT]: '⚙️ Gestionar Reportes',
     };
 
     // // Roles que pueden tener permisos de Culqi
@@ -98,6 +100,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Conversaciones WhatsApp': [Permission.WHATSAPP_CONVERSATIONS_VIEW, Permission.WHATSAPP_CONVERSATIONS_EDIT],
         'CumpaSeguro': [Permission.CUMPASEGURO_VIEW, Permission.CUMPASEGURO_EDIT],
         'DileScore': [Permission.DILESCORE_VIEW, Permission.DILESCORE_EDIT],
+        'Reportes': [Permission.REPORTS_VIEW, Permission.REPORTS_EDIT],
         // // Solo agregar Culqi si el rol tiene acceso
         // ...(rolesConAccesoCulqui.includes(selectedRole) ? {
         //     'Culqi Pendientes': [Permission.CULQI_VIEW, Permission.CULQI_EDIT]
