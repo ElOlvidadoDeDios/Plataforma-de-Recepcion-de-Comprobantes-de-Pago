@@ -1,11 +1,12 @@
-//AgenciaView.tsx
-
+// src/views/AgenciaView.tsx
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Building2, Users, ShieldAlert, RefreshCw, Copy, Download } from 'lucide-react';
 import { Panel } from '../components/Panel';
 import { WorkdayStrip } from '../components/WorkdayStrip';
+import { fetchAgencia } from '../services/colocaciones.service';
+
 
 // ============================================================================
 // HOOKS Y COMPONENTES MAESTROS (DRAG & DROP / EXPORTACIÓN)
@@ -96,14 +97,10 @@ const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, 
 // VISTA PRINCIPAL DE AGENCIA
 // ============================================================================
 export function AgenciaView({ filters }: { filters: any }) {
+  // 🚀 REFACTOR: el endpoint vive ahora en colocacionesService (fetchAgencia)
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['agencia', filters.period], 
-    queryFn: async () => {
-      const params = new URLSearchParams({ periodo: filters.period !== 'Cargando...' ? filters.period : '' });
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/agencia?${params}`);
-      if (!res.ok) throw new Error('Error al cargar datos de la agencia');
-      return res.json();
-    },
+    queryKey: ['agencia', filters.period],
+    queryFn: () => fetchAgencia(filters.period),
     enabled: filters.period !== 'Cargando...',
   });
 
@@ -176,7 +173,7 @@ export function AgenciaView({ filters }: { filters: any }) {
   const totMoraDefAct1 = totales.moraDefActual + (filters.advisor === 'Todos' ? totalesRec.moraDefActual : 0);
 
   const dataT1 = [{
-    agencia: filters.agency === 'Todas' ? 'TODA LA RED' : filters.agency,
+    agencia: filters.agency === 'Todas' ? 'TODA LAS AGENCIAS' : filters.agency,
     crecNeto: totCrecNeto1, colocacion: totales.amountAchieved, repagos: totRepagos1,
     tea: totales.tea, opAchieved: totales.opAchieved, sociosInicio: totales.sociosInicio,
     sociosActual: totales.sociosActual, cartera: totales.cartera, moraCppMax: totMoraCppMax1,
@@ -236,12 +233,13 @@ export function AgenciaView({ filters }: { filters: any }) {
   const t3 = useColumnOrder(defT3.map(c => c.id), 't3', 'recuperador');
 
   // ==========================================
-  // RETORNOS DE CARGA / ERROR 
+  // RETORNOS DE CARGA / ERROR
   // ==========================================
   if (isLoading) return <div className="h-96 animate-pulse rounded-xl bg-muted/50"></div>;
   if (isError || !data) return <div className="text-destructive font-semibold">Error al cargar la información de la agencia.</div>;
 
-  const exportar = (tablaId: 't1'|'t2'|'t3', formato: 'excel' | 'clipboard') => {
+  // 🚀 CAMBIO DE LIBRERÍA: xlsx -> ExcelJS (misma lógica, mismo lugar)
+  const exportar = async (tablaId: 't1'|'t2'|'t3', formato: 'excel' | 'clipboard') => {
     let rawCols: any[] = []; let rowsData: any[] = []; let filename = '';
     if (tablaId === 't1') { rawCols = t1.order.map(id => defT1.find(c => c.id === id)!); rowsData = dataT1; filename = 'Agencia_Completa'; }
     if (tablaId === 't2') { rawCols = t2.order.map(id => defT2.find(c => c.id === id)!); rowsData = comercialFiltered; filename = 'Agencia_Comercial'; }
@@ -254,10 +252,43 @@ export function AgenciaView({ filters }: { filters: any }) {
       const contenido = [headers.join('\t'), ...rows.map(row => row.map(val => (typeof val === 'number' && val % 1 !== 0) ? val.toFixed(4) : val).join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados. Ya puedes pegarlos en Excel o Word.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-      XLSX.writeFile(workbook, `${filename}_${filters.period}.xlsx`);
+      try {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Agencia';
+        workbook.created = new Date();
+
+        const worksheet = workbook.addWorksheet('Data', { views: [{ state: 'frozen', ySplit: 1 }] });
+        worksheet.addRow(headers);
+        rows.forEach((row: any[]) => worksheet.addRow(row));
+
+        // Estilo del encabezado
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
+
+        // Autoajustar ancho de columnas
+        worksheet.columns.forEach((col: any) => {
+          let maxLen = 10;
+          col.eachCell?.({ includeEmpty: false }, (cell: any) => {
+            const len = String(cell.value ?? '').length;
+            if (len > maxLen) maxLen = len;
+          });
+          col.width = maxLen + 4;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}_${filters.period}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        alert('❌ Error al generar el archivo Excel.');
+      }
     }
   };
 

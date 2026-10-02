@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useCombinedPermissions } from '../hooks/useCombinedPermissions';
 import Layout from './Layout';
+import { BarChart3 } from 'lucide-react';
 
 // Funciones para detectar el tipo de dispositivo
 const isMobile = () => window.innerWidth <= 768;
@@ -331,10 +332,14 @@ const Welcome: React.FC = () => {
         icon: '📈'
       }] : []),
       ...(permissions.canAccessReports() ? [{
-        title: 'Reportes',
+        title: 'Reportes Bi',
         description: 'Módulo de reportes y estadísticas',
         onClick: () => navigate('/reportes'),
-        icon: '📊'
+        icon: (
+          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 shadow-md">
+            <BarChart3 color="black" />
+          </div>
+        )
       }] : []),
     ];
 

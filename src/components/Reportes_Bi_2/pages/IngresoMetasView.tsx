@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Save, TrendingUp, Target, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
+import { Save, Target  } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/card';
 import { Button } from '../components/button';
 import { Input } from '../components/input';

@@ -1,13 +1,14 @@
-//ColocacionesView.tsx
-
+// src/views/ColocacionesView.tsx
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Panel } from '../components/Panel';
 import { WorkdayStrip } from '../components/WorkdayStrip';
 import { SectionBand } from '../components/SectionBand';
-import { Users, TrendingUp, RefreshCw, Copy, Download } from 'lucide-react';
-import { money, number } from '../utils/formatters';
+import { Users, RefreshCw, Copy, Download } from 'lucide-react';
+import { number } from '../utils/formatters';
+import { fetchAgencia, fetchDiasLaborales } from '../services/colocaciones.service';
+
 
 // ============================================================================
 // HOOKS Y COMPONENTES MAESTROS DE EXPORTACIÓN Y ARRASTRE
@@ -21,14 +22,14 @@ function useColumnOrder(initialOrder: string[], tableId: string, lockedCol: stri
     e.dataTransfer.setData(`col_id_${tableId}`, id);
     e.dataTransfer.effectAllowed = 'move';
   };
-  
+
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-  
+
   const handleDrop = (e: React.DragEvent, targetId: string) => {
     e.preventDefault();
     const sourceId = e.dataTransfer.getData(`col_id_${tableId}`);
     if (!sourceId || sourceId === targetId || sourceId === lockedCol || targetId === lockedCol) return;
-    
+
     const sourceIndex = order.indexOf(sourceId);
     const targetIndex = order.indexOf(targetId);
     const newOrder = [...order];
@@ -36,7 +37,7 @@ function useColumnOrder(initialOrder: string[], tableId: string, lockedCol: stri
     newOrder.splice(targetIndex, 0, removed);
     setOrder(newOrder);
   };
-  
+
   const resetOrder = () => setOrder(initialOrder);
   return { order, handleDragStart, handleDragOver, handleDrop, resetOrder, isModified, lockedCol };
 }
@@ -62,14 +63,14 @@ const SemiDonut = ({ pct }: { pct: number }) => {
   const radius = 60;
   const circum = Math.PI * radius;
   const boundedPct = Math.min(100, Math.max(0, pct));
-  const dashoffset = circum - (boundedPct / 100) * circum; 
+  const dashoffset = circum - (boundedPct / 100) * circum;
   const strokeColor = pct >= 70 ? "#16a34a" : (pct >= 50 ? "#f59e0b" : "#e11d48");
 
   return (
     <div className="relative flex flex-col items-center pt-2">
       <svg width="200" height="110" viewBox="0 0 150 85" className="overflow-visible">
         <path d="M 15 75 A 60 60 0 0 1 135 75" fill="none" stroke="#f1f5f9" strokeWidth="22" strokeLinecap="butt" />
-        <path d="M 15 75 A 60 60 0 0 1 135 75" fill="none" stroke={strokeColor} strokeWidth="22" strokeLinecap="butt" 
+        <path d="M 15 75 A 60 60 0 0 1 135 75" fill="none" stroke={strokeColor} strokeWidth="22" strokeLinecap="butt"
               strokeDasharray={circum} strokeDashoffset={dashoffset} className="transition-all duration-1000 ease-out" />
       </svg>
       <div className="absolute bottom-1 text-[40px] font-bold tracking-tight text-foreground">{Math.round(pct)}%</div>
@@ -88,24 +89,16 @@ export function ColocacionesView({ filters }: { filters: any }) {
   // ==========================================
   // ZONA 1: TODOS LOS HOOKS (Incondicionales)
   // ==========================================
+  // 🚀 REFACTOR: los endpoints viven ahora en colocacionesService
   const { data: agenciaData, isLoading: loadAgencia, isError: errorAgencia } = useQuery({
     queryKey: ['agencia', filters.period],
-    queryFn: async () => {
-      const params = new URLSearchParams({ periodo: filters.period !== 'Cargando...' ? filters.period : '' });
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/agencia?${params}`);
-      if (!res.ok) throw new Error('Error al cargar agencia');
-      return res.json();
-    },
+    queryFn: () => fetchAgencia(filters.period),
     enabled: filters.period !== 'Cargando...',
   });
 
   const { data: calData, isLoading: loadCal } = useQuery({
     queryKey: ['dias-laborales', filters.period],
-    queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/dias-laborales/${filters.period}`);
-      if (!res.ok) throw new Error('Error al cargar calendario');
-      return res.json();
-    },
+    queryFn: () => fetchDiasLaborales(filters.period),
     enabled: filters.period !== 'Cargando...',
   });
 
@@ -128,27 +121,26 @@ export function ColocacionesView({ filters }: { filters: any }) {
     const dRestantes = Number(dataDias.restantes || 2);
 
     // 2. EL SECRETO DE DAX (AVERAGEX)
-    // Extraemos la fecha de forma incondicional.
     const horaPeru = new Date().toLocaleString("en-US", { timeZone: "America/Lima" });
     const horaActual = new Date(horaPeru).getHours();
     const diasProductividadDAX = horaActual < 19 ? dTranscurridos + 1 : dTranscurridos;
 
-    // 3. LOGRADO Y META 
+    // 3. LOGRADO Y META
     const logrado = comercialFiltered.reduce((acc: number, curr: any) => acc + Number(curr.opAchieved || 0), 0);
-    
+
     // Meta condicional (Agencia vs Asesor individual)
-    const metaGlobal = filters.advisor === 'Todos' 
+    const metaGlobal = filters.advisor === 'Todos'
       ? resumenFiltered.reduce((acc: number, curr: any) => acc + Number(curr.opTarget || 0), 0)
       : comercialFiltered.reduce((acc: number, curr: any) => acc + Number(curr.metaAsesor || 30), 0);
-    
+
     const faltante = Math.max(0, metaGlobal - logrado);
     const cumplimiento = metaGlobal > 0 ? (logrado / metaGlobal) * 100 : 0;
 
-    // 4. PROYECCIÓN DAX 
+    // 4. PROYECCIÓN DAX
     const prodGlobal = diasProductividadDAX > 0 ? (logrado / diasProductividadDAX) : 0;
     const proyRestanteGlobal = Math.round(prodGlobal * dRestantes);
     const proyeccionGlobal = logrado + proyRestanteGlobal;
-    
+
     const proyFaltante = Math.max(0, metaGlobal - proyeccionGlobal);
     const proyCumplimiento = metaGlobal > 0 ? (proyeccionGlobal / metaGlobal) * 100 : 0;
 
@@ -162,7 +154,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
     const tData = comercialFiltered.map((c: any) => {
       const log = Number(c.opAchieved || 0);
       const metAsesor = Number(c.metaAsesor || 30);
-      
+
       const prod = diasProductividadDAX > 0 ? (log / diasProductividadDAX) : 0;
       const proyRestante = Math.round(prod * dRestantes);
       const proyTotalAsesor = log + proyRestante;
@@ -171,8 +163,8 @@ export function ColocacionesView({ filters }: { filters: any }) {
       const faltDia = dRestantes > 0 ? (falt / dRestantes) : 0;
       const faltExigente = Math.ceil(faltDia);
       const pct = metAsesor > 0 ? (proyTotalAsesor / metAsesor) * 100 : 0;
-      
-      let badgeClass = "bg-rose-500/10 text-rose-700 font-semibold"; 
+
+      let badgeClass = "bg-rose-500/10 text-rose-700 font-semibold";
       if (pct >= 100) badgeClass = "bg-emerald-500/20 text-emerald-700 font-bold";
       else if (pct >= 85) badgeClass = "bg-amber-300/20 text-amber-900 font-semibold";
 
@@ -186,10 +178,10 @@ export function ColocacionesView({ filters }: { filters: any }) {
     const t_faltDia = dRestantes > 0 ? Math.max(0, t_met - t_log) / dRestantes : 0;
 
     return {
-      kpis: { 
-        logrado, meta: metaGlobal, faltante, cumplimiento, 
-        proyeccion: proyeccionGlobal, proyFaltante, proyCumplimiento, 
-        credPorDiaHastaFecha, credPorDiaRestantes, credPorDiaReferencia, prodIdeal 
+      kpis: {
+        logrado, meta: metaGlobal, faltante, cumplimiento,
+        proyeccion: proyeccionGlobal, proyFaltante, proyCumplimiento,
+        credPorDiaHastaFecha, credPorDiaRestantes, credPorDiaReferencia, prodIdeal
       },
       tableData: tData,
       totalesTabla: { t_log, t_met, t_proy, t_prod, t_faltDia }
@@ -209,30 +201,63 @@ export function ColocacionesView({ filters }: { filters: any }) {
     { id: 'proy', header: 'Proyección', align: 'right', cell: (r:any) => <span className="font-mono">{r.proy}</span>, raw: (r:any) => r.proy, footer: () => <span className="font-mono">{totalesTabla.t_proy}</span> },
     { id: 'faltDia', header: 'Faltante por Día Restante', align: 'right', cell: (r:any) => <span className="font-mono text-rose-600">{r.faltDia.toFixed(2)}</span>, raw: (r:any) => r.faltDia, footer: () => <span className="font-mono text-rose-600">{totalesTabla.t_faltDia.toFixed(2)}</span> },
     { id: 'faltExigente', header: 'Faltante Exigente / Día', align: 'right', cell: (r:any) => <span className="font-mono font-bold">{r.faltExigente}</span>, raw: (r:any) => r.faltExigente, footer: () => <span className="font-mono">-</span> },
-    { id: 'categoria', header: 'Categoría / Estado', align: 'center', 
+    { id: 'categoria', header: 'Categoría / Estado', align: 'center',
       cell: (r:any) => (
         <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] ${r.badgeClass}`}>
           Proyección: {r.met > 0 ? Math.round((r.proy / r.met) * 100) : 0}%
         </span>
-      ), 
-      raw: (r:any) => r.met > 0 ? (r.proy / r.met) : 0, 
-      footer: () => `${Math.round(kpis.cumplimiento)}% Global` 
+      ),
+      raw: (r:any) => r.met > 0 ? (r.proy / r.met) : 0,
+      footer: () => `${Math.round(kpis.cumplimiento)}% Global`
     }
   ];
 
   const colRender = cTable.order.map(id => defColocaciones.find(c => c.id === id)!);
 
-  const exportar = (formato: 'excel' | 'clipboard') => {
+  const exportar = async (formato: 'excel' | 'clipboard') => {
     const headers = colRender.map(c => c.header);
     const rows = tableData.map((r:any) => colRender.map(col => col.raw(r)));
     if (formato === 'clipboard') {
       const contenido = [headers.join('\t'), ...rows.map((row: any[]) => row.map(val => (typeof val === 'number' && val % 1 !== 0) ? val.toFixed(4) : val).join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Asesores");
-      XLSX.writeFile(workbook, `Desempeño_Asesores_${filters.period}.xlsx`);
+      try {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Colocaciones';
+        workbook.created = new Date();
+
+        const worksheet = workbook.addWorksheet('Asesores', { views: [{ state: 'frozen', ySplit: 1 }] });
+        worksheet.addRow(headers);
+        rows.forEach((row: any[]) => worksheet.addRow(row));
+
+        // Estilo del encabezado
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
+
+        // Autoajustar ancho de columnas
+        worksheet.columns.forEach((col: any) => {
+          let maxLen = 10;
+          col.eachCell?.({ includeEmpty: false }, (cell: any) => {
+            const len = String(cell.value ?? '').length;
+            if (len > maxLen) maxLen = len;
+          });
+          col.width = maxLen + 4;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Desempeño_Asesores_${filters.period}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        alert('❌ Error al generar el archivo Excel.');
+      }
     }
   };
 
@@ -251,7 +276,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
     <div className="space-y-8 animate-in fade-in duration-500">
       <WorkdayStrip periodo={filters.period} />
       <SectionBand tone="coral">A NIVEL DE {filters.advisor !== 'Todos' ? 'ASESOR' : 'AGENCIA'}</SectionBand>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Panel title={filters.advisor !== 'Todos' ? `Hasta Hoy, ¿Cómo Va ${filters.advisor}?` : "Hasta Hoy, ¿Cómo Va mi Agencia?"}>
           <div className="flex flex-col items-center p-2">
@@ -320,9 +345,9 @@ export function ColocacionesView({ filters }: { filters: any }) {
         </div>
       </Panel>
 
-      <Panel 
-        title="Desempeño a Nivel de Asesores" 
-        icon={<Users />} 
+      <Panel
+        title="Desempeño a Nivel de Asesores"
+        icon={<Users />}
         eyebrow={`Productividad ideal: ${kpis.prodIdeal} créditos / día`}
         action={<ExportActions control={cTable} onExport={exportar} />}
       >
@@ -331,7 +356,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
             <thead>
               <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
                 {colRender.map(col => (
-                  <th key={col.id} draggable={col.id !== cTable.lockedCol} onDragStart={(e) => cTable.handleDragStart(e, col.id)} onDragOver={cTable.handleDragOver} onDrop={(e) => cTable.handleDrop(e, col.id)} 
+                  <th key={col.id} draggable={col.id !== cTable.lockedCol} onDragStart={(e) => cTable.handleDragStart(e, col.id)} onDragOver={cTable.handleDragOver} onDrop={(e) => cTable.handleDrop(e, col.id)}
                       className={`px-3 pt-2 pb-2.5 font-semibold transition-colors ${col.id !== cTable.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}>
                     {col.header}
                   </th>

@@ -2,13 +2,15 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
-import { ResponsiveContainer, ComposedChart, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Bar, Line, Legend } from 'recharts';
+import ExcelJS from 'exceljs';
+import { ResponsiveContainer, ComposedChart, Area, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Bar, Line, Legend } from 'recharts';
 import { LineChart, History, RefreshCw, Copy, Download, SlidersHorizontal } from 'lucide-react';
 import { money } from '../utils/formatters';
 import { LoadingState } from '../components/LoadingState';
-import { SectionBand } from '../components/SectionBand';
+
 import { Panel } from '../components/Panel';
+import { fetchEvolucion } from '../services/evolucion.service';
+
 
 // ============================================================================
 // HOOKS MAESTROS DE DRAG & DROP Y EXPORTACIÓN
@@ -29,7 +31,7 @@ function useColumnOrder(initialOrder: string[], tableId: string, lockedCol: stri
   return { order, handleDragStart, handleDragOver, handleDrop, resetOrder: () => setOrder(initialOrder), isModified, lockedCol };
 }
 
-const ExportActions = ({ control, onExport }: { control: any, onExport: (format: 'excel' | 'clipboard') => void }) => (
+const ExportActions = ({ control, onExport }: { control: any, onExport: (format: 'excel' | 'clipboard') => void | Promise<void> }) => (
   <div className="flex items-center gap-2">
     {control.isModified && <button onClick={control.resetOrder} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-muted-foreground shadow-sm transition hover:text-foreground"><RefreshCw size={13} /> Restablecer</button>}
     <button onClick={() => onExport('clipboard')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-muted-foreground shadow-sm transition hover:text-primary hover:border-primary/50"><Copy size={13} /> Copiar</button>
@@ -45,7 +47,7 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
   // ZONA 0: VARIABLES PREVIAS (Para iniciar estados)
   // ==========================================
   const periodosDisponibles = dbFilters?.periodos || [];
-  const defaultEndMonth = periodosDisponibles[0] || '202608';
+  const defaultEndMonth = periodosDisponibles[0];
   const defaultStartMonth = periodosDisponibles.length > 11 ? periodosDisponibles[11] : (periodosDisponibles[periodosDisponibles.length - 1] || '202508');
   const today = new Date().toISOString().split('T')[0];
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -75,12 +77,13 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
 
   const { data: evolucionBD, isLoading, error } = useQuery({
     queryKey: ['evolucion', granularity, agency, advisor, dateRange],
-    queryFn: async () => {
-      const params = new URLSearchParams({ agencia: agency !== 'Todas' ? agency : '', asesor: advisor !== 'Todos' ? advisor : '', granularidad: granularity, desde: dateRange.start, hasta: dateRange.end });
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/evolucion?${params}`);
-      if (!res.ok) throw new Error('Error al cargar historial');
-      return res.json();
-    },
+    queryFn: () => fetchEvolucion({
+      agencia: agency,
+      asesor: advisor,
+      granularidad: granularity,
+      desde: dateRange.start,
+      hasta: dateRange.end
+    }),
     enabled: !!dateRange.start && !!dateRange.end
   });
 
@@ -117,18 +120,57 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
   const colRender = cTable.order.map(id => defCols.find(c => c.id === id)!);
   const chartData = evolucionBD || []; 
 
-  const exportar = (formato: 'excel' | 'clipboard') => {
+  /**
+   * Genera y descarga un archivo .xlsx usando ExcelJS (async, con streaming de buffer)
+   * en vez de la librería `xlsx` (SheetJS), que arrastra vulnerabilidades conocidas.
+   */
+  const descargarExcel = async (filename: string, headers: string[], rows: any[][]) => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Reporte Evolución';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Historial');
+
+    worksheet.addRow(headers);
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    rows.forEach(row => worksheet.addRow(row));
+
+    worksheet.columns.forEach((col, idx) => {
+      const headerLen = String(headers[idx] ?? '').length;
+      const maxDataLen = rows.reduce((max, row) => Math.max(max, String(row[idx] ?? '').length), 0);
+      col.width = Math.min(Math.max(headerLen, maxDataLen) + 3, 40);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportar = async (formato: 'excel' | 'clipboard') => {
     if (chartData.length === 0) return;
     const headers = colRender.map(c => c.header);
     const rows = chartData.map((r:any) => colRender.map(col => col.raw(r)));
+
     if (formato === 'clipboard') {
       const contenido = [headers.join('\t'), ...rows.map((row: any[]) => row.map(val => (typeof val === 'number' && val % 1 !== 0) ? val.toFixed(4) : val).join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Historial");
-      XLSX.writeFile(workbook, `Evolucion_${granularity}_${agency}_${new Date().getTime()}.xlsx`);
+      try {
+        await descargarExcel(`Evolucion_${granularity}_${agency}_${new Date().getTime()}`, headers, rows);
+      } catch (err) {
+        console.error('Error generando el Excel:', err);
+        alert('❌ Ocurrió un error al generar el archivo Excel.');
+      }
     }
   };
 
@@ -180,7 +222,7 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
           <div className="flex flex-col gap-1.5">
             <label className="text-[11px] font-semibold text-muted-foreground">Agencia</label>
             <select value={agency} onChange={e => { setAgency(e.target.value); setAdvisor('Todos'); }} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold">
-              <option value="Todas">Todas la Red</option>
+              <option value="Todas">Todas las agencias</option>
               {['Wanchaq', 'San Jerónimo', 'Quillabamba', 'Sicuani', 'Molino', 'Juliaca', 'Lima Los Olivos', 'Tica Tica', 'Magisterio', 'Lima SJL', 'Chiclayo', 'Arequipa', 'Pucallpa'].map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>

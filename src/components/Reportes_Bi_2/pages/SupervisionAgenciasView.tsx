@@ -11,7 +11,9 @@ import { TableShell } from '../components/TableShell';
 import { StatusCell } from '../components/StatusCell';
 import { WorkdayStrip } from '../components/WorkdayStrip';
 import { RefreshCw, Copy, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { getSupervision } from '../services/supervision.service';
+
 
 // ============================================================================
 // COMPONENTES MAESTROS Y HOOKS (Extraídos para máximo rendimiento)
@@ -86,11 +88,7 @@ export function SupervisionAgenciasView({ navigate, filters }: { navigate: (view
   // ==========================================
   const { data: supervisionBD, isLoading, error } = useQuery({
     queryKey: ['indicadores-supervision', filters.period],
-    queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/supervision/${filters.period}`);
-      if (!res.ok) throw new Error('Error al cargar supervisión');
-      return res.json();
-    },
+    queryFn: () => getSupervision(filters.period),
     enabled: !!filters.period && filters.period !== 'Cargando...'
   });
 
@@ -218,7 +216,8 @@ export function SupervisionAgenciasView({ navigate, filters }: { navigate: (view
   const colRenderT2 = t2.order.map(id => defT2.find(c => c?.id === id)!);
   const colRenderT3 = t3.order.map(id => defT3.find(c => c?.id === id)!);
 
-  const exportarTabla = (tablaId: 't1' | 't2' | 't3', formato: 'excel' | 'clipboard') => {
+  // 🚀 EXPORTACIÓN CON EXCELJS 
+  const exportarTabla = async (tablaId: 't1' | 't2' | 't3', formato: 'excel' | 'clipboard') => {
     let rawCols: any[] = [];
     let rowsData: any[] = [];
     let filename = '';
@@ -235,15 +234,44 @@ export function SupervisionAgenciasView({ navigate, filters }: { navigate: (view
         headers.join('\t'),
         ...rows.map(row => row.map(val => (typeof val === 'number' && val % 1 !== 0) ? val.toFixed(4) : val).join('\t'))
       ].join('\n');
-      
+
       navigator.clipboard.writeText(contenido).then(() => {
         alert('✅ Datos copiados. Ya puedes pegarlos en Excel o Word.');
       });
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Reporte');
+
+      // Cabecera
+      worksheet.addRow(headers);
+      worksheet.getRow(1).font = { bold: true };
+
+      // Filas de datos
+      rows.forEach(row => worksheet.addRow(row));
+
+      // Autoajuste simple de ancho de columnas
+      worksheet.columns.forEach((col, idx) => {
+        const headerLen = String(headers[idx] ?? '').length;
+        const maxDataLen = rows.reduce((max, row) => {
+          const len = String(row[idx] ?? '').length;
+          return len > max ? len : max;
+        }, 0);
+        col.width = Math.min(Math.max(headerLen, maxDataLen) + 2, 40);
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${filename}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
   };
 

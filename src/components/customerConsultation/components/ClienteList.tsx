@@ -4,9 +4,10 @@ interface ClienteListProps {
   clientes: ClienteBasico[];
   clienteSeleccionado: ClienteBasico | null;
   onClienteSelect: (cliente: ClienteBasico) => void;
+  onOpenAhorro: (cliente: ClienteBasico) => void;
 }
 
-const ClienteList = ({ clientes, clienteSeleccionado, onClienteSelect }: ClienteListProps) => {
+const ClienteList = ({ clientes, clienteSeleccionado, onClienteSelect, onOpenAhorro }: ClienteListProps) => {
   if (clientes.length === 0) return null;
 
   return (
@@ -14,9 +15,17 @@ const ClienteList = ({ clientes, clienteSeleccionado, onClienteSelect }: Cliente
       <h2 className="text-lg font-semibold text-cyan-800 mb-4">Resultados de búsqueda</h2>
       <div className="grid gap-3">
         {clientes.map((cliente) => (
-          <button
+          <div
             key={`${cliente.NRO_DI}-${cliente.CUENTA}`}
+            role="button"
+            tabIndex={0}
             onClick={() => onClienteSelect(cliente)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onClienteSelect(cliente);
+              }
+            }}
             className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200
               ${clienteSeleccionado?.NRO_DI === cliente.NRO_DI
                 ? 'border-cyan-500 bg-cyan-50'
@@ -40,7 +49,19 @@ const ClienteList = ({ clientes, clienteSeleccionado, onClienteSelect }: Cliente
                 Créditos cancelados: {cliente.CREDITOS_CANCELADOS}
               </span>
             </div>
-          </button>
+            <div className="mt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenAhorro(cliente);
+                }}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium px-3 py-1.5 rounded-md transition-colors"
+              >
+                Cuentas de ahorro
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </div>

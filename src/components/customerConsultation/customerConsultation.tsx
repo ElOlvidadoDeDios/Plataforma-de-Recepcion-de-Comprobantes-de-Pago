@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ClienteResponse,
   searchClientes,
@@ -19,6 +20,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 
 const Notification=useNotifications();
 const ConsultaClientes = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>(TipoDocumento.DNI);
   const [resultadosBusqueda, setResultadosBusqueda] = useState<ClienteBasico[]>([]);
@@ -135,6 +137,11 @@ const ConsultaClientes = () => {
     }
   };
 
+  const handleOpenAhorro = (cliente: ClienteBasico) => {
+    SessionManager.setItem('clienteAhorroSeleccionado', JSON.stringify(cliente));
+    navigate('/consulta-clientes/cuentas-ahorro');
+  };
+
   // Función para refrescar los datos del cliente actual
   const handleRefreshClientData = async () => {
     if (clienteSeleccionado) {
@@ -187,6 +194,7 @@ const ConsultaClientes = () => {
             clientes={resultadosBusqueda}
             clienteSeleccionado={clienteSeleccionado}
             onClienteSelect={handleClienteSelect}
+            onOpenAhorro={handleOpenAhorro}
           />
         ) : clientData ? (
           <>

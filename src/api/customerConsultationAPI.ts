@@ -424,16 +424,22 @@ export const procesarPayoutKambia = async (
       body: JSON.stringify(payoutData)
     });
 
-    if (!response.ok) {
-      throw new Error(`Error en payout: ${response.status}`);
+    const result = await response.json().catch(() => ({}));
+    const isSuccess = result?.status === true || result?.success === true;
+    const message = result?.message || (isSuccess ? 'Payout procesado exitosamente' : 'Error al procesar el payout');
+
+    if (!response.ok || !isSuccess) {
+      return {
+        status: false,
+        message,
+        data: result?.data
+      };
     }
 
-    const result = await response.json();
-    
     return {
       status: true,
-      message: result.message || 'Payout procesado exitosamente',
-      data: result.data
+      message,
+      data: result?.data ?? result
     };
 
   } catch (error) {

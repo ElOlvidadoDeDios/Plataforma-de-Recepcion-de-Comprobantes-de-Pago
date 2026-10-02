@@ -1,15 +1,16 @@
-//AsesoresView.tsx
-
+// src/views/AsesoresView.tsx
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { Filters } from '../utils/constants';
-import { money, number } from '../utils/formatters';
+import { money } from '../utils/formatters';
 import { LoadingState } from '../components/LoadingState';
 import { SectionBand } from '../components/SectionBand';
 import { Panel } from '../components/Panel';
 import { WorkdayStrip } from '../components/WorkdayStrip';
 import { Users, Clock3, ShieldAlert, RefreshCw, Copy, Download } from 'lucide-react';
+import { fetchAsesores, fetchDiasLaborales } from '../services/asesores.service';
+
 
 // ============================================================================
 // HOOKS Y COMPONENTES MAESTROS (DRAG & DROP / EXPORTACIÓN)
@@ -97,23 +98,16 @@ const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, 
 // VISTA PRINCIPAL DE ASESORES
 // ============================================================================
 export function AsesoresView({ filters }: { filters: Filters }) {
+  // 🚀 REFACTOR: los endpoints viven ahora en asesoresService
   const { data: asesoresBD, isLoading: loadAsesores, error: errAsesores } = useQuery({
     queryKey: ['indicadores-asesores', filters.period],
-    queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/asesores/${filters.period}`);
-      if (!res.ok) throw new Error('Error al cargar asesores');
-      return res.json();
-    },
+    queryFn: () => fetchAsesores(filters.period),
     enabled: !!filters.period && filters.period !== 'Cargando...'
   });
 
   const { data: diasBD, isLoading: loadDias } = useQuery({
     queryKey: ['dias-laborales', filters.period],
-    queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/dias-laborales/${filters.period}`);
-      if (!res.ok) return null;
-      return res.json();
-    },
+    queryFn: () => fetchDiasLaborales(filters.period),
     enabled: !!filters.period && filters.period !== 'Cargando...'
   });
 
@@ -164,7 +158,7 @@ export function AsesoresView({ filters }: { filters: Filters }) {
     asesor: Col('asesor', 'Asesor', r => <span className="font-medium truncate max-w-[150px] block" title={r.asesor}>{r.asesor}</span>, r => r.asesor, () => 'Total', 'left'),
     asesorT3: Col('asesorT3', 'Asesor', r => <span className="font-medium truncate max-w-[150px] block" title={r.asesor}>{r.asesor}</span>, r => r.asesor, () => 'Promedio Ponderado', 'left'),
     asesorT7: Col('asesorT7', 'Asesor', r => <span className="font-medium truncate max-w-[150px] block" title={r.asesor}>{r.asesor}</span>, r => r.asesor, () => 'Total General', 'left'),
-    
+
     cartera: Col('cartera', 'Cartera', r => <span className="font-mono">{money(r.cartera)}</span>, r => r.cartera, () => <span className="font-mono">{money(totales.cartera)}</span>),
     desembolsos: Col('desembolsos', 'Desembolsos', r => <span className="font-mono">{money(r.desembolsos)}</span>, r => r.desembolsos, () => <span className="font-mono">{money(totales.desembolsos)}</span>),
     repagos: Col('repagos', 'Repagos', r => <span className="font-mono">{money(r.repagos)}</span>, r => r.repagos, () => <span className="font-mono">{money(totales.repagos)}</span>),
@@ -221,7 +215,8 @@ export function AsesoresView({ filters }: { filters: Filters }) {
   if (loadAsesores || loadDias || !asesoresBD) return <LoadingState />;
   if (errAsesores) return <div className="p-5 text-destructive font-semibold border border-destructive/20 bg-destructive/10 rounded-xl">Error de conexión al DWH.</div>;
 
-  const exportar = (columnKeys: string[], filename: string, formato: 'excel' | 'clipboard') => {
+  // 🚀 CAMBIO DE LIBRERÍA: xlsx -> ExcelJS (misma lógica, mismo lugar)
+  const exportar = async (columnKeys: string[], filename: string, formato: 'excel' | 'clipboard') => {
     const cols = columnKeys.map(k => dict[k]);
     const headers = cols.map(c => c.header);
     const rows = datosProyectados.map((r:any) => cols.map(col => col.raw(r)));
@@ -229,10 +224,43 @@ export function AsesoresView({ filters }: { filters: Filters }) {
       const contenido = [headers.join('\t'), ...rows.map((row: any) => row.map((val: any) => (typeof val === 'number' && val % 1 !== 0) ? val.toFixed(4) : val).join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
-      XLSX.writeFile(workbook, `${filename}_${filters.period}.xlsx`);
+      try {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Indicadores de Asesores';
+        workbook.created = new Date();
+
+        const worksheet = workbook.addWorksheet('Data', { views: [{ state: 'frozen', ySplit: 1 }] });
+        worksheet.addRow(headers);
+        rows.forEach((row: any[]) => worksheet.addRow(row));
+
+        // Estilo del encabezado
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
+
+        // Autoajustar ancho de columnas
+        worksheet.columns.forEach((col: any) => {
+          let maxLen = 10;
+          col.eachCell?.({ includeEmpty: false }, (cell: any) => {
+            const len = String(cell.value ?? '').length;
+            if (len > maxLen) maxLen = len;
+          });
+          col.width = maxLen + 4;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}_${filters.period}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        alert('❌ Error al generar el archivo Excel.');
+      }
     }
   };
 
@@ -269,14 +297,14 @@ export function AsesoresView({ filters }: { filters: Filters }) {
           <DraggableTable control={t5} columns={t5.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
         </Panel>
 
-        <Panel title="Mora Vencida" icon={< ShieldAlert />} action={<ExportActions control={t6} onExport={(f) => exportar(t6.order, 'Mora_Vencida', f)} />}>
+        <Panel title="Mora Vencida" icon={<ShieldAlert />} action={<ExportActions control={t6} onExport={(f) => exportar(t6.order, 'Mora_Vencida', f)} />}>
           <DraggableTable control={t6} columns={t6.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
         </Panel>
       </div>
 
       {/* 4. RESUMEN DE BONIFICACIÓN */}
       <SectionBand tone="blue">Resumen de Bonificación</SectionBand>
-      <Panel title="Indicadores de Bonificación" icon={< Users />} eyebrow="Bonos condicionados a Candado y Multiplicadores" action={<ExportActions control={t7} onExport={(f) => exportar(t7.order, 'Resumen_Bonificacion', f)} />}>
+      <Panel title="Indicadores de Bonificación" icon={<Users />} eyebrow="Bonos condicionados a Candado y Multiplicadores" action={<ExportActions control={t7} onExport={(f) => exportar(t7.order, 'Resumen_Bonificacion', f)} />}>
         <DraggableTable control={t7} columns={t7.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
       </Panel>
     </div>

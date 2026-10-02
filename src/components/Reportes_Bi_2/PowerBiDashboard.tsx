@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { TooltipProvider } from './components/tooltip'; // Ajusta la ruta si es necesario
 import { Toaster as SonnerToaster, toast } from 'sonner'; // Renombramos para no chocar con react-hot-toast
 import { useLocation, useNavigate } from 'react-router-dom'; // Usamos el router de GeoDile
-import { Activity, Trophy, BarChart3, Building2, CalendarDays, LayoutDashboard, Menu, MoreHorizontal, RefreshCw, Search, SlidersHorizontal, Target, TrendingUp, Users, X, LineChart, Ban, Edit, ArrowLeft } from 'lucide-react';
+import { Activity, Trophy, Building2, CalendarDays, LayoutDashboard, Menu, RefreshCw, Search, SlidersHorizontal, Target, TrendingUp, Users, X, LineChart, Ban, ArrowLeft } from 'lucide-react';
 
 // ==========================================
 // IMPORTACIONES MODULARES (Ajusta las rutas relativas según tu estructura)
@@ -67,8 +67,14 @@ function DashboardContent() {
       return res.json();
     }
   });
+  // periodo actual
+  const getCurrentPeriod = () => {
+    const date = new Date();
 
-  const [filters, setFilters] = useState<Filters>({ period: '202608', agency: 'Todas', advisor: 'Todos', day: 'Hoy' });
+    return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
+  };
+  
+  const [filters, setFilters] = useState<Filters>({ period: getCurrentPeriod(), agency: 'Todas', advisor: 'Todos', day: 'Hoy' });
 
   useEffect(() => {
     if (dbFilters?.periodos?.length > 0 && filters.period === 'Cargando...') {
@@ -195,5 +201,5 @@ function DashboardView({ activeView, filters, navigate, dbFilters }: { activeVie
   if (activeView === 'avance') return <AvanceView dbFilters={dbFilters} />;
   if (activeView === 'ranking') return <RankingView dbFilters={dbFilters} />;
   if (activeView === 'metas') return <IngresoMetasView />;
-  return <GerenciaView navigate={navigate} filters={filters} />; 
+  return <GerenciaView filters={filters} />; 
 }

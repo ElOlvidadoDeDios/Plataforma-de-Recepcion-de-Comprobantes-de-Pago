@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, LabelList } from 'recharts';
-import * as XLSX from 'xlsx';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, LabelList } from 'recharts';
+import ExcelJS from 'exceljs';
 import { Filters } from '../utils/constants';
 import { money, number } from '../utils/formatters';
 import { LoadingState } from '../components/LoadingState';
@@ -11,6 +11,44 @@ import { SectionBand } from '../components/SectionBand';
 import { Panel } from '../components/Panel';
 import { WorkdayStrip } from '../components/WorkdayStrip';
 import { ShieldAlert, TrendingUp, Users, RefreshCw, Copy, Download } from 'lucide-react';
+import { getGestionPreventiva, getProductividadDiaria } from '../services/productividad.service';
+
+
+// ============================================================================
+// HELPER DE EXPORTACIÓN (compartido) — ExcelJS reemplaza a xlsx/SheetJS
+// ============================================================================
+async function exportToExcel(headers: string[], rows: any[][], sheetName: string, filename: string) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(sheetName);
+
+  worksheet.addRow(headers);
+  worksheet.getRow(1).font = { bold: true };
+
+  rows.forEach(row => worksheet.addRow(row));
+
+  worksheet.columns.forEach((col, idx) => {
+    const headerLen = String(headers[idx] ?? '').length;
+    const maxDataLen = rows.reduce((max, row) => {
+      const len = String(row[idx] ?? '').length;
+      return len > max ? len : max;
+    }, 0);
+    col.width = Math.min(Math.max(headerLen, maxDataLen) + 2, 40);
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 // ============================================================================
 // HOOKS Y COMPONENTES MAESTROS DE EXPORTACIÓN Y ARRASTRE
@@ -71,11 +109,7 @@ const COL_PREV = ['agencia', 'socio', 'telefono', 'producto', 'analista', 'fecha
 export function PreventivaView({ filters }: { filters: Filters }) {
   const { data: creditos, isLoading, error } = useQuery({
     queryKey: ['gestion-preventiva'],
-    queryFn: async () => {
-      const res = await fetch('${import.meta.env.VITE_API_REPORTE_URL}/api/gestion-preventiva');
-      if (!res.ok) throw new Error('Error de red');
-      return res.json();
-    }
+    queryFn: getGestionPreventiva
   });
 
   const cPrev = useColumnOrder(COL_PREV, 'prev', 'agencia');
@@ -112,17 +146,14 @@ export function PreventivaView({ filters }: { filters: Filters }) {
 
   const colRender = cPrev.order.map(id => defPrev.find(c => c.id === id)!);
 
-  const exportar = (formato: 'excel' | 'clipboard') => {
+  const exportar = async (formato: 'excel' | 'clipboard') => {
     const headers = colRender.map(c => c.header);
     const rows = datosFiltrados.map((r:any) => colRender.map(col => col.raw(r)));
     if (formato === 'clipboard') {
       const contenido = [headers.join('\t'), ...rows.map((row: any[]) => row.join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Preventiva");
-      XLSX.writeFile(workbook, `Gestion_Preventiva_${filters.period}.xlsx`);
+      await exportToExcel(headers, rows, 'Preventiva', `Gestion_Preventiva_${filters.period}`);
     }
   };
 
@@ -174,12 +205,7 @@ export function PreventivaView({ filters }: { filters: Filters }) {
 export function ProductividadDiaria({ filters }: { filters: Filters }) {
   const { data: diariaBD, isLoading, isError } = useQuery({
     queryKey: ['productividad-diaria', filters.period, filters.day],
-    queryFn: async () => {
-      const params = new URLSearchParams({ day: filters.day || 'Hoy' });
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/diaria/${filters.period}?${params}`);
-      if (!res.ok) throw new Error('Error de red');
-      return res.json();
-    },
+    queryFn: () => getProductividadDiaria(filters.period, filters.day || 'Hoy'),
     enabled: filters.period !== 'Cargando...'
   });
 
@@ -263,17 +289,14 @@ function DailyTable({ title, mode, data, period }: { title: string; mode: 'count
 
   const colRender = cDaily.order.map(id => defDaily.find(c => c.id === id)!);
 
-  const exportar = (formato: 'excel' | 'clipboard') => {
+  const exportar = async (formato: 'excel' | 'clipboard') => {
     const headers = colRender.map(c => c.header);
     const rows = data.map((r:any) => colRender.map(col => col.raw(r)));
     if (formato === 'clipboard') {
       const contenido = [headers.join('\t'), ...rows.map(row => row.map(val => (typeof val === 'number' && val % 1 !== 0) ? val.toFixed(4) : val).join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-      XLSX.writeFile(workbook, `Productividad_${mode}_${period}.xlsx`);
+      await exportToExcel(headers, rows, 'Reporte', `Productividad_${mode}_${period}`);
     }
   };
 
@@ -350,17 +373,14 @@ function AsesoresDiariosTable({ data, period }: { data: any[], period: string })
 
   const colRender = cAsesores.order.map(id => defAsesores.find(c => c.id === id)!);
 
-  const exportar = (formato: 'excel' | 'clipboard') => {
+  const exportar = async (formato: 'excel' | 'clipboard') => {
     const headers = colRender.map(c => c.header);
     const rows = data.map((r:any) => colRender.map(col => col.raw(r)));
     if (formato === 'clipboard') {
       const contenido = [headers.join('\t'), ...rows.map(row => row.join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Asesores");
-      XLSX.writeFile(workbook, `Productividad_Asesores_${period}.xlsx`);
+      await exportToExcel(headers, rows, 'Asesores', `Productividad_Asesores_${period}`);
     }
   };
 

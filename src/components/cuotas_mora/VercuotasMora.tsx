@@ -5,6 +5,7 @@ import { ClienteBasico, ClienteResponse, TipoDocumento, searchClientes, searchCl
 import { SessionManager } from '../../utils/sessionManager';
 import SearchBar from '../customerConsultation/components/SearchBar';
 import { CuotaDto, fetchCuotasPorDNI } from '../../api/pagos_recaudadoresApi';
+import { ModalSubirVouchers } from './components/ModalSubirVouchers';
 
 const VisualizacionCuotas: React.FC = () => {
   // Estados
@@ -16,6 +17,8 @@ const VisualizacionCuotas: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pagarés, setPagarés] = useState<{ [key: string]: CuotaDto[] }>({});
   const [pagareSeleccionado, setPagareSeleccionado] = useState<string | null>(null);
+  const [modalVoucherOpen, setModalVoucherOpen] = useState(false);
+  const [voucherResumen, setVoucherResumen] = useState<{ cantidad: number; total: number } | null>(null);
 
   const Notification = useNotifications();
 
@@ -155,6 +158,16 @@ const VisualizacionCuotas: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOpenVoucherModal = (cantidad: number, total: number) => {
+    setVoucherResumen({ cantidad, total });
+    setModalVoucherOpen(true);
+  };
+
+  const handleCloseVoucherModal = () => {
+    setModalVoucherOpen(false);
+    setVoucherResumen(null);
   };
 
   // Componente lista de pagarés
@@ -307,6 +320,23 @@ const VisualizacionCuotas: React.FC = () => {
             <div><p className="text-gray-600">Mora Total:</p><p className="font-bold">S/ {totalMora.toFixed(2)}</p></div>
             <div><p className="text-gray-600">Total General:</p><p className="font-bold text-lg text-blue-600">S/ {totalGeneral.toFixed(2)}</p></div>
           </div>
+          <button
+            type="button"
+            onClick={() => handleOpenVoucherModal(uniqueCuotas.length, totalGeneral)}
+            className="mt-4 w-full rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 transition-colors"
+          >
+            Subir vouchers
+          </button>
+        </div>
+
+        <div className="hidden md:flex mt-4 items-center justify-end">
+          <button
+            type="button"
+            onClick={() => handleOpenVoucherModal(uniqueCuotas.length, totalGeneral)}
+            className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 transition-colors"
+          >
+            Subir vouchers
+          </button>
         </div>
 
         <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -396,6 +426,21 @@ const VisualizacionCuotas: React.FC = () => {
           <div className="text-center py-8 text-gray-500">
             <p className="text-sm md:text-base">👆 Ingrese DNI, nombre o cuenta para buscar</p>
           </div>
+        )}
+
+        {clientData && pagareSeleccionado && voucherResumen && (
+          <ModalSubirVouchers
+            isOpen={modalVoucherOpen}
+            onClose={handleCloseVoucherModal}
+            dni={clientData.INFO_SOCIO.DATOS_PERSONALES.DNI}
+            nombreSocio={clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO}
+            pagare={pagareSeleccionado}
+            cuotasVencidasCantidad={voucherResumen?.cantidad || 0}
+            cuotasVencidasTotalAPagar={voucherResumen?.total || 0}
+            onSaved={() => {
+              Notification.success('Voucher registrado en comprobantes');
+            }}
+          />
         )}
       </div>
     </Layout>

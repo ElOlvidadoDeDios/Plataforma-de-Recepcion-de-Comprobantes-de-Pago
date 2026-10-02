@@ -1,11 +1,11 @@
-//AvanceView.tsx
-
+// src/views/AvanceView.tsx
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { RefreshCw, Copy, Download, SlidersHorizontal, Activity } from 'lucide-react';
 import { LoadingState } from '../components/LoadingState';
 import { Panel } from '../components/Panel';
+import { fetchAvance } from '../services/avance.service';
 
 // ============================================================================
 // HOOKS MAESTROS DE DRAG & DROP Y EXPORTACIÓN
@@ -49,17 +49,13 @@ export function AvanceView({ dbFilters }: { dbFilters: any }) {
     return Array.from(unique.entries()).map(([valorFiltro, textoVista]) => ({ valorFiltro, textoVista })).sort((a, b) => a.textoVista.localeCompare(b.textoVista));
   }, [dbFilters, agency]);
 
+  // 🚀 REFACTOR: el endpoint vive ahora en avanceService
   const { data: avanceData, isLoading, error } = useQuery({
     queryKey: ['avance', agency, advisor],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        agencia: agency !== 'Todas' ? agency : '',
-        asesor: advisor !== 'Todos' ? advisor : ''
-      });
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/avance?${params}`);
-      if (!res.ok) throw new Error('Error al cargar avance de cartera');
-      return res.json();
-    }
+    queryFn: () => fetchAvance({
+      agencia: agency,
+      asesor: advisor
+    })
   });
 
   const COL_KEYS = ['agencia', 'asesor', 'avanceCartera', 'cuenta', 'pagare', 'socio', 'celular1', 'celular2', 'telefonoFijo1', 'telefonoFijo2'];
@@ -91,7 +87,8 @@ export function AvanceView({ dbFilters }: { dbFilters: any }) {
 
   const colRender = cTable.order.map(id => defCols.find(c => c.id === id)!);
 
-  const exportar = (formato: 'excel' | 'clipboard') => {
+  // 🚀 CAMBIO DE LIBRERÍA: xlsx -> ExcelJS (misma lógica, mismo lugar)
+  const exportar = async (formato: 'excel' | 'clipboard') => {
     if (tableData.length === 0) return;
     const headers = colRender.map(c => c.header);
     const rows = tableData.map((r:any) => colRender.map(col => col.raw(r)));
@@ -99,10 +96,43 @@ export function AvanceView({ dbFilters }: { dbFilters: any }) {
       const contenido = [headers.join('\t'), ...rows.map((row: any[]) => row.join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Avance_Cartera");
-      XLSX.writeFile(workbook, `Avance_Cartera_${agency}_${new Date().getTime()}.xlsx`);
+      try {
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Avance de Cartera';
+        workbook.created = new Date();
+
+        const worksheet = workbook.addWorksheet('Avance_Cartera', { views: [{ state: 'frozen', ySplit: 1 }] });
+        worksheet.addRow(headers);
+        rows.forEach((row: any[]) => worksheet.addRow(row));
+
+        // Estilo del encabezado
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
+
+        // Autoajustar ancho de columnas
+        worksheet.columns.forEach((col: any) => {
+          let maxLen = 10;
+          col.eachCell?.({ includeEmpty: false }, (cell: any) => {
+            const len = String(cell.value ?? '').length;
+            if (len > maxLen) maxLen = len;
+          });
+          col.width = maxLen + 4;
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Avance_Cartera_${agency}_${Date.now()}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch {
+        alert('❌ Error al generar el archivo Excel.');
+      }
     }
   };
 
@@ -117,7 +147,7 @@ export function AvanceView({ dbFilters }: { dbFilters: any }) {
   // ==========================================
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      
+
       {/* PANEL DE FILTROS REDUCIDO (Solo Agencia y Asesor) */}
       <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2 border-b border-border pb-3">
@@ -148,7 +178,7 @@ export function AvanceView({ dbFilters }: { dbFilters: any }) {
             <thead>
               <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
                 {colRender.map(col => (
-                  <th key={col.id} draggable={col.id !== cTable.lockedCol} onDragStart={(e) => cTable.handleDragStart(e, col.id)} onDragOver={cTable.handleDragOver} onDrop={(e) => cTable.handleDrop(e, col.id)} 
+                  <th key={col.id} draggable={col.id !== cTable.lockedCol} onDragStart={(e) => cTable.handleDragStart(e, col.id)} onDragOver={cTable.handleDragOver} onDrop={(e) => cTable.handleDrop(e, col.id)}
                       className={`px-4 pt-3 pb-3 font-semibold transition-colors ${col.id !== cTable.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}>
                     {col.header}
                   </th>

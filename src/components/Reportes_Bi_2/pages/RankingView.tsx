@@ -2,11 +2,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { RefreshCw, Copy, Download, SlidersHorizontal, Trophy } from 'lucide-react';
 import { money } from '../utils/formatters';
 import { LoadingState } from '../components/LoadingState';
 import { Panel } from '../components/Panel';
+import { getRanking } from '../services/ranking.service';
+
 
 // ============================================================================
 // HOOKS MAESTROS DE DRAG & DROP Y EXPORTACIÓN
@@ -51,7 +53,7 @@ export function RankingView({ dbFilters }: { dbFilters: any }) {
   // ZONA 0: VALORES INICIALES
   // ==========================================
   const periodosDisponibles = dbFilters?.periodos || [];
-  const defaultPeriod = periodosDisponibles[0] || '202608';
+  const defaultPeriod = periodosDisponibles[0];
 
   // ==========================================
   // ZONA 1: TODOS LOS HOOKS (Incondicionales)
@@ -83,16 +85,7 @@ export function RankingView({ dbFilters }: { dbFilters: any }) {
 
   const { data: rankingData, isLoading, error } = useQuery({
     queryKey: ['ranking', period, agency, advisor],
-    queryFn: async () => {
-      const params = new URLSearchParams({
-        periodo: period,
-        agencia: agency !== 'Todas' ? agency : '',
-        asesor: advisor !== 'Todos' ? advisor : ''
-      });
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/ranking?${params}`);
-      if (!res.ok) throw new Error('Error al cargar el ranking');
-      return res.json();
-    },
+    queryFn: () => getRanking(period, agency, advisor),
     enabled: !!period
   });
 
@@ -118,18 +111,46 @@ export function RankingView({ dbFilters }: { dbFilters: any }) {
 
   const colRender = cTable.order.map(id => defCols.find(c => c.id === id)!);
 
-  const exportar = (formato: 'excel' | 'clipboard') => {
+  // 🚀 EXPORTACIÓN CON EXCELJS (reemplaza xlsx/SheetJS)
+  const exportar = async (formato: 'excel' | 'clipboard') => {
     if (tableData.length === 0) return;
     const headers = colRender.map(c => c.header);
     const rows = tableData.map((r:any) => colRender.map(col => col.raw(r)));
+
     if (formato === 'clipboard') {
       const contenido = [headers.join('\t'), ...rows.map((row: any[]) => row.join('\t'))].join('\n');
       navigator.clipboard.writeText(contenido).then(() => alert('✅ Datos copiados al portapapeles.'));
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Ranking_Asesores");
-      XLSX.writeFile(workbook, `Ranking_Asesores_${period}_${agency}_${new Date().getTime()}.xlsx`);
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Ranking_Asesores');
+
+      worksheet.addRow(headers);
+      worksheet.getRow(1).font = { bold: true };
+
+      rows.forEach((row: any[]) => worksheet.addRow(row));
+
+      worksheet.columns.forEach((col, idx) => {
+        const headerLen = String(headers[idx] ?? '').length;
+        const maxDataLen = rows.reduce((max: number, row: any[]) => {
+          const len = String(row[idx] ?? '').length;
+          return len > max ? len : max;
+        }, 0);
+        col.width = Math.min(Math.max(headerLen, maxDataLen) + 2, 40);
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Ranking_Asesores_${period}_${agency}_${new Date().getTime()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
   };
 

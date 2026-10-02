@@ -13,6 +13,7 @@ import BotInteractionsPage from './components/BotInteractionsPage';
 import ConsultaCuotasPage from './components/ConsultaCuotasPage';
 import { PaymentsPanel } from './components/pagos/panel-pagos';
 import CustomerConsultation from './components/customerConsultation/customerConsultation';
+import ClienteAhorro from './components/customerConsultation/components/Clienteahorro';
 import HistorialAtencionCreditos from './components/historial_de_Atencion_Creditos/historialAtencionCreditos';
 import GestionMora from './components/gestion_mora/GestionMora';
 import GestionRecuperadoresPage from './components/modulo_recuperadores/gestionrecuperadorepage';
@@ -34,11 +35,12 @@ import HistorialDesembolsos from './components/hIstorial_de_desembolsos/Historia
 import VercuotasMora from './components/cuotas_mora/VercuotasMora';
 import CulquiPendientes from './components/culqi/culqi';
 import SeguimientoDesembolso from './components/desembolsos-fecha-hoy/seguimientoDesembolso';
-import { AprobacionCreditosTable, SolicitudCreditoTable  } from './components/aprobacion_creditos/pages';
+import { AprobacionCreditosTable } from './components/aprobacion_creditos/pages';
 import WhatsAppConversations from './components/whatsapp_conversations/WhatsAppConversations';
 import CumpaSeguro from './components/cumpaseguro/CumpaSeguro';
 import DileScore from './components/dilescore/DileScore';
 import Reportes from './components/Reportes_Bi_2/PowerBiDashboard';
+import SolicitudCreditoSicoop from './components/solicitud_credito_sicoop/solicitud_credito';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -187,6 +189,16 @@ function App() {
                 }
               />
               <Route
+                path="/consulta-clientes/cuentas-ahorro"
+                element={
+                  <ProtectedRoute>
+                    <PermissionProtectedRoute permission="canAccessConsultaSocios">
+                      <ClienteAhorro />
+                    </PermissionProtectedRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/cronograma/:id"
                 element={
                   <ProtectedRoute>
@@ -317,7 +329,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PermissionProtectedRoute permission="canViewCreditRequest">
-                    <SolicitudCreditoTable />
+                    <SolicitudCreditoSicoop />
                   </PermissionProtectedRoute>
                 </ProtectedRoute>
               }

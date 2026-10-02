@@ -4,15 +4,16 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Line, Legend, Area, Cell } from 'recharts';
 import { TrendingUp, Target, Building2, AlertTriangle, RefreshCw, Copy, Download } from 'lucide-react';
-import * as XLSX from 'xlsx';
-
-import { Filters, View } from '../utils/constants';
+import ExcelJS from 'exceljs';
+import { Filters } from '../utils/constants';
 import { money } from '../utils/formatters';
 import { LoadingState } from '../components/LoadingState';
 import { SectionBand } from '../components/SectionBand';
 import { Panel } from '../components/Panel';
 import { KpiCard } from '../components/KpiCard';
 import { WorkdayStrip } from '../components/WorkdayStrip';
+import { fetchIndicadoresGerencia } from '../services/indicadoresgerencia.service';
+
 
 // ============================================================================
 // COMPONENTES MAESTROS Y HOOKS (Extraídos para máximo rendimiento)
@@ -86,7 +87,7 @@ function useColumnOrder(initialOrder: string[]) {
 }
 
 // 🚀 AHORA ES UN COMPONENTE PURO FUERA DE GERENCIAVIEW
-const ExportActions = ({ onExport, extraAction }: { onExport: (format: 'excel' | 'clipboard') => void, extraAction?: React.ReactNode }) => (
+const ExportActions = ({ onExport, extraAction }: { onExport: (format: 'excel' | 'clipboard') => void | Promise<void>, extraAction?: React.ReactNode }) => (
   <div className="flex items-center gap-2">
     {extraAction}
     <button onClick={() => onExport('clipboard')} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-[11px] font-semibold text-muted-foreground shadow-sm transition hover:text-primary hover:border-primary/50" title="Copiar al portapapeles">
@@ -101,7 +102,7 @@ const ExportActions = ({ onExport, extraAction }: { onExport: (format: 'excel' |
 // ============================================================================
 // VISTA PRINCIPAL
 // ============================================================================
-export function GerenciaView({ navigate, filters }: { navigate: (view: View) => void; filters: Filters }) {
+export function GerenciaView({ filters }: { filters: Filters }) {
   // ==========================================
   // ZONA 1: TODOS LOS HOOKS (Incondicionales)
   // ==========================================
@@ -110,11 +111,7 @@ export function GerenciaView({ navigate, filters }: { navigate: (view: View) => 
 
   const { data: indicadoresBD, isLoading, error } = useQuery({
     queryKey: ['indicadores-gerencia', filters.period],
-    queryFn: async () => {
-      const res = await fetch(`${import.meta.env.VITE_API_REPORTE_URL}/api/indicadores-gerencia/${filters.period}`);
-      if (!res.ok) throw new Error('Error al cargar indicadores');
-      return res.json();
-    },
+    queryFn: () => fetchIndicadoresGerencia(filters.period),
     enabled: !!filters.period && filters.period !== 'Cargando...'
   });
 
@@ -192,7 +189,44 @@ export function GerenciaView({ navigate, filters }: { navigate: (view: View) => 
 
   const columnasRender = order.map(id => defColumnasComercial.find(c => c.id === id)!);
 
-  const exportarTabla = (tablaId: 'matriz' | 'cantidad' | 'monto' | 'mora', formato: 'excel' | 'clipboard') => {
+  /**
+   * Genera y descarga un archivo .xlsx usando ExcelJS (async, con streaming de buffer)
+   * en vez de la librería `xlsx` (SheetJS), que arrastra vulnerabilidades conocidas.
+   */
+  const descargarExcel = async (filename: string, headers: string[], rows: any[][]) => {
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Reporte Gerencia';
+    workbook.created = new Date();
+
+    const worksheet = workbook.addWorksheet('Reporte');
+
+    worksheet.addRow(headers);
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    rows.forEach(row => worksheet.addRow(row));
+
+    // Autoajuste simple de ancho de columnas
+    worksheet.columns.forEach((col, idx) => {
+      const headerLen = String(headers[idx] ?? '').length;
+      const maxDataLen = rows.reduce((max, row) => Math.max(max, String(row[idx] ?? '').length), 0);
+      col.width = Math.min(Math.max(headerLen, maxDataLen) + 3, 40);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportarTabla = async (tablaId: 'matriz' | 'cantidad' | 'monto' | 'mora', formato: 'excel' | 'clipboard') => {
     let headers: string[] = [];
     let rows: any[][] = [];
     let filename = `Reporte_${tablaId}_${filters.period}`;
@@ -250,10 +284,12 @@ export function GerenciaView({ navigate, filters }: { navigate: (view: View) => 
         alert('✅ Datos copiados al portapapeles. Ya puedes pegarlos en Excel o Word.');
       });
     } else {
-      const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte");
-      XLSX.writeFile(workbook, `${filename}.xlsx`);
+      try {
+        await descargarExcel(filename, headers, rows);
+      } catch (err) {
+        console.error('Error generando el Excel:', err);
+        alert('❌ Ocurrió un error al generar el archivo Excel.');
+      }
     }
   };
 
@@ -495,7 +531,7 @@ export function GerenciaView({ navigate, filters }: { navigate: (view: View) => 
                     <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
                     <XAxis dataKey="agency" tick={{ fontSize: 9 }} angle={-45} textAnchor="end" interval={0} />
                     <YAxis tickFormatter={v => `${v / 1000}k`} tick={{ fontSize: 9 }} />
-                    <Tooltip formatter={(v: number) => money(v)} />
+                    <Tooltip formatter={(v: any) => typeof v === 'number' ? money(v) : v} />
                     <Bar dataKey="amountAchieved" radius={[2, 2, 0, 0]}>
                       {todasComercial.map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={getBarColor(entry.agency, '#0369a1')} />
@@ -572,7 +608,7 @@ export function GerenciaView({ navigate, filters }: { navigate: (view: View) => 
                 <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
                 <XAxis dataKey="agency" tick={{ fontSize: 9 }} angle={-45} textAnchor="end" interval={0} />
                 <YAxis tickFormatter={v => `${v}%`} tick={{ fontSize: 9 }} />
-                <Tooltip formatter={(v: number) => `${v}%`} />
+                <Tooltip formatter={(v) => v !== undefined ? `${v}%` : ''} />
                 <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                 <Line type="monotone" dataKey="meta" name="Meta 10%" stroke="#dc2626" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
                 <Area 

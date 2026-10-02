@@ -606,10 +606,10 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       const response = await procesarPayoutKambia(payoutData);
 
       if (response.status) {
-        setNotificationMessage('Payout procesado exitosamente');
+        setNotificationMessage(response.message || 'Payout procesado exitosamente');
         setShowNotificationModal(true);
       } else {
-        setNotificationMessage(`Error al procesar payout: ${response.message}`);
+        setNotificationMessage(response.message || 'Error al procesar payout');
         setShowNotificationModal(true);
       }
     } catch (error) {
