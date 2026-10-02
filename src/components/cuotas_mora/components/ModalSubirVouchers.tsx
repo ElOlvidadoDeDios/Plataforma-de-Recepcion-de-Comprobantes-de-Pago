@@ -5,6 +5,7 @@ import {
   createComprobantePago,
   uploadVoucherFilesToCloud,
 } from '../../../api/cuotasMoraApi';
+import { getCuotasMoraPayloadMetadata } from '../services/cuotasMoraMetadata.service';
 
 interface VoucherFileItem {
   id: string;
@@ -113,10 +114,12 @@ export function ModalSubirVouchers({
       );
 
       const { fecha, hora } = formatLocalDate();
+      const metadata = await getCuotasMoraPayloadMetadata(dni, pagare);
       const comprobantebase_64 = urls.map((ruta, index) => ({
         ruta,
         _id: `${pagare}-${Date.now()}-${index}`,
         estado: 'pendiente' as const,
+        origen: '',
       }));
 
       const result = await createComprobantePago({
@@ -125,12 +128,15 @@ export function ModalSubirVouchers({
         cuotaSeleccionada: 'Todas las cuotas',
         cuotasVencidasCantidad: String(cuotasVencidasCantidad),
         cuotasVencidasTotalAPagar: String(totalEstimado.toFixed(2)),
+        IDAnalistaActual: metadata.IDAnalistaActual,
+        agencia: metadata.agencia,
+        numero_cel: metadata.numero_cel,
+        canalPago: 'canal3',
         comprobantebase_64,
         nombreSocio,
         estadoGeneral: 'pendiente',
         fecha,
         hora,
-        origen: 'ver-cuotas-mora',
       });
 
       Notification.success(result?.message || 'Voucher guardado correctamente');

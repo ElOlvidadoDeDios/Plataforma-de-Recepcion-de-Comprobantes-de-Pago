@@ -2,7 +2,7 @@ import { SessionManager } from '../utils/sessionManager';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const UPLOAD_API_URL =
-  import.meta.env.VITE_UPLOAD_API_URL
+  import.meta.env.VITE_API_BASE_URL_GEODILE
 
 export interface CreateComprobantePayload {
   dni: string;
@@ -10,11 +10,15 @@ export interface CreateComprobantePayload {
   cuotaSeleccionada: string;
   cuotasVencidasCantidad: string;
   cuotasVencidasTotalAPagar: string;
+  IDAnalistaActual: string;
+  agencia: string;
+  numero_cel: string;
+  canalPago: string;
   comprobantebase_64: Array<{
     ruta: string;
     _id: string;
     estado: 'pendiente' | 'aceptado' | 'rechazado';
-    motivo_rechazo?: string;
+    origen?: string;
     banco?: string;
     fecha_voucher?: string;
     fechamodificacion?: string;
@@ -24,13 +28,11 @@ export interface CreateComprobantePayload {
     nro_banco?: string;
     tipoOperacion?: string;
     user_caja?: string;
-    origen?: string;
   }>;
   nombreSocio: string;
   estadoGeneral?: 'pendiente' | 'parcial' | 'atendido';
   fecha: string;
   hora: string;
-  origen?: string;
 }
 
 interface VoucherUploadResponse {
