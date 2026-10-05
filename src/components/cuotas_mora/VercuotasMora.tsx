@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useRef } from 'react';
 import Layout from '../Layout';
 import { useNotifications } from '../../hooks/useNotifications';
 import { ClienteBasico, ClienteResponse, TipoDocumento, searchClientes, searchClientesByDNI } from '../../api/customerConsultationAPI';
@@ -10,6 +10,9 @@ import { ModalSubirVouchers } from './components/ModalSubirVouchers';
 const VisualizacionCuotas: React.FC = () => {
   // Estados
   const [searchQuery, setSearchQuery] = useState('');
+  const [submittedQuery, setSubmittedQuery] = useState('');
+  const [hasSubmittedSearch, setHasSubmittedSearch] = useState(false);
+  const [searchRequestId, setSearchRequestId] = useState(0);
   const [tipoDocumento, setTipoDocumento] = useState<TipoDocumento>(TipoDocumento.DNI);
   const [resultadosBusqueda, setResultadosBusqueda] = useState<ClienteBasico[]>([]);
   const [, setClienteSeleccionado] = useState<ClienteBasico | null>(null);
@@ -18,9 +21,23 @@ const VisualizacionCuotas: React.FC = () => {
   const [pagarés, setPagarés] = useState<{ [key: string]: CuotaDto[] }>({});
   const [pagareSeleccionado, setPagareSeleccionado] = useState<string | null>(null);
   const [modalVoucherOpen, setModalVoucherOpen] = useState(false);
-  const [voucherResumen, setVoucherResumen] = useState<{ cantidad: number; total: number } | null>(null);
+  const [voucherContext, setVoucherContext] = useState<{
+    dni: string;
+    nombreSocio: string;
+    pagare: string;
+    cantidad: number;
+    total: number;
+  } | null>(null);
+  const latestRequestIdRef = useRef(0);
 
   const Notification = useNotifications();
+
+  const nextRequestId = (): number => {
+    latestRequestIdRef.current += 1;
+    return latestRequestIdRef.current;
+  };
+
+  const isLatestRequest = (requestId: number): boolean => latestRequestIdRef.current === requestId;
 
   const clearClienteData = () => {
     setClienteSeleccionado(null);
@@ -28,8 +45,34 @@ const VisualizacionCuotas: React.FC = () => {
     setPagarés({});
     setPagareSeleccionado(null);
     setModalVoucherOpen(false);
-    setVoucherResumen(null);
+    setVoucherContext(null);
     SessionManager.removeItem('clienteSeleccionado_vista');
+  };
+
+  const handleBuscar = () => {
+    const normalizedQuery = searchQuery.trim();
+
+    if (tipoDocumento === TipoDocumento.DNI) {
+      if (!/^\d{8}$/.test(normalizedQuery)) {
+        Notification.warning('Ingrese un DNI válido de 8 dígitos');
+        return;
+      }
+    } else if (normalizedQuery.length < 3) {
+      Notification.warning('Ingrese al menos 3 caracteres para buscar');
+      return;
+    }
+
+    setHasSubmittedSearch(true);
+    setSubmittedQuery(normalizedQuery);
+    setSearchRequestId((prev) => prev + 1);
+  };
+
+  const handleLimpiarBusqueda = () => {
+    setSearchQuery('');
+    setSubmittedQuery('');
+    setHasSubmittedSearch(false);
+    setResultadosBusqueda([]);
+    clearClienteData();
   };
 
   // Limpiar pagarés
@@ -67,6 +110,7 @@ const VisualizacionCuotas: React.FC = () => {
   // Cargar datos guardados
   useEffect(() => {
     const loadSavedData = async () => {
+      const requestId = nextRequestId();
       const savedCliente = SessionManager.getItem('clienteSeleccionado_vista');
       if (!savedCliente) return;
       const cliente = JSON.parse(savedCliente);
@@ -74,9 +118,11 @@ const VisualizacionCuotas: React.FC = () => {
       try {
         setIsLoading(true);
         const detalleCliente = await searchClientesByDNI(cliente.NRO_DI);
+        if (!isLatestRequest(requestId)) return;
         if (detalleCliente?.INFO_SOCIO) {
           setClientData(detalleCliente);
           const cuotasRaw = await fetchCuotasPorDNI(cliente.NRO_DI);
+          if (!isLatestRequest(requestId)) return;
           const cuotasLimpias = cleanPagarés(cuotasRaw);
           setPagarés(cuotasLimpias);
           if (Object.keys(cuotasLimpias).length > 0) {
@@ -84,32 +130,35 @@ const VisualizacionCuotas: React.FC = () => {
           }
         }
       } catch (error) {
-        Notification.error('Error al cargar datos guardados');
+        if (isLatestRequest(requestId)) {
+          Notification.error('Error al cargar datos guardados');
+        }
       } finally {
-        setIsLoading(false);
+        if (isLatestRequest(requestId)) {
+          setIsLoading(false);
+        }
       }
     };
     loadSavedData();
   }, []);
 
-  // Búsqueda de clientes
+  // Búsqueda de clientes (manual con botón Buscar)
   useEffect(() => {
-    const controller = new AbortController();
-    const searchTimeout = setTimeout(async () => {
-      if (searchQuery.length < 3) {
-        setResultadosBusqueda([]);
-        clearClienteData();
-        return;
-      }
+    if (!hasSubmittedSearch) return;
 
+    const controller = new AbortController();
+
+    const runSearch = async () => {
       // Limpiar completamente datos previos al iniciar una nueva búsqueda
       setResultadosBusqueda([]);
       clearClienteData();
 
+      const requestId = nextRequestId();
       setIsLoading(true);
       try {
-        if (tipoDocumento === TipoDocumento.DNI && /^\d{8}$/.test(searchQuery.trim())) {
-          const detalleCliente = await searchClientesByDNI(searchQuery.trim());
+        if (tipoDocumento === TipoDocumento.DNI && /^\d{8}$/.test(submittedQuery)) {
+          const detalleCliente = await searchClientesByDNI(submittedQuery);
+          if (!isLatestRequest(requestId)) return;
           if (detalleCliente?.INFO_SOCIO) {
             const clienteBasico = {
               NRO_DI: detalleCliente.INFO_SOCIO.DATOS_PERSONALES.DNI,
@@ -118,7 +167,8 @@ const VisualizacionCuotas: React.FC = () => {
             setClienteSeleccionado(clienteBasico);
             setClientData(detalleCliente);
             SessionManager.setItem('clienteSeleccionado_vista', JSON.stringify(clienteBasico));
-            const cuotasRaw = await fetchCuotasPorDNI(searchQuery.trim());
+            const cuotasRaw = await fetchCuotasPorDNI(submittedQuery);
+            if (!isLatestRequest(requestId)) return;
             const cuotasLimpias = cleanPagarés(cuotasRaw);
             setPagarés(cuotasLimpias);
             if (Object.keys(cuotasLimpias).length > 0) {
@@ -131,14 +181,16 @@ const VisualizacionCuotas: React.FC = () => {
             Notification.warning('Socio no encontrado');
           }
         } else if (tipoDocumento === TipoDocumento.NOMBRE) {
-          const result = await searchClientes(TipoDocumento.NOMBRE, searchQuery, controller.signal);
+          const result = await searchClientes(TipoDocumento.NOMBRE, submittedQuery, controller.signal);
+          if (!isLatestRequest(requestId)) return;
           setResultadosBusqueda(result?.data || []);
           if (result?.data?.length === 0) {
             clearClienteData();
             Notification.info('Socio no encontrado');
           }
         } else if (tipoDocumento === TipoDocumento.CUENTA) {
-          const result = await searchClientes(TipoDocumento.CUENTA, searchQuery, controller.signal);
+          const result = await searchClientes(TipoDocumento.CUENTA, submittedQuery, controller.signal);
+          if (!isLatestRequest(requestId)) return;
           setResultadosBusqueda(result?.data || []);
           if (result?.data?.length === 0) {
             clearClienteData();
@@ -146,7 +198,7 @@ const VisualizacionCuotas: React.FC = () => {
           }
         }
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && isLatestRequest(requestId)) {
           const status =
             (error as { response?: { status?: number }; status?: number })?.response?.status ||
             (error as { status?: number })?.status;
@@ -158,26 +210,33 @@ const VisualizacionCuotas: React.FC = () => {
           }
         }
       } finally {
-        setIsLoading(false);
+        if (isLatestRequest(requestId)) {
+          setIsLoading(false);
+        }
       }
-    }, 500);
+    };
+
+    runSearch();
+
     return () => {
       controller.abort();
-      clearTimeout(searchTimeout);
     };
-  }, [searchQuery, tipoDocumento]);
+  }, [searchRequestId]);
 
   // Handler selección de cliente
   const handleClienteSelect = async (cliente: ClienteBasico) => {
+    const requestId = nextRequestId();
     setIsLoading(true);
     try {
       setClienteSeleccionado(cliente);
       setResultadosBusqueda([]);
       SessionManager.setItem('clienteSeleccionado_vista', JSON.stringify(cliente));
       const detalleCliente = await searchClientesByDNI(cliente.NRO_DI);
+      if (!isLatestRequest(requestId)) return;
       if (detalleCliente?.INFO_SOCIO) {
         setClientData(detalleCliente);
         const cuotasRaw = await fetchCuotasPorDNI(cliente.NRO_DI);
+        if (!isLatestRequest(requestId)) return;
         const cuotasLimpias = cleanPagarés(cuotasRaw);
         setPagarés(cuotasLimpias);
         if (Object.keys(cuotasLimpias).length > 0) {
@@ -187,20 +246,36 @@ const VisualizacionCuotas: React.FC = () => {
         }
       }
     } catch (error) {
-      Notification.error('Error al consultar cliente');
+      if (isLatestRequest(requestId)) {
+        Notification.error('Error al consultar cliente');
+      }
     } finally {
-      setIsLoading(false);
+      if (isLatestRequest(requestId)) {
+        setIsLoading(false);
+      }
     }
   };
 
   const handleOpenVoucherModal = (cantidad: number, total: number) => {
-    setVoucherResumen({ cantidad, total });
+    if (!clientData || !pagareSeleccionado) {
+      Notification.warning('No se pudo identificar el crédito para subir vouchers');
+      return;
+    }
+
+    // Congela el contexto al abrir el modal para evitar mezcla por cambios async posteriores.
+    setVoucherContext({
+      dni: clientData.INFO_SOCIO.DATOS_PERSONALES.DNI,
+      nombreSocio: clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO,
+      pagare: pagareSeleccionado,
+      cantidad,
+      total,
+    });
     setModalVoucherOpen(true);
   };
 
   const handleCloseVoucherModal = () => {
     setModalVoucherOpen(false);
-    setVoucherResumen(null);
+    setVoucherContext(null);
   };
 
   // Componente lista de pagarés
@@ -398,6 +473,23 @@ const VisualizacionCuotas: React.FC = () => {
             onSearchChange={setSearchQuery}
             onTipoDocumentoChange={setTipoDocumento}
           />
+          <div className="mt-3 flex flex-wrap gap-2 justify-end">
+            <button
+              type="button"
+              onClick={handleLimpiarBusqueda}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              Limpiar
+            </button>
+            <button
+              type="button"
+              onClick={handleBuscar}
+              disabled={isLoading}
+              className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700 transition-colors disabled:bg-cyan-300"
+            >
+              {isLoading ? 'Buscando...' : 'Buscar'}
+            </button>
+          </div>
         </div>
 
         {isLoading && !clientData ? (
@@ -450,9 +542,9 @@ const VisualizacionCuotas: React.FC = () => {
               </div>
             )}
           </div>
-        ) : searchQuery.length >= 3 ? (
+        ) : hasSubmittedSearch ? (
           <div className="text-center py-8 text-gray-500">
-            <p className="text-sm md:text-base">Sin resultados para: "<strong>{searchQuery}</strong>"</p>
+            <p className="text-sm md:text-base">Sin resultados para: "<strong>{submittedQuery}</strong>"</p>
             <p className="text-xs md:text-sm mt-2">Verifique el DNI o nombre</p>
           </div>
         ) : (
@@ -461,15 +553,16 @@ const VisualizacionCuotas: React.FC = () => {
           </div>
         )}
 
-        {clientData && pagareSeleccionado && voucherResumen && (
+        {modalVoucherOpen && voucherContext && (
           <ModalSubirVouchers
+            key={`${voucherContext.dni}-${voucherContext.pagare}`}
             isOpen={modalVoucherOpen}
             onClose={handleCloseVoucherModal}
-            dni={clientData.INFO_SOCIO.DATOS_PERSONALES.DNI}
-            nombreSocio={clientData.INFO_SOCIO.DATOS_PERSONALES.NOMBRE_COMPLETO}
-            pagare={pagareSeleccionado}
-            cuotasVencidasCantidad={voucherResumen?.cantidad || 0}
-            cuotasVencidasTotalAPagar={voucherResumen?.total || 0}
+            dni={voucherContext.dni}
+            nombreSocio={voucherContext.nombreSocio}
+            pagare={voucherContext.pagare}
+            cuotasVencidasCantidad={voucherContext.cantidad}
+            cuotasVencidasTotalAPagar={voucherContext.total}
             onSaved={() => {
               Notification.success('Voucher registrado en comprobantes');
             }}

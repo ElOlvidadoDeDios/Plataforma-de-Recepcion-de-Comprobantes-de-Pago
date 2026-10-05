@@ -1,10 +1,11 @@
-import { ReactElement, useEffect, useMemo, useState } from 'react';
+import { ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useNotifications } from '../../../hooks/useNotifications';
 import {
   createComprobantePago,
   uploadVoucherFilesToCloud,
 } from '../../../api/cuotasMoraApi';
+import { CuotaDto, fetchCuotasPorDNI } from '../../../api/pagos_recaudadoresApi';
 import { getCuotasMoraPayloadMetadata } from '../services/cuotasMoraMetadata.service';
 
 interface VoucherFileItem {
@@ -39,6 +40,25 @@ const formatLocalDate = () => {
   };
 };
 
+const getCuotasUnicasPorPagare = (
+  rawPagares: { [key: string]: CuotaDto[] },
+  pagareObjetivo: string,
+): CuotaDto[] => {
+  const pagareNormalizado = pagareObjetivo.trim();
+  const cuotasCrudas = Object.values(rawPagares)
+    .flat()
+    .filter((cuota) => cuota.Pagare?.trim() === pagareNormalizado);
+
+  const seen = new Set<string>();
+  return cuotasCrudas.filter((cuota) => {
+    if (cuota.NumeroCuota == null || cuota.TotalCuota == null) return false;
+    const key = `${cuota.Pagare?.trim()}-${cuota.NumeroCuota}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 export function ModalSubirVouchers({
   isOpen,
   onClose,
@@ -52,6 +72,11 @@ export function ModalSubirVouchers({
   const Notification = useNotifications();
   const [files, setFiles] = useState<VoucherFileItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const filesRef = useRef<VoucherFileItem[]>([]);
+
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -63,9 +88,9 @@ export function ModalSubirVouchers({
 
   useEffect(() => {
     return () => {
-      files.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      filesRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
     };
-  }, [files]);
+  }, []);
 
   const totalEstimado = useMemo(
     () => cuotasVencidasTotalAPagar || 0,
@@ -107,6 +132,31 @@ export function ModalSubirVouchers({
     setIsUploading(true);
 
     try {
+      const cuotasActualesRaw = await fetchCuotasPorDNI(dni);
+      const cuotasDelPagareActual = getCuotasUnicasPorPagare(cuotasActualesRaw, pagare);
+
+      if (cuotasDelPagareActual.length === 0) {
+        Notification.error('El pagare seleccionado ya no coincide con el socio actual. Refresca la busqueda antes de subir vouchers.');
+        return;
+      }
+
+      const cantidadActual = cuotasDelPagareActual.length;
+      if (cantidadActual !== cuotasVencidasCantidad) {
+        Notification.warning('La cantidad de cuotas del credito cambió. Vuelve a buscar y abre nuevamente el modal para evitar enviar datos cruzados.');
+        return;
+      }
+
+      const totalActual = cuotasDelPagareActual.reduce(
+        (sum, cuota) => sum + (cuota.TotalCuota || 0),
+        0,
+      );
+
+      const diferenciaTotal = Math.abs(totalActual - totalEstimado);
+      if (diferenciaTotal > 0.05) {
+        Notification.warning('La informacion de cuotas cambio mientras estabas en el modal. Vuelve a buscar y abre de nuevo el voucher para evitar mezcla de datos.');
+        return;
+      }
+
       const urls = await uploadVoucherFilesToCloud(
         files.map((item) => item.file),
         dni,
