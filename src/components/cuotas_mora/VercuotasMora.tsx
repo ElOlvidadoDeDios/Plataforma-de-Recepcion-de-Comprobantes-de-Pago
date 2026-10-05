@@ -22,6 +22,16 @@ const VisualizacionCuotas: React.FC = () => {
 
   const Notification = useNotifications();
 
+  const clearClienteData = () => {
+    setClienteSeleccionado(null);
+    setClientData(null);
+    setPagarés({});
+    setPagareSeleccionado(null);
+    setModalVoucherOpen(false);
+    setVoucherResumen(null);
+    SessionManager.removeItem('clienteSeleccionado_vista');
+  };
+
   // Limpiar pagarés
   const cleanPagarés = (rawPagarés: { [key: string]: CuotaDto[] }) => {
     const cleaned: { [key: string]: CuotaDto[] } = {};
@@ -88,8 +98,14 @@ const VisualizacionCuotas: React.FC = () => {
     const searchTimeout = setTimeout(async () => {
       if (searchQuery.length < 3) {
         setResultadosBusqueda([]);
+        clearClienteData();
         return;
       }
+
+      // Limpiar completamente datos previos al iniciar una nueva búsqueda
+      setResultadosBusqueda([]);
+      clearClienteData();
+
       setIsLoading(true);
       try {
         if (tipoDocumento === TipoDocumento.DNI && /^\d{8}$/.test(searchQuery.trim())) {
@@ -111,19 +127,36 @@ const VisualizacionCuotas: React.FC = () => {
               Notification.info('No hay cuotas asociadas a este socio');
             }
           } else {
+            clearClienteData();
             Notification.warning('Socio no encontrado');
           }
         } else if (tipoDocumento === TipoDocumento.NOMBRE) {
           const result = await searchClientes(TipoDocumento.NOMBRE, searchQuery, controller.signal);
           setResultadosBusqueda(result?.data || []);
-          if (result?.data?.length === 0) Notification.info('Sin resultados');
+          if (result?.data?.length === 0) {
+            clearClienteData();
+            Notification.info('Socio no encontrado');
+          }
         } else if (tipoDocumento === TipoDocumento.CUENTA) {
           const result = await searchClientes(TipoDocumento.CUENTA, searchQuery, controller.signal);
           setResultadosBusqueda(result?.data || []);
-          if (result?.data?.length === 0) Notification.info('Sin resultados para la cuenta');
+          if (result?.data?.length === 0) {
+            clearClienteData();
+            Notification.info('Socio no encontrado para la cuenta ingresada');
+          }
         }
       } catch (error) {
-        if (!controller.signal.aborted) Notification.error('Error en búsqueda');
+        if (!controller.signal.aborted) {
+          const status =
+            (error as { response?: { status?: number }; status?: number })?.response?.status ||
+            (error as { status?: number })?.status;
+          if (status === 404) {
+            clearClienteData();
+            Notification.warning('Socio no encontrado');
+          } else {
+            Notification.error('Error en búsqueda');
+          }
+        }
       } finally {
         setIsLoading(false);
       }
