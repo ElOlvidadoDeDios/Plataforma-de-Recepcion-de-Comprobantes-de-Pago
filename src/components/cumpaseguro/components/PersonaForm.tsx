@@ -1,7 +1,7 @@
 import React, { ChangeEvent, useState, useEffect } from 'react';
 import { PersonaData, PersonaErrors, TipoAtencion } from '../types';
 import { soloNumeros } from '../utils';
-import { verificarSocioReniec } from '../../../api/geodileApi';
+import { buscarSocioMiCumpa, verificarSocioReniec } from '../../../api/geodileApi';
 
 interface PersonaFormProps {
   titulo: string;
@@ -13,6 +13,7 @@ interface PersonaFormProps {
   mostrarAtencionYCosto?: boolean;
   onChange: (campo: keyof PersonaData, valor: string) => void;
   onFoto: (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher', archivo: File | null) => void;
+  onSocioStatusChange?: (esSocio: boolean) => void;
 }
 
 /* ---------- Tokens de estilo ---------- */
@@ -70,47 +71,88 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
   mostrarAtencionYCosto = true,
   onChange,
   onFoto,
+  onSocioStatusChange,
 }) => {
   const [consultandoReniec, setConsultandoReniec] = useState(false);
   const [datosDeReniec, setDatosDeReniec] = useState(false);
+  const [esSocioVerificado, setEsSocioVerificado] = useState(false);
 
-  // Consultar RENIEC cuando el DNI tenga 8 dígitos y el tipo sea DNI
   useEffect(() => {
-    const consultarReniec = async () => {
-      // Solo consultar si es DNI, tiene 8 dígitos y no estamos ya consultando
-      if (persona.tipoDoc !== 'DNI' || persona.dni.length !== 8 || consultandoReniec) {
-        return;
-      }
+    const dniValido = persona.tipoDoc === 'DNI' && persona.dni.length === 8;
 
-      setConsultandoReniec(true);
+    if (!dniValido) {
+      setEsSocioVerificado(false);
+      setDatosDeReniec(false);
+      onSocioStatusChange?.(false);
+      return;
+    }
+
+    let cancelado = false;
+
+    const consultarDatosTitular = async () => {
       try {
+        setConsultandoReniec(true);
+
+        const respuesta = await buscarSocioMiCumpa(persona.dni, '01');
+
+        if (cancelado) return;
+
+        const esSocio = respuesta?.STATUS === true && String(respuesta?.SITUACION || '').toUpperCase() === 'SOCIO';
+
+        setEsSocioVerificado(esSocio);
+        onSocioStatusChange?.(esSocio);
+
+        if (esSocio) {
+          setDatosDeReniec(false);
+
+          if (respuesta?.DATOS_PERSONALES && !Array.isArray(respuesta.DATOS_PERSONALES)) {
+            if (!persona.nombre.trim()) onChange('nombre', respuesta.DATOS_PERSONALES.NOMBRES || '');
+            if (!persona.apePaterno.trim()) onChange('apePaterno', respuesta.DATOS_PERSONALES.APE_PAT || '');
+            if (!persona.apeMaterno.trim()) onChange('apeMaterno', respuesta.DATOS_PERSONALES.APE_MAT || '');
+          }
+
+          if (respuesta?.CONTACTO && !Array.isArray(respuesta.CONTACTO)) {
+            if (!persona.direccion.trim()) onChange('direccion', respuesta.CONTACTO.DIRECCION || '');
+            if (!persona.correo.trim()) onChange('correo', respuesta.CONTACTO.EMAIL || '');
+            if (!persona.celular.trim()) onChange('celular', respuesta.CONTACTO.CELULAR || '');
+          }
+
+          return;
+        }
+
+        // Fallback: si no es socio o no encuentra, consultar RENIEC
         const datos = await verificarSocioReniec(persona.dni);
 
+        if (cancelado) return;
+
         if (datos) {
-          // Autocompletar campos con datos de RENIEC
-          onChange('nombre', datos.nombres);
-          onChange('apePaterno', datos.apellido_paterno);
-          onChange('apeMaterno', datos.apellido_materno);
+          if (!persona.nombre.trim()) onChange('nombre', datos.nombres);
+          if (!persona.apePaterno.trim()) onChange('apePaterno', datos.apellido_paterno);
+          if (!persona.apeMaterno.trim()) onChange('apeMaterno', datos.apellido_materno);
           setDatosDeReniec(true);
+        } else {
+          setDatosDeReniec(false);
         }
       } catch (error) {
-        console.error('Error al consultar RENIEC:', error);
-        // Si hay error, permitir edición manual
-        setDatosDeReniec(false);
+        console.warn('No se pudo consultar la identidad del titular:', error);
+        if (!cancelado) {
+          setEsSocioVerificado(false);
+          onSocioStatusChange?.(false);
+          setDatosDeReniec(false);
+        }
       } finally {
-        setConsultandoReniec(false);
+        if (!cancelado) {
+          setConsultandoReniec(false);
+        }
       }
     };
 
-    consultarReniec();
-  }, [persona.dni, persona.tipoDoc]);
+    consultarDatosTitular();
 
-  // Resetear el estado cuando cambie el tipo de documento o el DNI
-  useEffect(() => {
-    if (persona.tipoDoc !== 'DNI' || persona.dni.length < 8) {
-      setDatosDeReniec(false);
-    }
-  }, [persona.tipoDoc, persona.dni]);
+    return () => {
+      cancelado = true;
+    };
+  }, [persona.dni, persona.tipoDoc]);
 
   const manejarArchivo = (campo: 'fotoDniAnverso' | 'fotoDniReverso' | 'fotoVoucher') => (
     e: ChangeEvent<HTMLInputElement>
@@ -178,7 +220,18 @@ const PersonaForm: React.FC<PersonaFormProps> = ({
             )}
           </div>
           <ErrorTexto mensaje={errores.dni} />
-          {persona.tipoDoc === 'DNI' && datosDeReniec && (
+          {persona.tipoDoc === 'DNI' && esSocioVerificado && (
+            <div
+              className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md"
+              style={{ color: SUCCESS, backgroundColor: '#2F6B4F14' }}
+            >
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Socio verificado: habilitado hasta 2 beneficiarios
+            </div>
+          )}
+          {persona.tipoDoc === 'DNI' && !esSocioVerificado && datosDeReniec && (
             <div
               className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-md"
               style={{ color: SUCCESS, backgroundColor: '#2F6B4F14' }}

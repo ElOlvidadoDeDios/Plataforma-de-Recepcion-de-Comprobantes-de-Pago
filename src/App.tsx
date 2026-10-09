@@ -169,6 +169,16 @@ function App() {
                 }
               />
               <Route
+                path="/mis-pagos"
+                element={
+                  <ProtectedRoute>
+                    <NonBasicUserRoute>
+                      <ConsultaCuotasPage />
+                    </NonBasicUserRoute>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/consultas-cuotas"
                 element={
                   <ProtectedRoute>
@@ -292,7 +302,9 @@ function App() {
               path="/ver-cuotas-mora"
               element={
                 <ProtectedRoute>
-                  <VercuotasMora />
+                  <PermissionProtectedRoute permission="canAccessGestionMora">
+                    <VercuotasMora />
+                  </PermissionProtectedRoute>
                 </ProtectedRoute>
               }
             />

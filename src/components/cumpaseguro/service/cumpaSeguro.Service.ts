@@ -50,29 +50,36 @@ export function construirFormData(payload: AseguramientoPayload): FormData {
     formData.append('voucher', payload.titular.fotoVoucher);
   }
 
-  // --- BENEFICIARIO (array vacío o con datos) ---
-  if (payload.beneficiario) {
-    const beneficiarioData = {
-      tipo_documento: toUpperCase(payload.beneficiario.tipoDoc),
-      nro_documento: toUpperCase(payload.beneficiario.dni),
-      nombres: toUpperCase(payload.beneficiario.nombre),
-      apellido_paterno: toUpperCase(payload.beneficiario.apePaterno),
-      apellido_materno: toUpperCase(payload.beneficiario.apeMaterno),
-      direccion: toUpperCase(payload.beneficiario.direccion),
-      correo: payload.beneficiario.correo.toLowerCase(),
-      celular: toUpperCase(payload.beneficiario.celular),
-    };
-    formData.append('beneficiarios', JSON.stringify([beneficiarioData]));
-    
-    // Imágenes del beneficiario
-    if (payload.beneficiario.fotoDniAnverso) {
-      formData.append('beneficiario_anverso[]', payload.beneficiario.fotoDniAnverso);
-    }
-    if (payload.beneficiario.fotoDniReverso) {
-      formData.append('beneficiario_reverso[]', payload.beneficiario.fotoDniReverso);
-    }
+  // --- BENEFICIARIOS (array vacío o con datos) ---
+  const beneficiarios = payload.beneficiarios && payload.beneficiarios.length > 0
+    ? payload.beneficiarios
+    : payload.beneficiario
+      ? [payload.beneficiario]
+      : [];
+
+  if (beneficiarios.length > 0) {
+    const beneficiariosData = beneficiarios.map((beneficiario) => ({
+      tipo_documento: toUpperCase(beneficiario.tipoDoc),
+      nro_documento: toUpperCase(beneficiario.dni),
+      nombres: toUpperCase(beneficiario.nombre),
+      apellido_paterno: toUpperCase(beneficiario.apePaterno),
+      apellido_materno: toUpperCase(beneficiario.apeMaterno),
+      direccion: toUpperCase(beneficiario.direccion),
+      correo: beneficiario.correo.toLowerCase(),
+      celular: toUpperCase(beneficiario.celular),
+    }));
+    formData.append('beneficiarios', JSON.stringify(beneficiariosData));
+
+    beneficiarios.forEach((beneficiario, index) => {
+      if (beneficiario.fotoDniAnverso) {
+        formData.append(`beneficiario_anverso[${index}]`, beneficiario.fotoDniAnverso);
+      }
+      if (beneficiario.fotoDniReverso) {
+        formData.append(`beneficiario_reverso[${index}]`, beneficiario.fotoDniReverso);
+      }
+    });
   } else {
-    formData.append('beneficiarios', JSON.stringify([])); 
+    formData.append('beneficiarios', JSON.stringify([]));
   }
 
   return formData;

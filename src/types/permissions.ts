@@ -136,7 +136,7 @@ export const PermissionCategories = {
     Permission.BOT_VIEW,         // Solo ver
     Permission.BOT_EDIT,         // Editar (incluye gestionar, configurar, etc.)
   ],
-  'Consulta de Cuotas': [
+  'Mis Pagos': [
     Permission.INSTALLMENTS_VIEW, // Solo ver
     Permission.INSTALLMENTS_EDIT, // Editar
   ],
@@ -231,9 +231,9 @@ export const PermissionLabels: Record<Permission, string> = {
   [Permission.CREDIT_REQUEST_VIEW]: '📋 Ver Solicitud de Crédito',
   [Permission.CREDIT_REQUEST_EDIT]: '📝 Hacer Solicitud de Crédito',
 
-  // Consulta de Cuotas
-  [Permission.INSTALLMENTS_VIEW]: '📊 Ver Cuotas',
-  [Permission.INSTALLMENTS_EDIT]: '⚙️ Gestionar Cuotas',
+  // Mis Pagos
+  [Permission.INSTALLMENTS_VIEW]: '📊 Ver Mis Pagos',
+  [Permission.INSTALLMENTS_EDIT]: '⚙️ Gestionar Mis Pagos',
 
   // Consultar Socios
   [Permission.PARTNERS_VIEW]: '👫 Ver Socios',

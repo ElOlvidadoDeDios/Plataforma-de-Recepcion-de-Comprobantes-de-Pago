@@ -1,165 +1,19 @@
-import { useState, lazy, Suspense, useEffect, useContext, useMemo, useCallback, memo } from 'react';
+import { useState, lazy, Suspense, useEffect, useContext, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { DetalleCredito, ClienteResponse, checkVoucherExists, procesarPayoutKambia, PayoutDto } from '../../../api/customerConsultationAPI';
 import { getPaymentsByCreditoId } from '../../../api/paymentsApi';
 import { generarContrato, obtenerUrlFirmada } from '../../../api/firmaDigitalApi';
 import { PaymentRecord } from '../../../types';
+import PagosModal from './modal-de-vouchers/modal-vouchers';
 import ComprobanteDesembolsoModal from './ComprobanteDesembolsoModal';
 import ValidarContratoModal from './ValidarContratoModal';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { Permission, UserRole } from '../../../types/permissions';
 import { logContractGenerationInfo } from '../../../utils/deviceInfo';
 import { isOtorgaToday, getOtorgaErrorMessage } from '../../../utils/dateValidation';
-import { PaymentImage } from '../../PaymentImage';
 
 const CronogramaModal = lazy(() => import('../../cronograma/CronogramaPage'));
 // const PagosPrestamoModal = lazy(() => import('./PagosPrestamoModal'));
-
-// Componente memoizado para el modal de pagos
-interface PagosModalProps {
-  selectedCreditoId: string;
-  pagosData: PaymentRecord[];
-  onClose: () => void;
-}
-
-const PagosModal = memo(({ selectedCreditoId, pagosData, onClose }: PagosModalProps) => {
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-2 sm:p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl max-w-[85vw] w-full max-h-[95vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header del modal */}
-        <div className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-4 sm:px-6 py-3 flex justify-between items-center">
-          <h2 className="text-lg sm:text-xl font-bold">
-            Pagos del Préstamo: {selectedCreditoId}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-gray-200 transition-colors p-1"
-          >
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Contenido del modal */}
-        <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(95vh-60px)]">
-          {pagosData.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="text-gray-500 text-lg">No se encontraron pagos para este préstamo</div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {pagosData.map((pago, index) => (
-                <div key={`${pago.dni}-${pago.fecha}-${pago.hora}-${index}`} className="border rounded-lg p-4 bg-gray-50">
-                  {/* Información del pago */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <h3 className="font-semibold text-lg text-cyan-800">📅 {pago.fecha} - {pago.hora}</h3>
-                      <p className="text-sm text-gray-600">Cliente: {pago.nombreSocio}</p>
-                      <p className="text-sm text-gray-600">DNI: {pago.dni}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Cuotas Vencidas: <span className="font-medium">{pago.cuotasVencidasCantidad}</span></p>
-                      <p className="text-sm text-gray-600">Estado General:
-                        <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                          pago.estadoGeneral === 'atendido' ? 'bg-green-100 text-green-800' :
-                          pago.estadoGeneral === 'parcial' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {pago.estadoGeneral.toUpperCase()}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Imágenes de comprobantes */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                    {pago.comprobantebase_64?.map((comprobante, compIndex) => (
-                      <div key={`${comprobante._id}-${compIndex}`} className="border rounded-lg p-2 bg-white shadow-sm">
-                        <div className="aspect-[3/4] mb-2 bg-gray-100 rounded overflow-hidden">
-                          <PaymentImage
-                            imageSource={comprobante.ruta}
-                            alt={`Comprobante ${compIndex + 1}`}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-medium">Estado:</span>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              comprobante.estado === 'aceptado' ? 'bg-green-100 text-green-800' :
-                              comprobante.estado === 'rechazado' ? 'bg-red-100 text-red-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {comprobante.estado.toUpperCase()}
-                            </span>
-                          </div>
-                          {comprobante.monto_pago && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs font-medium">Monto:</span>
-                              <span className="text-xs">S/ {comprobante.monto_pago}</span>
-                            </div>
-                          )}
-                          {comprobante.nroOperacion && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs font-medium">Nro. Op:</span>
-                              <span className="text-xs">{comprobante.nroOperacion}</span>
-                            </div>
-                          )}
-                          {comprobante.tipoOperacion && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs font-medium">Tipo:</span>
-                              <span className="text-xs">{comprobante.tipoOperacion}</span>
-                            </div>
-                          )}
-                          {comprobante.motivo_rechazo && (
-                            <div className="mt-2">
-                              <span className="text-xs font-medium text-red-600">Motivo rechazo:</span>
-                              <p className="text-xs text-red-600 mt-1">{comprobante.motivo_rechazo}</p>
-                            </div>
-                          )}
-                          {comprobante.fechamodificacion && (
-                            <div className="mt-2">
-                              <span className="text-xs font-medium text-red-600">Fecha transacción:</span>
-                              <p className="text-xs font-medium text-blue-600 mt-1">{comprobante.fechamodificacion}</p>
-                            </div>
-                          )}
-                          {comprobante.horamodificacion && (
-                            <div className="mt-2">
-                              <span className="text-xs font-medium text-red-600">Hora transacción:</span>
-                              <p className="text-xs font-medium text-blue-600 mt-1">{comprobante.horamodificacion}</p>
-                            </div>
-                          )}
-                          {comprobante.user_caja && (
-                            <div className="mt-2">
-                              <span className="text-xs font-medium text-red-600">Usuario:</span>
-                              <p className="text-xs font-medium text-blue-600 mt-1">{comprobante.user_caja}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-});
-
-PagosModal.displayName = 'PagosModal';
 
 interface CreditosTableProps {
   creditos: DetalleCredito[];
@@ -412,83 +266,6 @@ const CreditosTable = ({ creditos, clientData, onRefreshData, onUpdateCredito }:
       setSelectedCreditoFirma('');
     }
   };
-
-  // // Función para verificar si el documento ya fue firmado
-  // const handleVerificarFirma = async (credito: DetalleCredito) => {
-  //   if (!credito.FIRM_DIGITAL?.ID_DOCUMENT) {
-  //     setNotificationMessage('No hay documento para verificar');
-  //     setShowNotificationModal(true);
-  //     return;
-  //   }
-
-  //   try {
-  //     setLoadingFirma(true);
-  //     setSelectedCreditoFirma(credito.ID_PRESTAMO);
-
-  //     // 🔍 Capturar información del dispositivo al verificar firma
-  //     await logDocumentVerificationInfo(credito.ID_PRESTAMO, credito.FIRM_DIGITAL.ID_DOCUMENT);
-
-  //     // Capturar información del dispositivo para el endpoint
-  //     const deviceInfo = await captureDeviceInfo(`verificacion_documento_${credito.ID_PRESTAMO}`);
-
-  //     const response = await verificarDocumentoFirmado({
-  //       ID_DOCUMENT_FIRM: credito.FIRM_DIGITAL.ID_DOCUMENT,
-  //       PAGARE: credito.ID_PRESTAMO,
-  //       AGENCIA: credito.AGENCIA,
-  //       USER: user?.dni || 'dni no identificado',
-  //       INFO_DESK: [deviceInfo]
-  //     } as any);
-
-  //     if (response.success) {
-  //       // Verificar el estado de la respuesta del endpoint
-  //       if (response.data && response.data.status === false) {
-  //         // El documento aún no está firmado
-  //         setNotificationMessage(response.data.message || 'El documento aún no ha sido firmado');
-  //         setShowNotificationModal(true);
-  //       } else {
-  //         // El documento ya fue firmado
-  //         setNotificationMessage('Documento firmado exitosamente. Los datos se actualizarán automáticamente.');
-  //         setShowNotificationModal(true);
-          
-  //         // Actualizar inmediatamente el estado local del crédito
-  //         if (response.data && response.data.URL_SIGNED_FILE) {
-  //           updateLocalCredito(credito.ID_PRESTAMO, {
-  //             FIRM_DIGITAL: {
-  //               ESTADO: 'FIRMADO',
-  //               ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
-  //               URL_SIGNED_FILE: response.data.URL_SIGNED_FILE
-  //             }
-  //           });
-  //         } else {
-  //           // Si no hay URL en la respuesta, solo cambiar el estado
-  //           updateLocalCredito(credito.ID_PRESTAMO, {
-  //             FIRM_DIGITAL: {
-  //               ESTADO: 'FIRMADO',
-  //               ID_DOCUMENT: credito.FIRM_DIGITAL?.ID_DOCUMENT || null,
-  //               URL_SIGNED_FILE: credito.FIRM_DIGITAL?.URL_SIGNED_FILE || null
-  //             }
-  //           });
-  //         }
-          
-  //         // Refrescar los datos para obtener el estado actualizado del servidor
-  //         if (onRefreshData) {
-  //           setTimeout(() => {
-  //             onRefreshData();
-  //           }, 500); // Reducir tiempo de espera
-  //         }
-  //       }
-  //     } else {
-  //       setNotificationMessage(`Error al verificar el documento: ${response.message}`);
-  //       setShowNotificationModal(true);
-  //     }
-  //   } catch (error) {
-  //     setNotificationMessage('Error al verificar el estado de la firma');
-  //     setShowNotificationModal(true);
-  //   } finally {
-  //     setLoadingFirma(false);
-  //     setSelectedCreditoFirma('');
-  //   }
-  // };
 
   // Función para manejar el clic en contrato firmado y obtener URL pública
   const handleVerContratoFirmado = async (credito: DetalleCredito) => {

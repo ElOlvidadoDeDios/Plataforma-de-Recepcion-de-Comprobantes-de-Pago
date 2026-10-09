@@ -1,5 +1,3 @@
-import { SessionManager } from '../../../utils/sessionManager';
-
 export interface DatosSocioAhorro {
 	nro_di: string;
 	nombres: string;

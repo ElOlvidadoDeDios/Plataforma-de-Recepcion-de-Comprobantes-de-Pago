@@ -41,7 +41,29 @@ export interface VoucherData {
   "NOMAGENTE": string | null;
 }
 
-export const generateVoucherPDF = (data: VoucherData) => {
+const formatVoucherTime = (horaMov: string): string => {
+  const raw = String(horaMov || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  // Expected examples: "2026-10-05 09:15:22.403" or "09:15:22"
+  const timePart = raw.includes(' ') ? raw.split(' ')[1] : raw;
+  const cleanTime = timePart.split('.')[0];
+  const [hhStr, mmStr] = cleanTime.split(':');
+  const hh = Number(hhStr);
+  const mm = Number(mmStr);
+
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) {
+    return raw;
+  }
+
+  const suffix = hh >= 12 ? 'pm' : 'am';
+  const hour12 = hh % 12 === 0 ? 12 : hh % 12;
+  return `${hour12}:${String(mm).padStart(2, '0')} ${suffix}`;
+};
+
+const buildVoucherPDFDoc = (data: VoucherData): jsPDF => {
   const doc = new jsPDF({
     orientation: "portrait",
     unit: "mm",
@@ -74,7 +96,7 @@ export const generateVoucherPDF = (data: VoucherData) => {
   currentY += 4;
 
   doc.text(`FECHA:${data.FECHA_MOV}`, marginLeft, currentY);
-  doc.text(data.HORA_MOV, pageWidth - marginLeft, currentY, { align: "right" });
+  doc.text(formatVoucherTime(data.HORA_MOV), pageWidth - marginLeft, currentY, { align: "right" });
   currentY += 6;
 
   doc.setFontSize(textFontSize);
@@ -162,6 +184,23 @@ export const generateVoucherPDF = (data: VoucherData) => {
   doc.line(marginLeft, currentY, pageWidth - marginLeft, currentY);
   currentY += 4;
   doc.text("FIRMA  / D.N.I. ", centerX, currentY, { align: "center" });
+
+  return doc;
+};
+
+export const generateVoucherPDFBlobUrl = (data: VoucherData): string => {
+  const doc = buildVoucherPDFDoc(data);
+  const blob = doc.output("blob");
+  return URL.createObjectURL(blob);
+};
+
+export const generateVoucherPDFDataUri = (data: VoucherData): string => {
+  const doc = buildVoucherPDFDoc(data);
+  return doc.output("datauristring");
+};
+
+export const generateVoucherPDF = (data: VoucherData) => {
+  const doc = buildVoucherPDFDoc(data);
 
   doc.save(`Voucher_${data.RECIBO}.pdf`);
 };

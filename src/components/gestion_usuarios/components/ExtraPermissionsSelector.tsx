@@ -83,7 +83,7 @@ const PermissionsSelector: React.FC<PermissionsSelectorProps> = ({
         'Créditos': [Permission.CREDITS_VIEW, Permission.CREDITS_EDIT],
         'Aprobación de Crédito': [Permission.CREDIT_APPROVAL_VIEW, Permission.CREDIT_APPROVAL_APPROVE],
         'Solicitud de Crédito': [Permission.CREDIT_REQUEST_VIEW, Permission.CREDIT_REQUEST_EDIT],
-        'Consulta de Cuotas': [Permission.INSTALLMENTS_VIEW, Permission.INSTALLMENTS_EDIT],
+        'Mis Pagos': [Permission.INSTALLMENTS_VIEW, Permission.INSTALLMENTS_EDIT],
         'Consultar Socios': [Permission.PARTNERS_VIEW, Permission.PARTNERS_EDIT],
         'Registro de Clientes': [Permission.CLIENTS_VIEW, Permission.CLIENTS_EDIT],
         'Gestión de Mora': [Permission.MORA_VIEW, Permission.MORA_EDIT],

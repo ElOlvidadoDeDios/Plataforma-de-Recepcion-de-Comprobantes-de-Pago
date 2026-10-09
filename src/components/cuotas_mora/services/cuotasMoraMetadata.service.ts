@@ -19,7 +19,7 @@ export interface CuotasMoraPayloadMetadata {
 
 const getGeodileHeaders = (): HeadersInit => ({
   'Content-Type': 'application/json',
-  Authorization: API_TOKEN,
+  ...(API_TOKEN ? { Authorization: API_TOKEN } : {}),
 });
 
 const normalizarCelular = (celular?: string): string => {

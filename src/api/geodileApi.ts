@@ -32,6 +32,28 @@ export interface SocioReniec {
     apellido_materno: string;
 }
 
+export interface SocioMiCumpaDatosPersonales {
+    TIPO_DOC?: string;
+    DNI?: string;
+    NOMBRES?: string;
+    APE_PAT?: string;
+    APE_MAT?: string;
+    NOMBRE_COMPLETO?: string;
+}
+
+export interface SocioMiCumpaContacto {
+    DIRECCION?: string;
+    CELULAR?: string;
+    EMAIL?: string;
+}
+
+export interface SocioMiCumpaResponse {
+    STATUS: boolean;
+    SITUACION?: string;
+    DATOS_PERSONALES?: SocioMiCumpaDatosPersonales | [];
+    CONTACTO?: SocioMiCumpaContacto | [];
+}
+
 export interface SocioReporte {
     tipo_ubicacion: string;
     suministro: string;
@@ -143,6 +165,32 @@ export const cargarCoordenadas = async (userData: { dni?: string; cargo?: string
 /**
  * API para verificar socio en RENIEC con sistema de fallback
  */
+export const buscarSocioMiCumpa = async (dni: string, tipoDoc: string = '01'): Promise<SocioMiCumpaResponse | null> => {
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL_GEODILE}/api_app_dile_v1_1/api/buscar_socio_micumpa`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': import.meta.env.VITE_API_BASE_URL_GEODILE_TOKEN || '',
+            },
+            body: JSON.stringify({
+                TIPO_DOC: tipoDoc,
+                DNI: dni,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`API Mi Cumpa falló con status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data as SocioMiCumpaResponse;
+    } catch (error) {
+        console.warn('⚠️ No se pudo consultar el estado del socio en Mi Cumpa:', error);
+        return null;
+    }
+};
+
 export const verificarSocioReniec = async (dni: string): Promise<SocioReniec | null> => {
     // Intentar con la API principal
     try {

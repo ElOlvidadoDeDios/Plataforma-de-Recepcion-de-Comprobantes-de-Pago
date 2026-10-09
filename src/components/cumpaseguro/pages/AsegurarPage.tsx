@@ -26,12 +26,22 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver, onVerLista, onVer
     actualizarCampoTitular,
     actualizarFotoTitular,
 
+    esSocio,
+    setEsSocio,
+
     incluyeBeneficiario,
     setIncluyeBeneficiario,
     beneficiario,
     beneficiarioErrores,
     actualizarCampoBeneficiario,
     actualizarFotoBeneficiario,
+
+    incluyeBeneficiarioAdicional,
+    setIncluyeBeneficiarioAdicional,
+    beneficiarioAdicional,
+    beneficiarioAdicionalErrores,
+    actualizarCampoBeneficiarioAdicional,
+    actualizarFotoBeneficiarioAdicional,
 
     guardando,
     errorGeneral,
@@ -140,9 +150,14 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver, onVerLista, onVer
         </div>
 
         <h2 className="text-2xl font-bold text-slate-800 mb-1">Asegurar</h2>
-        <p className="text-sm text-slate-500 mb-8">
+        <p className="text-sm text-slate-500 mb-2">
           Completa los datos del titular. El beneficiario es opcional.
         </p>
+        {esSocio && (
+          <p className="text-sm font-medium text-emerald-700 mb-8">
+            Socio verificado: puedes registrar hasta dos beneficiarios.
+          </p>
+        )}
 
         <form onSubmit={manejarSubmit} className="space-y-8">
           <PersonaForm
@@ -153,6 +168,7 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver, onVerLista, onVer
             obligatorio={true}
             onChange={actualizarCampoTitular}
             onFoto={actualizarFotoTitular}
+            onSocioStatusChange={setEsSocio}
           />
 
           <div className="flex items-center justify-between gap-3 py-4 border-y border-slate-200">
@@ -160,29 +176,70 @@ const AsegurarPage: React.FC<AsegurarPageProps> = ({ onVolver, onVerLista, onVer
               <input
                 type="checkbox"
                 checked={incluyeBeneficiario}
-                onChange={(e) => setIncluyeBeneficiario(e.target.checked)}
+                onChange={(e) => {
+                  setIncluyeBeneficiario(e.target.checked);
+                  if (!e.target.checked) {
+                    setIncluyeBeneficiarioAdicional(false);
+                  }
+                }}
                 className="w-4 h-4 rounded border-slate-300 focus:ring-1"
                 style={{ accentColor: NAVY }}
               />
               <span className="text-sm font-medium text-slate-700">
-                Agregar beneficiario
+                {esSocio ? 'Agregar beneficiario (máx. 2)' : 'Agregar beneficiario'}
               </span>
             </label>
             <span className="text-xs text-slate-400">Opcional</span>
           </div>
 
           {incluyeBeneficiario && (
-            <PersonaForm
-              titulo="Datos del beneficiario"
-              subtitulo="Ningún campo es obligatorio"
-              persona={beneficiario}
-              errores={beneficiarioErrores}
-              obligatorio={false}
-              mostrarVoucher={false}
-              mostrarAtencionYCosto={false}
-              onChange={actualizarCampoBeneficiario}
-              onFoto={actualizarFotoBeneficiario}
-            />
+            <>
+              <PersonaForm
+                titulo="Datos del beneficiario"
+                subtitulo="Ningún campo es obligatorio"
+                persona={beneficiario}
+                errores={beneficiarioErrores}
+                obligatorio={false}
+                mostrarVoucher={false}
+                mostrarAtencionYCosto={false}
+                onChange={actualizarCampoBeneficiario}
+                onFoto={actualizarFotoBeneficiario}
+              />
+
+              {esSocio && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-3 py-3 border-y border-slate-200">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={incluyeBeneficiarioAdicional}
+                        onChange={(e) => setIncluyeBeneficiarioAdicional(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 focus:ring-1"
+                        style={{ accentColor: NAVY }}
+                      />
+                      <span className="text-sm font-medium text-slate-700">
+                        Agregar segundo beneficiario
+                      </span>
+                    </label>
+                    <span className="text-xs text-slate-400">Opcional</span>
+                  </div>
+
+                  {incluyeBeneficiarioAdicional && (
+                    <PersonaForm
+                      titulo="Segundo beneficiario"
+                      subtitulo="Ningún campo es obligatorio"
+                      persona={beneficiarioAdicional}
+                      errores={beneficiarioAdicionalErrores}
+                      obligatorio={false}
+                      mostrarVoucher={false}
+                      mostrarAtencionYCosto={false}
+                      onChange={actualizarCampoBeneficiarioAdicional}
+                      onFoto={actualizarFotoBeneficiarioAdicional}
+                    />
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           {errorGeneral && (

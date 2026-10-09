@@ -36,9 +36,9 @@ const getSimplifiedModules = (userRole: UserRole) => ({
         viewPermission: Permission.CREDITS_VIEW,
         editPermission: Permission.CREDITS_EDIT,
     },
-    'Consulta de Cuotas': {
+    'Mis Pagos': {
         icon: '📊',
-        description: 'Revisa el estado de las cuotas',
+        description: 'Revisa pagos por rango de fechas',
         viewPermission: Permission.INSTALLMENTS_VIEW,
         editPermission: Permission.INSTALLMENTS_EDIT,
     },

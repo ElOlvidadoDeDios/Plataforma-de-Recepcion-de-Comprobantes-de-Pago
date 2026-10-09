@@ -135,7 +135,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
           { to: '/pago-recaudadores', icon: RecaudadoresIcon, label: 'Pago Recaudadores', permission: permissions.canAccessPagoRecaudadores() },
           { to: '/afiliacion-socios', icon: AfiliacionIcon, label: 'Afiliación de Socios', permission: permissions.canAccessAffiliationSocios() },
           {to: '/seguimiento-desembolsos-hoy', icon: CuotasMoraIcon, label: 'Seguimiento Desembolsos Hoy', permission: permissions.canAccessSeguimientoDesembolsosHoy()},
-          { to: '/ver-cuotas-mora', icon: CuotasMoraIcon, label: 'Ver Cuotas en Mora', permission: permissions.canAccessConsultaCuotas() },
+          { to: '/ver-cuotas-mora', icon: CuotasMoraIcon, label: 'Ver Cuotas en Mora', permission: permissions.canAccessGestionMora() },
         ]
       },
       {
@@ -144,7 +144,7 @@ const Sidebar = React.memo(({ isMobile, isOpen, setIsOpen }: { isMobile: boolean
         options: [
           { to: '/credit-requests', icon: SolicitudesIcon, label: 'Solicitudes de Crédito', permission: permissions.canAccessCredits() },
           { to: '/bot-interactions', icon: BotIcon, label: 'Interacciones del Bot', permission: permissions.canAccessBotInteractions() },
-          { to: '/consultas-cuotas', icon: CuotasIcon, label: 'Reporte de Consulta de Cuotas', permission: permissions.canAccessConsultaCuotas() },
+          { to: '/mis-pagos', icon: CuotasIcon, label: 'Mis Pagos', permission: permissions.canAccessConsultaCuotas() },
           { to: '/user-management', icon: UsersIcon, label: 'Gestión de Usuarios', permission: permissions.canManageUsers() },
           { to: '/historial-desembolsos', icon: HistorialDesembolsosIcon, label: 'Historial de Desembolsos', permission: permissions.canAccessHistorialDesembolsos() },
           { to: '/reportes', icon: ReportesIcon, label: 'Reportes', permission: permissions.canAccessReports() },
@@ -230,7 +230,7 @@ const GlobalMenu = React.memo(() => {
   const permissions = useCombinedPermissions();
   const [isOpen, setIsOpen] = useState(false);
 
-  if (!permissions.canAccessConsultaSocios()) return null;
+  if (!permissions.canAccessConsultaSocios() && !permissions.canAccessGestionMora()) return null;
 
   const handleOpen = () => {
     setIsOpen(!isOpen);
@@ -273,35 +273,39 @@ const GlobalMenu = React.memo(() => {
               max-h-96
             "
           >
-            <button
-              onClick={handleNavigateToConsulta}
-              className="
-                w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors
-                flex items-center space-x-3 text-gray-700
-                border-b border-gray-100
-              "
-            >
-              <svg className="w-5 h-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span className="text-sm">
-                Consultar Socios
-              </span>
-            </button>
-            <button
-              onClick={handleNavigateToCuotas}
-              className="
-                w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors
-                flex items-center space-x-3 text-gray-700
-              "
-            >
-              <svg className="w-5 h-5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="text-sm">
-                Ver Cuotas en Mora
-              </span>
-            </button>
+            {permissions.canAccessConsultaSocios() && (
+              <button
+                onClick={handleNavigateToConsulta}
+                className="
+                  w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors
+                  flex items-center space-x-3 text-gray-700
+                  border-b border-gray-100
+                "
+              >
+                <svg className="w-5 h-5 flex-shrink-0 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="text-sm">
+                  Consultar Socios
+                </span>
+              </button>
+            )}
+            {permissions.canAccessGestionMora() && (
+              <button
+                onClick={handleNavigateToCuotas}
+                className="
+                  w-full text-left px-4 py-3 hover:bg-blue-50 transition-colors
+                  flex items-center space-x-3 text-gray-700
+                "
+              >
+                <svg className="w-5 h-5 flex-shrink-0 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-sm">
+                  Ver Cuotas en Mora
+                </span>
+              </button>
+            )}
           </div>
         </>
       )}

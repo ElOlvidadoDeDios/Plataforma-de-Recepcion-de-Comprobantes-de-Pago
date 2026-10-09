@@ -17,9 +17,14 @@ export function useAseguramiento() {
   const [titular, setTitular] = useState<PersonaData>(crearPersonaVacia());
   const [titularErrores, setTitularErrores] = useState<PersonaErrors>({});
 
+  const [esSocio, setEsSocio] = useState(false);
   const [incluyeBeneficiario, setIncluyeBeneficiario] = useState(false);
   const [beneficiario, setBeneficiario] = useState<PersonaData>(crearPersonaVacia());
   const [beneficiarioErrores, setBeneficiarioErrores] = useState<PersonaErrors>({});
+
+  const [incluyeBeneficiarioAdicional, setIncluyeBeneficiarioAdicional] = useState(false);
+  const [beneficiarioAdicional, setBeneficiarioAdicional] = useState<PersonaData>(crearPersonaVacia());
+  const [beneficiarioAdicionalErrores, setBeneficiarioAdicionalErrores] = useState<PersonaErrors>({});
 
   const [guardando, setGuardando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState('');
@@ -53,13 +58,19 @@ export function useAseguramiento() {
   const actualizarFotoTitular = actualizarFoto(setTitular);
   const actualizarCampoBeneficiario = actualizarCampo(setBeneficiario);
   const actualizarFotoBeneficiario = actualizarFoto(setBeneficiario);
+  const actualizarCampoBeneficiarioAdicional = actualizarCampo(setBeneficiarioAdicional);
+  const actualizarFotoBeneficiarioAdicional = actualizarFoto(setBeneficiarioAdicional);
 
   const reiniciarFormulario = () => {
     setTitular(crearPersonaVacia());
     setTitularErrores({});
     setBeneficiario(crearPersonaVacia());
     setBeneficiarioErrores({});
+    setBeneficiarioAdicional(crearPersonaVacia());
+    setBeneficiarioAdicionalErrores({});
     setIncluyeBeneficiario(false);
+    setIncluyeBeneficiarioAdicional(false);
+    setEsSocio(false);
     setResultado(null);
     setErrorGeneral('');
   };
@@ -88,12 +99,18 @@ export function useAseguramiento() {
 
     const erroresTitular = validarPersona(titular, true, false);
     const erroresBeneficiario = incluyeBeneficiario ? validarPersona(beneficiario, false, false) : {};
+    const erroresBeneficiarioAdicional = esSocio && incluyeBeneficiarioAdicional
+      ? validarPersona(beneficiarioAdicional, false, false)
+      : {};
 
     setTitularErrores(erroresTitular);
     setBeneficiarioErrores(erroresBeneficiario);
+    setBeneficiarioAdicionalErrores(erroresBeneficiarioAdicional);
 
     const hayErrores =
-      Object.keys(erroresTitular).length > 0 || Object.keys(erroresBeneficiario).length > 0;
+      Object.keys(erroresTitular).length > 0 ||
+      Object.keys(erroresBeneficiario).length > 0 ||
+      Object.keys(erroresBeneficiarioAdicional).length > 0;
 
     if (hayErrores) {
       setErrorGeneral('Revisa los campos marcados en rojo antes de continuar.');
@@ -103,10 +120,20 @@ export function useAseguramiento() {
     // La fecha de registro se genera una sola vez, en el momento del envío,
     // y se guarda en formato ISO para no depender del formato local.
     const fechaRegistro = new Date().toISOString();
+    const beneficiarios: PersonaData[] = [];
+
+    if (incluyeBeneficiario) {
+      beneficiarios.push(beneficiario);
+    }
+
+    if (esSocio && incluyeBeneficiarioAdicional) {
+      beneficiarios.push(beneficiarioAdicional);
+    }
 
     const payload: AseguramientoPayload = {
       titular,
-      beneficiario: incluyeBeneficiario ? beneficiario : null,
+      beneficiario: beneficiarios[0] ?? null,
+      beneficiarios: beneficiarios.length > 0 ? beneficiarios : undefined,
       fechaRegistro,
       user: userData.dni,
       agencia_nom: obtenerNombreAgencia(userData.id_age || ''),
@@ -129,12 +156,22 @@ export function useAseguramiento() {
     actualizarCampoTitular,
     actualizarFotoTitular,
 
+    esSocio,
+    setEsSocio,
+
     incluyeBeneficiario,
     setIncluyeBeneficiario,
     beneficiario,
     beneficiarioErrores,
     actualizarCampoBeneficiario,
     actualizarFotoBeneficiario,
+
+    incluyeBeneficiarioAdicional,
+    setIncluyeBeneficiarioAdicional,
+    beneficiarioAdicional,
+    beneficiarioAdicionalErrores,
+    actualizarCampoBeneficiarioAdicional,
+    actualizarFotoBeneficiarioAdicional,
 
     guardando,
     errorGeneral,

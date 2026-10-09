@@ -50,6 +50,7 @@ export const crearPersonaVacia = (): PersonaData => ({
 export interface AseguramientoPayload {
   titular: PersonaData;
   beneficiario: PersonaData | null;
+  beneficiarios?: PersonaData[];
   fechaRegistro: string; // ISO 8601
   user: string; // DNI del usuario que registra
   agencia_nom: string; // Nombre de la agencia
