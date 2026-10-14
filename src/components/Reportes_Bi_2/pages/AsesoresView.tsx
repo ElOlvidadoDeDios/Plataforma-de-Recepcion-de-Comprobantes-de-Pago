@@ -1,5 +1,6 @@
 // src/views/AsesoresView.tsx
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ExcelJS from 'exceljs';
 import { Filters } from '../utils/constants';
@@ -11,13 +12,16 @@ import { WorkdayStrip } from '../components/WorkdayStrip';
 import { Users, Clock3, ShieldAlert, RefreshCw, Copy, Download } from 'lucide-react';
 import { fetchAsesores, fetchDiasLaborales } from '../services/asesores.service';
 
-
 // ============================================================================
-// HOOKS Y COMPONENTES MAESTROS (DRAG & DROP / EXPORTACIÓN)
+// HOOKS Y COMPONENTES MAESTROS
 // ============================================================================
 function useColumnOrder(initialOrder: string[], tableId: string, lockedCol: string = 'asesor') {
   const [order, setOrder] = useState(initialOrder);
   const isModified = JSON.stringify(order) !== JSON.stringify(initialOrder);
+
+  useEffect(() => {
+    setOrder(initialOrder);
+  }, [JSON.stringify(initialOrder)]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     if (id === lockedCol) { e.preventDefault(); return; }
@@ -52,53 +56,75 @@ const ExportActions = ({ control, onExport }: { control: any, onExport: (format:
   </div>
 );
 
-function DraggableTable({ control, columns, data, containerClass }: { control: any, columns: any[], data: any[], containerClass: string }) {
+// TABLA CON FONDOS OPACOS EN ENCABEZADOS Y ESPACIO DINÁMICO EN NOMBRES
+function DraggableTable({ control, columns, data, containerClass, showFooter = true }: { control: any, columns: any[], data: any[], containerClass: string, showFooter?: boolean }) {
   return (
-    <div className={containerClass}>
-      <table className="w-full text-left text-[11px] whitespace-nowrap">
-        <thead>
-          <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
+    // EL TRUCO ESTÁ AQUÍ: relative, overflow-auto y z-0
+    <div className={`relative overflow-x-auto overflow-y-auto scrollbar-thin z-0 ${containerClass}`}>
+      <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight border-collapse">
+        {/* THEAD tiene z-10 (Menor al z-40 del Header principal) */}
+        <thead className="sticky top-0 z-10 shadow-sm">
+          <tr className="border-b border-border">
             {columns.map(col => (
-              <th key={col.id} draggable={col.id !== control.lockedCol} onDragStart={(e) => control.handleDragStart(e, col.id)} onDragOver={control.handleDragOver} onDrop={(e) => control.handleDrop(e, col.id)}
-                  className={`px-3 pt-2 pb-2.5 font-semibold transition-colors ${col.id !== control.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}>
-                {col.header}
+              <th 
+                key={col.id} 
+                draggable={col.id !== control.lockedCol} 
+                onDragStart={(e) => control.handleDragStart(e, col.id)} 
+                onDragOver={control.handleDragOver} 
+                onDrop={(e) => control.handleDrop(e, col.id)}
+                // BG SÓLIDO (bg-slate-50 o bg-white) OBLIGATORIO AQUÍ
+                className={`bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground transition-colors ${col.id !== control.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-slate-200 hover:text-foreground' : ''} ${col.align === 'left' ? 'text-left' : 'text-center'} ${col.bgClass || ''}`}
+              >
+                {col.headerJSX || col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border/50">
-          {data.map((row: any, i: number) => (
-            <tr key={`${row.asesor || i}`} className="hover:bg-muted/30 transition-colors">
+        <tbody className="divide-y divide-border/60 bg-white">
+          {data.length > 0 ? data.map((row: any, i: number) => (
+            <tr key={`row-${i}`} className="hover:bg-muted/30 transition-colors">
               {columns.map(col => (
-                <td key={`${i}-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}>
+                <td 
+                  key={`cell-${i}-${col.id}`} 
+                  // TEXTO MULTILÍNEA PARA LOS NOMBRES
+                  className={`px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 ${col.align === 'left' ? 'text-left whitespace-normal min-w-[110px] md:min-w-[160px] max-w-[220px] leading-[1.15]' : 'text-right whitespace-nowrap font-mono'} ${col.align === 'center' ? 'text-center' : ''} ${col.cellBg ? col.cellBg(row) : ''}`}
+                >
                   {col.cell(row)}
                 </td>
               ))}
             </tr>
-          ))}
+          )) : (
+            <tr><td colSpan={columns.length} className="px-3 py-4 text-center text-muted-foreground italic">No hay registros para esta selección.</td></tr>
+          )}
         </tbody>
-        <tfoot className="sticky bottom-0 z-10 bg-card shadow-[0_-1px_2px_rgba(0,0,0,0.05)]">
-          <tr className="border-t-2 border-border font-bold">
-            {columns.map(col => (
-              <td key={`foot-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}>
-                {col.footer()}
-              </td>
-            ))}
-          </tr>
-        </tfoot>
+        {showFooter && data.length > 0 && (
+          <tfoot className="sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+            <tr className="border-t-2 border-border font-bold">
+              {columns.map(col => (
+                <td 
+                  key={`foot-${col.id}`} 
+                  // BG SÓLIDO OBLIGATORIO AQUÍ
+                  className={`bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 whitespace-nowrap ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right font-mono'}`}
+                >
+                  {col.footer()}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );
 }
 
-// Fabrica de Columnas (DRY)
-const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, footer: ()=>any, align='right', bgClass='') => ({ id, header, cell, raw, footer, align, bgClass });
+// Nueva firma de la fábrica de columnas (Separamos Header, Celda y Fondo de Celda)
+const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, footer: ()=>any, align='right', cellBg?: (r:any)=>string, headerJSX?: React.ReactNode) => ({ id, header, headerJSX, cell, raw, footer, align, cellBg });
+
 
 // ============================================================================
 // VISTA PRINCIPAL DE ASESORES
 // ============================================================================
 export function AsesoresView({ filters }: { filters: Filters }) {
-  // 🚀 REFACTOR: los endpoints viven ahora en asesoresService
   const { data: asesoresBD, isLoading: loadAsesores, error: errAsesores } = useQuery({
     queryKey: ['indicadores-asesores', filters.period],
     queryFn: () => fetchAsesores(filters.period),
@@ -137,7 +163,9 @@ export function AsesoresView({ filters }: { filters: Filters }) {
       cartera, carteraInicio, desembolsos: sum('desembolsos'), repagos: sum('repagos'),
       crecimientoBruto: sum('crecimientoBruto'), mora150: sum('mora150'), pctMora150: cartera > 0 ? (sum('mora150') / cartera) * 100 : 0,
       crecimientoNeto150: sum('crecimientoNeto150'), faltante20k: sum('faltante20k'), opAchieved: sum('opAchieved'), opProjection: sum('opProjection'),
-      duracion: avg('duracion'), sociosInicio: sum('sociosInicio'), sociosActual: sum('sociosActual'), sociosNuevos: sum('sociosNuevos'),
+      duracion: avg('duracion'), 
+      sociosInicio: sum('sociosInicio'), sociosActual: sum('sociosActual'), sociosNuevos: sum('sociosNuevos'),
+      sociosCancelados: sum('sociosCancelados'), sociosTraspasados: sum('sociosTraspasados'), sociosRecuperacion: sum('sociosRecuperacion'), sociosActivos: sum('sociosActivos'),
       moraCppActual: sum('moraCppActual'), pctMoraCpp: carteraInicio > 0 ? (sum('moraCppActual') / carteraInicio) * 100 : 0, metaMoraCpp: avg('metaMoraCpp'),
       excedentePctCpp: avg('excedentePctCpp'), excedenteSolesCpp: sum('excedenteSolesCpp'), moraDefActual: sum('moraDefActual'),
       pctMoraDef: carteraInicio > 0 ? (sum('moraDefActual') / carteraInicio) * 100 : 0, metaMoraDef: avg('metaMoraDef'),
@@ -145,77 +173,100 @@ export function AsesoresView({ filters }: { filters: Filters }) {
     };
   }, [datosProyectados]);
 
-  // Funciones de color estandarizadas
-  const getCrecNetoColor = (val: number) => val >= 20000 ? 'text-emerald-600 font-bold' : val >= 0 ? 'text-amber-600 font-bold' : 'text-rose-600 font-bold';
+  // Funciones de formato de Monedas y Números
+  const fmtMoney = (val: number) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 }).format(Number(val || 0));
+  const fmtNum = (val: number) => new Intl.NumberFormat('es-PE').format(Number(val || 0));
+  const fmtDec = (val: number) => Number(val || 0).toFixed(2);
+
+  // =================================================================================
+  // LÓGICA DE FONDOS DE CELDAS (Power BI Style: Verde, Amarillo, Rojo transparentes)
+  // =================================================================================
+  const getOpBg = (val: number) => val >= 25 ? 'bg-emerald-500/15 text-emerald-800' : val >= 20 ? 'bg-amber-500/20 text-amber-800' : 'bg-rose-500/15 text-rose-800';
+  const getDurBg = (val: number) => val >= 6 ? 'bg-emerald-500/15 text-emerald-800' : 'bg-rose-500/15 text-rose-800';
+  const getSocNuevosBg = (val: number) => val > 0 ? 'bg-emerald-500/15 text-emerald-800' : 'bg-rose-500/15 text-rose-800';
+  const getExcBg = (val: number) => val <= 0 ? 'bg-emerald-500/15 text-emerald-800' : 'bg-rose-500/15 text-rose-800';
+  const getCrecNetoBg = (val: number) => val >= 20000 ? 'bg-emerald-500/15 text-emerald-800' : val >= 0 ? 'bg-amber-500/20 text-amber-800' : 'bg-rose-500/15 text-rose-800';
+  const getCarteraBg = (val: number) => val >= 200000 ? 'bg-emerald-500/15 text-emerald-800' : val >= 100000 ? 'bg-amber-500/20 text-amber-800' : 'bg-rose-500/15 text-rose-800';
+
   const getFaltanteColor = (val: number) => val <= 0 ? 'text-emerald-600 font-bold' : val <= 20000 ? 'text-amber-600 font-bold' : 'text-rose-600 font-bold';
-  const getOpColor = (val: number) => val >= 27 ? 'text-emerald-600 font-bold' : val >= 20 ? 'text-amber-600 font-bold' : 'text-rose-600 font-bold';
-  const getDurColor = (val: number) => val >= 6 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
-  const getSocColor = (val: number) => val > 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
-  const getExcColor = (val: number) => val <= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold';
+  const getCrecNetoColor = (val: number) => val >= 20000 ? 'text-emerald-600 font-bold' : val >= 0 ? 'text-amber-600 font-bold' : 'text-rose-600 font-bold';
 
-  // 🚀 DICCIONARIO MAESTRO DE COLUMNAS (Para Reutilizar en las 7 Tablas)
+  const bgRojoMeta = 'bg-rose-500/10';
+  const bgNaranjaMeta = 'bg-amber-500/15';
+  const bgVerde = 'bg-emerald-500/10';
+
+  // 🚀 DICCIONARIO MAESTRO DE COLUMNAS (Textos multilínea y fondos inyectados solo en celdas)
   const dict: Record<string, any> = {
-    asesor: Col('asesor', 'Asesor', r => <span className="font-medium truncate max-w-[150px] block" title={r.asesor}>{r.asesor}</span>, r => r.asesor, () => 'Total', 'left'),
-    asesorT3: Col('asesorT3', 'Asesor', r => <span className="font-medium truncate max-w-[150px] block" title={r.asesor}>{r.asesor}</span>, r => r.asesor, () => 'Promedio Ponderado', 'left'),
-    asesorT7: Col('asesorT7', 'Asesor', r => <span className="font-medium truncate max-w-[150px] block" title={r.asesor}>{r.asesor}</span>, r => r.asesor, () => 'Total General', 'left'),
+    // Al quitar el "truncate", el nombre podrá saltar a 2 líneas, reduciendo dramáticamente su anchura
+    asesor: Col('asesor', 'Asesor', r => <span className="font-sans font-medium">{r.asesor}</span>, r => r.asesor, () => <span className="font-sans">Total</span>, 'left'),
+    asesorT3: Col('asesorT3', 'Asesor', r => <span className="font-sans font-medium">{r.asesor}</span>, r => r.asesor, () => <span className="font-sans">Promedio</span>, 'left'),
+    asesorT7: Col('asesorT7', 'Asesor', r => <span className="font-sans font-medium">{r.asesor}</span>, r => r.asesor, () => <span className="font-sans">Total</span>, 'left'),
 
-    cartera: Col('cartera', 'Cartera', r => <span className="font-mono">{money(r.cartera)}</span>, r => r.cartera, () => <span className="font-mono">{money(totales.cartera)}</span>),
-    desembolsos: Col('desembolsos', 'Desembolsos', r => <span className="font-mono">{money(r.desembolsos)}</span>, r => r.desembolsos, () => <span className="font-mono">{money(totales.desembolsos)}</span>),
-    repagos: Col('repagos', 'Repagos', r => <span className="font-mono">{money(r.repagos)}</span>, r => r.repagos, () => <span className="font-mono">{money(totales.repagos)}</span>),
-    crecimientoBruto: Col('crecimientoBruto', 'Crecimiento', r => <span className="font-mono">{money(r.crecimientoBruto)}</span>, r => r.crecimientoBruto, () => <span className="font-mono">{money(totales.crecimientoBruto)}</span>),
-    mora150: Col('mora150', 'Mora 150', r => <span className="font-mono">{money(r.mora150)}</span>, r => r.mora150, () => <span className="font-mono">{money(totales.mora150)}</span>),
-    pctMora150: Col('pctMora150', '% Mora150', r => <span className="font-mono">{Number(r.pctMora150).toFixed(2)}%</span>, r => r.pctMora150 / 100, () => <span className="font-mono">{totales.pctMora150.toFixed(2)}%</span>),
-    crecNeto150: Col('crecNeto150', 'Crec. Neto 150', r => <span className={`font-mono ${getCrecNetoColor(r.crecimientoNeto150)}`}>{money(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => <span className={`font-mono ${getCrecNetoColor(totales.crecimientoNeto150)}`}>{money(totales.crecimientoNeto150)}</span>, 'right', 'bg-emerald-500/10'),
-    faltante20k: Col('faltante20k', 'Faltante S/20K', r => <span className={`font-mono ${getFaltanteColor(r.faltante20k)}`}>{money(r.faltante20k)}</span>, r => r.faltante20k, () => <span className={`font-mono ${getFaltanteColor(totales.faltante20k)}`}>{money(totales.faltante20k)}</span>, 'right', 'bg-amber-500/10'),
+    // Tabla de Operaciones
+    opAchieved: Col('opAchieved', 'A la Fecha', r => r.opAchieved, r => r.opAchieved, () => totales.opAchieved, 'center', undefined, <div className="leading-[1.15]">A la<br/>Fecha</div>, r => getOpBg(r.opAchieved)),
+    opProjection: Col('opProjection', 'Proyección al Cierre', r => r.opProjection, r => r.opProjection, () => totales.opProjection, 'center', undefined, <div className="leading-[1.15]">Proyección<br/>al Cierre</div>, r => getOpBg(r.opProjection)),
 
-    opAchieved: Col('opAchieved', 'A la Fecha', r => <span className={`font-mono ${getOpColor(r.opAchieved)}`}>{r.opAchieved}</span>, r => r.opAchieved, () => <span className="font-mono">{totales.opAchieved}</span>),
-    opProjection: Col('opProjection', 'Proyección', r => <span className={`font-mono ${getOpColor(r.opProjection)}`}>{r.opProjection}</span>, r => r.opProjection, () => <span className="font-mono">{totales.opProjection}</span>),
-    duracion: Col('duracion', 'Duración', r => <span className={`font-mono ${getDurColor(r.duracion)}`}>{Number(r.duracion).toFixed(2)}</span>, r => r.duracion, () => <span className="font-mono">{totales.duracion.toFixed(2)}</span>),
+    // Tabla de Duracion
+    duracion: Col('duracion', 'Duración', r => fmtDec(r.duracion), r => r.duracion, () => fmtDec(totales.duracion), 'center', undefined, undefined, r => getDurBg(r.duracion)),
 
-    sociosInicio: Col('sociosInicio', 'Inicio', r => <span className="font-mono">{r.sociosInicio}</span>, r => r.sociosInicio, () => <span className="font-mono">{totales.sociosInicio}</span>),
-    sociosActual: Col('sociosActual', 'Actual', r => <span className="font-mono">{r.sociosActual}</span>, r => r.sociosActual, () => <span className="font-mono">{totales.sociosActual}</span>),
-    sociosNuevos: Col('sociosNuevos', 'Nuevos', r => <span className={`font-mono ${getSocColor(r.sociosNuevos)}`}>{r.sociosNuevos}</span>, r => r.sociosNuevos, () => <span className="font-mono">{totales.sociosNuevos}</span>),
+    // Tabla de Número de Socios (CON LAS NUEVAS COLUMNAS DE DWH)
+    sociosInicio: Col('sociosInicio', 'Inicio de Mes', r => fmtNum(r.sociosInicio), r => r.sociosInicio, () => fmtNum(totales.sociosInicio), 'center', undefined, <div className="leading-[1.15]">Inicio de<br/>Mes</div>),
+    sociosActual: Col('sociosActual', 'A la Fecha', r => fmtNum(r.sociosActual), r => r.sociosActual, () => fmtNum(totales.sociosActual), 'center', undefined, <div className="leading-[1.15]">A la<br/>Fecha</div>),
+    sociosNuevos: Col('sociosNuevos', 'Socios Nuevos', r => r.sociosNuevos, r => r.sociosNuevos, () => fmtNum(totales.sociosNuevos), 'center', undefined, <div className="leading-[1.15]">Socios<br/>Nuevos</div>, r => getSocNuevosBg(r.sociosNuevos)),
+    sociosRecuperacion: Col('sociosRecuperacion', 'Recuperados', r => fmtNum(r.sociosRecuperacion), r => r.sociosRecuperacion, () => fmtNum(totales.sociosRecuperacion), 'center'),
+    sociosCancelados: Col('sociosCancelados', 'Cancelados', r => <span className="text-rose-600">{fmtNum(r.sociosCancelados)}</span>, r => r.sociosCancelados, () => <span className="text-rose-600">{fmtNum(totales.sociosCancelados)}</span>, 'center'),
+    sociosTraspasados: Col('sociosTraspasados', 'Traspasados', r => fmtNum(r.sociosTraspasados), r => r.sociosTraspasados, () => fmtNum(totales.sociosTraspasados), 'center'),
+    sociosActivos: Col('sociosActivos', 'Activos', r => <span className="font-semibold text-[hsl(var(--primary))]">{fmtNum(r.sociosActivos)}</span>, r => r.sociosActivos, () => <span className="font-semibold text-[hsl(var(--primary))]">{fmtNum(totales.sociosActivos)}</span>, 'center'),
 
-    carteraInicio: Col('carteraInicio', 'Cartera Inicio', r => <span className="font-mono">{money(r.carteraInicio)}</span>, r => r.carteraInicio, () => <span className="font-mono">{money(totales.carteraInicio)}</span>),
-    moraCppActual: Col('moraCppActual', 'Mora S/', r => <span className="font-mono">{money(r.moraCppActual)}</span>, r => r.moraCppActual, () => <span className="font-mono">{money(totales.moraCppActual)}</span>),
-    pctMoraCpp: Col('pctMoraCpp', 'Mora %', r => <span className="font-mono">{Number(r.pctMoraCpp).toFixed(2)}%</span>, r => r.pctMoraCpp / 100, () => <span className="font-mono">{totales.pctMoraCpp.toFixed(2)}%</span>),
-    metaMoraCpp: Col('metaMoraCpp', 'Meta %', r => <span className="font-mono text-muted-foreground">{Number(r.metaMoraCpp).toFixed(2)}%</span>, r => r.metaMoraCpp / 100, () => <span className="font-mono text-muted-foreground">{totales.metaMoraCpp.toFixed(2)}%</span>),
-    excedentePctCpp: Col('excedentePctCpp', 'Excedente %', r => <span className={`font-mono ${getExcColor(r.excedentePctCpp)}`}>{Number(r.excedentePctCpp).toFixed(2)}%</span>, r => r.excedentePctCpp / 100, () => <span className={`font-mono ${getExcColor(totales.excedentePctCpp)}`}>{totales.excedentePctCpp.toFixed(2)}%</span>),
-    excedenteSolesCpp: Col('excedenteSolesCpp', 'Excedente S/', r => <span className={`font-mono ${getExcColor(r.excedenteSolesCpp)}`}>{money(r.excedenteSolesCpp)}</span>, r => r.excedenteSolesCpp, () => <span className={`font-mono ${getExcColor(totales.excedenteSolesCpp)}`}>{money(totales.excedenteSolesCpp)}</span>),
+    // Tablas de Moras
+    carteraInicio: Col('carteraInicio', 'Cartera de Inicio', r => <span className="text-muted-foreground">{fmtMoney(r.carteraInicio)}</span>, r => r.carteraInicio, () => <span className="text-muted-foreground">{fmtMoney(totales.carteraInicio)}</span>, 'right', undefined, <div className="leading-[1.15]">Cartera de<br/>Inicio</div>),
+    moraCppActual: Col('moraCppActual', 'Mora S/', r => fmtMoney(r.moraCppActual), r => r.moraCppActual, () => fmtMoney(totales.moraCppActual)),
+    pctMoraCpp: Col('pctMoraCpp', 'Mora %', r => `${fmtDec(r.pctMoraCpp)}%`, r => r.pctMoraCpp / 100, () => `${fmtDec(totales.pctMoraCpp)}%`),
+    metaMoraCpp: Col('metaMoraCpp', 'Meta %', r => <span className="text-muted-foreground">{fmtDec(r.metaMoraCpp)}%</span>, r => r.metaMoraCpp / 100, () => <span className="text-muted-foreground">{fmtDec(totales.metaMoraCpp)}%</span>),
+    excedentePctCpp: Col('excedentePctCpp', 'Excedente %', r => `${fmtDec(r.excedentePctCpp)}%`, r => r.excedentePctCpp / 100, () => `${fmtDec(totales.excedentePctCpp)}%`, 'right', undefined, <div className="leading-[1.15]">Excedente<br/>%</div>, r => getExcBg(r.excedentePctCpp)),
+    excedenteSolesCpp: Col('excedenteSolesCpp', 'Excedente S/', r => fmtMoney(r.excedenteSolesCpp), r => r.excedenteSolesCpp, () => fmtMoney(totales.excedenteSolesCpp), 'right', undefined, <div className="leading-[1.15]">Excedente<br/>S/</div>, r => getExcBg(r.excedenteSolesCpp)),
 
-    moraDefActual: Col('moraDefActual', 'Mora S/', r => <span className="font-mono">{money(r.moraDefActual)}</span>, r => r.moraDefActual, () => <span className="font-mono">{money(totales.moraDefActual)}</span>),
-    pctMoraDef: Col('pctMoraDef', 'Mora %', r => <span className="font-mono">{Number(r.pctMoraDef).toFixed(2)}%</span>, r => r.pctMoraDef / 100, () => <span className="font-mono">{totales.pctMoraDef.toFixed(2)}%</span>),
-    metaMoraDef: Col('metaMoraDef', 'Meta %', r => <span className="font-mono text-muted-foreground">{Number(r.metaMoraDef).toFixed(2)}%</span>, r => r.metaMoraDef / 100, () => <span className="font-mono text-muted-foreground">{totales.metaMoraDef.toFixed(2)}%</span>),
-    excedentePctDef: Col('excedentePctDef', 'Excedente %', r => <span className={`font-mono ${getExcColor(r.excedentePctDef)}`}>{Number(r.excedentePctDef).toFixed(2)}%</span>, r => r.excedentePctDef / 100, () => <span className={`font-mono ${getExcColor(totales.excedentePctDef)}`}>{totales.excedentePctDef.toFixed(2)}%</span>),
-    excedenteSolesDef: Col('excedenteSolesDef', 'Excedente S/', r => <span className={`font-mono ${getExcColor(r.excedenteSolesDef)}`}>{money(r.excedenteSolesDef)}</span>, r => r.excedenteSolesDef, () => <span className={`font-mono ${getExcColor(totales.excedenteSolesDef)}`}>{money(totales.excedenteSolesDef)}</span>),
+    moraDefActual: Col('moraDefActual', 'Mora S/', r => fmtMoney(r.moraDefActual), r => r.moraDefActual, () => fmtMoney(totales.moraDefActual)),
+    pctMoraDef: Col('pctMoraDef', 'Mora %', r => `${fmtDec(r.pctMoraDef)}%`, r => r.pctMoraDef / 100, () => `${fmtDec(totales.pctMoraDef)}%`),
+    metaMoraDef: Col('metaMoraDef', 'Meta %', r => <span className="text-muted-foreground">{fmtDec(r.metaMoraDef)}%</span>, r => r.metaMoraDef / 100, () => <span className="text-muted-foreground">{fmtDec(totales.metaMoraDef)}%</span>),
+    excedentePctDef: Col('excedentePctDef', 'Excedente %', r => `${fmtDec(r.excedentePctDef)}%`, r => r.excedentePctDef / 100, () => `${fmtDec(totales.excedentePctDef)}%`, 'right', undefined, <div className="leading-[1.15]">Excedente<br/>%</div>, r => getExcBg(r.excedentePctDef)),
+    excedenteSolesDef: Col('excedenteSolesDef', 'Excedente S/', r => fmtMoney(r.excedenteSolesDef), r => r.excedenteSolesDef, () => fmtMoney(totales.excedenteSolesDef), 'right', undefined, <div className="leading-[1.15]">Excedente<br/>S/</div>, r => getExcBg(r.excedenteSolesDef)),
 
-    // Alias para Tabla 7 (Resumen de Bonos)
-    blankDuracion: Col('blankDuracion', 'Duración (Candado)', r => <span className={`font-mono ${getDurColor(r.duracion)}`}>{Number(r.duracion).toFixed(2)}</span>, r => r.duracion, () => ''),
-    blankCartera: Col('blankCartera', 'Cartera (Cond. Adicional)', r => <span className="font-mono">{money(r.cartera)}</span>, r => r.cartera, () => ''),
-    blankOpAchieved: Col('blankOpAchieved', 'Nro Oper (Bono Base)', r => <span className={`font-mono ${getOpColor(r.opAchieved)}`}>{r.opAchieved}</span>, r => r.opAchieved, () => ''),
-    blankOpProjection: Col('blankOpProjection', 'Nro Oper Proyección', r => <span className={`font-mono ${getOpColor(r.opProjection)}`}>{r.opProjection}</span>, r => r.opProjection, () => ''),
-    crecNeto150_T7: Col('crecNeto150_T7', 'Crec. Neto 150 (Mult.)', r => <span className={`font-mono ${getCrecNetoColor(r.crecimientoNeto150)}`}>{money(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => <span className={`font-mono ${getCrecNetoColor(totales.crecimientoNeto150)}`}>{money(totales.crecimientoNeto150)}</span>),
-    sociosNuevos_T7: Col('sociosNuevos_T7', 'Socios Nuevos (Mult.)', r => <span className={`font-mono ${getSocColor(r.sociosNuevos)}`}>{r.sociosNuevos}</span>, r => r.sociosNuevos, () => <span className="font-mono">{totales.sociosNuevos}</span>),
-    excSolesCpp_T7: Col('excSolesCpp_T7', 'Mora CPP (Mult.)', r => <span className={`font-mono ${getExcColor(r.excedenteSolesCpp)}`}>{money(r.excedenteSolesCpp)}</span>, r => r.excedenteSolesCpp, () => <span className={`font-mono ${getExcColor(totales.excedenteSolesCpp)}`}>{money(totales.excedenteSolesCpp)}</span>),
-    excSolesDef_T7: Col('excSolesDef_T7', 'Mora Vencida (Mult.)', r => <span className={`font-mono ${getExcColor(r.excedenteSolesDef)}`}>{money(r.excedenteSolesDef)}</span>, r => r.excedenteSolesDef, () => <span className={`font-mono ${getExcColor(totales.excedenteSolesDef)}`}>{money(totales.excedenteSolesDef)}</span>),
+    // Tabla 1: Cartera Comercial
+    cartera: Col('cartera', 'Cartera', r => <span className="text-muted-foreground">{fmtMoney(r.cartera)}</span>, r => r.cartera, () => fmtMoney(totales.cartera)),
+    desembolsos: Col('desembolsos', 'Desembolsos', r => fmtMoney(r.desembolsos), r => r.desembolsos, () => fmtMoney(totales.desembolsos)),
+    repagos: Col('repagos', 'Repagos', r => <span className="text-muted-foreground">{fmtMoney(r.repagos)}</span>, r => r.repagos, () => <span className="text-muted-foreground">{fmtMoney(totales.repagos)}</span>),
+    crecimientoBruto: Col('crecimientoBruto', 'Crecimiento', r => fmtMoney(r.crecimientoBruto), r => r.crecimientoBruto, () => fmtMoney(totales.crecimientoBruto)),
+    mora150: Col('mora150', 'Mora 150', r => <span className="text-muted-foreground">{fmtMoney(r.mora150)}</span>, r => r.mora150, () => <span className="text-muted-foreground">{fmtMoney(totales.mora150)}</span>),
+    pctMora150: Col('pctMora150', '% Mora150', r => <span className="text-muted-foreground">{fmtDec(r.pctMora150)}%</span>, r => r.pctMora150 / 100, () => <span className="text-muted-foreground">{fmtDec(totales.pctMora150)}%</span>, 'right', undefined, <div className="leading-[1.15]">%<br/>Mora150</div>),
+    crecNeto150: Col('crecNeto150', 'Crec. Neto 150', r => <span className={getCrecNetoColor(r.crecimientoNeto150)}>{fmtMoney(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => <span className={getCrecNetoColor(totales.crecimientoNeto150)}>{fmtMoney(totales.crecimientoNeto150)}</span>, 'right', undefined, <div className="leading-[1.15]">Crecimiento<br/>Neto 150</div>, r => getCrecNetoBg(r.crecimientoNeto150)),
+    faltante20k: Col('faltante20k', 'Faltante a S/20K', r => <span className={getFaltanteColor(r.faltante20k)}>{fmtMoney(r.faltante20k)}</span>, r => r.faltante20k, () => <span className={getFaltanteColor(totales.faltante20k)}>{fmtMoney(totales.faltante20k)}</span>, 'right', undefined, <div className="leading-[1.15]">Faltante a<br/>S/20K</div>),
+
+    // Tabla 7: Resumen de Bonos
+    blankDuracion: Col('blankDuracion', 'Duración (Candado)', r => fmtDec(r.duracion), r => r.duracion, () => '', 'center', undefined, <div className="leading-[1.15]">Duración<br/>(Candado)</div>, r => getDurBg(r.duracion)),
+    blankCartera: Col('blankCartera', 'Cartera (Condicional Adicional)', r => fmtMoney(r.cartera), r => r.cartera, () => '', 'right', undefined, <div className="leading-[1.15]">Cartera<br/>(Adicional)</div>, r => getCarteraBg(r.cartera)),
+    blankOpAchieved: Col('blankOpAchieved', 'Nro Oper (Bono Base)', r => r.opAchieved, r => r.opAchieved, () => '', 'center', undefined, <div className="leading-[1.15]">Nro Oper<br/>(Bono Base)</div>, r => getOpBg(r.opAchieved)),
+    blankOpProjection: Col('blankOpProjection', 'Nro Oper Proyeccion', r => r.opProjection, r => r.opProjection, () => '', 'center', undefined, <div className="leading-[1.15]">Nro Oper<br/>Proyección</div>, r => getOpBg(r.opProjection)),
+    crecNeto150_T7: Col('crecNeto150_T7', 'Crecimiento Neto 150 (Mult.)', r => <span className={getCrecNetoColor(r.crecimientoNeto150)}>{fmtMoney(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => '', 'right', undefined, <div className="leading-[1.15]">Crecimiento<br/>Neto 150 (Mult.)</div>, r => getCrecNetoBg(r.crecimientoNeto150)),
+    sociosNuevos_T7: Col('sociosNuevos_T7', 'Socios Nuevos (Mult.)', r => r.sociosNuevos, r => r.sociosNuevos, () => '', 'center', undefined, <div className="leading-[1.15]">Socios Nuevos<br/>(Mult.)</div>, r => getSocNuevosBg(r.sociosNuevos)),
+    excSolesCpp_T7: Col('excSolesCpp_T7', 'Excedente Mora CPP (Mult.)', r => fmtMoney(r.excedenteSolesCpp), r => r.excedenteSolesCpp, () => '', 'right', undefined, <div className="leading-[1.15]">Excedente Mora<br/>CPP (Mult.)</div>, r => getExcBg(r.excedentePctCpp)),
+    excSolesDef_T7: Col('excSolesDef_T7', 'Excedente Mora Vencida (Mult.)', r => fmtMoney(r.excedenteSolesDef), r => r.excedenteSolesDef, () => '', 'right', undefined, <div className="leading-[1.15]">Excedente Mora<br/>Vencida (Mult.)</div>, r => getExcBg(r.excedentePctDef)),
   };
 
-  // Instancias de Configuración por Tabla
+  // ==========================================
+  // CONFIGURACIÓN DE LAS TABLAS
+  // ==========================================
   const t1 = useColumnOrder(['asesor', 'cartera', 'desembolsos', 'repagos', 'crecimientoBruto', 'mora150', 'pctMora150', 'crecNeto150', 'faltante20k'], 't1', 'asesor');
   const t2 = useColumnOrder(['asesor', 'opAchieved', 'opProjection'], 't2', 'asesor');
   const t3 = useColumnOrder(['asesorT3', 'duracion'], 't3', 'asesorT3');
-  const t4 = useColumnOrder(['asesor', 'sociosInicio', 'sociosActual', 'sociosNuevos'], 't4', 'asesor');
+  const t4 = useColumnOrder(['asesor', 'sociosInicio', 'sociosActual', 'sociosNuevos', 'sociosRecuperacion', 'sociosCancelados', 'sociosTraspasados', 'sociosActivos'], 't4', 'asesor');
   const t5 = useColumnOrder(['asesor', 'carteraInicio', 'moraCppActual', 'pctMoraCpp', 'metaMoraCpp', 'excedentePctCpp', 'excedenteSolesCpp'], 't5', 'asesor');
   const t6 = useColumnOrder(['asesor', 'carteraInicio', 'moraDefActual', 'pctMoraDef', 'metaMoraDef', 'excedentePctDef', 'excedenteSolesDef'], 't6', 'asesor');
   const t7 = useColumnOrder(['asesorT7', 'blankDuracion', 'blankCartera', 'blankOpAchieved', 'blankOpProjection', 'crecNeto150_T7', 'sociosNuevos_T7', 'excSolesCpp_T7', 'excSolesDef_T7'], 't7', 'asesorT7');
 
-  // ==========================================
-  // RETORNOS DE CARGA / ERROR (MOVIDOS AQUÍ)
-  // ==========================================
   if (loadAsesores || loadDias || !asesoresBD) return <LoadingState />;
   if (errAsesores) return <div className="p-5 text-destructive font-semibold border border-destructive/20 bg-destructive/10 rounded-xl">Error de conexión al DWH.</div>;
 
-  // 🚀 CAMBIO DE LIBRERÍA: xlsx -> ExcelJS (misma lógica, mismo lugar)
   const exportar = async (columnKeys: string[], filename: string, formato: 'excel' | 'clipboard') => {
     const cols = columnKeys.map(k => dict[k]);
     const headers = cols.map(c => c.header);
@@ -233,12 +284,10 @@ export function AsesoresView({ filters }: { filters: Filters }) {
         worksheet.addRow(headers);
         rows.forEach((row: any[]) => worksheet.addRow(row));
 
-        // Estilo del encabezado
         const headerRow = worksheet.getRow(1);
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
 
-        // Autoajustar ancho de columnas
         worksheet.columns.forEach((col: any) => {
           let maxLen = 10;
           col.eachCell?.({ includeEmpty: false }, (cell: any) => {
@@ -264,7 +313,8 @@ export function AsesoresView({ filters }: { filters: Filters }) {
     }
   };
 
-  const containerClass = `pb-0 overflow-x-auto ${filters.agency === 'Todas' ? 'max-h-[500px] overflow-y-auto' : ''}`;
+  // Altura estricta para activar el Scroll vertical
+  const containerClass = `max-h-[500px] pb-0`;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -272,23 +322,37 @@ export function AsesoresView({ filters }: { filters: Filters }) {
 
       {/* 1. CARTERA COMERCIAL */}
       <SectionBand tone="green">CARTERA COMERCIAL</SectionBand>
-      <Panel title="Indicadores de Bonificación" icon={<Users />} eyebrow="Cartera y Crecimiento Neto 150" action={<ExportActions control={t1} onExport={(f) => exportar(t1.order, 'Cartera_Comercial', f)} />}>
+      <Panel title="Todos los Indicadores de Bonificación" icon={<Users />} eyebrow="Cartera y Crecimiento Neto 150" action={<ExportActions control={t1} onExport={(f) => exportar(t1.order, 'Cartera_Comercial', f)} />}>
         <DraggableTable control={t1} columns={t1.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
       </Panel>
 
-      {/* 2. TABLAS SECUNDARIAS */}
-      <div className="grid gap-5 lg:grid-cols-3">
-        <Panel title="Operaciones" icon={<Users />} action={<ExportActions control={t2} onExport={(f) => exportar(t2.order, 'Operaciones', f)} />}>
-          <DraggableTable control={t2} columns={t2.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
-        </Panel>
+      {/* 2. TABLAS SECUNDARIAS (REESTRUCTURADAS PARA COMPARTIR EL ESPACIO CORRECTAMENTE) */}
+      {/* 
+         El grid responsive cambiará dependiendo del ancho de pantalla:
+         - Móvil: 1 columna
+         - Tablets/Laptops (xl): 2 columnas
+         - Escritorio Ancho (2xl): 5 columnas -> Operaciones(1) + Duración(1) + Socios(3) 
+      */}
+      <div className="grid gap-5 grid-cols-1 xl:grid-cols-2 2xl:grid-cols-5">
+        
+        <div className="2xl:col-span-1">
+          <Panel title="Operaciones" icon={<Users />} action={<ExportActions control={t2} onExport={(f) => exportar(t2.order, 'Operaciones', f)} />}>
+            <DraggableTable control={t2} columns={t2.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
+          </Panel>
+        </div>
 
-        <Panel title="Duración" icon={<Clock3 />} action={<ExportActions control={t3} onExport={(f) => exportar(t3.order, 'Duracion', f)} />}>
-          <DraggableTable control={t3} columns={t3.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
-        </Panel>
+        <div className="2xl:col-span-1">
+          <Panel title="Duración" icon={<Clock3 />} action={<ExportActions control={t3} onExport={(f) => exportar(t3.order, 'Duracion', f)} />}>
+            <DraggableTable control={t3} columns={t3.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
+          </Panel>
+        </div>
 
-        <Panel title="Número de Socios" icon={<Users />} action={<ExportActions control={t4} onExport={(f) => exportar(t4.order, 'Socios', f)} />}>
-          <DraggableTable control={t4} columns={t4.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
-        </Panel>
+        {/* Esta tabla de Socios ocupará 3 espacios en pantallas muy grandes, dándole lugar a sus 7 columnas */}
+        <div className="xl:col-span-2 2xl:col-span-3">
+          <Panel title="Número de Socios" icon={<Users />} action={<ExportActions control={t4} onExport={(f) => exportar(t4.order, 'Socios', f)} />}>
+            <DraggableTable control={t4} columns={t4.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
+          </Panel>
+        </div>
       </div>
 
       {/* 3. MORA CPP Y MORA VENCIDA */}
@@ -303,8 +367,8 @@ export function AsesoresView({ filters }: { filters: Filters }) {
       </div>
 
       {/* 4. RESUMEN DE BONIFICACIÓN */}
-      <SectionBand tone="blue">Resumen de Bonificación</SectionBand>
-      <Panel title="Indicadores de Bonificación" icon={<Users />} eyebrow="Bonos condicionados a Candado y Multiplicadores" action={<ExportActions control={t7} onExport={(f) => exportar(t7.order, 'Resumen_Bonificacion', f)} />}>
+      <SectionBand tone="blue">Resumen. Indicadores de Bonificación</SectionBand>
+      <Panel title="Resumen" icon={<Users />} eyebrow="Bonos condicionados a Candado y Multiplicadores" action={<ExportActions control={t7} onExport={(f) => exportar(t7.order, 'Resumen_Bonificacion', f)} />}>
         <DraggableTable control={t7} columns={t7.order.map(k => dict[k])} data={datosProyectados} containerClass={containerClass} />
       </Panel>
     </div>

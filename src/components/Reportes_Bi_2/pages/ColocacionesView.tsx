@@ -1,5 +1,6 @@
 // src/views/ColocacionesView.tsx
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ExcelJS from 'exceljs';
 import { Panel } from '../components/Panel';
@@ -9,13 +10,16 @@ import { Users, RefreshCw, Copy, Download } from 'lucide-react';
 import { number } from '../utils/formatters';
 import { fetchAgencia, fetchDiasLaborales } from '../services/colocaciones.service';
 
-
 // ============================================================================
 // HOOKS Y COMPONENTES MAESTROS DE EXPORTACIÓN Y ARRASTRE
 // ============================================================================
 function useColumnOrder(initialOrder: string[], tableId: string, lockedCol: string = 'asesor') {
   const [order, setOrder] = useState(initialOrder);
   const isModified = JSON.stringify(order) !== JSON.stringify(initialOrder);
+
+  useEffect(() => {
+    setOrder(initialOrder);
+  }, [JSON.stringify(initialOrder)]);
 
   const handleDragStart = (e: React.DragEvent, id: string) => {
     if (id === lockedCol) { e.preventDefault(); return; }
@@ -58,7 +62,7 @@ const ExportActions = ({ control, onExport }: { control: any, onExport: (format:
   </div>
 );
 
-// 🚀 EXTRAÍDO AFUERA: Ahora el gráfico del SemiDonut conservará su animación sin parpadear
+// EL SEMIDONUT SE MANTIENE INTACTO Y ANIMADO
 const SemiDonut = ({ pct }: { pct: number }) => {
   const radius = 60;
   const circum = Math.PI * radius;
@@ -80,16 +84,70 @@ const SemiDonut = ({ pct }: { pct: number }) => {
   );
 };
 
+// TABLA DINÁMICA DE DENSIDAD FLUIDA
+function DraggableTable({ control, columns, data, containerClass, showFooter = true }: { control: any, columns: any[], data: any[], containerClass: string, showFooter?: boolean }) {
+  return (
+    <div className={`relative overflow-x-auto overflow-y-auto scrollbar-thin z-0 ${containerClass}`}>
+      <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight border-collapse">
+        <thead className="sticky top-0 z-20 shadow-sm">
+          <tr className="border-b border-border">
+            {columns.map(col => (
+              <th 
+                key={col.id} 
+                draggable={col.id !== control.lockedCol} 
+                onDragStart={(e) => control.handleDragStart(e, col.id)} 
+                onDragOver={control.handleDragOver} 
+                onDrop={(e) => control.handleDrop(e, col.id)}
+                className={`bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground transition-colors ${col.id !== control.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-slate-200 hover:text-foreground' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}
+              >
+                {col.headerJSX || col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60 bg-white">
+          {data.length > 0 ? data.map((row: any, i: number) => (
+            <tr key={`row-${i}`} className="hover:bg-muted/30 transition-colors">
+              {columns.map(col => (
+                <td 
+                  key={`cell-${i}-${col.id}`} 
+                  className={`px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 ${col.align === 'left' ? 'text-left whitespace-normal min-w-[110px] md:min-w-[160px] max-w-[220px] leading-[1.15]' : 'text-right whitespace-nowrap font-mono'} ${col.align === 'center' ? 'text-center' : ''} ${col.cellBg ? col.cellBg(row) : ''}`}
+                >
+                  {col.cell(row)}
+                </td>
+              ))}
+            </tr>
+          )) : (
+            <tr><td colSpan={columns.length} className="px-3 py-4 text-center text-muted-foreground italic">No hay registros para esta selección.</td></tr>
+          )}
+        </tbody>
+        {showFooter && data.length > 0 && (
+          <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+            <tr className="border-t-2 border-border font-bold">
+              {columns.map(col => (
+                <td 
+                  key={`foot-${col.id}`} 
+                  className={`bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 whitespace-nowrap ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right font-mono'}`}
+                >
+                  {col.footer()}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
+
+const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, footer: ()=>any, align='right', cellBg?: (r:any)=>string, headerJSX?: React.ReactNode) => ({ id, header, headerJSX, cell, raw, footer, align, cellBg });
+
 const COL_KEYS = ['asesor', 'log', 'met', 'prod', 'proy', 'faltDia', 'faltExigente', 'categoria'];
 
 // ============================================================================
 // COMPONENTE PRINCIPAL
 // ============================================================================
 export function ColocacionesView({ filters }: { filters: any }) {
-  // ==========================================
-  // ZONA 1: TODOS LOS HOOKS (Incondicionales)
-  // ==========================================
-  // 🚀 REFACTOR: los endpoints viven ahora en colocacionesService
   const { data: agenciaData, isLoading: loadAgencia, isError: errorAgencia } = useQuery({
     queryKey: ['agencia', filters.period],
     queryFn: () => fetchAgencia(filters.period),
@@ -128,7 +186,6 @@ export function ColocacionesView({ filters }: { filters: any }) {
     // 3. LOGRADO Y META
     const logrado = comercialFiltered.reduce((acc: number, curr: any) => acc + Number(curr.opAchieved || 0), 0);
 
-    // Meta condicional (Agencia vs Asesor individual)
     const metaGlobal = filters.advisor === 'Todos'
       ? resumenFiltered.reduce((acc: number, curr: any) => acc + Number(curr.opTarget || 0), 0)
       : comercialFiltered.reduce((acc: number, curr: any) => acc + Number(curr.metaAsesor || 30), 0);
@@ -164,6 +221,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
       const faltExigente = Math.ceil(faltDia);
       const pct = metAsesor > 0 ? (proyTotalAsesor / metAsesor) * 100 : 0;
 
+      // Colores PBI Style para "Categoría / Estado"
       let badgeClass = "bg-rose-500/10 text-rose-700 font-semibold";
       if (pct >= 100) badgeClass = "bg-emerald-500/20 text-emerald-700 font-bold";
       else if (pct >= 85) badgeClass = "bg-amber-300/20 text-amber-900 font-semibold";
@@ -191,28 +249,27 @@ export function ColocacionesView({ filters }: { filters: any }) {
   const cTable = useColumnOrder(COL_KEYS, 'colocaciones', 'asesor');
 
   // ==========================================
-  // ZONA 2: LÓGICA Y FUNCIONES
+  // CONFIGURACIÓN VISUAL DE COLUMNAS (Diccionario)
   // ==========================================
-  const defColocaciones = [
-    { id: 'asesor', header: 'Asesor', align: 'left', cell: (r:any) => <span className="font-medium">{r.asesor}</span>, raw: (r:any) => r.asesor, footer: () => `Total ${filters.advisor !== 'Todos' ? 'Asesor' : 'Agencia'}` },
-    { id: 'log', header: 'Logrado', align: 'right', cell: (r:any) => <span className="font-mono font-bold text-emerald-600">{r.log}</span>, raw: (r:any) => r.log, footer: () => <span className="font-mono text-emerald-600">{totalesTabla.t_log}</span> },
-    { id: 'met', header: 'Meta Asesor', align: 'right', cell: (r:any) => <span className="font-mono text-muted-foreground">{r.met}</span>, raw: (r:any) => r.met, footer: () => <span className="font-mono">{totalesTabla.t_met}</span> },
-    { id: 'prod', header: 'Productividad', align: 'right', cell: (r:any) => <span className="font-mono">{r.prod.toFixed(2)}</span>, raw: (r:any) => r.prod, footer: () => <span className="font-mono">{totalesTabla.t_prod.toFixed(2)}</span> },
-    { id: 'proy', header: 'Proyección', align: 'right', cell: (r:any) => <span className="font-mono">{r.proy}</span>, raw: (r:any) => r.proy, footer: () => <span className="font-mono">{totalesTabla.t_proy}</span> },
-    { id: 'faltDia', header: 'Faltante por Día Restante', align: 'right', cell: (r:any) => <span className="font-mono text-rose-600">{r.faltDia.toFixed(2)}</span>, raw: (r:any) => r.faltDia, footer: () => <span className="font-mono text-rose-600">{totalesTabla.t_faltDia.toFixed(2)}</span> },
-    { id: 'faltExigente', header: 'Faltante Exigente / Día', align: 'right', cell: (r:any) => <span className="font-mono font-bold">{r.faltExigente}</span>, raw: (r:any) => r.faltExigente, footer: () => <span className="font-mono">-</span> },
-    { id: 'categoria', header: 'Categoría / Estado', align: 'center',
-      cell: (r:any) => (
-        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] ${r.badgeClass}`}>
+  const dict: Record<string, any> = {
+    asesor: Col('asesor', 'Asesor', r => <span className="font-sans font-medium">{r.asesor}</span>, r => r.asesor, () => <span className="font-sans">Total {filters.advisor !== 'Todos' ? 'Asesor' : 'Agencia'}</span>, 'left'),
+    log: Col('log', 'Logrado', r => <span className="text-emerald-600 font-bold">{r.log}</span>, r => r.log, () => <span className="text-emerald-600 font-bold">{totalesTabla.t_log}</span>),
+    met: Col('met', 'Meta Asesor', r => <span className="text-muted-foreground">{r.met}</span>, r => r.met, () => <span>{totalesTabla.t_met}</span>, 'right', undefined, <div className="leading-[1.15]">Meta<br/>Asesor</div>),
+    prod: Col('prod', 'Productividad', r => r.prod.toFixed(2), r => r.prod, () => totalesTabla.t_prod.toFixed(2)),
+    proy: Col('proy', 'Proyección', r => r.proy, r => r.proy, () => totalesTabla.t_proy),
+    faltDia: Col('faltDia', 'Faltante por Día Restante', r => <span className="text-rose-600">{r.faltDia.toFixed(2)}</span>, r => r.faltDia, () => <span className="text-rose-600">{totalesTabla.t_faltDia.toFixed(2)}</span>, 'right', undefined, <div className="leading-[1.15]">Faltante por<br/>Día Restante</div>),
+    faltExigente: Col('faltExigente', 'Faltante Exigente / Día', r => <span className="font-bold">{r.faltExigente}</span>, r => r.faltExigente, () => <span className="text-muted-foreground">-</span>, 'right', undefined, <div className="leading-[1.15]">Faltante<br/>Exigente / Día</div>),
+    categoria: Col('categoria', 'Categoría / Estado', 
+      r => (
+        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-sans ${r.badgeClass}`}>
           Proyección: {r.met > 0 ? Math.round((r.proy / r.met) * 100) : 0}%
         </span>
-      ),
-      raw: (r:any) => r.met > 0 ? (r.proy / r.met) : 0,
-      footer: () => `${Math.round(kpis.cumplimiento)}% Global`
-    }
-  ];
+      ), 
+      r => r.met > 0 ? (r.proy / r.met) : 0, 
+      () => <span className="font-sans">{Math.round(kpis.cumplimiento)}% Global</span>, 'center', undefined, <div className="leading-[1.15]">Categoría /<br/>Estado</div>)
+  };
 
-  const colRender = cTable.order.map(id => defColocaciones.find(c => c.id === id)!);
+  const colRender = cTable.order.map(id => dict[id]);
 
   const exportar = async (formato: 'excel' | 'clipboard') => {
     const headers = colRender.map(c => c.header);
@@ -230,12 +287,10 @@ export function ColocacionesView({ filters }: { filters: any }) {
         worksheet.addRow(headers);
         rows.forEach((row: any[]) => worksheet.addRow(row));
 
-        // Estilo del encabezado
         const headerRow = worksheet.getRow(1);
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
 
-        // Autoajustar ancho de columnas
         worksheet.columns.forEach((col: any) => {
           let maxLen = 10;
           col.eachCell?.({ includeEmpty: false }, (cell: any) => {
@@ -261,7 +316,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
     }
   };
 
-  const tableContainerClass = `pb-0 overflow-x-auto ${filters.agency === 'Todas' ? 'max-h-[500px] overflow-y-auto' : ''}`;
+  const tableContainerClass = `max-h-[600px] pb-0`;
 
   // ==========================================
   // ZONA 3: RETORNOS ANTICIPADOS (Carga y Error)
@@ -280,7 +335,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Panel title={filters.advisor !== 'Todos' ? `Hasta Hoy, ¿Cómo Va ${filters.advisor}?` : "Hasta Hoy, ¿Cómo Va mi Agencia?"}>
           <div className="flex flex-col items-center p-2">
-            <div className="text-[11px] text-muted-foreground font-semibold mb-2">Cumplimiento Porcentual de la Meta Mensual</div>
+            <div className="text-[11px] text-muted-foreground font-semibold mb-2 text-center">Cumplimiento Porcentual de la Meta Mensual</div>
             <SemiDonut pct={kpis.cumplimiento} />
             <div className="grid grid-cols-3 w-full text-center mt-6 pt-4">
               <div>
@@ -301,7 +356,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
 
         <Panel title={filters.advisor !== 'Todos' ? `Al cierre de Mes, ¿Cómo Iría ${filters.advisor}?` : "Al cierre de Mes, ¿Cómo Iría mi Agencia?"}>
           <div className="flex flex-col items-center p-2">
-            <div className="text-[11px] text-muted-foreground font-semibold mb-2">Proyección del Cumplimiento Porcentual de la Meta Mensual</div>
+            <div className="text-[11px] text-muted-foreground font-semibold mb-2 text-center">Proyección del Cumplimiento Porcentual de la Meta Mensual</div>
             <SemiDonut pct={kpis.proyCumplimiento} />
             <div className="grid grid-cols-3 w-full text-center mt-6 pt-4">
               <div>
@@ -327,7 +382,7 @@ export function ColocacionesView({ filters }: { filters: any }) {
             <div className="text-sm font-medium text-foreground mb-4 px-4">Hasta la fecha, es como si hubiese colocado ... créditos por día laboral</div>
             <div className="text-[44px] font-bold text-emerald-600 font-mono tracking-tighter">{kpis.credPorDiaHastaFecha}</div>
           </div>
-          <div className="px-2 border-x border-border/60 flex flex-col items-center">
+          <div className="px-2 md:border-x border-border/60 flex flex-col items-center">
             <div className="text-sm font-medium text-foreground mb-4 px-4">Cada uno de estos días restantes, {filters.advisor !== 'Todos' ? 'tiene' : 'tengo'} que colocar ... créditos para llegar a {filters.advisor !== 'Todos' ? 'su' : 'mi'} meta</div>
             <div className="relative">
               <div className="text-[44px] font-bold text-rose-500 font-mono tracking-tighter">{kpis.credPorDiaRestantes}</div>
@@ -349,41 +404,9 @@ export function ColocacionesView({ filters }: { filters: any }) {
         title="Desempeño a Nivel de Asesores"
         icon={<Users />}
         eyebrow={`Productividad ideal: ${kpis.prodIdeal} créditos / día`}
-        action={<ExportActions control={cTable} onExport={exportar} />}
+        action={<ExportActions control={cTable} onExport={(f) => exportar(f)} />}
       >
-        <div className={tableContainerClass}>
-          <table className="w-full text-left text-[11px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
-                {colRender.map(col => (
-                  <th key={col.id} draggable={col.id !== cTable.lockedCol} onDragStart={(e) => cTable.handleDragStart(e, col.id)} onDragOver={cTable.handleDragOver} onDrop={(e) => cTable.handleDrop(e, col.id)}
-                      className={`px-3 pt-2 pb-2.5 font-semibold transition-colors ${col.id !== cTable.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}>
-                    {col.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {tableData.length > 0 ? tableData.map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-muted/30">
-                  {colRender.map(col => (
-                    <td key={`${i}-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}>{col.cell(row)}</td>
-                  ))}
-                </tr>
-              )) : (
-                <tr><td colSpan={8} className="py-4 text-center text-muted-foreground italic">No hay datos para esta selección</td></tr>
-              )}
-            </tbody>
-            {/* 🚀 FOOTER SIEMPRE VISIBLE (STICKY BOTTOM) CON FONDO SÓLIDO */}
-            <tfoot className="sticky bottom-0 z-20 bg-card shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
-              <tr className="border-t-2 border-border font-bold bg-muted/40">
-                {colRender.map(col => (
-                  <td key={`foot-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}>{col.footer()}</td>
-                ))}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <DraggableTable control={cTable} columns={colRender} data={tableData} containerClass={tableContainerClass} />
       </Panel>
     </div>
   );

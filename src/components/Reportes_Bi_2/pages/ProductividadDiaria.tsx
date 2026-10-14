@@ -13,16 +13,17 @@ import { WorkdayStrip } from '../components/WorkdayStrip';
 import { ShieldAlert, TrendingUp, Users, RefreshCw, Copy, Download } from 'lucide-react';
 import { getGestionPreventiva, getProductividadDiaria } from '../services/productividad.service';
 
-
 // ============================================================================
-// HELPER DE EXPORTACIÓN (compartido) — ExcelJS reemplaza a xlsx/SheetJS
+// HELPER DE EXPORTACIÓN (compartido)
 // ============================================================================
 async function exportToExcel(headers: string[], rows: any[][], sheetName: string, filename: string) {
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet(sheetName);
+  const worksheet = workbook.addWorksheet(sheetName, { views: [{ state: 'frozen', ySplit: 1 }] });
 
   worksheet.addRow(headers);
-  worksheet.getRow(1).font = { bold: true };
+  const headerRow = worksheet.getRow(1);
+  headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
 
   rows.forEach(row => worksheet.addRow(row));
 
@@ -101,6 +102,64 @@ const ExportActions = ({ control, onExport }: { control: any, onExport: (format:
   </div>
 );
 
+// TABLA CON FONDOS OPACOS EN ENCABEZADOS Y ESPACIO DINÁMICO (DENSIDAD FLUIDA)
+function DraggableTable({ control, columns, data, containerClass, showFooter = true }: { control: any, columns: any[], data: any[], containerClass: string, showFooter?: boolean }) {
+  return (
+    <div className={`relative overflow-x-auto overflow-y-auto scrollbar-thin z-0 ${containerClass}`}>
+      <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight border-collapse">
+        <thead className="sticky top-0 z-20 shadow-sm">
+          <tr className="border-b border-border">
+            {columns.map(col => (
+              <th 
+                key={col.id} 
+                draggable={col.id !== control.lockedCol} 
+                onDragStart={(e) => control.handleDragStart(e, col.id)} 
+                onDragOver={control.handleDragOver} 
+                onDrop={(e) => control.handleDrop(e, col.id)}
+                className={`bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground transition-colors ${col.id !== control.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-slate-200 hover:text-foreground' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}
+              >
+                {col.headerJSX || col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60 bg-white">
+          {data.length > 0 ? data.map((row: any, i: number) => (
+            <tr key={`row-${i}`} className="hover:bg-muted/30 transition-colors">
+              {columns.map(col => (
+                <td 
+                  key={`cell-${i}-${col.id}`} 
+                  className={`px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 ${col.align === 'left' ? 'text-left whitespace-normal min-w-[90px] md:min-w-[130px] max-w-[220px] leading-[1.15]' : 'text-right whitespace-nowrap font-mono'} ${col.align === 'center' ? 'text-center' : ''} ${col.cellBg ? col.cellBg(row) : ''}`}
+                >
+                  {col.cell(row)}
+                </td>
+              ))}
+            </tr>
+          )) : (
+            <tr><td colSpan={columns.length} className="px-3 py-4 text-center text-muted-foreground italic">No hay registros para esta selección.</td></tr>
+          )}
+        </tbody>
+        {showFooter && data.length > 0 && (
+          <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+            <tr className="border-t-2 border-border font-bold">
+              {columns.map(col => (
+                <td 
+                  key={`foot-${col.id}`} 
+                  className={`bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 whitespace-nowrap ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right font-mono'}`}
+                >
+                  {col.footer()}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
+
+const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, footer: ()=>any, align='right', cellBg?: (r:any)=>string, headerJSX?: React.ReactNode) => ({ id, header, headerJSX, cell, raw, footer, align, cellBg });
+
 // ============================================================================
 // 1. VISTA PREVENTIVA (Gestión Preventiva)
 // ============================================================================
@@ -125,23 +184,18 @@ export function PreventivaView({ filters }: { filters: Filters }) {
   if (error) return <div className="p-4 text-destructive font-semibold">Error al cargar datos del DWH.</div>;
 
   const defPrev = [
-    { id: 'agencia', header: 'Agencia', align: 'left', cell: (r:any) => <span className="font-medium">{r.agencia}</span>, raw: (r:any) => r.agencia, footer: () => 'Total General' },
-    { id: 'socio', header: 'Socio', align: 'left', cell: (r:any) => <span className="truncate max-w-[200px]" title={r.socio}>{r.socio}</span>, raw: (r:any) => r.socio, footer: () => '' },
-    { id: 'telefono', header: 'Teléfono', align: 'left', cell: (r:any) => <span className="font-mono text-xs">{r.telefono}</span>, raw: (r:any) => r.telefono, footer: () => '' },
-    { id: 'producto', header: 'Producto', align: 'left', cell: (r:any) => <span className="text-xs text-muted-foreground">{r.producto}</span>, raw: (r:any) => r.producto, footer: () => '' },
-    { id: 'analista', header: 'Analista', align: 'left', cell: (r:any) => r.analista, raw: (r:any) => r.analista, footer: () => '' },
-    { id: 'fecha_vencimiento', header: 'Vencimiento', align: 'left', cell: (r:any) => <span className="font-mono">{r.fecha_vencimiento}</span>, raw: (r:any) => r.fecha_vencimiento, footer: () => '' },
-    { id: 'dias_para_vencimiento', header: 'Días Faltantes', align: 'center', raw: (r:any) => r.dias_para_vencimiento, footer: () => '',
-      cell: (r:any) => (
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-          r.dias_para_vencimiento === 0 ? 'bg-rose-500/20 text-rose-700' :
-          r.dias_para_vencimiento <= 2 ? 'bg-amber-500/20 text-amber-800' : 'bg-sky-500/20 text-sky-700'
-        }`}>
-          {r.dias_para_vencimiento === 0 ? 'HOY' : `${r.dias_para_vencimiento} días`}
-        </span>
-      )
-    },
-    { id: 'saldo', header: 'Saldo', align: 'right', cell: (r:any) => <span className="font-mono font-bold text-rose-600">S/ {r.saldo_formateado}</span>, raw: (r:any) => Number(r.saldo_formateado?.replace(/,/g, '') || 0), footer: () => <span className="font-mono text-rose-600">{money(totalSaldo)}</span> }
+    Col('agencia', 'Agencia', r => <span className="font-medium">{r.agencia}</span>, r => r.agencia, () => 'Total General', 'left'),
+    Col('socio', 'Socio', r => <span className="font-medium">{r.socio}</span>, r => r.socio, () => '', 'left'),
+    Col('telefono', 'Teléfono', r => r.telefono, r => r.telefono, () => '', 'left'),
+    Col('producto', 'Producto', r => <span className="text-muted-foreground">{r.producto}</span>, r => r.producto, () => '', 'left'),
+    Col('analista', 'Analista', r => r.analista, r => r.analista, () => '', 'left'),
+    Col('fecha_vencimiento', 'Vencimiento', r => r.fecha_vencimiento, r => r.fecha_vencimiento, () => '', 'left'),
+    Col('dias_para_vencimiento', 'Días Faltantes', r => (
+      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold font-sans ${r.dias_para_vencimiento === 0 ? 'bg-rose-500/20 text-rose-700' : r.dias_para_vencimiento <= 2 ? 'bg-amber-500/20 text-amber-800' : 'bg-sky-500/20 text-sky-700'}`}>
+        {r.dias_para_vencimiento === 0 ? 'HOY' : `${r.dias_para_vencimiento} días`}
+      </span>
+    ), r => r.dias_para_vencimiento, () => '', 'center', undefined, <div className="leading-[1.15]">Días<br/>Faltantes</div>),
+    Col('saldo', 'Saldo', r => <span className="font-bold text-rose-600">S/ {r.saldo_formateado}</span>, r => Number(r.saldo_formateado?.replace(/,/g, '') || 0), () => <span className="text-rose-600">{money(totalSaldo)}</span>)
   ];
 
   const colRender = cPrev.order.map(id => defPrev.find(c => c.id === id)!);
@@ -162,38 +216,8 @@ export function PreventivaView({ filters }: { filters: Filters }) {
       <WorkdayStrip periodo={filters.period} />
       <SectionBand tone="coral">Próximos a Vencer (5 Días)</SectionBand>
       <Panel title="Gestión Preventiva" icon={<ShieldAlert />} eyebrow="Cartera en riesgo inminente" action={<ExportActions control={cPrev} onExport={exportar} />}>
-        <div className="overflow-auto pb-4 max-h-[500px]">
-          <table className="w-full text-left text-[11px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
-                {colRender.map(col => (
-                  <th key={col.id} draggable={col.id !== cPrev.lockedCol} onDragStart={(e) => cPrev.handleDragStart(e, col.id)} onDragOver={cPrev.handleDragOver} onDrop={(e) => cPrev.handleDrop(e, col.id)} 
-                      className={`px-3 pt-2 pb-2.5 font-semibold transition-colors ${col.id !== cPrev.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}>
-                    {col.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {datosFiltrados?.map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-muted/30">
-                  {colRender.map(col => (
-                    <td key={`${i}-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}>{col.cell(row)}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="sticky bottom-0 z-20 bg-card shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
-              <tr className="border-t-2 border-border font-bold bg-muted/40">
-                {colRender.map(col => (
-                  <td key={`foot-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`} colSpan={col.id === 'agencia' ? 1 : 1}>
-                    {col.footer()}
-                  </td>
-                ))}
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        {/* Usamos el nuevo DraggableTable para Preventiva */}
+        <DraggableTable control={cPrev} columns={colRender} data={datosFiltrados} containerClass="max-h-[600px] pb-0" />
       </Panel>
     </div>
   );
@@ -260,31 +284,59 @@ function DailyTable({ title, mode, data, period }: { title: string; mode: 'count
   const t_target = data.reduce((acc, r) => acc + Number(mode === 'count' ? r.targetCount : r.targetAmount), 0);
   const t_projection = data.reduce((acc, r) => acc + Number(mode === 'count' ? r.projectionCount : r.projectionAmount), 0);
   const t_achieved = data.reduce((acc, r) => acc + Number(mode === 'count' ? r.achievedCount : r.achievedAmount), 0);
+  
+  // Cálculo crudo de diferencias
   const t_faltanteProj = t_projection - t_achieved;
   const t_faltanteMeta = t_target - t_achieved;
 
   const getTarget = (r:any) => Number(mode === 'count' ? r.targetCount : r.targetAmount);
   const getProj = (r:any) => Number(mode === 'count' ? r.projectionCount : r.projectionAmount);
   const getAchieved = (r:any) => Number(mode === 'count' ? r.achievedCount : r.achievedAmount);
-  const getBadge = (pct: number) => pct >= 90 ? '🟢' : (pct >= 60 ? '🟠' : '❌');
+  
+  // Condicional de color basado en la imagen de Power BI
+  const getDiffBg = (target: number, achieved: number) => {
+    if (target === 0) return 'bg-rose-500/10 text-rose-700';
+    const pct = (achieved / target) * 100;
+    if (pct >= 100) return 'bg-emerald-500/15 text-emerald-800'; // Verde (Cumplido)
+    if (pct >= 75) return 'bg-amber-500/20 text-amber-800';      // Naranja
+    return 'bg-rose-500/15 text-rose-800';                       // Rojo
+  };
+
+  const getDiffIcon = (target: number, achieved: number) => {
+    if (target === 0) return '❌';
+    const pct = (achieved / target) * 100;
+    if (pct >= 100) return '✅';
+    if (pct >= 75) return '⚠️';
+    return '❌';
+  };
 
   const defDaily = [
-    { id: 'agency', header: 'Agencia', align: 'left', cell: (r:any) => <span className="font-medium">{r.agency}</span>, raw: (r:any) => r.agency, footer: () => 'Total' },
-    { id: 'target', header: mode === 'count' ? '# Meta' : 'S/ Meta', align: 'right', cell: (r:any) => <span className="font-mono bg-accent/10 px-2 py-0.5 rounded">{mode === 'count' ? getTarget(r) : money(getTarget(r))}</span>, raw: (r:any) => getTarget(r), footer: () => <span className="font-mono bg-accent/10 px-2 py-0.5 rounded">{mode === 'count' ? t_target : money(t_target)}</span> },
-    { id: 'projection', header: mode === 'count' ? '# Proyección' : 'S/ Proyección', align: 'right', cell: (r:any) => <span className="font-mono">{mode === 'count' ? getProj(r) : money(getProj(r))}</span>, raw: (r:any) => getProj(r), footer: () => <span className="font-mono">{mode === 'count' ? t_projection : money(t_projection)}</span> },
-    { id: 'achieved', header: mode === 'count' ? '# Logrado' : 'S/ Logrado', align: 'right', cell: (r:any) => <span className="font-mono font-bold text-emerald-600">{mode === 'count' ? getAchieved(r) : money(getAchieved(r))}</span>, raw: (r:any) => getAchieved(r), footer: () => <span className="font-mono text-emerald-600">{mode === 'count' ? t_achieved : money(t_achieved)}</span> },
-    { id: 'diffProj', header: 'Faltante Proyección', align: 'right', 
-      cell: (r:any) => { 
+    Col('agency', 'Agencia', r => <span className="font-medium">{r.agency}</span>, r => r.agency, () => 'Total', 'left'),
+    Col('target', mode === 'count' ? '# Meta' : 'S/ Meta', r => mode === 'count' ? getTarget(r) : money(getTarget(r)), r => getTarget(r), () => mode === 'count' ? t_target : money(t_target)),
+    Col('projection', mode === 'count' ? '# Proyección' : 'S/ Proyección', r => mode === 'count' ? getProj(r) : money(getProj(r)), r => getProj(r), () => mode === 'count' ? t_projection : money(t_projection)),
+    Col('achieved', mode === 'count' ? '# Logrado' : 'S/ Logrado', r => <span className="font-bold text-emerald-600">{mode === 'count' ? getAchieved(r) : money(getAchieved(r))}</span>, r => getAchieved(r), () => <span className="font-bold text-emerald-600">{mode === 'count' ? t_achieved : money(t_achieved)}</span>),
+    Col('diffProj', 'Faltante a Proyección', 
+      r => {
         const diff = getProj(r) - getAchieved(r);
-        return <span className="font-mono text-rose-600">{mode === 'count' ? number(Math.abs(diff)) : money(Math.abs(diff))} {getBadge(getTarget(r) > 0 ? (getAchieved(r)/getTarget(r))*100 : 0)}</span>; 
-      }, raw: (r:any) => getProj(r) - getAchieved(r), footer: () => <span className="font-mono text-rose-600">{mode === 'count' ? number(Math.abs(t_faltanteProj)) : money(Math.abs(t_faltanteProj))}</span> 
-    },
-    { id: 'diffMeta', header: 'Faltante Meta', align: 'right', 
-      cell: (r:any) => { 
+        return <span className="flex items-center justify-end gap-1.5">{mode === 'count' ? number(diff) : money(diff)} <span className="text-[9px]">{getDiffIcon(getProj(r), getAchieved(r))}</span></span>;
+      }, 
+      r => getProj(r) - getAchieved(r), 
+      () => <span className="font-bold">{mode === 'count' ? number(t_faltanteProj) : money(t_faltanteProj)}</span>, 
+      'right', 
+      r => getDiffBg(getProj(r), getAchieved(r)),
+      <div className="leading-[1.15] text-center"># Faltante a<br/>Proyección</div>
+    ),
+    Col('diffMeta', 'Faltante a Meta', 
+      r => {
         const diff = getTarget(r) - getAchieved(r);
-        return <span className="font-mono font-bold text-rose-600">{mode === 'count' ? number(Math.abs(diff)) : money(Math.abs(diff))} {getBadge(getTarget(r) > 0 ? (getAchieved(r)/getTarget(r))*100 : 0)}</span>; 
-      }, raw: (r:any) => getTarget(r) - getAchieved(r), footer: () => <span className="font-mono font-bold text-rose-600">{mode === 'count' ? number(Math.abs(t_faltanteMeta)) : money(Math.abs(t_faltanteMeta))}</span> 
-    }
+        return <span className="flex items-center justify-end gap-1.5">{mode === 'count' ? number(diff) : money(diff)} <span className="text-[9px]">{getDiffIcon(getTarget(r), getAchieved(r))}</span></span>;
+      }, 
+      r => getTarget(r) - getAchieved(r), 
+      () => <span className="font-bold">{mode === 'count' ? number(t_faltanteMeta) : money(t_faltanteMeta)}</span>, 
+      'right', 
+      r => getDiffBg(getTarget(r), getAchieved(r)),
+      <div className="leading-[1.15] text-center"># Faltante a<br/>Meta</div>
+    )
   ];
 
   const colRender = cDaily.order.map(id => defDaily.find(c => c.id === id)!);
@@ -301,37 +353,8 @@ function DailyTable({ title, mode, data, period }: { title: string; mode: 'count
   };
 
   return (
-    <Panel title={title} icon={<TrendingUp />} eyebrow="Verde: >=90% || Naranja: >=60% || Rojo: <60%" action={<ExportActions control={cDaily} onExport={exportar} />}>
-      <div className="overflow-auto pb-4 max-h-[500px]">
-        <table className="w-full text-left text-[11px] whitespace-nowrap">
-          <thead>
-            <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
-              {colRender.map(col => (
-                <th key={col.id} draggable={col.id !== cDaily.lockedCol} onDragStart={(e) => cDaily.handleDragStart(e, col.id)} onDragOver={cDaily.handleDragOver} onDrop={(e) => cDaily.handleDrop(e, col.id)} 
-                    className={`px-3 pt-2 pb-2.5 font-semibold transition-colors ${col.id !== cDaily.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : 'text-right'}`}>
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/50">
-            {data.map((row) => (
-              <tr key={row.agency} className="hover:bg-muted/30">
-                {colRender.map(col => (
-                  <td key={`${row.agency}-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : 'text-right'}`}>{col.cell(row)}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-          <tfoot className="sticky bottom-0 z-20 bg-card shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
-            <tr className="border-t-2 border-border font-bold bg-muted/40">
-              {colRender.map(col => (
-                <td key={`foot-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : 'text-right'}`}>{col.footer()}</td>
-              ))}
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+    <Panel title={title} icon={<TrendingUp />} eyebrow="Verde: >=100% || Naranja: >=75% || Rojo: <75%" action={<ExportActions control={cDaily} onExport={exportar} />}>
+      <DraggableTable control={cDaily} columns={colRender} data={data} containerClass="max-h-[600px] pb-0" />
     </Panel>
   );
 }
@@ -366,9 +389,9 @@ function AsesoresDiariosTable({ data, period }: { data: any[], period: string })
   const t_des = data.reduce((acc, r) => acc + Number(r.disbursements || 0), 0);
 
   const defAsesores = [
-    { id: 'asesor', header: 'Asesor', align: 'left', cell: (r:any) => <span className="font-medium">{r.asesor}</span>, raw: (r:any) => r.asesor, footer: () => 'Total' },
-    { id: 'operations', header: 'Operaciones', align: 'right', cell: (r:any) => <span className="font-mono">{r.operations}</span>, raw: (r:any) => r.operations, footer: () => <span className="font-mono">{t_ops}</span> },
-    { id: 'disbursements', header: 'Desembolsos', align: 'right', cell: (r:any) => <span className="font-mono">{money(r.disbursements)}</span>, raw: (r:any) => r.disbursements, footer: () => <span className="font-mono">{money(t_des)}</span> }
+    Col('asesor', 'Asesor', r => <span className="font-medium">{r.asesor}</span>, r => r.asesor, () => 'Total', 'left'),
+    Col('operations', 'Operaciones', r => r.operations, r => r.operations, () => t_ops),
+    Col('disbursements', 'Desembolsos', r => money(r.disbursements), r => r.disbursements, () => money(t_des))
   ];
 
   const colRender = cAsesores.order.map(id => defAsesores.find(c => c.id === id)!);
@@ -386,40 +409,8 @@ function AsesoresDiariosTable({ data, period }: { data: any[], period: string })
 
   return (
     <Panel title="Cantidad y Monto de Colocaciones por Asesor" icon={<Users />} eyebrow="Rendimiento individual diario" action={<ExportActions control={cAsesores} onExport={exportar} />}>
-      <div className="overflow-auto pb-4 max-h-[450px]">
-        <table className="w-full text-left text-[11px] whitespace-nowrap">
-          <thead>
-            <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
-              {colRender.map(col => (
-                <th key={col.id} draggable={col.id !== cAsesores.lockedCol} onDragStart={(e) => cAsesores.handleDragStart(e, col.id)} onDragOver={cAsesores.handleDragOver} onDrop={(e) => cAsesores.handleDrop(e, col.id)} 
-                    className={`px-4 py-2 font-semibold transition-colors ${col.id !== cAsesores.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : 'text-right'}`}>
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border/50">
-            {data.length > 0 ? data.map((row, idx) => (
-              <tr key={idx} className="hover:bg-muted/30">
-                {colRender.map(col => (
-                  <td key={`${idx}-${col.id}`} className={`px-4 py-2 ${col.align === 'left' ? 'text-left' : 'text-right'}`}>{col.cell(row)}</td>
-                ))}
-              </tr>
-            )) : (
-              <tr><td colSpan={3} className="py-4 text-center text-muted-foreground italic">No hay registros de asesores para esta fecha.</td></tr>
-            )}
-          </tbody>
-          <tfoot className="sticky bottom-0 z-20 bg-card shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
-            <tr className="border-t-2 border-border font-bold bg-muted/40">
-              {colRender.map(col => (
-                <td key={`foot-${col.id}`} className={`px-4 py-2.5 ${col.align === 'left' ? 'text-left' : 'text-right'}`}>
-                  {col.footer()}
-                </td>
-              ))}
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+      {/* 🚀 Usamos DraggableTable también aquí para mantener el estándar visual */}
+      <DraggableTable control={cAsesores} columns={colRender} data={data} containerClass="max-h-[600px] pb-0" />
     </Panel>
   );
 }

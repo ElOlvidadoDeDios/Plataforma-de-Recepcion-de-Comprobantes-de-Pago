@@ -7,10 +7,9 @@ import { ResponsiveContainer, ComposedChart, Area, CartesianGrid, XAxis, YAxis, 
 import { LineChart, History, RefreshCw, Copy, Download, SlidersHorizontal } from 'lucide-react';
 import { money } from '../utils/formatters';
 import { LoadingState } from '../components/LoadingState';
-
+import { SectionBand } from '../components/SectionBand';
 import { Panel } from '../components/Panel';
 import { fetchEvolucion } from '../services/evolucion.service';
-
 
 // ============================================================================
 // HOOKS MAESTROS DE DRAG & DROP Y EXPORTACIÓN
@@ -19,7 +18,6 @@ function useColumnOrder(initialOrder: string[], tableId: string, lockedCol: stri
   const [order, setOrder] = useState(initialOrder);
   const isModified = JSON.stringify(order) !== JSON.stringify(initialOrder);
 
-  // 🚀 FIX FANTASMA: Si cambias de Mensual a Diario, actualiza el número de columnas
   useEffect(() => {
     setOrder(initialOrder);
   }, [JSON.stringify(initialOrder)]);
@@ -40,11 +38,71 @@ const ExportActions = ({ control, onExport }: { control: any, onExport: (format:
 );
 
 // ============================================================================
+// COMPONENTE: TABLA CON FONDOS SÓLIDOS Y DENSIDAD FLUIDA
+// ============================================================================
+function DraggableTable({ control, columns, data, containerClass, showFooter = false }: { control: any, columns: any[], data: any[], containerClass: string, showFooter?: boolean }) {
+  return (
+    <div className={`relative overflow-x-auto overflow-y-auto scrollbar-thin z-0 ${containerClass}`}>
+      <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight border-collapse">
+        <thead className="sticky top-0 z-20 shadow-sm">
+          <tr className="border-b border-border">
+            {columns.map(col => (
+              <th 
+                key={col.id} 
+                draggable={col.id !== control.lockedCol} 
+                onDragStart={(e) => control.handleDragStart(e, col.id)} 
+                onDragOver={control.handleDragOver} 
+                onDrop={(e) => control.handleDrop(e, col.id)}
+                className={`bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground transition-colors ${col.id !== control.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-slate-200 hover:text-foreground' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}
+              >
+                {col.headerJSX || col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60 bg-white">
+          {data.length > 0 ? data.map((row: any, i: number) => (
+            <tr key={`row-${i}`} className="hover:bg-muted/30 transition-colors">
+              {columns.map(col => (
+                <td 
+                  key={`cell-${i}-${col.id}`} 
+                  className={`px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 ${col.align === 'left' ? 'text-left whitespace-normal min-w-[90px] md:min-w-[130px] max-w-[220px] leading-[1.15]' : 'text-right whitespace-nowrap font-mono'} ${col.align === 'center' ? 'text-center' : ''} ${col.cellBg ? col.cellBg(row) : ''}`}
+                >
+                  {col.cell(row)}
+                </td>
+              ))}
+            </tr>
+          )) : (
+            <tr><td colSpan={columns.length} className="px-3 py-4 text-center text-muted-foreground italic">No hay registros históricos disponibles.</td></tr>
+          )}
+        </tbody>
+        {showFooter && data.length > 0 && (
+          <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+            <tr className="border-t-2 border-border font-bold">
+              {columns.map(col => (
+                <td 
+                  key={`foot-${col.id}`} 
+                  className={`bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 whitespace-nowrap ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right font-mono'}`}
+                >
+                  {col.footer ? col.footer() : null}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
+
+const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, footer: (()=>any) | null, align='right', cellBg?: (r:any)=>string, headerJSX?: React.ReactNode) => ({ id, header, headerJSX, cell, raw, footer, align, cellBg });
+
+// ============================================================================
 // VISTA PRINCIPAL
 // ============================================================================
 export function EvolucionView({ dbFilters }: { dbFilters: any }) {
   // ==========================================
-  // ZONA 0: VARIABLES PREVIAS (Para iniciar estados)
+  // ZONA 0: VARIABLES PREVIAS
   // ==========================================
   const periodosDisponibles = dbFilters?.periodos || [];
   const defaultEndMonth = periodosDisponibles[0];
@@ -53,7 +111,7 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   // ==========================================
-  // ZONA 1: TODOS LOS HOOKS (Incondicionales)
+  // ZONA 1: ESTADOS Y QUERIES
   // ==========================================
   const [granularity, setGranularity] = useState<'Mensual' | 'Diario'>('Mensual');
   const [agency, setAgency] = useState('Todas');
@@ -90,50 +148,51 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
   const isMensual = granularity === 'Mensual';
   const isAsesor = advisor !== 'Todos';
 
+  const chartData = evolucionBD || []; 
+  
+  // ==========================================
+  // CONFIGURACIÓN DE COLORES Y COLUMNAS
+  // ==========================================
+  const getCrecimientoBg = (val: number) => val >= 0 ? 'bg-emerald-500/10 text-emerald-700' : 'bg-rose-500/10 text-rose-700';
+  const getMoraBg = (val: number) => val > 15 ? 'bg-rose-500/15 text-rose-800 font-bold' : (val > 10 ? 'bg-amber-500/15 text-amber-800' : 'text-muted-foreground');
+
+  const dict: Record<string, any> = {
+    periodo: Col('periodo', isMensual ? 'Periodo' : 'Fecha', r => <span className="font-bold">{r.periodo}</span>, r => r.periodo, null, 'left'),
+    etiquetaMes: Col('etiquetaMes', 'Etiqueta', r => <span className="font-medium text-muted-foreground">{r.etiqueta}</span>, r => r.etiqueta, null, 'left'),
+    colocacionNumReal: Col('colocacionNumReal', 'Nro Oper.', r => <span className="font-mono text-blue-600 font-semibold">{r.colocacionNumReal}</span>, r => r.colocacionNumReal, null, 'right', undefined, <div className="leading-[1.15]">Nro<br/>Oper.</div>),
+    colocacionNumMeta: Col('colocacionNumMeta', 'Meta Oper.', r => <span className="font-mono text-muted-foreground">{r.colocacionNumMeta}</span>, r => r.colocacionNumMeta, null, 'right', undefined, <div className="leading-[1.15]">Meta<br/>Oper.</div>),
+    colocacionMonto: Col('colocacionMonto', 'Desembolsos S/', r => <span className="font-mono text-emerald-600 font-semibold">{money(r.colocacionMonto)}</span>, r => r.colocacionMonto, null, 'right', undefined, <div className="leading-[1.15]">Desembolsos<br/>S/</div>),
+    colocacionMeta: Col('colocacionMeta', 'Meta S/', r => <span className="font-mono text-muted-foreground">{money(r.colocacionMeta)}</span>, r => r.colocacionMeta, null, 'right', undefined, <div className="leading-[1.15]">Meta<br/>S/</div>),
+    repagos: Col('repagos', 'Repagos S/', r => <span className="font-mono text-rose-600 font-medium">{money(r.repagos)}</span>, r => r.repagos, null, 'right', undefined, <div className="leading-[1.15]">Repagos<br/>S/</div>),
+    crecimientoBruto: Col('crecimientoBruto', 'Crecimiento Bruto', r => <span className="font-mono font-bold">{money(r.crecimientoBruto)}</span>, r => r.crecimientoBruto, null, 'right', r => getCrecimientoBg(r.crecimientoBruto), <div className="leading-[1.15]">Crecimiento<br/>Bruto</div>),
+    carteraTotal: Col('carteraTotal', 'Cartera Total', r => <span className="font-mono">{money(r.carteraTotal)}</span>, r => r.carteraTotal, null, 'right', undefined, <div className="leading-[1.15]">Cartera<br/>Total</div>),
+    mora31Total: Col('mora31Total', 'Mora > 30 Días', r => <span className="font-mono text-rose-600 font-medium">{money(r.mora31Total)}</span>, r => r.mora31Total, null, 'right', undefined, <div className="leading-[1.15]">Mora<br/>{'> 30 Días'}</div>),
+    pctMora31: Col('pctMora31', '% Mora > 30', r => <span className="font-mono">{Number(r.pctMora31).toFixed(2)}%</span>, r => r.pctMora31 / 100, null, 'right', r => getMoraBg(r.pctMora31), <div className="leading-[1.15]">% Mora<br/>{'> 30'}</div>)
+  };
+
   const baseColumns = ['periodo', 'etiquetaMes', 'colocacionNumReal', 'colocacionNumMeta', 'colocacionMonto', 'colocacionMeta', 'repagos', 'crecimientoBruto'];
   const allColumns = isMensual ? [...baseColumns, 'carteraTotal', 'mora31Total', 'pctMora31'] : baseColumns;
   const cTable = useColumnOrder(allColumns, 'historial', 'periodo');
 
-  // ==========================================
-  // ZONA 2: LÓGICA Y FUNCIONES
-  // ==========================================
   const handleGranularityChange = (val: 'Mensual' | 'Diario') => {
     setGranularity(val);
     if (val === 'Diario') setDateRange({ start: thirtyDaysAgo, end: today });
     else setDateRange({ start: defaultStartMonth, end: defaultEndMonth });
   };
 
-  const defCols = [
-    { id: 'periodo', header: isMensual ? 'Periodo' : 'Fecha', align: 'left', cell: (r:any) => <span className="font-bold">{r.periodo}</span>, raw: (r:any) => r.periodo },
-    { id: 'etiquetaMes', header: 'Etiqueta', align: 'left', cell: (r:any) => <span className="font-medium text-muted-foreground">{r.etiqueta}</span>, raw: (r:any) => r.etiqueta },
-    { id: 'colocacionNumReal', header: 'Nro Oper.', align: 'right', cell: (r:any) => <span className="font-mono text-blue-600 font-semibold">{r.colocacionNumReal}</span>, raw: (r:any) => r.colocacionNumReal },
-    { id: 'colocacionNumMeta', header: 'Meta Oper.', align: 'right', cell: (r:any) => <span className="font-mono text-muted-foreground">{r.colocacionNumMeta}</span>, raw: (r:any) => r.colocacionNumMeta },
-    { id: 'colocacionMonto', header: 'Desembolsos S/', align: 'right', cell: (r:any) => <span className="font-mono text-emerald-600 font-semibold">{money(r.colocacionMonto)}</span>, raw: (r:any) => r.colocacionMonto },
-    { id: 'colocacionMeta', header: 'Meta S/', align: 'right', cell: (r:any) => <span className="font-mono text-muted-foreground">{money(r.colocacionMeta)}</span>, raw: (r:any) => r.colocacionMeta },
-    { id: 'repagos', header: 'Repagos S/', align: 'right', cell: (r:any) => <span className="font-mono text-rose-600">{money(r.repagos)}</span>, raw: (r:any) => r.repagos },
-    { id: 'crecimientoBruto', header: 'Crec. Bruto', align: 'right', cell: (r:any) => <span className={`font-mono font-bold ${r.crecimientoBruto >= 0 ? 'text-amber-600' : 'text-rose-600'}`}>{money(r.crecimientoBruto)}</span>, raw: (r:any) => r.crecimientoBruto },
-    { id: 'carteraTotal', header: 'Cartera Total', align: 'right', cell: (r:any) => <span className="font-mono">{money(r.carteraTotal)}</span>, raw: (r:any) => r.carteraTotal },
-    { id: 'mora31Total', header: 'Mora > 30 Días', align: 'right', cell: (r:any) => <span className="font-mono text-rose-600">{money(r.mora31Total)}</span>, raw: (r:any) => r.mora31Total },
-    { id: 'pctMora31', header: '% Mora > 30', align: 'right', cell: (r:any) => <span className="font-mono font-bold">{Number(r.pctMora31).toFixed(2)}%</span>, raw: (r:any) => r.pctMora31 / 100 }
-  ];
+  const colRender = cTable.order.map(id => dict[id]);
 
-  const colRender = cTable.order.map(id => defCols.find(c => c.id === id)!);
-  const chartData = evolucionBD || []; 
-
-  /**
-   * Genera y descarga un archivo .xlsx usando ExcelJS (async, con streaming de buffer)
-   * en vez de la librería `xlsx` (SheetJS), que arrastra vulnerabilidades conocidas.
-   */
   const descargarExcel = async (filename: string, headers: string[], rows: any[][]) => {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Reporte Evolución';
     workbook.created = new Date();
 
-    const worksheet = workbook.addWorksheet('Historial');
+    const worksheet = workbook.addWorksheet('Historial', { views: [{ state: 'frozen', ySplit: 1 }] });
 
     worksheet.addRow(headers);
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
 
     rows.forEach(row => worksheet.addRow(row));
 
@@ -174,61 +233,58 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
     }
   };
 
-  // ==========================================
-  // ZONA 3: RETORNOS ANTICIPADOS (Carga y Error)
-  // ==========================================
   if (!dbFilters || isLoading) return <LoadingState />;
   if (error) return <div className="p-5 text-destructive font-semibold border border-destructive/20 bg-destructive/10 rounded-xl">Error al cargar datos históricos. Verifica la conexión al DWH.</div>;
 
-  // ==========================================
-  // ZONA 4: RENDERIZADO PRINCIPAL
-  // ==========================================
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <div className="mb-4 flex items-center gap-2 border-b border-border pb-3">
-          <SlidersHorizontal size={16} className="text-[hsl(var(--primary))]" />
-          <h3 className="text-sm font-bold text-foreground">Laboratorio de Análisis Histórico</h3>
+      <div className="rounded-2xl border border-border bg-white shadow-sm hover:shadow-md transition-shadow p-5">
+        <div className="mb-4 flex items-center gap-2 border-b border-border/50 pb-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/40 text-muted-foreground ring-1 ring-border/50">
+            <SlidersHorizontal size={14} className="text-[hsl(var(--primary))]" />
+          </div>
+          <h3 className="text-sm font-bold text-foreground tracking-tight">Laboratorio de Análisis Histórico</h3>
         </div>
+        
         <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground">Granularidad</label>
-            <select value={granularity} onChange={e => handleGranularityChange(e.target.value as any)} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold focus:ring-1 focus:ring-[hsl(var(--primary))]">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Granularidad</label>
+            <select value={granularity} onChange={e => handleGranularityChange(e.target.value as any)} className="rounded-lg border border-border/50 bg-slate-50 px-3 py-2 text-xs font-semibold focus:ring-1 focus:ring-[hsl(var(--primary))] transition-colors">
               <option value="Mensual">Mensual (Mes a Mes)</option>
               <option value="Diario">Diario (Día a Día)</option>
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground">Desde</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Desde</label>
             {isMensual ? (
-              <select value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold">
+              <select value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} className="rounded-lg border border-border/50 bg-slate-50 px-3 py-2 text-xs font-semibold transition-colors">
                 {periodosDisponibles.map((p: string) => <option key={p} value={p}>{p}</option>)}
               </select>
             ) : (
-              <input type="date" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold uppercase" />
+              <input type="date" value={dateRange.start} onChange={e => setDateRange({ ...dateRange, start: e.target.value })} className="rounded-lg border border-border/50 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase transition-colors" />
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground">Hasta</label>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Hasta</label>
             {isMensual ? (
-              <select value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold">
+              <select value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} className="rounded-lg border border-border/50 bg-slate-50 px-3 py-2 text-xs font-semibold transition-colors">
                 {periodosDisponibles.map((p: string) => <option key={p} value={p}>{p}</option>)}
               </select>
             ) : (
-              <input type="date" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold uppercase" />
+              <input type="date" value={dateRange.end} onChange={e => setDateRange({ ...dateRange, end: e.target.value })} className="rounded-lg border border-border/50 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase transition-colors" />
             )}
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground">Agencia</label>
-            <select value={agency} onChange={e => { setAgency(e.target.value); setAdvisor('Todos'); }} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Agencia</label>
+            <select value={agency} onChange={e => { setAgency(e.target.value); setAdvisor('Todos'); }} className="rounded-lg border border-border/50 bg-slate-50 px-3 py-2 text-xs font-semibold transition-colors">
               <option value="Todas">Todas las agencias</option>
               {['Wanchaq', 'San Jerónimo', 'Quillabamba', 'Sicuani', 'Molino', 'Juliaca', 'Lima Los Olivos', 'Tica Tica', 'Magisterio', 'Lima SJL', 'Chiclayo', 'Arequipa', 'Pucallpa'].map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-semibold text-muted-foreground">Asesor</label>
-            <select value={advisor} onChange={e => setAdvisor(e.target.value)} className="rounded-lg border-0 bg-muted/50 px-3 py-2 text-xs font-semibold">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Asesor</label>
+            <select value={advisor} onChange={e => setAdvisor(e.target.value)} className="rounded-lg border border-border/50 bg-slate-50 px-3 py-2 text-xs font-semibold transition-colors">
               <option value="Todos">Todos</option>
               {asesoresHistoricos.map((a: any, i: number) => <option key={i} value={a.valorFiltro}>{a.textoVista}</option>)}
             </select>
@@ -238,7 +294,7 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
 
       <div className={`grid gap-5 ${isMensual ? 'xl:grid-cols-2' : 'xl:grid-cols-1'}`}>
         
-        {/* 🚀 GRÁFICO 1 INTELIGENTE: Cambia su diseño si es Agencia o si es Asesor */}
+        {/* 🚀 GRÁFICO 1 INTELIGENTE */}
         <Panel title={`Evolución de Colocaciones (${granularity})`} icon={<LineChart />} eyebrow={isAsesor ? "Monto Desembolsado vs Cantidad de Operaciones" : "Monto Desembolsado vs Meta Asignada"}>
           <div className="h-[380px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -264,7 +320,6 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
                 {/* Monto siempre se muestra como área verde en el Eje Izquierdo */}
                 <Area yAxisId="left" type="monotone" dataKey="colocacionMonto" name="Desembolsos S/" stroke="#059669" strokeWidth={3} fillOpacity={1} fill="url(#colorColocacion)" />
                 
-                {/* Lógica Condicional: SIN FRAGMENTOS (<>) PARA QUE RECHARTS LOS DETECTE */}
                 {!isAsesor && (
                   <Line yAxisId="left" type="step" dataKey="colocacionMeta" name="Meta Asignada S/" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={false} />
                 )}
@@ -301,32 +356,10 @@ export function EvolucionView({ dbFilters }: { dbFilters: any }) {
         )}
       </div>
 
-      <Panel title={`Registro Histórico ${granularity}`} icon={<History />} eyebrow={`Datos crudos desde ${dateRange.start} hasta ${dateRange.end}`} action={<ExportActions control={cTable} onExport={exportar} />}>
-        <div className="overflow-x-auto pb-4 max-h-[500px]">
-          <table className="w-full text-left text-[11px] whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
-                {colRender.map(col => (
-                  <th key={col.id} draggable={col.id !== cTable.lockedCol} onDragStart={(e) => cTable.handleDragStart(e, col.id)} onDragOver={cTable.handleDragOver} onDrop={(e) => cTable.handleDrop(e, col.id)} 
-                      className={`px-4 py-3 font-semibold transition-colors ${col.id !== cTable.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : 'text-right'}`}>
-                    {col.header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {chartData.length > 0 ? chartData.map((row: any, i: number) => (
-                <tr key={i} className="hover:bg-muted/30 transition-colors">
-                  {colRender.map(col => (
-                    <td key={`${i}-${col.id}`} className={`px-4 py-3 ${col.align === 'left' ? 'text-left' : 'text-right'}`}>{col.cell(row)}</td>
-                  ))}
-                </tr>
-              )) : (
-                <tr><td colSpan={colRender.length} className="py-8 text-center text-muted-foreground italic">No hay datos históricos disponibles para este rango.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <SectionBand tone="blue">Registro y Datos Crudos Históricos</SectionBand>
+      <Panel title={`Historial de Desempeño ${granularity}`} icon={<History />} eyebrow={`Datos detallados desde ${dateRange.start} hasta ${dateRange.end}`} action={<ExportActions control={cTable} onExport={exportar} />}>
+        {/* Usamos nuestro DraggableTable con un max-h-[600px] para garantizar el Scroll Inquebrantable */}
+        <DraggableTable control={cTable} columns={colRender} data={chartData} containerClass="max-h-[600px] pb-0" showFooter={false} />
       </Panel>
     </div>
   );

@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { TooltipProvider } from './components/tooltip'; // Ajusta la ruta si es necesario
 import { Toaster as SonnerToaster, toast } from 'sonner'; // Renombramos para no chocar con react-hot-toast
 import { useLocation, useNavigate } from 'react-router-dom'; // Usamos el router de GeoDile
-import { Activity, Trophy, Building2, CalendarDays, LayoutDashboard, Menu, RefreshCw, Search, SlidersHorizontal, Target, TrendingUp, Users, X, LineChart, Ban, ArrowLeft } from 'lucide-react';
+// AÑADIDO: ChevronLeft y ChevronRight para ocultar la barra
+import { Activity, Trophy, Building2, CalendarDays, LayoutDashboard, Menu, RefreshCw, Search, SlidersHorizontal, Target, TrendingUp, Users, X, LineChart, Ban, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ==========================================
 // IMPORTACIONES MODULARES (Ajusta las rutas relativas según tu estructura)
@@ -70,22 +71,33 @@ function DashboardContent() {
   // periodo actual
   const getCurrentPeriod = () => {
     const date = new Date();
-
     return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
   };
   
   const [filters, setFilters] = useState<Filters>({ period: getCurrentPeriod(), agency: 'Todas', advisor: 'Todos', day: 'Hoy' });
 
+  // ESTADO DINÁMICO PARA LA FECHA
+  const [lastUpdated, setLastUpdated] = useState('Cargando...');
+
   useEffect(() => {
-    if (dbFilters?.periodos?.length > 0 && filters.period === 'Cargando...') {
-      setFilters(prev => ({ ...prev, period: dbFilters.periodos[0] }));
+    if (dbFilters) {
+      if (dbFilters.periodos?.length > 0 && filters.period === 'Cargando...') {
+        setFilters(prev => ({ ...prev, period: dbFilters.periodos[0] }));
+      }
+      // Actualizamos la fecha cuando el backend responde
+      if (dbFilters.ultimaActualizacion) {
+        setLastUpdated(dbFilters.ultimaActualizacion);
+      }
     }
   }, [dbFilters, filters.period]);
 
   const [mobileNav, setMobileNav] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState('11/08/2026 · 12:50 p. m.');
+  
+  // NUEVO ESTADO: Para controlar si la barra lateral está colapsada o no
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   const meta = viewMeta[activeView];
 
   // Función de navegación interna dentro de /reportes
@@ -99,33 +111,45 @@ function DashboardContent() {
 
   return (
     <div className="powerbi-theme dashboard-noise min-h-[100dvh] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
-      {/* Antes: bg-[hsl(var(--sidebar))] */}
-      <aside className={`fixed inset-y-0 left-0 z-30 flex w-[256px] flex-col bg-gradient-to-br from-cyan-500 to-blue-500 text-white transition-transform duration-300 md:translate-x-0 ${mobileNav ? 'translate-x-0' : '-translate-x-full'}`}>
+      
+      {/* SIDEBAR: Se agregó la clase dinámica isSidebarCollapsed para reducir a 80px */}
+      <aside className={`fixed inset-y-0 left-0 z-30 flex flex-col bg-gradient-to-br from-cyan-500 to-blue-500 text-white transition-all duration-300 md:translate-x-0 ${mobileNav ? 'translate-x-0 w-[256px]' : '-translate-x-full'} ${isSidebarCollapsed ? 'md:w-[80px]' : 'md:w-[256px]'}`}>
+        
         {/* Header del Sidebar con Logo Botón */}
-        <div className="flex h-[88px] items-center justify-between border-b border-[hsl(var(--sidebar-border))] px-5">
+        <div className="flex h-[88px] items-center justify-between border-b border-[hsl(var(--sidebar-border))] px-5 relative">
           <button 
             onClick={() => navigateRouter('/')}
-            className="group flex items-center gap-3 text-left transition-all"
+            className={`group flex items-center gap-3 text-left transition-all ${isSidebarCollapsed ? 'mx-auto' : ''}`}
             title="Volver al menú principal"
           >
-            {/* Contenedor del Logo (Más grande y rectangular) */}
-            <div className="flex h-11 w-[105px] items-center justify-center rounded-xl bg-white p-2 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:ring-2 group-hover:ring-[hsl(var(--sidebar-primary)/.5)]">
+            {/* Contenedor del Logo (Se achica si está colapsado) */}
+            <div className="flex h-11 shrink-0 items-center justify-center rounded-xl bg-white p-2 shadow-sm transition-all duration-300 group-hover:scale-105 group-hover:shadow-md group-hover:ring-2 group-hover:ring-[hsl(var(--sidebar-primary)/.5)]" style={{ width: isSidebarCollapsed ? '44px' : '105px' }}>
               <img 
                 src="https://plataformadepagosdile.netlify.app/assets/logo_dile-CnWgqqS_.webp" 
                 alt="Logo DILE" 
-                className="h-full w-full object-contain"
+                className={`h-full object-contain ${isSidebarCollapsed ? 'w-full scale-150' : 'w-full'}`}
               />
             </div>
             
-            {/* Textos a la derecha */}
-            <div className="flex flex-col justify-center">
-              <div className="font-display text-[18px] font-bold tracking-[-.04em] text-white">
-                PULSO<span className="text-[hsl(var(--sidebar-primary))]">.</span>
+            {/* Textos a la derecha (Se ocultan si está colapsado) */}
+            {!isSidebarCollapsed && (
+              <div className="flex flex-col justify-center overflow-hidden whitespace-nowrap">
+                <div className="font-display text-[18px] font-bold tracking-[-.04em] text-white">
+                  PULSO<span className="text-[hsl(var(--sidebar-primary))]">.</span>
+                </div>
+                <div className="mt-1 flex items-center gap-1 font-mono text-[9px] uppercase tracking-[.19em] text-white/90 transition-colors group-hover:text-white">
+                  <ArrowLeft size={10} strokeWidth={2.5} className="transition-transform duration-300 group-hover:-translate-x-1" /> Inicio
+                </div>
               </div>
-              <div className="mt-1 flex items-center gap-1 font-mono text-[9px] uppercase tracking-[.19em] text-white/90 transition-colors group-hover:text-white">
-                <ArrowLeft size={10} strokeWidth={2.5} className="transition-transform duration-300 group-hover:-translate-x-1" /> Inicio
-              </div>
-            </div>
+            )}
+          </button>
+
+          {/* BOTÓN COLAPSAR/EXPANDIR (Solo en desktop) */}
+          <button 
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="absolute -right-3 top-1/2 -translate-y-1/2 bg-white text-cyan-600 rounded-full p-1 shadow-md hidden md:flex hover:scale-110 transition-transform"
+          >
+            {isSidebarCollapsed ? <ChevronRight size={14} strokeWidth={3} /> : <ChevronLeft size={14} strokeWidth={3} />}
           </button>
 
           {/* Botón cerrar en móviles */}
@@ -139,8 +163,13 @@ function DashboardContent() {
             <X size={18} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-4 py-7">
-          <div className="mb-3 px-3 font-mono text-[12px] uppercase tracking-[.16em] text-white">Reporte operativo</div>
+        
+        <div className="flex-1 overflow-y-auto px-4 py-7 scrollbar-none">
+          {/* Título de menú (Se oculta si está colapsado) */}
+          {!isSidebarCollapsed && (
+            <div className="mb-3 px-3 font-mono text-[12px] uppercase tracking-[.16em] text-white">Reporte operativo</div>
+          )}
+          
           <nav className="space-y-1">
             {([
               ['gerencia', 'Reporte Gerencia', LayoutDashboard],
@@ -155,7 +184,24 @@ function DashboardContent() {
               ['avance', 'Avance de Cartera', Activity],
               ['ranking', 'Productividad Asesores', Trophy],
             ] as const).map(([view, label, Icon]) => (
-              <button key={view} onClick={() => handleNavigate(view)} className={`group flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-[12px] font-semibold transition-all ${activeView === view ? 'bg-white/20 text-white shadow-[inset_3px_0_0_rgba(255,255,255,0.95),0_10px_24px_rgba(6,182,212,0.38)]' : 'text-white/90 hover:bg-white/12 hover:text-white'}`}><Icon size={16} strokeWidth={activeView === view ? 2.4 : 1.8} /><span>{label}</span>{activeView === view && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white" />}</button>
+              <button 
+                key={view} 
+                onClick={() => handleNavigate(view)} 
+                title={isSidebarCollapsed ? label : undefined}
+                className={`group flex items-center transition-all 
+                  ${isSidebarCollapsed ? 'justify-center w-12 h-12 mx-auto rounded-xl px-0' : 'w-full gap-3 rounded-xl px-3 py-3 text-left'} 
+                  ${activeView === view ? 'bg-white/20 text-white shadow-[inset_3px_0_0_rgba(255,255,255,0.95),0_10px_24px_rgba(6,182,212,0.38)]' : 'text-white/90 hover:bg-white/12 hover:text-white'}`}
+              >
+                <Icon size={isSidebarCollapsed ? 22 : 16} strokeWidth={activeView === view ? 2.4 : 1.8} className="shrink-0" />
+                
+                {/* Texto del botón (Se oculta si está colapsado) */}
+                {!isSidebarCollapsed && (
+                  <>
+                    <span className="text-[12px] font-semibold truncate">{label}</span>
+                    {activeView === view && <span className="ml-auto shrink-0 h-1.5 w-1.5 rounded-full bg-white" />}
+                  </>
+                )}
+              </button>
             ))}
           </nav>
         </div>
@@ -163,8 +209,9 @@ function DashboardContent() {
       
       {mobileNav && <button className="fixed inset-0 z-20 bg-[hsl(var(--foreground)/.32)] md:hidden" onClick={() => setMobileNav(false)} />}
       
-      <main className="min-h-[100dvh] md:pl-[256px]">
-        <header className="sticky top-0 z-10 border-b border-border/70 bg-[hsl(var(--background)/.86)] px-5 py-4 backdrop-blur-xl sm:px-8 lg:px-11">
+      {/* MAIN: Se ajusta dinámicamente si la barra lateral mide 256px o 80px */}
+      <main className={`min-h-[100dvh] transition-all duration-300 ${isSidebarCollapsed ? 'md:pl-[80px]' : 'md:pl-[256px]'}`}>
+        <header className="sticky top-0 z-30 border-b border-border/70 bg-[hsl(var(--background)/.86)] px-5 py-4 backdrop-blur-xl sm:px-8 lg:px-11">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3"><button className="rounded-xl border border-border bg-card p-2 md:hidden" onClick={() => setMobileNav(true)}><Menu size={19} /></button><div><div className="font-mono text-[10px] uppercase tracking-[.18em] text-muted-foreground">{meta.eyebrow}</div><div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"><CalendarDays size={13} />Periodo de gestión · {filters.period}</div></div></div>
             <div className="flex items-center gap-2"><button onClick={() => toast.info('Usa los filtros')} className="hidden rounded-xl border border-border bg-card p-2.5 text-muted-foreground transition-colors hover:text-foreground sm:block"><Search size={17} /></button></div>

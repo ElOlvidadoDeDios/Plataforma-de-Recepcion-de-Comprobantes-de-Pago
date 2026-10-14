@@ -13,10 +13,10 @@ import { Panel } from '../components/Panel';
 import { KpiCard } from '../components/KpiCard';
 import { WorkdayStrip } from '../components/WorkdayStrip';
 import { fetchIndicadoresGerencia } from '../services/indicadoresgerencia.service';
-
+import { TableShell } from '../components/TableShell';
 
 // ============================================================================
-// COMPONENTES MAESTROS Y HOOKS (Extraídos para máximo rendimiento)
+// COMPONENTES MAESTROS Y HOOKS
 // ============================================================================
 function HalfGauge({ value, title, color = '#16a34a' }: { value: number; title: string; color?: string }) {
   const radius = 70;
@@ -86,7 +86,6 @@ function useColumnOrder(initialOrder: string[]) {
   return { order, handleDragStart, handleDragOver, handleDrop, resetOrder: () => setOrder(initialOrder), isModified };
 }
 
-// 🚀 AHORA ES UN COMPONENTE PURO FUERA DE GERENCIAVIEW
 const ExportActions = ({ onExport, extraAction }: { onExport: (format: 'excel' | 'clipboard') => void | Promise<void>, extraAction?: React.ReactNode }) => (
   <div className="flex items-center gap-2">
     {extraAction}
@@ -103,9 +102,6 @@ const ExportActions = ({ onExport, extraAction }: { onExport: (format: 'excel' |
 // VISTA PRINCIPAL
 // ============================================================================
 export function GerenciaView({ filters }: { filters: Filters }) {
-  // ==========================================
-  // ZONA 1: TODOS LOS HOOKS (Incondicionales)
-  // ==========================================
   const [tipoCartera, setTipoCartera] = useState<'comercial' | 'normalizacion'>('comercial');
   const { order, handleDragStart, handleDragOver, handleDrop, resetOrder, isModified } = useColumnOrder(ORDEN_INICIAL_COMERCIAL);
 
@@ -162,26 +158,26 @@ export function GerenciaView({ filters }: { filters: Filters }) {
     };
   }, [datosNormalizacion]);
 
-  // ==========================================
-  // ZONA 2: LÓGICA Y FUNCIONES
-  // ==========================================
   const todasComercial = indicadoresBD?.comercial || [];
 
+  // ==========================================
+  // LÓGICA DE COLORES Y ENCABEZADOS COMPACTOS
+  // ==========================================
   const defColumnasComercial = [
-    { id: 'agency', header: 'Agencia', align: 'left', cell: (row: any) => <span className="font-semibold text-xs">{row.agency}</span>, footer: () => 'Total Comercial' },
-    { id: 'cartera', header: 'Cartera', align: 'right', cell: (row: any) => money(row.cartera), footer: () => money(tComercial.totCartera) },
-    { id: 'crecimiento', header: 'Crecimiento', align: 'right', 
+    { id: 'agency', header: 'Agencia', headerText: 'Agencia', align: 'left', cell: (row: any) => <div className="font-semibold max-w-[70px] sm:max-w-[100px] md:max-w-none whitespace-normal leading-[1.15]" title={row.agency}>{row.agency}</div>, footer: () => 'Total Comercial' },
+    { id: 'cartera', header: 'Cartera', headerText: 'Cartera', align: 'right', cell: (row: any) => money(row.cartera), footer: () => money(tComercial.totCartera) },
+    { id: 'crecimiento', header: <div className="leading-[1.15]">Crecimiento<br/>Bruto</div>, headerText: 'Crecimiento', align: 'right', 
       cell: (row: any) => <span className={`font-semibold ${row.crecimientoBruto >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{row.crecimientoBruto >= 0 ? '+' : ''}{money(row.crecimientoBruto)}</span>, 
       footer: () => <span className={tComercial.totCrecimientoBruto >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{tComercial.totCrecimientoBruto >= 0 ? '+' : ''}{money(tComercial.totCrecimientoBruto)}</span> 
     },
-    { id: 'nroOper', header: 'Nro Oper', align: 'center', cell: (row: any) => <span className="font-mono bg-muted px-2 py-0.5 rounded text-xs">{row.opAchieved}</span>, footer: () => tComercial.totalOpLogradas },
-    { id: 'desembolsos', header: 'Desembolsos', align: 'right', cell: (row: any) => money(row.amountAchieved), footer: () => money(tComercial.totalMontoLogrado) },
-    { id: 'repagos', header: 'Repagos', align: 'right', cell: (row: any) => money(row.repagos), footer: () => money(tComercial.totRepagos) },
-    { id: 'duracion', header: 'Duración', align: 'center', cell: (row: any) => <span className="font-mono text-xs">{Number(row.duration).toFixed(2)}</span>, footer: () => <span className="font-mono text-xs">{tComercial.avgDuracion.toFixed(2)}</span> },
-    { id: 'moraCPP', header: 'Mora CPP', align: 'right', cell: (row: any) => <span className={row.cpp > 10 ? 'text-rose-600 font-semibold' : ''}>{money(row.moraCPP_soles)}</span>, footer: () => money(tComercial.totMoraCPP) },
-    { id: 'pctMora', header: '% Mora', align: 'right', cell: (row: any) => <span className={`px-2 py-0.5 rounded text-xs ${row.cpp > 10 ? 'bg-rose-500/10 text-rose-600 font-bold' : 'font-semibold text-rose-600'}`}>{Number(row.cpp).toFixed(2)}%</span>, footer: () => `${tComercial.avgPctMora.toFixed(2)}%` },
-    { id: 'moraDef', header: 'Mora Defic.', align: 'right', cell: (row: any) => money(row.moraDeficiente_soles), footer: () => money(tComercial.totMoraDeficiente) },
-    { id: 'crecNeto150', header: 'Crec. Neto 150', align: 'right', 
+    { id: 'nroOper', header: <div className="leading-[1.15]">Nro<br/>Oper</div>, headerText: 'Nro Oper', align: 'center', cell: (row: any) => <span className="font-mono bg-muted/60 px-1.5 py-0.5 rounded">{row.opAchieved}</span>, footer: () => tComercial.totalOpLogradas },
+    { id: 'desembolsos', header: 'Desembolsos', headerText: 'Desembolsos', align: 'right', cell: (row: any) => money(row.amountAchieved), footer: () => money(tComercial.totalMontoLogrado) },
+    { id: 'repagos', header: 'Repagos', headerText: 'Repagos', align: 'right', cell: (row: any) => money(row.repagos), footer: () => money(tComercial.totRepagos) },
+    { id: 'duracion', header: 'Duración', headerText: 'Duración', align: 'center', cell: (row: any) => <span className="font-mono text-muted-foreground">{Number(row.duration).toFixed(2)}</span>, footer: () => <span className="font-mono text-muted-foreground">{tComercial.avgDuracion.toFixed(2)}</span> },
+    { id: 'moraCPP', header: <div className="leading-[1.15]">Mora<br/>CPP</div>, headerText: 'Mora CPP', align: 'right', cell: (row: any) => <span className={row.cpp > 10 ? 'text-rose-600 font-bold' : 'text-muted-foreground'}>{money(row.moraCPP_soles)}</span>, footer: () => money(tComercial.totMoraCPP) },
+    { id: 'pctMora', header: <div className="leading-[1.15]">%<br/>Mora</div>, headerText: '% Mora', align: 'right', cell: (row: any) => <span className={`px-1.5 py-0.5 rounded ${row.cpp > 10 ? 'bg-rose-500/10 text-rose-600 font-bold' : 'font-semibold text-emerald-600'}`}>{Number(row.cpp).toFixed(2)}%</span>, footer: () => `${tComercial.avgPctMora.toFixed(2)}%` },
+    { id: 'moraDef', header: <div className="leading-[1.15]">Mora<br/>Defic.</div>, headerText: 'Mora Defic.', align: 'right', cell: (row: any) => <span className="text-muted-foreground">{money(row.moraDeficiente_soles)}</span>, footer: () => money(tComercial.totMoraDeficiente) },
+    { id: 'crecNeto150', header: <div className="leading-[1.15]">Crec. Neto<br/>150</div>, headerText: 'Crec. Neto 150', align: 'right', 
       cell: (row: any) => <span className={`font-bold ${row.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{row.crecimientoNeto150 >= 0 ? '+' : ''}{money(row.crecimientoNeto150)}</span>, 
       footer: () => <span className={tComercial.totCrecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{tComercial.totCrecimientoNeto150 >= 0 ? '+' : ''}{money(tComercial.totCrecimientoNeto150)}</span> 
     }
@@ -189,34 +185,23 @@ export function GerenciaView({ filters }: { filters: Filters }) {
 
   const columnasRender = order.map(id => defColumnasComercial.find(c => c.id === id)!);
 
-  /**
-   * Genera y descarga un archivo .xlsx usando ExcelJS (async, con streaming de buffer)
-   * en vez de la librería `xlsx` (SheetJS), que arrastra vulnerabilidades conocidas.
-   */
   const descargarExcel = async (filename: string, headers: string[], rows: any[][]) => {
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Reporte Gerencia';
     workbook.created = new Date();
-
     const worksheet = workbook.addWorksheet('Reporte');
-
     worksheet.addRow(headers);
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
-
     rows.forEach(row => worksheet.addRow(row));
-
-    // Autoajuste simple de ancho de columnas
     worksheet.columns.forEach((col, idx) => {
       const headerLen = String(headers[idx] ?? '').length;
       const maxDataLen = rows.reduce((max, row) => Math.max(max, String(row[idx] ?? '').length), 0);
       col.width = Math.min(Math.max(headerLen, maxDataLen) + 3, 40);
     });
-
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
-
     const a = document.createElement('a');
     a.href = url;
     a.download = `${filename}.xlsx`;
@@ -227,14 +212,14 @@ export function GerenciaView({ filters }: { filters: Filters }) {
   };
 
   const exportarTabla = async (tablaId: 'matriz' | 'cantidad' | 'monto' | 'mora', formato: 'excel' | 'clipboard') => {
-    let headers: string[] = [];
+    let rawHeaders: string[] = [];
     let rows: any[][] = [];
     let filename = `Reporte_${tablaId}_${filters.period}`;
 
     if (tablaId === 'matriz') {
       filename = `Matriz_${tipoCartera}_${filters.period}`;
       if (tipoCartera === 'comercial') {
-        headers = columnasRender.map(c => c.header);
+        rawHeaders = columnasRender.map(c => c.headerText || c.header as string);
         rows = datosFiltrados.map((r: any) => columnasRender.map(col => {
           switch(col.id) {
             case 'agency': return r.agency;
@@ -252,23 +237,23 @@ export function GerenciaView({ filters }: { filters: Filters }) {
           }
         }));
       } else {
-        headers = ['Agencia', 'Recuperador', 'Cartera', 'Repagos', 'Mora CPP', 'Mora Deficiente', '% Mora 9', 'Crec. Neto 30'];
+        rawHeaders = ['Agencia', 'Recuperador', 'Cartera', 'Repagos', 'Mora CPP', 'Mora Deficiente', '% Mora 9', 'Crec. Neto 30'];
         rows = datosNormalizacion.map((r: any) => [
           r.agency, r.recuperador, r.cartera, r.repagos, r.moraCPP_soles, r.moraDeficiente_soles, r.pctMora9 / 100, r.crecNeto30
         ]);
       }
     } else if (tablaId === 'cantidad') {
-      headers = ['Agencia', 'Oper.', 'Meta', 'Avance'];
+      rawHeaders = ['Agencia', 'Oper.', 'Meta', 'Avance'];
       rows = datosFiltrados.map((r: any) => [
         r.agency, r.opAchieved, r.opTarget, r.opTarget > 0 ? (r.opAchieved / r.opTarget) : 0
       ]);
     } else if (tablaId === 'monto') {
-      headers = ['Agencia', 'Desembolso', 'Meta', 'Avance'];
+      rawHeaders = ['Agencia', 'Desembolso', 'Meta', 'Avance'];
       rows = datosFiltrados.map((r: any) => [
         r.agency, r.amountAchieved, r.amountTarget, r.amountTarget > 0 ? (r.amountAchieved / r.amountTarget) : 0
       ]);
     } else if (tablaId === 'mora') {
-      headers = ['Agencia', 'Mora CPP (S/)', '% Vigente', 'Meta', 'Excedente (S/)'];
+      rawHeaders = ['Agencia', 'Mora CPP (S/)', '% Vigente', 'Meta', 'Excedente (S/)'];
       rows = datosFiltrados.map((r: any) => [
         r.agency, r.moraCPP_soles, r.cpp / 100, r.meta / 100, r.excedente
       ]);
@@ -276,16 +261,13 @@ export function GerenciaView({ filters }: { filters: Filters }) {
 
     if (formato === 'clipboard') {
       const contenido = [
-        headers.join('\t'),
+        rawHeaders.join('\t'),
         ...rows.map(row => row.map(val => (typeof val === 'number' && val % 1 !== 0) ? val.toFixed(4) : val).join('\t'))
       ].join('\n');
-      
-      navigator.clipboard.writeText(contenido).then(() => {
-        alert('✅ Datos copiados al portapapeles. Ya puedes pegarlos en Excel o Word.');
-      });
+      navigator.clipboard.writeText(contenido).then(() => { alert('✅ Datos copiados al portapapeles. Ya puedes pegarlos en Excel o Word.'); });
     } else {
       try {
-        await descargarExcel(filename, headers, rows);
+        await descargarExcel(filename, rawHeaders, rows);
       } catch (err) {
         console.error('Error generando el Excel:', err);
         alert('❌ Ocurrió un error al generar el archivo Excel.');
@@ -298,20 +280,13 @@ export function GerenciaView({ filters }: { filters: Filters }) {
     return entryAgency === filters.agency ? '#f59e0b' : '#cbd5e1'; 
   };
 
-  // ==========================================
-  // ZONA 3: RETORNOS ANTICIPADOS (Carga y Error)
-  // ==========================================
   if (isLoading || !indicadoresBD) return <LoadingState />;
   if (error) return <div className="p-5 text-destructive font-semibold border border-destructive/20 bg-destructive/10 rounded-xl">Error de conexión al DWH.</div>;
 
-  // ==========================================
-  // ZONA 4: RENDERIZADO PRINCIPAL
-  // ==========================================
   return (
     <div className="space-y-6 animate-in fade-in duration-500" key={filters.period}>
       <WorkdayStrip periodo={filters.period} />
       
-      {/* TARJETAS PRINCIPALES */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Colocación acumulada" value={money(tComercial.totalMontoLogrado)} note="Logrado a la fecha" icon={TrendingUp} delta={`+${tComercial.pctAvanceMontos}%`} />
         <KpiCard label="Meta mensual" value={money(tComercial.totalMontoMeta)} note="Monto objetivo" icon={Target} tone="gold" />
@@ -319,7 +294,6 @@ export function GerenciaView({ filters }: { filters: Filters }) {
         <KpiCard label="Excedente Mora CPP" value={money(tComercial.totExcedenteMora)} note="Sobre la meta del 10%" icon={AlertTriangle} tone={tComercial.totExcedenteMora > 0 ? "red" : "teal"} delta={tComercial.totExcedenteMora > 0 ? "Excede" : "OK"} />
       </div>
 
-      {/* SECCIÓN 1: MATRIZ GENERAL */}
       <SectionBand tone="green">Indicadores de Crecimiento Global</SectionBand>
       <Panel 
         title="Matriz General de Resultados" 
@@ -343,122 +317,125 @@ export function GerenciaView({ filters }: { filters: Filters }) {
         </div>
 
         {tipoCartera === 'comercial' ? (
-          <div key="vista-comercial" className="overflow-x-auto pb-2">
-            <table className="w-full text-left text-[11px] whitespace-nowrap">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  {columnasRender.map((col) => (
-                    <th 
-                      key={col.id} 
-                      draggable={col.id !== 'agency'} 
-                      onDragStart={(e) => handleDragStart(e, col.id)} 
-                      onDragOver={handleDragOver} 
-                      onDrop={(e) => handleDrop(e, col.id)} 
-                      className={`px-3 pt-2 pb-2.5 font-semibold transition-colors ${col.id !== 'agency' ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}
-                    >
-                      {col.header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {datosFiltrados.map((row: any) => (
-                  <tr key={row.agency} className="hover:bg-muted/30 transition-colors">
+          <TableShell>
+            <div className="relative overflow-x-auto overflow-y-auto scrollbar-thin max-h-[600px] z-0">
+              <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight whitespace-nowrap border-collapse">
+                <thead className="sticky top-0 z-20 shadow-sm">
+                  <tr className="border-b border-border">
                     {columnasRender.map((col) => (
-                      <td key={`${row.agency}-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right font-mono'}`}>{col.cell(row)}</td>
+                      <th 
+                        key={col.id} 
+                        draggable={col.id !== 'agency'} 
+                        onDragStart={(e) => handleDragStart(e, col.id)} 
+                        onDragOver={handleDragOver} 
+                        onDrop={(e) => handleDrop(e, col.id)} 
+                        className={`bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground transition-colors ${col.id !== 'agency' ? 'cursor-grab active:cursor-grabbing hover:bg-slate-200 hover:text-foreground' : ''} ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right'}`}
+                      >
+                        {col.header}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border font-bold bg-muted/20">
-                  {columnasRender.map((col) => (
-                    <td key={`footer-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right font-mono'}`}>{col.footer()}</td>
+                </thead>
+                <tbody className="divide-y divide-border/60 bg-white">
+                  {datosFiltrados.map((row: any) => (
+                    <tr key={row.agency} className="hover:bg-muted/30 transition-colors">
+                      {columnasRender.map((col) => (
+                        <td key={`${row.agency}-${col.id}`} className={`px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 ${col.align === 'left' ? 'text-left whitespace-normal min-w-[70px] md:min-w-[100px] leading-[1.15]' : 'text-right whitespace-nowrap font-mono'} ${col.align === 'center' ? 'text-center' : ''}`}>{col.cell(row)}</td>
+                      ))}
+                    </tr>
                   ))}
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : (
-          <div key="vista-normalizacion" className="overflow-x-auto pb-2">
-            <table className="w-full text-left text-[11px] whitespace-nowrap">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="px-3 pb-2.5 font-semibold text-left">Agencia</th>
-                  <th className="px-3 pb-2.5 font-semibold text-left">Recuperador</th>
-                  <th className="px-3 pb-2.5 font-semibold text-right">Cartera</th>
-                  <th className="px-3 pb-2.5 font-semibold text-right">Repagos</th>
-                  <th className="px-3 pb-2.5 font-semibold text-right">Mora CPP</th>
-                  <th className="px-3 pb-2.5 font-semibold text-right">Mora Deficiente</th>
-                  <th className="px-3 pb-2.5 font-semibold text-right">% Mora 9</th>
-                  <th className="px-3 pb-2.5 font-semibold text-right">Crec. Neto 30</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {datosNormalizacion.map((row: any) => (
-                  <tr key={`${row.agency}-${row.recuperador}`} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-3 py-2.5 font-semibold text-left">{row.agency}</td>
-                    <td className="px-3 py-2.5 text-left text-muted-foreground">{row.recuperador}</td>
-                    <td className="px-3 py-2.5 text-right font-mono">{money(row.cartera)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono">{money(row.repagos)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-rose-600">{money(row.moraCPP_soles)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-rose-600">{money(row.moraDeficiente_soles)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-rose-600 font-bold">{Number(row.pctMora9).toFixed(2)}%</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-rose-600 font-bold">{money(row.crecNeto30)}</td>
+                </tbody>
+                <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                  <tr className="border-t-2 border-border font-bold">
+                    {columnasRender.map((col) => (
+                      <td key={`footer-${col.id}`} className={`bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 whitespace-nowrap ${col.align === 'left' ? 'text-left' : col.align === 'center' ? 'text-center' : 'text-right font-mono'}`}>{col.footer()}</td>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border font-bold bg-muted/20">
-                  <td className="px-3 py-2.5 text-left" colSpan={2}>Total Normalización</td>
-                  <td className="px-3 py-2.5 text-right font-mono">{money(tNorm.totNormCartera)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono">{money(tNorm.totNormRepagos)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-rose-600">{money(tNorm.totNormMoraCPP)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-rose-600">{money(tNorm.totNormMoraDef)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-rose-600">{tNorm.avgNormPctMora.toFixed(2)}%</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-rose-600">{money(tNorm.totNormCrecNeto30)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+                </tfoot>
+              </table>
+            </div>
+          </TableShell>
+        ) : (
+          <TableShell>
+            <div className="relative overflow-x-auto overflow-y-auto scrollbar-thin max-h-[600px] z-0">
+              <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] whitespace-nowrap tracking-tight border-collapse">
+                <thead className="sticky top-0 z-20 shadow-sm">
+                  <tr className="border-b border-border">
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-left rounded-tl-md">Agencia</th>
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-left">Recuperador</th>
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-right">Cartera</th>
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-right">Repagos</th>
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-right"><div className="leading-[1.15]">Mora<br/>CPP</div></th>
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-right"><div className="leading-[1.15]">Mora<br/>Defic.</div></th>
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-right"><div className="leading-[1.15]">% Mora<br/>9</div></th>
+                    <th className="bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground text-right rounded-tr-md"><div className="leading-[1.15]">Crec. Neto<br/>30</div></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60 bg-white">
+                  {datosNormalizacion.map((row: any) => (
+                    <tr key={`${row.agency}-${row.recuperador}`} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 font-semibold text-left whitespace-normal min-w-[50px] md:min-w-[80px] leading-[1.15]" title={row.agency}>{row.agency}</td>
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 text-left text-muted-foreground whitespace-normal min-w-[70px] md:min-w-[120px] leading-[1.15]" title={row.recuperador}>{row.recuperador}</td>
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{money(row.cartera)}</td>
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{money(row.repagos)}</td>
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 text-right font-mono text-rose-600 whitespace-nowrap">{money(row.moraCPP_soles)}</td>
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 text-right font-mono text-rose-600 whitespace-nowrap">{money(row.moraDeficiente_soles)}</td>
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 text-right font-mono text-rose-600 font-bold whitespace-nowrap">{Number(row.pctMora9).toFixed(2)}%</td>
+                      <td className="px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 text-right font-mono text-emerald-600 font-bold whitespace-nowrap">{row.crecNeto30 >= 0 ? '+' : ''}{money(row.crecNeto30)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                  <tr className="border-t-2 border-border font-bold">
+                    <td className="bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 text-left whitespace-nowrap" colSpan={2}>Total Normalización</td>
+                    <td className="bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 text-right font-mono whitespace-nowrap">{money(tNorm.totNormCartera)}</td>
+                    <td className="bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 text-right font-mono whitespace-nowrap">{money(tNorm.totNormRepagos)}</td>
+                    <td className="bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 text-right font-mono text-rose-600 whitespace-nowrap">{money(tNorm.totNormMoraCPP)}</td>
+                    <td className="bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 text-right font-mono text-rose-600 whitespace-nowrap">{money(tNorm.totNormMoraDef)}</td>
+                    <td className="bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 text-right font-mono text-rose-600 whitespace-nowrap">{tNorm.avgNormPctMora.toFixed(2)}%</td>
+                    <td className="bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 text-right font-mono text-emerald-600 whitespace-nowrap">{tNorm.totNormCrecNeto30 >= 0 ? '+' : ''}{money(tNorm.totNormCrecNeto30)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </TableShell>
         )}
       </Panel>
 
       {/* SECCIÓN 2: AVANCE DE OPERACIONES Y MONTOS */}
       <SectionBand tone="blue">Avance de Operaciones y Montos</SectionBand>
-      <div className="grid gap-5 xl:grid-cols-2">
-        
-        {/* GRÁFICO 1: OPERACIONES */}
+      {/* 🚀 EL CAMBIO DE GRID AQUÍ (xl pasa a 2xl) */}
+      <div className="grid gap-5 grid-cols-1 2xl:grid-cols-2">
         <Panel title="En Cantidad de Colocaciones" eyebrow="Resaltando agencia seleccionada" action={<ExportActions onExport={(f) => exportarTabla('cantidad', f)} />}>
           <div className="grid gap-4 lg:grid-cols-[1.1fr_1.5fr] items-stretch">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[11px] whitespace-nowrap">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="px-2 pb-2 font-semibold">Agencia</th>
-                    <th className="px-2 pb-2 font-semibold text-right">Oper.</th>
-                    <th className="px-2 pb-2 font-semibold text-right">Meta</th>
-                    <th className="px-2 pb-2 font-semibold text-right">Avance</th>
+            <div className="relative overflow-x-auto overflow-y-auto scrollbar-thin max-h-[600px] z-0">
+              <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight border-collapse">
+                <thead className="sticky top-0 z-20 shadow-sm">
+                  <tr className="border-b border-border">
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground rounded-tl-md">Agencia</th>
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right">Oper.</th>
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right">Meta</th>
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right rounded-tr-md">Avance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-border/60 bg-white">
                   {datosFiltrados.map((row: any) => (
-                    <tr key={row.agency} className="hover:bg-muted/30">
-                      <td className="px-2 py-2 font-medium">{row.agency}</td>
-                      <td className="px-2 py-2 text-right font-mono">{row.opAchieved}</td>
-                      <td className="px-2 py-2 text-right font-mono text-muted-foreground">{row.opTarget}</td>
-                      <td className="px-2 py-2 text-right font-mono font-bold text-emerald-600">
+                    <tr key={row.agency} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 font-semibold whitespace-normal min-w-[60px] md:min-w-[100px] leading-[1.15]" title={row.agency}>{row.agency}</td>
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{row.opAchieved}</td>
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 text-right font-mono text-muted-foreground whitespace-nowrap">{row.opTarget}</td>
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 text-right font-mono font-bold text-emerald-600 whitespace-nowrap">
                         {row.opTarget > 0 ? Math.round((row.opAchieved / row.opTarget) * 100) : 0}%
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-border font-bold bg-muted/20">
-                    <td className="px-2 py-2">Total</td>
-                    <td className="px-2 py-2 text-right font-mono">{tComercial.totalOpLogradas}</td>
-                    <td className="px-2 py-2 text-right font-mono">{tComercial.totalOpMeta}</td>
-                    <td className="px-2 py-2 text-right font-mono text-emerald-600">{tComercial.pctAvanceOperaciones}%</td>
+                <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                  <tr className="border-t-2 border-border font-bold">
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-left whitespace-nowrap">Total</td>
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{tComercial.totalOpLogradas}</td>
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{tComercial.totalOpMeta}</td>
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-right font-mono text-emerald-600 whitespace-nowrap">{tComercial.pctAvanceOperaciones}%</td>
                   </tr>
                 </tfoot>
               </table>
@@ -488,37 +465,36 @@ export function GerenciaView({ filters }: { filters: Filters }) {
           </div>
         </Panel>
 
-        {/* GRÁFICO 2: MONTOS */}
         <Panel title="En Monto de Colocaciones" eyebrow="Resaltando agencia seleccionada" action={<ExportActions onExport={(f) => exportarTabla('monto', f)} />}>
           <div className="grid gap-4 lg:grid-cols-[1.1fr_1.5fr] items-stretch">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[11px] whitespace-nowrap">
-                <thead>
-                  <tr className="border-b border-border text-muted-foreground">
-                    <th className="px-2 pb-2 font-semibold">Agencia</th>
-                    <th className="px-2 pb-2 font-semibold text-right">Desembolso</th>
-                    <th className="px-2 pb-2 font-semibold text-right">Meta</th>
-                    <th className="px-2 pb-2 font-semibold text-right">Avance</th>
+            <div className="relative overflow-x-auto overflow-y-auto scrollbar-thin max-h-[600px] z-0">
+              <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight border-collapse">
+                <thead className="sticky top-0 z-20 shadow-sm">
+                  <tr className="border-b border-border">
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground rounded-tl-md">Agencia</th>
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right">Desembolso</th>
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right">Meta</th>
+                    <th className="bg-slate-50 px-1.5 sm:px-2 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right rounded-tr-md">Avance</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border/50">
+                <tbody className="divide-y divide-border/60 bg-white">
                   {datosFiltrados.map((row: any) => (
-                    <tr key={row.agency} className="hover:bg-muted/30">
-                      <td className="px-2 py-2 font-medium">{row.agency}</td>
-                      <td className="px-2 py-2 text-right font-mono">{money(row.amountAchieved)}</td>
-                      <td className="px-2 py-2 text-right font-mono text-muted-foreground">{money(row.amountTarget)}</td>
-                      <td className="px-2 py-2 text-right font-mono font-bold text-emerald-600">
+                    <tr key={row.agency} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 font-semibold whitespace-normal min-w-[60px] md:min-w-[100px] leading-[1.15]" title={row.agency}>{row.agency}</td>
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{money(row.amountAchieved)}</td>
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 text-right font-mono text-muted-foreground whitespace-nowrap">{money(row.amountTarget)}</td>
+                      <td className="px-1.5 sm:px-2 py-1.5 sm:py-2 xl:px-2 xl:py-2 text-right font-mono font-bold text-emerald-600 whitespace-nowrap">
                         {row.amountTarget > 0 ? Math.round((row.amountAchieved / row.amountTarget) * 100) : 0}%
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr className="border-t-2 border-border font-bold bg-muted/20">
-                    <td className="px-2 py-2">Total</td>
-                    <td className="px-2 py-2 text-right font-mono">{money(tComercial.totalMontoLogrado)}</td>
-                    <td className="px-2 py-2 text-right font-mono">{money(tComercial.totalMontoMeta)}</td>
-                    <td className="px-2 py-2 text-right font-mono text-emerald-600">{tComercial.pctAvanceMontos}%</td>
+                <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                  <tr className="border-t-2 border-border font-bold">
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-left whitespace-nowrap">Total</td>
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{money(tComercial.totalMontoLogrado)}</td>
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-right font-mono whitespace-nowrap">{money(tComercial.totalMontoMeta)}</td>
+                    <td className="bg-slate-100 px-1.5 sm:px-2 py-2 xl:px-2 xl:py-2 text-right font-mono text-emerald-600 whitespace-nowrap">{tComercial.pctAvanceMontos}%</td>
                   </tr>
                 </tfoot>
               </table>
@@ -551,39 +527,40 @@ export function GerenciaView({ filters }: { filters: Filters }) {
 
       {/* SECCIÓN 3: CALIDAD DE CARTERA Y MORAS */}
       <SectionBand tone="coral">Calidad de Cartera y Moras</SectionBand>
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_1.3fr] items-stretch">
+      {/* 🚀 EL CAMBIO DE GRID AQUÍ (xl pasa a 2xl) */}
+      <div className="grid gap-5 grid-cols-1 2xl:grid-cols-[1.1fr_1.3fr] items-stretch">
         <Panel title="Mora CPP - Detalle" eyebrow="Excedentes y variaciones en tabla" action={<ExportActions onExport={(f) => exportarTabla('mora', f)} />}>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[11px] whitespace-nowrap">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="px-3 pb-2 font-semibold">Agencia</th>
-                  <th className="px-3 pb-2 font-semibold text-right">Mora CPP</th>
-                  <th className="px-3 pb-2 font-semibold text-right">% Vigente</th>
-                  <th className="px-3 pb-2 font-semibold text-right">Meta</th>
-                  <th className="px-3 pb-2 font-semibold text-right">Excedente (S/)</th>
+          <div className="relative overflow-x-auto overflow-y-auto scrollbar-thin max-h-[600px] z-0">
+            <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] tracking-tight border-collapse">
+              <thead className="sticky top-0 z-20 shadow-sm">
+                <tr className="border-b border-border">
+                  <th className="bg-slate-50 px-1.5 sm:px-3 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground rounded-tl-md">Agencia</th>
+                  <th className="bg-slate-50 px-1.5 sm:px-3 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right">Mora CPP</th>
+                  <th className="bg-slate-50 px-1.5 sm:px-3 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right">% Vigente</th>
+                  <th className="bg-slate-50 px-1.5 sm:px-3 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right">Meta</th>
+                  <th className="bg-slate-50 px-1.5 sm:px-3 py-1.5 xl:px-2 xl:py-2 font-bold text-muted-foreground text-right rounded-tr-md">Excedente (S/)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
+              <tbody className="divide-y divide-border/60 bg-white">
                 {datosFiltrados.map((row: any) => (
-                  <tr key={row.agency} className="hover:bg-muted/30">
-                    <td className="px-3 py-2.5 font-medium">{row.agency}</td>
-                    <td className="px-3 py-2.5 text-right font-mono">{money(row.moraCPP_soles)}</td>
-                    <td className={`px-3 py-2.5 text-right font-mono ${row.cpp > 10 ? 'text-rose-600 font-bold' : ''}`}>{Number(row.cpp).toFixed(2)}%</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">{row.meta}%</td>
-                    <td className={`px-3 py-2.5 text-right font-mono font-bold ${row.excedente > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  <tr key={row.agency} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-1.5 sm:px-3 py-1.5 sm:py-2.5 font-semibold whitespace-normal min-w-[70px] md:min-w-[120px] leading-[1.15]" title={row.agency}>{row.agency}</td>
+                    <td className="px-1.5 sm:px-3 py-1.5 sm:py-2.5 text-right font-mono whitespace-nowrap">{money(row.moraCPP_soles)}</td>
+                    <td className={`px-1.5 sm:px-3 py-1.5 sm:py-2.5 text-right font-mono whitespace-nowrap ${row.cpp > 10 ? 'text-rose-600 font-bold' : ''}`}>{Number(row.cpp).toFixed(2)}%</td>
+                    <td className="px-1.5 sm:px-3 py-1.5 sm:py-2.5 text-right font-mono text-muted-foreground whitespace-nowrap">{row.meta}%</td>
+                    <td className={`px-1.5 sm:px-3 py-1.5 sm:py-2.5 text-right font-mono font-bold whitespace-nowrap ${row.excedente > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                       {row.excedente > 0 ? '+' : ''}{money(row.excedente)}
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-border font-bold bg-muted/20">
-                  <td className="px-3 py-2.5">Total</td>
-                  <td className="px-3 py-2.5 text-right font-mono">{money(tComercial.totMoraCPP)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono">{tComercial.avgPctMora.toFixed(2)}%</td>
-                  <td className="px-3 py-2.5 text-right font-mono">10%</td>
-                  <td className={`px-3 py-2.5 text-right font-mono ${tComercial.totExcedenteMora > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+              <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                <tr className="border-t-2 border-border font-bold">
+                  <td className="bg-slate-100 px-1.5 sm:px-3 py-2 sm:py-2.5 text-left whitespace-nowrap">Total</td>
+                  <td className="bg-slate-100 px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono whitespace-nowrap">{money(tComercial.totMoraCPP)}</td>
+                  <td className="bg-slate-100 px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono whitespace-nowrap">{tComercial.avgPctMora.toFixed(2)}%</td>
+                  <td className="bg-slate-100 px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono whitespace-nowrap">10%</td>
+                  <td className={`bg-slate-100 px-1.5 sm:px-3 py-2 sm:py-2.5 text-right font-mono whitespace-nowrap ${tComercial.totExcedenteMora > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                     {tComercial.totExcedenteMora > 0 ? '+' : ''}{money(tComercial.totExcedenteMora)}
                   </td>
                 </tr>

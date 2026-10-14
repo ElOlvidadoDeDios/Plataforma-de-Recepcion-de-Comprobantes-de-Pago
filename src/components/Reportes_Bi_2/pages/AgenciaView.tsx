@@ -1,4 +1,5 @@
 // src/views/AgenciaView.tsx
+
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import ExcelJS from 'exceljs';
@@ -6,7 +7,6 @@ import { Building2, Users, ShieldAlert, RefreshCw, Copy, Download } from 'lucide
 import { Panel } from '../components/Panel';
 import { WorkdayStrip } from '../components/WorkdayStrip';
 import { fetchAgencia } from '../services/colocaciones.service';
-
 
 // ============================================================================
 // HOOKS Y COMPONENTES MAESTROS (DRAG & DROP / EXPORTACIÓN)
@@ -48,25 +48,34 @@ const ExportActions = ({ control, onExport }: { control: any, onExport: (format:
   </div>
 );
 
+// DENSIDAD FLUIDA Y SCROLL VERTICAL INQUEBRANTABLE
 function DraggableTable({ control, columns, data, containerClass, showFooter = true }: { control: any, columns: any[], data: any[], containerClass: string, showFooter?: boolean }) {
   return (
-    <div className={containerClass}>
-      <table className="w-full text-left text-[11px] whitespace-nowrap">
-        <thead>
-          <tr className="border-b border-border text-muted-foreground sticky top-0 bg-card z-10 shadow-sm">
+    <div className={`relative overflow-x-auto overflow-y-auto scrollbar-thin ${containerClass}`}>
+      <table className="w-full text-left text-[9.5px] xl:text-[10.5px] 2xl:text-[11.5px] whitespace-nowrap tracking-tight border-collapse">
+        <thead className="sticky top-0 z-20">
+          <tr className="border-b border-border shadow-sm">
             {columns.map(col => (
-              <th key={col.id} draggable={col.id !== control.lockedCol} onDragStart={(e) => control.handleDragStart(e, col.id)} onDragOver={control.handleDragOver} onDrop={(e) => control.handleDrop(e, col.id)}
-                  className={`px-3 pt-2 pb-2.5 font-semibold transition-colors ${col.id !== control.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-muted/50 hover:text-foreground rounded-t-md' : ''} ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}>
-                {col.header}
+              <th 
+                key={col.id} 
+                draggable={col.id !== control.lockedCol} 
+                onDragStart={(e) => control.handleDragStart(e, col.id)} 
+                onDragOver={control.handleDragOver} 
+                onDrop={(e) => control.handleDrop(e, col.id)}
+                // El fondo bg-slate-50 o bg-white sólido evita que se transparente al hacer scroll
+                className={`bg-slate-50 px-1.5 py-1.5 xl:px-2 xl:py-2 align-bottom font-bold text-muted-foreground transition-colors ${col.id !== control.lockedCol ? 'cursor-grab active:cursor-grabbing hover:bg-slate-100 hover:text-foreground' : ''} ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}
+              >
+                {col.headerJSX || col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border/50">
+        
+        <tbody className="divide-y divide-border/60 bg-white">
           {data.length > 0 ? data.map((row: any, i: number) => (
             <tr key={`row-${i}`} className="hover:bg-muted/30 transition-colors">
               {columns.map(col => (
-                <td key={`cell-${i}-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}>
+                <td key={`cell-${i}-${col.id}`} className={`px-1.5 py-1 sm:py-1.5 xl:px-2 xl:py-2 whitespace-nowrap ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}>
                   {col.cell(row)}
                 </td>
               ))}
@@ -75,11 +84,16 @@ function DraggableTable({ control, columns, data, containerClass, showFooter = t
             <tr><td colSpan={columns.length} className="px-3 py-4 text-center text-muted-foreground italic">No hay registros para esta selección.</td></tr>
           )}
         </tbody>
+
         {showFooter && data.length > 0 && (
-          <tfoot className="sticky bottom-0 z-10 bg-card shadow-[0_-1px_2px_rgba(0,0,0,0.05)]">
-            <tr className="border-t-2 border-border font-bold bg-muted/20">
+          <tfoot className="sticky bottom-0 z-20 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+            <tr className="border-t-2 border-border font-bold">
               {columns.map(col => (
-                <td key={`foot-${col.id}`} className={`px-3 py-2.5 ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}>
+                <td 
+                  key={`foot-${col.id}`} 
+                  // Mantenemos el fondo sólido gris claro para el footer
+                  className={`bg-slate-100 px-1.5 py-2 xl:px-2 xl:py-2.5 whitespace-nowrap ${col.align === 'left' ? 'text-left' : 'text-right'} ${col.bgClass || ''}`}
+                >
                   {col.footer()}
                 </td>
               ))}
@@ -91,13 +105,13 @@ function DraggableTable({ control, columns, data, containerClass, showFooter = t
   );
 }
 
-const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, footer: ()=>any, align='right', bgClass='') => ({ id, header, cell, raw, footer, align, bgClass });
+// Agregado headerJSX para mostrar textos en dos líneas
+const Col = (id: string, header: string, cell: (r:any)=>any, raw: (r:any)=>any, footer: ()=>any, align='right', bgClass='', headerJSX?: React.ReactNode) => ({ id, header, headerJSX, cell, raw, footer, align, bgClass });
 
 // ============================================================================
 // VISTA PRINCIPAL DE AGENCIA
 // ============================================================================
 export function AgenciaView({ filters }: { filters: any }) {
-  // 🚀 REFACTOR: el endpoint vive ahora en colocacionesService (fetchAgencia)
   const { data, isLoading, isError } = useQuery({
     queryKey: ['agencia', filters.period],
     queryFn: () => fetchAgencia(filters.period),
@@ -127,20 +141,24 @@ export function AgenciaView({ filters }: { filters: any }) {
     return agenciaComercialRaw.reduce((acc: any, curr: any) => ({
       crecimientoNeto150: acc.crecimientoNeto150 + Number(curr.crecimientoNeto150 || 0), amountAchieved: acc.amountAchieved + Number(curr.amountAchieved || 0),
       repagos: acc.repagos + Number(curr.repagos || 0), tea: acc.tea + Number(curr.tea || 0), opAchieved: acc.opAchieved + Number(curr.opAchieved || 0),
-      sociosInicio: acc.sociosInicio + Number(curr.sociosInicio || 0), sociosActual: acc.sociosActual + Number(curr.sociosActual || 0),
+      sociosInicio: acc.sociosInicio + Number(curr.sociosInicio || 0), sociosRecuperacion: acc.sociosRecuperacion + Number(curr.sociosRecuperacion || 0), 
+      sociosActual: acc.sociosActual + Number(curr.sociosActual || 0), sociosActivos: acc.sociosActivos + Number(curr.sociosActivos || 0),
+      sociosCancelados: acc.sociosCancelados + Number(curr.sociosCancelados || 0),
       cartera: acc.cartera + Number(curr.cartera || 0), moraCppMax: acc.moraCppMax + Number(curr.moraCppMax || 0), moraCppActual: acc.moraCppActual + Number(curr.moraCppActual || 0),
       moraDefMax: acc.moraDefMax + Number(curr.moraDefMax || 0), moraDefActual: acc.moraDefActual + Number(curr.moraDefActual || 0),
-    }), { crecimientoNeto150: 0, amountAchieved: 0, repagos: 0, tea: 0, opAchieved: 0, sociosInicio: 0, sociosActual: 0, cartera: 0, moraCppMax: 0, moraCppActual: 0, moraDefMax: 0, moraDefActual: 0 });
+    }), { crecimientoNeto150: 0, amountAchieved: 0, repagos: 0, tea: 0, opAchieved: 0, sociosInicio: 0, sociosRecuperacion: 0, sociosActual: 0, sociosActivos: 0, sociosCancelados: 0, cartera: 0, moraCppMax: 0, moraCppActual: 0, moraDefMax: 0, moraDefActual: 0 });
   }, [agenciaComercialRaw]);
 
   const totales = useMemo(() => {
     const acc = comercialFiltered.reduce((acc: any, curr: any) => ({
       crecimientoNeto150: acc.crecimientoNeto150 + Number(curr.crecimientoNeto150 || 0), amountAchieved: acc.amountAchieved + Number(curr.amountAchieved || 0),
       repagos: acc.repagos + Number(curr.repagos || 0), tea: acc.tea + Number(curr.tea || 0), opAchieved: acc.opAchieved + Number(curr.opAchieved || 0),
-      sociosInicio: acc.sociosInicio + Number(curr.sociosInicio || 0), sociosActual: acc.sociosActual + Number(curr.sociosActual || 0),
+      sociosInicio: acc.sociosInicio + Number(curr.sociosInicio || 0), sociosRecuperacion: acc.sociosRecuperacion + Number(curr.sociosRecuperacion || 0), 
+      sociosActual: acc.sociosActual + Number(curr.sociosActual || 0), sociosActivos: acc.sociosActivos + Number(curr.sociosActivos || 0),
+      sociosCancelados: acc.sociosCancelados + Number(curr.sociosCancelados || 0),
       cartera: acc.cartera + Number(curr.cartera || 0), moraCppMax: acc.moraCppMax + Number(curr.moraCppMax || 0), moraCppActual: acc.moraCppActual + Number(curr.moraCppActual || 0),
       moraDefMax: acc.moraDefMax + Number(curr.moraDefMax || 0), moraDefActual: acc.moraDefActual + Number(curr.moraDefActual || 0), plazoTotal: acc.plazoTotal + Number(curr.plazo || 0),
-    }), { crecimientoNeto150: 0, amountAchieved: 0, repagos: 0, tea: 0, opAchieved: 0, sociosInicio: 0, sociosActual: 0, cartera: 0, moraCppMax: 0, moraCppActual: 0, moraDefMax: 0, moraDefActual: 0, plazoTotal: 0 });
+    }), { crecimientoNeto150: 0, amountAchieved: 0, repagos: 0, tea: 0, opAchieved: 0, sociosInicio: 0, sociosRecuperacion: 0, sociosActual: 0, sociosActivos: 0, sociosCancelados: 0, cartera: 0, moraCppMax: 0, moraCppActual: 0, moraDefMax: 0, moraDefActual: 0, plazoTotal: 0 });
 
     const count = comercialFiltered.length;
     return { ...acc, tea: count > 0 ? acc.tea / count : 0, plazoPromedio: count > 0 ? acc.plazoTotal / count : 0, pctMoraCpp: acc.cartera > 0 ? (acc.moraCppActual / acc.cartera) * 100 : 0 };
@@ -153,7 +171,7 @@ export function AgenciaView({ filters }: { filters: any }) {
     }), { crecimientoNeto150: 0, repagos: 0, carteraInicio: 0, moraCppMax: 0, moraCppActual: 0, moraDefMax: 0, moraDefActual: 0 });
   }, [recuperacionFiltered]);
 
-  // Funciones de formato movidas hacia arriba (son seguras de ejecutar siempre)
+  // Funciones de formato
   const fmtMoney = (val: number) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN', maximumFractionDigits: 0 }).format(Number(val || 0));
   const fmtNum = (val: number) => new Intl.NumberFormat('es-PE').format(Number(val || 0));
   const fmtDec = (val: number) => Number(val || 0).toFixed(2);
@@ -172,61 +190,77 @@ export function AgenciaView({ filters }: { filters: any }) {
   const totMoraDefMax1 = totales.moraDefMax + (filters.advisor === 'Todos' ? totalesRec.moraDefMax : 0);
   const totMoraDefAct1 = totales.moraDefActual + (filters.advisor === 'Todos' ? totalesRec.moraDefActual : 0);
 
+  // Totales Socios
+  const t1_sociosIniRecupe = (totales.sociosInicio - totales.sociosRecuperacion);
+  const t1_socActual = totales.sociosActual;
+
   const dataT1 = [{
     agencia: filters.agency === 'Todas' ? 'TODA LAS AGENCIAS' : filters.agency,
     crecNeto: totCrecNeto1, colocacion: totales.amountAchieved, repagos: totRepagos1,
-    tea: totales.tea, opAchieved: totales.opAchieved, sociosInicio: totales.sociosInicio,
-    sociosActual: totales.sociosActual, cartera: totales.cartera, moraCppMax: totMoraCppMax1,
-    moraCppActual: totMoraCppAct1, moraDefMax: totMoraDefMax1, moraDefActual: totMoraDefAct1
+    tea: totales.tea, opAchieved: totales.opAchieved, plazo: totales.plazoPromedio, 
+    sociosInicio: totales.sociosInicio, sociosIniRecupe: t1_sociosIniRecupe, sociosActual: t1_socActual, sociosActivos: totales.sociosActivos, 
+    cartera: totales.cartera, moraCppMax: totMoraCppMax1, moraCppActual: totMoraCppAct1, moraDefMax: totMoraDefMax1, moraDefActual: totMoraDefAct1
   }];
 
+  // ==========================================
+  // LÓGICA DE COLORES EXACTA Y DOS LÍNEAS
+  // ==========================================
+  const colDestacada = "bg-[hsl(35_80%_50%/.15)]"; // Naranja claro de las metas
+
   const defT1 = [
-    Col('agencia', 'Agencia', r => <span className="font-bold">{r.agencia}</span>, r => r.agencia, () => null, 'left'),
-    Col('crecNeto', 'Crecimiento Neto 150', r => <span className={`font-mono ${r.crecNeto >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{renderWithShare(r.crecNeto, totalesAgenciaGlobal.crecimientoNeto150)}</span>, r => r.crecNeto, () => null),
+    Col('agencia', 'Agencia', r => <div className="font-bold max-w-[80px] sm:max-w-[120px] md:max-w-none truncate" title={r.agencia}>{r.agencia}</div>, r => r.agencia, () => null, 'left'),
+    Col('crecNeto', 'Crecimiento Neto 150', r => <span className={`font-semibold ${r.crecNeto >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{renderWithShare(r.crecNeto, totalesAgenciaGlobal.crecimientoNeto150)}</span>, r => r.crecNeto, () => null, 'right', '', <div className="leading-[1.15]">Crecimiento<br/>Neto 150</div>),
     Col('colocacion', 'Colocación', r => <span className="font-mono">{renderWithShare(r.colocacion, totalesAgenciaGlobal.amountAchieved)}</span>, r => r.colocacion, () => null),
     Col('repagos', 'Repagos', r => <span className="font-mono">{renderWithShare(r.repagos, totalesAgenciaGlobal.repagos)}</span>, r => r.repagos, () => null),
     Col('tea', 'TEA', r => <span className="font-mono">{fmtDec(r.tea)}</span>, r => r.tea, () => null),
-    Col('nroOpe', 'Nro Ope', r => <span className="font-mono">{renderWithShare(r.opAchieved, totalesAgenciaGlobal.opAchieved, false)}</span>, r => r.opAchieved, () => null),
-    Col('socInicio', 'Nro Socios Inicio', r => <span className="font-mono">{fmtNum(r.sociosInicio)}</span>, r => r.sociosInicio, () => null, 'right', 'bg-amber-500/20'),
-    Col('socActual', 'Nro Socios', r => <span className={`font-mono ${r.sociosActual < r.sociosInicio ? 'text-rose-600' : 'text-emerald-600'}`}>{renderWithShare(r.sociosActual, totalesAgenciaGlobal.sociosActual, false)}</span>, r => r.sociosActual, () => null),
-    Col('cartera', 'Cartera', r => <span className="font-mono">{renderWithShare(r.cartera, totalesAgenciaGlobal.cartera)}</span>, r => r.cartera, () => null),
-    Col('cppMax', 'Mora CPP Maximo', r => <span className="font-mono">{fmtMoney(r.moraCppMax)}</span>, r => r.moraCppMax, () => null, 'right', 'bg-amber-500/10'),
-    Col('cppAct', 'Mora CPP Actual', r => <span className={`font-mono ${r.moraCppActual > r.moraCppMax ? 'text-rose-600 font-bold' : 'text-emerald-600'}`}>{fmtMoney(r.moraCppActual)}</span>, r => r.moraCppActual, () => null, 'right', 'bg-amber-500/10'),
-    Col('defMax', 'Mora Def. Maximo', r => <span className="font-mono">{fmtMoney(r.moraDefMax)}</span>, r => r.moraDefMax, () => null, 'right', 'bg-rose-500/10'),
-    Col('defAct', 'Mora Def. Actual', r => <span className={`font-mono ${r.moraDefActual > r.moraDefMax ? 'text-rose-600 font-bold' : 'text-emerald-600'}`}>{fmtMoney(r.moraDefActual)}</span>, r => r.moraDefActual, () => null, 'right', 'bg-rose-500/10')
+    Col('nroOpe', 'Nro Ope', r => <span className="font-mono">{renderWithShare(r.opAchieved, totalesAgenciaGlobal.opAchieved, false)}</span>, r => r.opAchieved, () => null, 'right', '', <div className="leading-[1.15]">Nro<br/>Ope</div>),
+    Col('plazo', 'Plazo', r => <span className="font-mono font-semibold text-[hsl(138_72%_35%)]">{fmtDec(r.plazo)}</span>, r => r.plazo, () => null),
+    Col('socInicio', 'Nro Socios de Inicio', r => <span className="font-mono font-semibold">{fmtNum(r.sociosInicio)}</span>, r => r.sociosInicio, () => null, 'right', colDestacada, <div className="leading-[1.15]">Nro Socios<br/>de Inicio</div>),
+    Col('socIniRecupe', 'Nro Socios Ini - Recupe', r => <span className="font-mono font-semibold">{fmtNum(r.sociosIniRecupe)}</span>, r => r.sociosIniRecupe, () => null, 'right', '', <div className="leading-[1.15]">Nro Socios Ini<br/>- Recupe</div>),
+    Col('socActual', 'Nro Socios', r => <span className={`font-mono font-semibold ${r.sociosActual < r.sociosIniRecupe ? 'text-rose-600' : 'text-emerald-600'}`}>{renderWithShare(r.sociosActual, totalesAgenciaGlobal.sociosActual, false)}</span>, r => r.sociosActual, () => null, 'right', '', <div className="leading-[1.15]">Nro<br/>Socios</div>),
+    Col('socActivos', 'Nro Socios Activos', r => <span className="font-mono font-semibold">{fmtNum(r.sociosActivos)}</span>, r => r.sociosActivos, () => null, 'right', '', <div className="leading-[1.15]">Nro Socios<br/>Activos</div>),
+    Col('cartera', 'Cartera', r => <span className="font-mono text-muted-foreground">{renderWithShare(r.cartera, totalesAgenciaGlobal.cartera)}</span>, r => r.cartera, () => null),
+    Col('cppMax', 'Mora CPP Maximo', r => <span className="font-mono font-semibold">{fmtMoney(r.moraCppMax)}</span>, r => r.moraCppMax, () => null, 'right', colDestacada, <div className="leading-[1.15]">Mora CPP<br/>Máximo</div>),
+    Col('cppAct', 'Mora CPP Actual', r => <span className={`font-mono font-semibold ${r.moraCppActual > r.moraCppMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraCppActual)}</span>, r => r.moraCppActual, () => null, 'right', '', <div className="leading-[1.15]">Mora CPP<br/>Actual</div>),
+    Col('defMax', 'Mora Def. Maximo', r => <span className="font-mono font-semibold">{fmtMoney(r.moraDefMax)}</span>, r => r.moraDefMax, () => null, 'right', colDestacada, <div className="leading-[1.15]">Mora Deficiente<br/>Máximo</div>),
+    Col('defAct', 'Mora Def. Actual', r => <span className={`font-mono font-semibold ${r.moraDefActual > r.moraDefMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraDefActual)}</span>, r => r.moraDefActual, () => null, 'right', '', <div className="leading-[1.15]">Mora Deficiente<br/>Actual</div>)
   ];
 
   const defT2 = [
-    Col('asesor', 'Asesor', r => <span className="font-medium">{r.asesor}</span>, r => r.asesor, () => 'Total Comercial', 'left'),
-    Col('crecNeto', 'Crec. Neto 150', r => <span className={`font-mono ${r.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => <span className={`font-mono ${totales.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(totales.crecimientoNeto150)}</span>),
-    Col('colocacion', 'Colocación', r => <span className="font-mono">{fmtMoney(r.amountAchieved)}</span>, r => r.amountAchieved, () => <span className="font-mono">{fmtMoney(totales.amountAchieved)}</span>),
-    Col('repagos', 'Repagos', r => <span className="font-mono">{fmtMoney(r.repagos)}</span>, r => r.repagos, () => <span className="font-mono">{fmtMoney(totales.repagos)}</span>),
-    Col('tea', 'TEA', r => <span className="font-mono">{fmtDec(r.tea)}</span>, r => r.tea, () => <span className="font-mono">{fmtDec(totales.tea)}</span>),
-    Col('nroOpe', 'Nro Ope', r => <span className={`font-mono ${r.opAchieved < 15 ? 'text-rose-600' : ''}`}>{fmtNum(r.opAchieved)}</span>, r => r.opAchieved, () => <span className="font-mono">{fmtNum(totales.opAchieved)}</span>),
-    Col('plazo', 'Plazo', r => <span className={`font-mono ${r.plazo < 6 ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtDec(r.plazo)}</span>, r => r.plazo, () => <span className="font-mono">{fmtDec(totales.plazoPromedio)}</span>),
-    Col('socInicio', 'Nro Soc. Inicio', r => <span className="font-mono">{fmtNum(r.sociosInicio)}</span>, r => r.sociosInicio, () => <span className="font-mono">{fmtNum(totales.sociosInicio)}</span>),
-    Col('socActual', 'Nro Socios', r => <span className={`font-mono ${r.sociosActual < r.sociosInicio ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtNum(r.sociosActual)}</span>, r => r.sociosActual, () => <span className="font-mono">{fmtNum(totales.sociosActual)}</span>),
-    Col('cartera', 'Cartera', r => <span className="font-mono">{fmtMoney(r.cartera)}</span>, r => r.cartera, () => <span className="font-mono">{fmtMoney(totales.cartera)}</span>),
-    Col('cppMax', 'Mora CPP Max', r => <span className="font-mono">{fmtMoney(r.moraCppMax)}</span>, r => r.moraCppMax, () => <span className="font-mono">{fmtMoney(totales.moraCppMax)}</span>, 'right', 'bg-amber-500/10'),
-    Col('cppAct', 'Mora Piso Actual', r => <span className={`font-mono ${r.moraCppActual > r.moraCppMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraCppActual)}</span>, r => r.moraCppActual, () => <span className="font-mono">{fmtMoney(totales.moraCppActual)}</span>, 'right', 'bg-amber-500/10'),
-    Col('pctCpp', '% Mora Piso', r => <span className="font-mono">{fmtPct(r.pctMoraCpp)}</span>, r => r.pctMoraCpp / 100, () => <span className="font-mono">{fmtPct(totales.pctMoraCpp)}</span>),
-    Col('defMax', 'Mora Def. Max', r => <span className="font-mono">{fmtMoney(r.moraDefMax)}</span>, r => r.moraDefMax, () => <span className="font-mono">{fmtMoney(totales.moraDefMax)}</span>, 'right', 'bg-rose-500/10'),
-    Col('defAct', 'Mora Def. Actual', r => <span className={`font-mono ${r.moraDefActual > r.moraDefMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraDefActual)}</span>, r => r.moraDefActual, () => <span className="font-mono">{fmtMoney(totales.moraDefActual)}</span>, 'right', 'bg-rose-500/10')
+    Col('asesor', 'Asesor', r => <div className="font-medium max-w-[80px] sm:max-w-[140px] md:max-w-none truncate" title={r.asesor}>{r.asesor}</div>, r => r.asesor, () => 'Total Comercial', 'left'),
+    Col('crecNeto', 'Crec. Neto 150', r => <span className={`font-semibold ${r.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => <span className={`font-semibold ${totales.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(totales.crecimientoNeto150)}</span>, 'right', '', <div className="leading-[1.15]">Crecimiento<br/>Neto 150</div>),
+    Col('colocacion', 'Colocación', r => <span className="font-mono text-muted-foreground">{fmtMoney(r.amountAchieved)}</span>, r => r.amountAchieved, () => <span className="font-mono">{fmtMoney(totales.amountAchieved)}</span>),
+    Col('repagos', 'Repagos', r => <span className="font-mono text-muted-foreground">{fmtMoney(r.repagos)}</span>, r => r.repagos, () => <span className="font-mono">{fmtMoney(totales.repagos)}</span>),
+    Col('tea', 'TEA', r => <span className="font-mono font-semibold">{fmtDec(r.tea)}</span>, r => r.tea, () => <span className="font-mono font-semibold">{fmtDec(totales.tea)}</span>),
+    Col('nroOpe', 'Nro Ope', r => <span className={`font-mono font-semibold ${r.opAchieved < 15 ? 'text-rose-600' : ''}`}>{fmtNum(r.opAchieved)}</span>, r => r.opAchieved, () => <span className="font-mono font-bold">{fmtNum(totales.opAchieved)}</span>, 'right', '', <div className="leading-[1.15]">Nro<br/>Ope</div>),
+    Col('plazo', 'Plazo', r => <span className={`font-mono font-semibold ${r.plazo < 6 ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtDec(r.plazo)}</span>, r => r.plazo, () => <span className="font-mono font-bold">{fmtDec(totales.plazoPromedio)}</span>),
+    Col('socInicio', 'Nro Soc. Inicio', r => <span className="font-mono font-semibold">{fmtNum(r.sociosInicio)}</span>, r => r.sociosInicio, () => <span className="font-mono font-semibold">{fmtNum(totales.sociosInicio)}</span>, 'right', colDestacada, <div className="leading-[1.15]">Nro Socios<br/>de Inicio</div>),
+    Col('socIniRecupe', 'Nro Socios Ini - Recupe', r => <span className="font-mono">{fmtNum(r.sociosInicio - r.sociosRecuperacion)}</span>, r => r.sociosInicio - r.sociosRecuperacion, () => <span className="font-mono font-bold">{fmtNum(totales.sociosInicio - totales.sociosRecuperacion)}</span>, 'right', '', <div className="leading-[1.15]">Nro Socios Ini<br/>- Recupe</div>),
+    Col('socActual', 'Nro Socios', r => <span className={`font-mono font-semibold ${r.sociosActual < (r.sociosInicio - r.sociosRecuperacion) ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtNum(r.sociosActual)}</span>, r => r.sociosActual, () => <span className={`font-mono font-semibold ${totales.sociosActual < (totales.sociosInicio - totales.sociosRecuperacion) ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtNum(totales.sociosActual)}</span>, 'right', '', <div className="leading-[1.15]">Nro<br/>Socios</div>),
+    Col('socActivos', 'Nro Socios Activos', r => <span className="font-mono">{fmtNum(r.sociosActivos)}</span>, r => r.sociosActivos, () => <span className="font-mono font-bold">{fmtNum(totales.sociosActivos)}</span>, 'right', '', <div className="leading-[1.15]">Nro Socios<br/>Activos</div>),
+    Col('cartera', 'Cartera', r => <span className="font-mono text-muted-foreground">{fmtMoney(r.cartera)}</span>, r => r.cartera, () => <span className="font-mono text-muted-foreground">{fmtMoney(totales.cartera)}</span>),
+    Col('cppMax', 'Mora CPP Max', r => <span className="font-mono font-semibold">{fmtMoney(r.moraCppMax)}</span>, r => r.moraCppMax, () => <span className="font-mono font-semibold">{fmtMoney(totales.moraCppMax)}</span>, 'right', colDestacada, <div className="leading-[1.15]">Mora CPP<br/>Máximo</div>),
+    Col('cppAct', 'Mora Piso Actual', r => <span className={`font-mono font-semibold ${r.moraCppActual > r.moraCppMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraCppActual)}</span>, r => r.moraCppActual, () => <span className={`font-mono font-semibold ${totales.moraCppActual > totales.moraCppMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(totales.moraCppActual)}</span>, 'right', '', <div className="leading-[1.15]">Mora Piso<br/>Actual</div>),
+    Col('pctCpp', '% Mora Piso', r => <span className="font-mono font-semibold text-muted-foreground">{fmtPct(r.pctMoraCpp)}</span>, r => r.pctMoraCpp / 100, () => <span className="font-mono font-bold">{fmtPct(totales.pctMoraCpp)}</span>, 'right', '', <div className="leading-[1.15]">% Mora<br/>Piso</div>),
+    Col('defMax', 'Mora Def. Max', r => <span className="font-mono font-semibold">{fmtMoney(r.moraDefMax)}</span>, r => r.moraDefMax, () => <span className="font-mono font-semibold">{fmtMoney(totales.moraDefMax)}</span>, 'right', colDestacada, <div className="leading-[1.15]">Mora Deficiente<br/>Máximo</div>),
+    Col('defAct', 'Mora Def. Actual', r => <span className={`font-mono font-semibold ${r.moraDefActual > r.moraDefMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraDefActual)}</span>, r => r.moraDefActual, () => <span className={`font-mono font-semibold ${totales.moraDefActual > totales.moraDefMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(totales.moraDefActual)}</span>, 'right', '', <div className="leading-[1.15]">Mora Deficiente<br/>Actual</div>),
+    Col('socCancelados', 'Nro Socios Cancelados', r => <span className="font-mono text-muted-foreground">{fmtNum(r.sociosCancelados)}</span>, r => r.sociosCancelados, () => <span className="font-mono font-bold">{fmtNum(totales.sociosCancelados)}</span>, 'right', '', <div className="leading-[1.15]">Nro Socios<br/>Cancelados</div>),
+    Col('socRecuperacion', 'Nro Socios Recuperación', r => <span className="font-mono text-muted-foreground">{fmtNum(r.sociosRecuperacion)}</span>, r => r.sociosRecuperacion, () => <span className="font-mono font-bold">{fmtNum(totales.sociosRecuperacion)}</span>, 'right', '', <div className="leading-[1.15]">Nro Socios<br/>Recuperación</div>)
   ];
 
   const defT3 = [
-    Col('recuperador', 'Recuperador', r => <span className="font-medium">{r.recuperador}</span>, r => r.recuperador, () => 'Total Recuperación', 'left'),
-    Col('crecNeto', 'Crec. Neto 150', r => <span className={`font-mono ${r.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => <span className={`font-mono ${totalesRec.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(totalesRec.crecimientoNeto150)}</span>),
-    Col('repagos', 'Repagos', r => <span className="font-mono">{fmtMoney(r.repagos)}</span>, r => r.repagos, () => <span className="font-mono">{fmtMoney(totalesRec.repagos)}</span>),
-    Col('carteraInicio', 'Cartera de Inicio', r => <span className="font-mono">{fmtMoney(r.carteraInicio)}</span>, r => r.carteraInicio, () => <span className="font-mono">{fmtMoney(totalesRec.carteraInicio)}</span>),
-    Col('cppMax', 'Mora CPP Maximo', r => <span className="font-mono">{fmtMoney(r.moraCppMax)}</span>, r => r.moraCppMax, () => <span className="font-mono">{fmtMoney(totalesRec.moraCppMax)}</span>, 'right', 'bg-amber-500/10'),
-    Col('cppAct', 'Mora CPP Actual', r => <span className={`font-mono ${r.moraCppActual > r.moraCppMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraCppActual)}</span>, r => r.moraCppActual, () => <span className="font-mono">{fmtMoney(totalesRec.moraCppActual)}</span>, 'right', 'bg-amber-500/10'),
-    Col('defMax', 'Mora Def. Maximo', r => <span className="font-mono">{fmtMoney(r.moraDefMax)}</span>, r => r.moraDefMax, () => <span className="font-mono">{fmtMoney(totalesRec.moraDefMax)}</span>, 'right', 'bg-rose-500/10'),
-    Col('defAct', 'Mora Def. Actual', r => <span className={`font-mono ${r.moraDefActual > r.moraDefMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraDefActual)}</span>, r => r.moraDefActual, () => <span className="font-mono">{fmtMoney(totalesRec.moraDefActual)}</span>, 'right', 'bg-rose-500/10')
+    Col('recuperador', 'Recuperador', r => <div className="font-medium max-w-[80px] sm:max-w-[120px] md:max-w-none truncate" title={r.recuperador}>{r.recuperador}</div>, r => r.recuperador, () => 'Total Recuperación', 'left'),
+    Col('crecNeto', 'Crec. Neto 150', r => <span className={`font-semibold ${r.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(r.crecimientoNeto150)}</span>, r => r.crecimientoNeto150, () => <span className={`font-semibold ${totalesRec.crecimientoNeto150 >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{fmtMoney(totalesRec.crecimientoNeto150)}</span>, 'right', '', <div className="leading-[1.15]">Crecimiento<br/>Neto 150</div>),
+    Col('carteraInicio', 'Cartera de Inicio', r => <span className="font-mono text-muted-foreground">{fmtMoney(r.carteraInicio)}</span>, r => r.carteraInicio, () => <span className="font-mono text-muted-foreground">{fmtMoney(totalesRec.carteraInicio)}</span>, 'right', '', <div className="leading-[1.15]">Cartera de<br/>Inicio</div>),
+    Col('cppMax', 'Mora CPP Maximo', r => <span className="font-mono font-semibold">{fmtMoney(r.moraCppMax)}</span>, r => r.moraCppMax, () => <span className="font-mono font-semibold">{fmtMoney(totalesRec.moraCppMax)}</span>, 'right', colDestacada, <div className="leading-[1.15]">Mora CPP<br/>Máximo</div>),
+    Col('cppAct', 'Mora CPP Actual', r => <span className={`font-mono font-semibold ${r.moraCppActual > r.moraCppMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraCppActual)}</span>, r => r.moraCppActual, () => <span className={`font-mono font-semibold ${totalesRec.moraCppActual > totalesRec.moraCppMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(totalesRec.moraCppActual)}</span>, 'right', '', <div className="leading-[1.15]">Mora CPP<br/>Actual</div>),
+    Col('defMax', 'Mora Defic. Maximo', r => <span className="font-mono font-semibold">{fmtMoney(r.moraDefMax)}</span>, r => r.moraDefMax, () => <span className="font-mono font-semibold">{fmtMoney(totalesRec.moraDefMax)}</span>, 'right', colDestacada, <div className="leading-[1.15]">Mora Deficiente<br/>Máximo</div>),
+    Col('defAct', 'Mora Defic. Actual', r => <span className={`font-mono font-semibold ${r.moraDefActual > r.moraDefMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(r.moraDefActual)}</span>, r => r.moraDefActual, () => <span className={`font-mono font-semibold ${totalesRec.moraDefActual > totalesRec.moraDefMax ? 'text-rose-600' : 'text-emerald-600'}`}>{fmtMoney(totalesRec.moraDefActual)}</span>, 'right', '', <div className="leading-[1.15]">Mora Deficiente<br/>Actual</div>),
+    Col('repagos', 'Repagos', r => <span className="font-mono text-muted-foreground">{fmtMoney(r.repagos)}</span>, r => r.repagos, () => <span className="font-mono text-muted-foreground">{fmtMoney(totalesRec.repagos)}</span>)
   ];
 
   // ==========================================
-  // AQUÍ ESTÁN LOS HOOKS (Antes del return anticipado)
+  // HOOKS
   // ==========================================
   const t1 = useColumnOrder(defT1.map(c => c.id), 't1', 'agencia');
   const t2 = useColumnOrder(defT2.map(c => c.id), 't2', 'asesor');
@@ -238,7 +272,6 @@ export function AgenciaView({ filters }: { filters: any }) {
   if (isLoading) return <div className="h-96 animate-pulse rounded-xl bg-muted/50"></div>;
   if (isError || !data) return <div className="text-destructive font-semibold">Error al cargar la información de la agencia.</div>;
 
-  // 🚀 CAMBIO DE LIBRERÍA: xlsx -> ExcelJS (misma lógica, mismo lugar)
   const exportar = async (tablaId: 't1'|'t2'|'t3', formato: 'excel' | 'clipboard') => {
     let rawCols: any[] = []; let rowsData: any[] = []; let filename = '';
     if (tablaId === 't1') { rawCols = t1.order.map(id => defT1.find(c => c.id === id)!); rowsData = dataT1; filename = 'Agencia_Completa'; }
@@ -261,12 +294,10 @@ export function AgenciaView({ filters }: { filters: any }) {
         worksheet.addRow(headers);
         rows.forEach((row: any[]) => worksheet.addRow(row));
 
-        // Estilo del encabezado
         const headerRow = worksheet.getRow(1);
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
 
-        // Autoajustar ancho de columnas
         worksheet.columns.forEach((col: any) => {
           let maxLen = 10;
           col.eachCell?.({ includeEmpty: false }, (cell: any) => {
@@ -292,7 +323,9 @@ export function AgenciaView({ filters }: { filters: any }) {
     }
   };
 
-  const containerClass = `pb-0 overflow-x-auto ${filters.agency === 'Todas' ? 'max-h-[420px] overflow-y-auto' : ''}`;
+  // 14 FILAS DE SCROLL (aprox 40px por fila = 560px)
+  // Limita la altura a 400px o 500px para que se active el scroll interno de la tabla
+  const containerClass = `pb-0 ${filters.agency === 'Todas' ? 'max-h-[500px]' : 'max-h-[600px]'}`;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

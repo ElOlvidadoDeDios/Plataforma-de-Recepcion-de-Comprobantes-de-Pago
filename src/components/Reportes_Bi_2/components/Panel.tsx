@@ -1,22 +1,45 @@
-//Panel.tsx
+import React, { ReactNode } from 'react';
 
-import { ReactNode } from 'react';
+interface PanelProps {
+  title: string;
+  eyebrow?: string;
+  subtitle?: string;
+  icon?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}
 
-export function Panel({ title, icon, subtitle, eyebrow, children, action }: { title: string; subtitle?: string; icon?: ReactNode; eyebrow?: string; children: ReactNode; action?: ReactNode }) {
+export function Panel({ title, eyebrow, subtitle, icon, action, children, className = '' }: PanelProps) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-soft)] sm:p-6">
-      <div className="mb-5 flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            {icon && <div>{icon}</div>}
-            <h2 className="font-display text-[17px] font-bold tracking-[-.025em]">{title}</h2>
+    <div 
+      className={`
+        flex flex-col rounded-2xl 
+        border border-border/80 
+        bg-white 
+        shadow-sm hover:shadow-md transition-shadow duration-300
+        ${className}
+      `}
+    >
+      <div className="flex flex-col gap-4 border-b border-border/50 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-4">
+          {icon && (
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted/40 text-muted-foreground ring-1 ring-border/50">
+              {icon}
+            </div>
+          )}
+          <div>
+            {eyebrow && <div className="mb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{eyebrow}</div>}
+            <h2 className="text-lg font-bold tracking-tight text-foreground">{title}</h2>
+            {subtitle && <p className="mt-1 text-[13px] font-medium text-muted-foreground">{subtitle}</p>}
           </div>
-          {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
-          {eyebrow && <p className="mt-1 font-mono text-[9px] uppercase tracking-[.13em] text-muted-foreground">{eyebrow}</p>}
         </div>
-        {action}
+        {action && <div>{action}</div>}
       </div>
-      {children}
-    </section>
+      
+      <div className="flex-1 p-5">
+        {children}
+      </div>
+    </div>
   );
 }
