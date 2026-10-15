@@ -38,3 +38,7 @@ pnpm-debug.log*
 Thumbs.db
 # Local Netlify folder
 .netlify
+
+# Archivos compilados y recursos pesados locales
+dist/
+public/viajes/
